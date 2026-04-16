@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "gym_mobile (device)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file", "dart_defines.json"],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "gym_mobile (simulator/emulator)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file", "dart_defines.json"],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "gym_mobile (release)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file", "dart_defines.json"],
+      "flutterMode": "release"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "API_URL": "https://api.clbyapp.com",
+  "GYM_ID": "your-gym-uuid-from-gyms-table",
+  "IS_STAGING": "false"
+}

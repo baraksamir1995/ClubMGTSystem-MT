@@ -1,0 +1,42 @@
+version: 2
+
+updates:
+
+  # ── gym-admin (Next.js) ───────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /gym-admin
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    groups:
+      next:
+        patterns: ["next", "eslint-config-next"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+    ignore:
+      # Pin major versions — review manually before upgrading
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+
+  # ── clby-api (Laravel) ───────────────────────────────────────────────────
+  - package-ecosystem: composer
+    directory: /clby-api
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+
+  # ── gym_mobile_flutter ────────────────────────────────────────────────────
+  - package-ecosystem: pub
+    directory: /gym_mobile_flutter
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    groups:
+      flutter_security:
+        patterns: ["flutter_secure_storage", "http_certificate_pinning"]

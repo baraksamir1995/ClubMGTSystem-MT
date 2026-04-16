@@ -1,0 +1,13 @@
+# Never commit .env files or editor save-states of them
+.env
+.env.local
+.env.*.local
+.env.local.save
+*.save
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencies (install locally in each sub-project)
+node_modules/
+gym-admin/ClubMGTSystem

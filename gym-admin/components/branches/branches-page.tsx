@@ -1,0 +1,552 @@
+'use client';
+
+import { useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, GitBranch, Check, X, ToggleLeft, ToggleRight, AlertCircle, MapPin, Image as ImageIcon, Upload, ExternalLink, Building2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useRefresh } from '@/lib/use-refresh';
+import type { GymBranch } from '@/app/dashboard/branches/page';
+import type { GymStudio } from '@/app/dashboard/classes/page';
+import { can, type Permission } from '@/lib/get-permissions';
+import StudiosPageClient from '@/components/studios/studios-page';
+
+interface Props {
+  initialBranches: GymBranch[];
+  initialStudios: GymStudio[];
+  maxBranches: number;
+  pricePerBranch: number | null;
+  gymId: string;
+  permissions: Permission[] | null;
+  hideHeader?: boolean;
+}
+
+function fmt(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
+export default function BranchesPage({ initialBranches, initialStudios, maxBranches, pricePerBranch, gymId, permissions, hideHeader = false }: Props) {
+  const refresh = useRefresh();
+  const [activeTab, setActiveTab] = useState<'branches' | 'studios'>('branches');
+  const [branches, setBranches]     = useState<GymBranch[]>(initialBranches);
+  const [editingId, setEditingId]   = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savingId, setSavingId]     = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  // Inline edit state
+  const [editName, setEditName]       = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editMapsUrl, setEditMapsUrl] = useState('');
+
+  // Create form
+  const [showCreate, setShowCreate]       = useState(false);
+  const [creating, setCreating]           = useState(false);
+  const [createName, setCreateName]       = useState('');
+  const [createAddress, setCreateAddress] = useState('');
+  const [createMapsUrl, setCreateMapsUrl] = useState('');
+
+  const atLimit = branches.length >= maxBranches;
+
+  // Per-row file input refs (keyed by branch id)
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  /* ── Helpers ── */
+  const startEdit = (b: GymBranch) => {
+    setEditingId(b.id);
+    setEditName(b.name);
+    setEditAddress(b.address ?? '');
+    setEditMapsUrl(b.maps_url ?? '');
+  };
+  const cancelEdit = () => setEditingId(null);
+
+  /* ── Save edit ── */
+  const saveEdit = async (id: string) => {
+    const name = editName.trim();
+    if (!name) { toast.error('Name is required'); return; }
+    setSavingId(id);
+    try {
+      const res = await fetch(`/api/branches/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          address: editAddress.trim() || null,
+          mapsUrl: editMapsUrl.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        toast.error(error ?? 'Failed to save'); return;
+      }
+      const { branch } = await res.json();
+      setBranches(prev => prev.map(b => b.id === id ? { ...b, ...branch } : b));
+      setEditingId(null);
+      toast.success('Branch updated');
+      refresh();
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  /* ── Upload image ── */
+  const uploadImage = async (branchId: string, file: File) => {
+    setUploadingId(branchId);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`/api/branches/${branchId}/upload-image`, {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        toast.error(error ?? 'Upload failed'); return;
+      }
+      const { image_url } = await res.json();
+      setBranches(prev => prev.map(b => b.id === branchId ? { ...b, image_url } : b));
+      toast.success('Image uploaded');
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  /* ── Toggle active ── */
+  const toggleActive = async (b: GymBranch) => {
+    setTogglingId(b.id);
+    try {
+      const res = await fetch(`/api/branches/${b.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !b.is_active }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        toast.error(error ?? 'Failed to update'); return;
+      }
+      const { branch } = await res.json();
+      setBranches(prev => prev.map(x => x.id === b.id ? { ...x, ...branch } : x));
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  /* ── Delete ── */
+  const handleDelete = async (b: GymBranch) => {
+    if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return;
+    setDeletingId(b.id);
+    try {
+      const res = await fetch(`/api/branches/${b.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        toast.error(error ?? 'Failed to delete'); return;
+      }
+      setBranches(prev => prev.filter(x => x.id !== b.id));
+      toast.success('Branch deleted');
+      refresh();
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  /* ── Create ── */
+  const handleCreate = async () => {
+    const name = createName.trim();
+    if (!name) { toast.error('Name is required'); return; }
+    setCreating(true);
+    try {
+      const res = await fetch('/api/branches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          address: createAddress.trim() || null,
+          mapsUrl: createMapsUrl.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        toast.error(error ?? 'Failed to create'); return;
+      }
+      const { branch } = await res.json();
+      setBranches(prev => [...prev, { ...branch, session_count: 0 }]);
+      setCreateName('');
+      setCreateAddress('');
+      setCreateMapsUrl('');
+      setShowCreate(false);
+      toast.success('Branch created');
+      refresh();
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const inputCls = 'bg-gray-900 border border-gray-600 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-purple-500 transition-colors';
+
+  return (
+    <div className="space-y-5">
+
+      {/* Header */}
+      {!hideHeader && (
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Branches & Studios</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Manage your gym locations and studio spaces</p>
+          </div>
+          {activeTab === 'branches' && can(permissions, 'branches', 'create') && !atLimit && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Branch
+            </button>
+          )}
+        </div>
+      )}
+      {hideHeader && activeTab === 'branches' && can(permissions, 'branches', 'create') && !atLimit && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Branch
+          </button>
+        </div>
+      )}
+
+      {/* Tab bar */}
+      <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
+        <button onClick={() => setActiveTab('branches')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'branches' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>
+          <GitBranch className="w-4 h-4" /> Branches
+          <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">{initialBranches.length}</span>
+        </button>
+        <button onClick={() => setActiveTab('studios')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'studios' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>
+          <Building2 className="w-4 h-4" /> Studios
+          <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">{initialStudios.length}</span>
+        </button>
+      </div>
+
+      {/* Studios tab */}
+      {activeTab === 'studios' && (
+        <StudiosPageClient
+          initialStudios={initialStudios}
+          branches={initialBranches}
+          gymId={gymId}
+          permissions={permissions}
+          hideHeader
+        />
+      )}
+
+      {/* Branches tab content below */}
+      {activeTab === 'branches' && (<>
+
+      {/* Usage bar */}
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
+        <GitBranch className="w-5 h-5 text-purple-400 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between mb-1.5">
+            <span className="text-sm font-medium text-white">Branch usage</span>
+            <span className="text-sm text-gray-400">{branches.length} / {maxBranches}</span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all ${atLimit ? 'bg-red-500' : 'bg-purple-500'}`}
+              style={{ width: `${Math.min(100, (branches.length / maxBranches) * 100)}%` }}
+            />
+          </div>
+        </div>
+        {pricePerBranch != null && (
+          <span className="text-xs text-gray-500 flex-shrink-0">
+            +${pricePerBranch}/mo per extra branch
+          </span>
+        )}
+      </div>
+
+      {/* At-limit notice */}
+      {atLimit && (
+        <div className="flex items-center gap-3 bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <span className="text-amber-400 text-sm">
+            Branch limit reached ({maxBranches}). Contact support to increase your limit.
+          </span>
+        </div>
+      )}
+
+      {/* Create form */}
+      {showCreate && (
+        <div className="bg-gray-800 border border-purple-500/50 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-medium text-white">New Branch</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-gray-400">Name *</label>
+              <input
+                autoFocus
+                type="text"
+                value={createName}
+                onChange={e => setCreateName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowCreate(false); }}
+                placeholder="e.g. Main Branch"
+                className={`${inputCls} w-full`}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-400">Address (optional)</label>
+              <input
+                type="text"
+                value={createAddress}
+                onChange={e => setCreateAddress(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowCreate(false); }}
+                placeholder="e.g. 123 Main St, Cairo"
+                className={`${inputCls} w-full`}
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Google Maps Link (optional)
+            </label>
+            <input
+              type="url"
+              value={createMapsUrl}
+              onChange={e => setCreateMapsUrl(e.target.value)}
+              placeholder="https://maps.google.com/..."
+              className={`${inputCls} w-full`}
+            />
+          </div>
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              onClick={() => { setShowCreate(false); setCreateName(''); setCreateAddress(''); setCreateMapsUrl(''); }}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={creating}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+            >
+              {creating ? 'Creating…' : <><Check className="w-3.5 h-3.5" /> Create</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cards grid */}
+      {branches.length === 0 ? (
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
+          <GitBranch className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400 text-sm">No branches yet. Add your first branch to get started.</p>
+          {can(permissions, 'branches', 'create') && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Branch
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {branches.map(b => {
+            const isEditing = editingId === b.id;
+            return (
+              <div key={b.id} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+
+                {/* Image area */}
+                <div className="relative h-40 bg-gray-900 group">
+                  {b.image_url ? (
+                    <img
+                      src={b.image_url}
+                      alt={b.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-600">
+                      <ImageIcon className="w-8 h-8" />
+                      <span className="text-xs">No image</span>
+                    </div>
+                  )}
+
+                  {/* Upload overlay */}
+                  {can(permissions, 'branches', 'edit') && (
+                    <>
+                      <input
+                        ref={el => { fileInputRefs.current[b.id] = el; }}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadImage(b.id, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <button
+                        onClick={() => fileInputRefs.current[b.id]?.click()}
+                        disabled={uploadingId === b.id}
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-sm font-medium"
+                      >
+                        {uploadingId === b.id ? (
+                          <span className="text-xs">Uploading…</span>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            {b.image_url ? 'Change image' : 'Upload image'}
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
+
+                  {/* Status badge */}
+                  <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                    b.is_active ? 'bg-emerald-400/20 text-emerald-400' : 'bg-gray-400/20 text-gray-400'
+                  }`}>
+                    {b.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                {/* Body */}
+                <div className="p-4 space-y-3">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500">Name *</label>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(b.id); if (e.key === 'Escape') cancelEdit(); }}
+                          className={`${inputCls} w-full`}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500">Address</label>
+                        <input
+                          type="text"
+                          value={editAddress}
+                          onChange={e => setEditAddress(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(b.id); if (e.key === 'Escape') cancelEdit(); }}
+                          placeholder="Address (optional)"
+                          className={`${inputCls} w-full`}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-500 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> Google Maps Link
+                        </label>
+                        <input
+                          type="url"
+                          value={editMapsUrl}
+                          onChange={e => setEditMapsUrl(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(b.id); if (e.key === 'Escape') cancelEdit(); }}
+                          placeholder="https://maps.google.com/..."
+                          className={`${inputCls} w-full`}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 justify-end pt-1">
+                        <button
+                          onClick={cancelEdit}
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => saveEdit(b.id)}
+                          disabled={savingId === b.id}
+                          className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="font-semibold text-white text-base">{b.name}</p>
+                        {b.address && (
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">{b.address}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-end text-xs text-gray-500">
+                        <span>{fmt(b.created_at)}</span>
+                      </div>
+
+                      {/* Maps link preview */}
+                      {b.maps_url && (
+                        <a
+                          href={b.maps_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors truncate"
+                        >
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">Google Maps</span>
+                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        </a>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 pt-1 border-t border-gray-700">
+                        {can(permissions, 'branches', 'edit') && (
+                          <>
+                            <button
+                              onClick={() => toggleActive(b)}
+                              disabled={togglingId === b.id}
+                              title={b.is_active ? 'Deactivate' : 'Activate'}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors disabled:opacity-40"
+                            >
+                              {b.is_active
+                                ? <><ToggleRight className="w-3.5 h-3.5" /> Deactivate</>
+                                : <><ToggleLeft  className="w-3.5 h-3.5" /> Activate</>
+                              }
+                            </button>
+                            <button
+                              onClick={() => startEdit(b)}
+                              title="Edit"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" /> Edit
+                            </button>
+                          </>
+                        )}
+                        {can(permissions, 'branches', 'delete') && (
+                          <button
+                            onClick={() => handleDelete(b)}
+                            disabled={deletingId === b.id}
+                            title="Delete"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-40"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      </>)}
+    </div>
+  );
+}

@@ -1,0 +1,36 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+import { resolveGymId, laravelApi } from '@/lib/api-gym-id';
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const resolved = await resolveGymId();
+  if (resolved.response) return resolved.response;
+  const { token } = resolved;
+
+  const res = await laravelApi(`/members/${params.id}/services`, token);
+  const json = await res.json();
+  if (!res.ok) return NextResponse.json({ error: json.error ?? 'Failed' }, { status: res.status });
+  return NextResponse.json(json.data ?? json);
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const resolved = await resolveGymId();
+  if (resolved.response) return resolved.response;
+  const { token } = resolved;
+
+  const body = await req.json();
+  const res = await laravelApi(`/members/${params.id}/services`, token, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) return NextResponse.json({ error: json.error ?? json.message ?? 'Failed' }, { status: res.status });
+  return NextResponse.json(json, { status: 201 });
+}

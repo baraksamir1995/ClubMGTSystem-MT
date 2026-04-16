@@ -1,0 +1,260 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ClassSession;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+use \App\Traits\LogsActivity;
+
+class SessionController extends Controller
+{
+    use LogsActivity;
+    public function index(Request $request): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        $query = ClassSession::where('gym_id', $gymId)
+            ->with('classModel:id,name,class_type,color,instructor');
+
+        if ($date = $request->query('date')) {
+            $query->where('session_date', $date);
+        }
+
+        if ($classId = $request->query('class_id')) {
+            $query->where('class_id', $classId);
+        }
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        $sessions = $query->orderBy('session_date')
+            ->orderBy('start_time')
+            ->get();
+
+        return response()->json(['data' => $sessions]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'class_id' => 'required|uuid',
+            'session_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i',
+            'capacity' => 'nullable|integer|min:1',
+            'instructor' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'session_type' => 'nullable|string|in:popup,regular',
+            'branch_id' => 'nullable|uuid',
+            'studio_id' => 'nullable|uuid',
+            'walk_in_allowed' => 'nullable|boolean',
+        ]);
+
+        $validated['gym_id'] = $request->user()->gym_id;
+
+        $session = ClassSession::create($validated);
+
+        return response()->json(['data' => $session], 201);
+    }
+
+    public function createRecurring(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'class_id' => 'required|uuid',
+            'start_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i',
+            'capacity' => 'nullable|integer|min:1',
+            'instructor' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        $result = DB::select('SELECT create_recurring_session(?, ?, ?, ?, ?, ?, ?, ?) AS id', [
+            $gymId,
+            $validated['class_id'],
+            $validated['start_date'],
+            $validated['start_time'],
+            $validated['end_time'],
+            $validated['capacity'] ?? null,
+            $validated['instructor'] ?? null,
+            $validated['location'] ?? null,
+        ]);
+
+        return response()->json(['data' => ['id' => $result[0]->id]], 201);
+    }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        $session = ClassSession::where('gym_id', $gymId)->findOrFail($id);
+
+        $validated = $request->validate([
+            'session_date' => 'sometimes|date',
+            'start_time' => 'sometimes|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i',
+            'capacity' => 'nullable|integer|min:1',
+            'instructor' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'session_type' => 'nullable|string|in:popup,regular',
+            'is_published' => 'sometimes|boolean',
+            'walk_in_allowed' => 'sometimes|boolean',
+            'branch_id' => 'nullable|uuid',
+            'studio_id' => 'nullable|uuid',
+        ]);
+
+        $session->update($validated);
+
+        return response()->json(['data' => $session]);
+    }
+
+    public function cancel(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        DB::select('SELECT cancel_session(?, ?, ?)', [
+            $id,
+            $gymId,
+            $validated['reason'] ?? null,
+        ]);
+
+        return response()->json(['message' => 'Session cancelled successfully']);
+    }
+
+    /**
+     * Check in a member to a specific session (by session ID in URL).
+     */
+    public function checkin(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'gym_member_id' => 'required|uuid',
+        ]);
+
+        $result = DB::select('SELECT checkin_member(?, ?) AS id', [
+            $id,
+            $validated['gym_member_id'],
+        ]);
+
+        return response()->json(['data' => ['id' => $result[0]->id]]);
+    }
+
+    /**
+     * Generic check-in without session ID in URL — looks up the session by class_id.
+     * Used by Flutter's markClassAttended().
+     */
+    public function checkinGeneric(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'class_id' => 'required|uuid',
+            'gym_member_id' => 'required|uuid',
+        ]);
+
+        // Find the current/next session for this class
+        $session = ClassSession::where('class_id', $validated['class_id'])
+            ->where('session_date', '>=', now()->subDay()->toDateString())
+            ->where('status', 'scheduled')
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->first();
+
+        if (! $session) {
+            return response()->json(['error' => 'No upcoming session found for this class'], 404);
+        }
+
+        $result = DB::select('SELECT checkin_member(?, ?) AS id', [
+            $session->id,
+            $validated['gym_member_id'],
+        ]);
+
+        return response()->json(['data' => ['id' => $result[0]->id]]);
+    }
+
+    public function stopRecurring(Request $request, string $id): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        // Cancel all future scheduled sessions with this recurring_template_id
+        $today = now()->toDateString();
+
+        DB::table('class_sessions')
+            ->where('recurring_template_id', $id)
+            ->where('gym_id', $gymId)
+            ->where('status', 'scheduled')
+            ->where('session_date', '>=', $today)
+            ->update([
+                'status' => 'cancelled',
+                'cancel_reason' => 'Recurring series stopped',
+                'cancelled_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return response()->json(['message' => 'Recurring series stopped']);
+    }
+
+    public function consume(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'gym_member_id' => 'required|uuid',
+        ]);
+
+        $result = DB::select('SELECT consume_class_session(?) AS data', [
+            $validated['gym_member_id'],
+        ]);
+
+        return response()->json([
+            'data' => json_decode($result[0]->data, true),
+        ]);
+    }
+
+    public function sessionLogs(Request $request): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        $logs = DB::table('attendance_logs as a')
+            ->join('gym_members as gm', 'gm.id', '=', 'a.gym_member_id')
+            ->join('profiles as u', 'u.id', '=', 'gm.user_id')
+            ->leftJoin('member_memberships as mm', function ($join) {
+                $join->on('mm.gym_member_id', '=', 'gm.id')
+                     ->where('mm.status', 'active');
+            })
+            ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
+            ->leftJoin('class_sessions as cs', 'cs.id', '=', 'a.class_session_id')
+            ->leftJoin('classes as c', 'c.id', '=', 'cs.class_id')
+            ->where('a.gym_id', $gymId)
+            ->select([
+                'a.id',
+                'a.check_in_at as consumed_at',
+                'a.method as source',
+                'gm.id as member_id',
+                'gm.member_number',
+                'u.full_name',
+                'u.email',
+                'mm.id as membership_id',
+                'mp.name as plan_name',
+                'mp.plan_type',
+                'mm.status as membership_status',
+                'mm.sessions_used',
+                'mm.sessions_total',
+                'c.name as class_name',
+                'c.class_type',
+                'c.color as class_color',
+                'cs.session_date',
+                'cs.start_time as session_time',
+            ])
+            ->orderByDesc('a.check_in_at')
+            ->limit((int) $request->query('limit', 200))
+            ->get();
+
+        return response()->json(['data' => $logs]);
+    }
+}

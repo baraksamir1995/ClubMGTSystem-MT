@@ -1,0 +1,227 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Payment;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+use \App\Traits\LogsActivity;
+
+class PaymentController extends Controller
+{
+    use LogsActivity;
+    public function index(Request $request): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        if (!$gymId) {
+            return response()->json(['data' => []]);
+        }
+
+        $memberId = $request->query('gym_member_id');
+
+        // If filtering by member, use direct query instead of PG function
+        if ($memberId) {
+            $results = DB::table('payments')
+                ->where('gym_id', $gymId)
+                ->where('gym_member_id', $memberId)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(fn ($r) => (array) $r)
+                ->toArray();
+
+            return response()->json(['data' => $results]);
+        }
+
+        $results = DB::select('SELECT * FROM get_gym_payments(?)', [$gymId]);
+
+        // Cast numeric string columns to floats (PG returns decimal as string)
+        $numericCols = ['amount', 'original_amount', 'discount_amount', 'refund_amount', 'refunded_amount'];
+        $results = array_map(function ($row) use ($numericCols) {
+            $row = (array) $row;
+            foreach ($numericCols as $col) {
+                if (isset($row[$col])) {
+                    $row[$col] = (float) $row[$col];
+                }
+            }
+            return $row;
+        }, $results);
+
+        return response()->json(['data' => $results]);
+    }
+
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        if (!$gymId) {
+            return response()->json(['data' => null]);
+        }
+
+        $payment = Payment::where('id', $id)->where('gym_id', $gymId)->first();
+        if (! $payment) return response()->json(['error' => 'Payment not found'], 404);
+
+        // Include member info
+        $member = null;
+        if ($payment->gym_member_id) {
+            $member = DB::table('gym_members')
+                ->join('profiles', 'profiles.id', '=', 'gym_members.user_id')
+                ->where('gym_members.id', $payment->gym_member_id)
+                ->select('gym_members.id', 'gym_members.member_number', 'profiles.full_name', 'profiles.email')
+                ->first();
+        }
+
+        // Include plan info
+        $plan = null;
+        if ($payment->membership_id) {
+            $plan = DB::table('member_memberships')
+                ->join('membership_plans', 'membership_plans.id', '=', 'member_memberships.plan_id')
+                ->where('member_memberships.id', $payment->membership_id)
+                ->select('membership_plans.name as plan_name', 'membership_plans.plan_type')
+                ->first();
+        }
+
+        $data = $payment->toArray();
+        $data['member'] = $member ? (array) $member : null;
+        $data['plan'] = $plan ? (array) $plan : null;
+
+        return response()->json($data);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'gym_member_id' => 'required|uuid',
+            'membership_id' => 'nullable|uuid',
+            'amount' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|max:5',
+            'payment_method' => 'nullable|string|max:50',
+            'status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'notes' => 'nullable|string',
+            'paid_at' => 'nullable|date',
+            'source' => 'nullable|string|max:50',
+            'original_amount' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'promo_code_id' => 'nullable|uuid',
+            'plan_promotion_id' => 'nullable|uuid',
+            'service_type' => 'nullable|string|max:50',
+            'service_name' => 'nullable|string|max:255',
+            'service_id' => 'nullable|uuid',
+            'specialist_name' => 'nullable|string|max:255',
+            'branch_id' => 'nullable|uuid',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        if (!$gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        $status = $validated['status'] ?? 'pending';
+
+        $payment = Payment::create([
+            'gym_id' => $gymId,
+            'gym_member_id' => $validated['gym_member_id'],
+            'membership_id' => $validated['membership_id'] ?? null,
+            'amount' => $validated['amount'],
+            'currency' => $validated['currency'] ?? 'EGP',
+            'payment_method' => $validated['payment_method'] ?? 'cash',
+            'status' => $status,
+            'notes' => $validated['notes'] ?? null,
+            'paid_at' => $status === 'paid' ? ($validated['paid_at'] ?? now()) : ($validated['paid_at'] ?? null),
+            'source' => $validated['source'] ?? 'admin',
+            'original_amount' => $validated['original_amount'] ?? $validated['amount'],
+            'discount_amount' => $validated['discount_amount'] ?? 0,
+            'promo_code_id' => $validated['promo_code_id'] ?? null,
+            'plan_promotion_id' => $validated['plan_promotion_id'] ?? null,
+            'service_type' => $validated['service_type'] ?? null,
+            'service_name' => $validated['service_name'] ?? null,
+            'specialist_name' => $validated['specialist_name'] ?? null,
+            'branch_id' => $validated['branch_id'] ?? null,
+        ]);
+
+        return response()->json(['data' => ['id' => $payment->id]], 201);
+    }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'paid_at' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        if (!$gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        DB::select('SELECT update_payment(?, ?, ?, ?, ?)', [
+            $id,
+            $gymId,
+            $validated['status'] ?? null,
+            $validated['paid_at'] ?? null,
+            $validated['notes'] ?? null,
+        ]);
+
+        // When payment is marked as paid, assign member_number if not yet assigned
+        // and update the linked membership's payment_status
+        if (($validated['status'] ?? '') === 'paid') {
+            $payment = Payment::find($id);
+            if ($payment && $payment->gym_member_id) {
+                // Assign member_number if null
+                $gymMember = DB::table('gym_members')->where('id', $payment->gym_member_id)->first();
+                if ($gymMember && $gymMember->member_number === null) {
+                    $maxNumber = DB::table('gym_members')
+                        ->where('gym_id', $gymId)
+                        ->whereNotNull('member_number')
+                        ->max('member_number') ?? 0;
+
+                    DB::table('gym_members')
+                        ->where('id', $payment->gym_member_id)
+                        ->update(['member_number' => $maxNumber + 1]);
+                }
+
+                // Update linked membership payment_status to paid
+                if ($payment->membership_id) {
+                    DB::table('member_memberships')
+                        ->where('id', $payment->membership_id)
+                        ->where('payment_status', 'pending')
+                        ->update(['payment_status' => 'paid']);
+                }
+            }
+        }
+
+        return response()->json(['message' => 'Payment updated successfully']);
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        if (!$gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        DB::select('SELECT delete_payment(?, ?)', [$id, $gymId]);
+
+        return response()->json(['message' => 'Payment deleted successfully']);
+    }
+
+    public function stampTransaction(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'transaction_id' => 'required|string',
+        ]);
+
+        DB::select('SELECT stamp_paymob_transaction_id(?, ?)', [
+            $id,
+            $validated['transaction_id'],
+        ]);
+
+        return response()->json(['message' => 'Transaction ID stamped successfully']);
+    }
+}

@@ -221,10 +221,10 @@ class ApiService {
       final gym = Gym.fromJson(data as Map<String, dynamic>);
       return [gym];
     }
-    // Fallback: authenticated settings endpoint
-    final data = await _get('/api/settings');
-    final gym = Gym.fromJson(data as Map<String, dynamic>);
-    return [gym];
+    // Multi-gym mode: fetch all active gyms from public endpoint
+    final data = await _get('/api/gyms');
+    final list = (data is Map<String, dynamic>) ? (data['data'] as List?) ?? [] : (data as List?) ?? [];
+    return list.map((g) => Gym.fromJson(g as Map<String, dynamic>)).toList();
   }
 
   /// Returns raw gym settings JSON (for screens that need all fields).

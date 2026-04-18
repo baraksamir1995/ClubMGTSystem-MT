@@ -8,15 +8,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // CLBY design system
-        ink: "#0A0E1A",        // deep navy-black for primary text & dark sections
-        canvas: "#F5F2EC",     // warm off-white (not the default ghost-white SaaS bg)
-        paper: "#FAF8F3",      // lighter canvas variant
-        accent: "#4D3BFF",     // electric indigo (the one sharp accent)
-        accentDark: "#2E1FCC",
+        // CLBY brand system
+        ink: "#0A0A0A",        // primary black (backgrounds, text on light)
+        surface: "#161616",    // elevated dark surface
+        canvas: "#F5F5F2",     // off-white for light sections & text on dark
+        paper: "#FAFAF7",      // lighter canvas variant
+        entry: "#B8FF2E",      // green = entry / CTAs
+        energy: "#FF6B2B",     // orange = energy / highlights
         muted: "#6B6F78",
-        line: "#E4DFD5",       // warm border color
-        success: "#0F7B3F",
+        line: "#2A2A2A",       // dark border
+        lineLight: "#E4DFD5",  // light border
+        success: "#B8FF2E",
+        // Legacy aliases (keep existing components working during migration)
+        accent: "#B8FF2E",
+        accentDark: "#9CE820",
       },
       fontFamily: {
         display: ["var(--font-display)", "Georgia", "serif"],
@@ -24,7 +29,6 @@ const config: Config = {
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       fontSize: {
-        // editorial scale
         "display-xl": ["clamp(3.5rem, 8vw, 7rem)", { lineHeight: "0.95", letterSpacing: "-0.03em" }],
         "display-lg": ["clamp(2.5rem, 5vw, 4.5rem)", { lineHeight: "1", letterSpacing: "-0.025em" }],
         "display-md": ["clamp(1.75rem, 3vw, 2.75rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],

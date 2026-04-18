@@ -11,13 +11,20 @@ export async function GET() {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const res = await fetch(`${BACKEND_URL}/api/me`, {
+    let res = await fetch(`${BACKEND_URL}/api/me`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       cache: 'no-store',
     });
 
+    // If gym-scoped /me fails (super-admin has no gym_id), try super-admin endpoint
     if (!res.ok) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const saRes = await fetch(`${BACKEND_URL}/api/super-admin/me`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!saRes.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const saProfile = await saRes.json();
+      return NextResponse.json({ ...saProfile, gym: null, mustResetPassword: false });
     }
 
     const profile = await res.json();

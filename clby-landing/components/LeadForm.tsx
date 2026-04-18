@@ -4,6 +4,16 @@ import { useState, useRef } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 
 type FormState = "idle" | "submitting" | "success" | "error";
+type FieldErrors = {
+  name?: string;
+  phone?: string;
+  gymName?: string;
+  notes?: string;
+  general?: string;
+};
+
+// Simple Egyptian phone validation
+const EG_PHONE = /^(\+?20|0)?1[0125]\d{8}$/;
 
 interface LeadFormProps {
   source?: string;
@@ -12,42 +22,64 @@ interface LeadFormProps {
 
 export default function LeadForm({ source = "landing-hero", compact = false }: LeadFormProps) {
   const [state, setState] = useState<FormState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const formRef = useRef<HTMLFormElement>(null);
+
+  function validate(data: { name: string; phone: string; gymName: string }): FieldErrors {
+    const errs: FieldErrors = {};
+    if (!data.name || data.name.trim().length < 2) {
+      errs.name = "Please enter your name.";
+    }
+    const cleanPhone = data.phone.replace(/\s|-/g, "");
+    if (!cleanPhone) {
+      errs.phone = "Please enter your WhatsApp number.";
+    } else if (!EG_PHONE.test(cleanPhone)) {
+      errs.phone = "Enter a valid Egyptian mobile (e.g. 01X XXXX XXXX).";
+    }
+    if (!data.gymName || data.gymName.trim().length < 2) {
+      errs.gymName = "Please tell us your gym or club name.";
+    }
+    return errs;
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (state === "submitting") return;
 
-    setState("submitting");
-    setError(null);
-
     const fd = new FormData(e.currentTarget);
-    const payload = {
-      name: fd.get("name"),
-      phone: fd.get("phone"),
-      gymName: fd.get("gymName"),
-      branches: fd.get("branches"),
-      notes: fd.get("notes"),
-      source,
+    const data = {
+      name: String(fd.get("name") ?? ""),
+      phone: String(fd.get("phone") ?? ""),
+      gymName: String(fd.get("gymName") ?? ""),
+      branches: String(fd.get("branches") ?? "1"),
+      notes: String(fd.get("notes") ?? ""),
     };
+
+    const fieldErrors = validate(data);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setState("submitting");
+    setErrors({});
 
     try {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...data, source }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setError(data.error ?? "Something went wrong.");
+      const body = await res.json();
+      if (!res.ok || !body.ok) {
+        setErrors({ general: body.error ?? "Something went wrong." });
         setState("error");
         return;
       }
       setState("success");
       formRef.current?.reset();
-    } catch (err) {
-      setError("Network error. Please try again.");
+    } catch {
+      setErrors({ general: "Network error. Please try again." });
       setState("error");
     }
   }
@@ -55,13 +87,13 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
   if (state === "success") {
     return (
       <div
-        className={`rounded-sm border border-ink/10 bg-ink text-canvas p-8 ${
+        className={`rounded-sm border border-canvas/10 bg-surface text-canvas p-8 ${
           compact ? "" : "md:p-10"
         }`}
       >
         <div className="flex items-start gap-4">
-          <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-accent">
-            <Check className="h-4 w-4 text-canvas" strokeWidth={3} />
+          <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-entry">
+            <Check className="h-4 w-4 text-ink" strokeWidth={3} />
           </div>
           <div>
             <h3 className="font-display text-3xl leading-none mb-3">
@@ -81,13 +113,14 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
     <form
       ref={formRef}
       onSubmit={handleSubmit}
-      className={`rounded-sm border border-ink/15 bg-paper p-6 ${
+      noValidate
+      className={`rounded-sm border border-canvas/15 bg-surface p-6 ${
         compact ? "" : "md:p-8"
       } shadow-[0_1px_0_0_rgba(10,14,26,0.04),0_24px_48px_-24px_rgba(10,14,26,0.12)]`}
     >
       <div className="mb-6">
         <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted mb-3">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-blink" />
+          <span className="h-1.5 w-1.5 rounded-full bg-entry animate-blink" />
           Book a demo
         </div>
         <h3 className="font-display text-3xl md:text-4xl leading-none mb-2">
@@ -103,8 +136,9 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           label="Your name"
           name="name"
           placeholder="e.g. Ahmed Saleh"
-          required
           autoComplete="name"
+          error={errors.name}
+          onChange={() => errors.name && setErrors(e => ({ ...e, name: undefined }))}
         />
 
         <Field
@@ -112,17 +146,19 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           name="phone"
           type="tel"
           placeholder="01X XXXX XXXX"
-          required
           autoComplete="tel"
           hint="We'll send the demo link here."
+          error={errors.phone}
+          onChange={() => errors.phone && setErrors(e => ({ ...e, phone: undefined }))}
         />
 
         <Field
           label="Gym or club name"
           name="gymName"
           placeholder="e.g. Iron Strong Studio"
-          required
           autoComplete="organization"
+          error={errors.gymName}
+          onChange={() => errors.gymName && setErrors(e => ({ ...e, gymName: undefined }))}
         />
 
         <div>
@@ -142,7 +178,7 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
                   defaultChecked={i === 0}
                   className="peer sr-only"
                 />
-                <div className="border border-ink/15 bg-canvas rounded-sm py-3 text-center font-medium transition-all peer-checked:border-ink peer-checked:bg-ink peer-checked:text-canvas group-hover:border-ink/40">
+                <div className="border border-canvas/15 bg-surface text-canvas rounded-sm py-3 text-center font-medium transition-all peer-checked:border-entry peer-checked:bg-entry peer-checked:text-ink group-hover:border-canvas/40">
                   {n}
                 </div>
               </label>
@@ -155,22 +191,22 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           name="notes"
           as="textarea"
           rows={2}
-          required={false}
+          optional
           placeholder="Current setup, team size, biggest pain…"
           hint="Optional — but helps us tailor the demo."
         />
       </div>
 
-      {error && (
-        <div className="mt-4 rounded-sm border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
-          {error}
+      {errors.general && (
+        <div className="mt-4 rounded-sm border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          {errors.general}
         </div>
       )}
 
       <button
         type="submit"
         disabled={state === "submitting"}
-        className="mt-6 group relative w-full bg-ink text-canvas font-medium py-4 px-6 rounded-sm transition-all hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+        className="mt-6 group relative w-full bg-entry text-ink font-semibold py-4 px-6 rounded-sm transition-all hover:bg-entry/90 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <span className="flex items-center justify-center gap-2">
           {state === "submitting" ? (
@@ -201,11 +237,13 @@ interface FieldProps {
   name: string;
   type?: string;
   placeholder?: string;
-  required?: boolean;
+  optional?: boolean;
   autoComplete?: string;
   hint?: string;
+  error?: string;
   as?: "input" | "textarea";
   rows?: number;
+  onChange?: () => void;
 }
 
 function Field({
@@ -213,26 +251,31 @@ function Field({
   name,
   type = "text",
   placeholder,
-  required = true,
+  optional = false,
   autoComplete,
   hint,
+  error,
   as = "input",
   rows = 3,
+  onChange,
 }: FieldProps) {
-  const base =
-    "w-full bg-canvas border border-ink/15 rounded-sm px-4 py-3 text-ink placeholder:text-muted/60 transition-colors focus:border-ink focus:outline-none";
+  const base = `w-full bg-ink border rounded-sm px-4 py-3 text-canvas placeholder:text-muted/60 transition-colors focus:outline-none ${
+    error
+      ? "border-red-400/60 focus:border-red-400"
+      : "border-canvas/15 focus:border-entry"
+  }`;
 
   return (
     <div>
       <label className="block text-xs font-mono uppercase tracking-wider text-muted mb-2">
-        {label} {!required && <span className="normal-case tracking-normal text-muted/60">(optional)</span>}
+        {label} {optional && <span className="normal-case tracking-normal text-muted/60">(optional)</span>}
       </label>
       {as === "textarea" ? (
         <textarea
           name={name}
           placeholder={placeholder}
-          required={required}
           rows={rows}
+          onChange={onChange}
           className={`${base} resize-none`}
         />
       ) : (
@@ -240,12 +283,16 @@ function Field({
           name={name}
           type={type}
           placeholder={placeholder}
-          required={required}
           autoComplete={autoComplete}
+          onChange={onChange}
           className={base}
         />
       )}
-      {hint && <p className="mt-1.5 text-[11px] text-muted">{hint}</p>}
+      {error ? (
+        <p className="mt-1.5 text-[11px] text-red-400">{error}</p>
+      ) : hint ? (
+        <p className="mt-1.5 text-[11px] text-muted">{hint}</p>
+      ) : null}
     </div>
   );
 }

@@ -17,6 +17,18 @@ class GymController extends Controller
     }
 
     /**
+     * List all active gyms — used by mobile app registration gym selector.
+     */
+    public function listPublic(): JsonResponse
+    {
+        $gyms = Gym::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'description', 'city', 'country', 'logo_url', 'cover_image_url', 'category', 'services']);
+
+        return response()->json(['data' => $gyms]);
+    }
+
+    /**
      * Public gym info — used by registration screen before auth.
      * Only returns active, listed gyms (or the specific GYM_ID gym).
      */

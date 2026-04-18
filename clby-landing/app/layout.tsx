@@ -22,13 +22,13 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CLBY — Run your club from your phone",
+  title: "CLBY — All-in-one gym access",
   description:
-    "The gym management platform built for MENA. Bilingual, mobile-first, branded member app included. Join 10 founding gyms across Egypt.",
+    "Gateway · motion · access. Discover gyms, book classes, and manage everything from one app. Built for MENA, bilingual, mobile-first.",
   openGraph: {
-    title: "CLBY — Run your club from your phone",
+    title: "CLBY — All-in-one gym access",
     description:
-      "The gym management platform built for MENA. Bilingual, mobile-first, branded member app included.",
+      "Gateway · motion · access. Discover gyms, book classes, and manage everything from one app.",
     url: "https://clby.app",
     siteName: "CLBY",
     locale: "en_US",
@@ -36,9 +36,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "CLBY — Run your club from your phone",
+    title: "CLBY — All-in-one gym access",
     description:
-      "The gym management platform built for MENA. Bilingual, mobile-first, branded member app included.",
+      "Gateway · motion · access. Discover gyms, book classes, and manage everything from one app.",
   },
 };
 

@@ -42,20 +42,28 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get("user-agent") ?? "",
     };
 
-    // TODO: replace this block with your Supabase insert:
-    //
-    //   import { createClient } from "@supabase/supabase-js";
-    //   const supabase = createClient(
-    //     process.env.SUPABASE_URL!,
-    //     process.env.SUPABASE_SERVICE_ROLE_KEY!
-    //   );
-    //   const { error } = await supabase.from("leads").insert(lead);
-    //   if (error) throw error;
-    //
-    // Optionally fire a WhatsApp notification via your backend or an
-    // automation tool (Zapier / Make / n8n) so you get pinged instantly.
-
-    console.log("[CLBY lead]", lead);
+    // Forward to Laravel backend for persistence
+    const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8081";
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(lead),
+      });
+      if (!res.ok) {
+        console.error("[CLBY lead] backend error", await res.text());
+        return NextResponse.json(
+          { ok: false, error: "Could not save your request. Please try again." },
+          { status: 500 }
+        );
+      }
+    } catch (err) {
+      console.error("[CLBY lead] backend unreachable", err);
+      return NextResponse.json(
+        { ok: false, error: "Service unavailable. Please try again." },
+        { status: 503 }
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

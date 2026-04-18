@@ -73,7 +73,7 @@ export default async function SettingsRoute() {
       permissions={permissions}
       initialBranches={enrichedBranches}
       initialStudios={initialStudios}
-      maxBranches={Math.max(gym?.max_branches ?? 10, 10)}
+      maxBranches={gym?.max_branches ?? 10}
       pricePerBranch={gym?.price_per_branch ?? null}
       gymId={gymId}
     />

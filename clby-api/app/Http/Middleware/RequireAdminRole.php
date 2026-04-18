@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
  */
 class RequireAdminRole
 {
-    private const ADMIN_ROLES = ['gym_admin', 'staff', 'trainer'];
+    private const ADMIN_ROLES = ['gym_admin', 'staff', 'trainer', 'super_admin'];
 
     public function handle(Request $request, Closure $next)
     {

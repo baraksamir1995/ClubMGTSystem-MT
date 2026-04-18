@@ -43,6 +43,11 @@ export async function middleware(request: NextRequest) {
     return redirect('/login');
   }
 
+  // Allow super-admin routes (they have their own layout auth check)
+  if (pathname.startsWith('/super-admin')) {
+    return NextResponse.next();
+  }
+
   // Don't redirect /login → /dashboard. Let the login page handle it.
   // This prevents redirect loops when the token exists but is invalid.
 

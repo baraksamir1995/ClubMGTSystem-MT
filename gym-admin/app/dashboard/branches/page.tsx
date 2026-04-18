@@ -62,7 +62,7 @@ export default async function BranchesRoute() {
     <BranchesPage
       initialBranches={enrichedBranches}
       initialStudios={initialStudios}
-      maxBranches={Math.max(settingsData?.max_branches ?? 10, 10)}
+      maxBranches={settingsData?.max_branches ?? 10}
       pricePerBranch={settingsData?.price_per_branch ?? null}
       gymId={gymId}
       permissions={permissions}

@@ -6,25 +6,31 @@
   --font-display: 'Instrument Serif', Georgia, serif;
   --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* CLBY brand colors */
+  --ink: #0A0A0A;
+  --surface: #161616;
+  --canvas: #F5F5F2;
+  --entry: #B8FF2E;
+  --energy: #FF6B2B;
 }
 
 html,
 body {
-  background: #F5F2EC;
-  color: #0A0E1A;
+  background: #0A0A0A;
+  color: #F5F5F2;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle grain texture overlay — adds warmth & print feel */
+/* Subtle grain texture overlay */
 .grain::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.035;
+  opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
 }
 
@@ -50,22 +56,62 @@ html {
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Focus styling — keyboard users */
+/* Focus styling */
 *:focus-visible {
-  outline: 2px solid #4D3BFF;
+  outline: 2px solid #B8FF2E;
   outline-offset: 3px;
   border-radius: 2px;
 }
 
 /* Custom selection color */
 ::selection {
-  background: #4D3BFF;
-  color: #F5F2EC;
+  background: #B8FF2E;
+  color: #0A0A0A;
 }
 
 /* Number tabular alignment for prices */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Legal/long-form text */
+.prose-custom p {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.prose-custom strong {
+  color: #F5F5F2;
+  font-weight: 600;
+}
+.prose-custom ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+.prose-custom ul li {
+  position: relative;
+  padding-left: 1.25rem;
+  margin: 0.35rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.prose-custom ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  background-color: #B8FF2E;
+  border-radius: 1px;
+}
+.prose-custom a {
+  color: #B8FF2E;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-custom a:hover {
+  opacity: 0.8;
 }
 
 /* Marquee container masks */

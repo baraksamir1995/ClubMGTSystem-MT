@@ -20,11 +20,11 @@ export default function Home() {
     <main className="relative z-10">
       <Nav />
       <Hero />
-      <SocialProof />
+      {/* <SocialProof /> */}
       <Features />
       <ProductShowcase />
       <Pricing />
-      <Comparison />
+      {/* <Comparison /> */}
       <FAQ />
       <FinalCTA />
       <Footer />
@@ -36,25 +36,25 @@ export default function Home() {
 
 function Nav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-canvas/80 backdrop-blur-md border-b border-ink/10">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-ink/80 backdrop-blur-md border-b border-canvas/10">
       <div className="max-w-[1400px] mx-auto px-5 md:px-8 py-4 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2">
           <Logo />
         </a>
         <div className="hidden md:flex items-center gap-8 text-sm">
-          <a href="#features" className="text-ink/70 hover:text-ink transition-colors">
+          <a href="#features" className="text-canvas/70 hover:text-canvas transition-colors">
             Features
           </a>
-          <a href="#pricing" className="text-ink/70 hover:text-ink transition-colors">
+          <a href="#pricing" className="text-canvas/70 hover:text-canvas transition-colors">
             Pricing
           </a>
-          <a href="#faq" className="text-ink/70 hover:text-ink transition-colors">
+          <a href="#faq" className="text-canvas/70 hover:text-canvas transition-colors">
             FAQ
           </a>
         </div>
         <a
           href="#demo"
-          className="group inline-flex items-center gap-1.5 bg-ink text-canvas text-sm font-medium px-4 py-2 rounded-sm hover:bg-accent transition-colors"
+          className="group inline-flex items-center gap-1.5 bg-entry text-ink text-sm font-medium px-4 py-2 rounded-sm hover:bg-entry/90 transition-colors"
         >
           Book demo
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -66,12 +66,44 @@ function Nav() {
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-7 w-7 rounded-sm bg-ink flex items-center justify-center">
-        <div className="h-2.5 w-2.5 rounded-full bg-accent" />
-      </div>
-      <span className="font-display text-2xl leading-none">clby</span>
+    <div className="flex items-center gap-2.5">
+      <img src="/logo.png" alt="CLBY" className="h-9 w-9 object-contain" />
+      <span className="font-sans font-black text-xl leading-none tracking-tight text-canvas">CLBY</span>
     </div>
+  );
+}
+
+function AppStoreBadge({ href, platform }: { href: string; platform: "ios" | "android" }) {
+  const isIos = platform === "ios";
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex items-center gap-3 bg-surface border border-canvas/15 hover:border-entry rounded-lg px-4 py-2.5 transition-colors"
+    >
+      {isIos ? (
+        <svg viewBox="0 0 24 24" className="h-7 w-7 text-canvas" fill="currentColor">
+          <path d="M17.05 12.536c-.018-2.944 2.405-4.356 2.514-4.423-1.369-2.003-3.5-2.276-4.262-2.307-1.816-.184-3.542 1.07-4.462 1.07-.92 0-2.339-1.043-3.843-1.014-1.977.029-3.803 1.148-4.82 2.918-2.055 3.563-.526 8.828 1.473 11.716.978 1.414 2.143 3 3.669 2.945 1.474-.06 2.032-.954 3.812-.954 1.78 0 2.285.954 3.842.924 1.587-.03 2.592-1.444 3.566-2.866 1.125-1.647 1.587-3.24 1.613-3.322-.036-.016-3.088-1.186-3.102-4.687zM14.155 4.09c.81-.984 1.358-2.348 1.209-3.709-1.167.05-2.582.776-3.422 1.76-.75.868-1.411 2.258-1.237 3.592 1.303.1 2.641-.662 3.45-1.643z"/>
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none">
+          <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92z" fill="#B8FF2E"/>
+          <path d="M16.81 15.018l-3.018-3.018 3.018-3.018 3.844 2.182c.861.489.861 1.681 0 2.17l-3.844 2.684z" fill="#FF6B2B"/>
+          <path d="M4.002 22.186L14.185 12 4.002 1.814a.996.996 0 00-.002 0l.609.92 9.574 9.266-9.574 9.267-.609.92z" fill="#F5F5F2" opacity="0.3"/>
+          <path d="M13.792 12l3.018-3.018-13.201-7.168a1 1 0 00-.609 0L13.792 12z" fill="#F5F5F2" opacity="0.8"/>
+          <path d="M13.792 12l3.018 3.018-13.201 7.168a1 1 0 01-.609 0L13.792 12z" fill="#F5F5F2" opacity="0.6"/>
+        </svg>
+      )}
+      <div className="flex flex-col leading-tight">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+          {isIos ? "Download on the" : "Get it on"}
+        </span>
+        <span className="text-sm font-semibold text-canvas group-hover:text-entry transition-colors">
+          {isIos ? "App Store" : "Google Play"}
+        </span>
+      </div>
+    </a>
   );
 }
 
@@ -79,54 +111,52 @@ function Logo() {
 
 function Hero() {
   return (
-    <section className="pt-32 md:pt-36 pb-16 md:pb-24 px-5 md:px-8" id="demo">
+    <section className="pt-24 md:pt-28 pb-10 md:pb-16 px-5 md:px-8" id="demo">
       <div className="max-w-[1400px] mx-auto">
-        {/* Announcement pill */}
-        <div className="reveal reveal-1 mb-8 flex justify-center md:justify-start">
-          <div className="inline-flex items-center gap-2 border border-ink/15 bg-paper rounded-full pl-2 pr-4 py-1 text-xs">
-            <span className="bg-ink text-canvas rounded-full px-2 py-0.5 font-mono uppercase tracking-wider text-[10px]">
-              New
-            </span>
-            <span className="text-ink/70">
-              Founding Gyms program — 6 of 10 spots remaining
-            </span>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
           {/* LEFT: headline + copy */}
           <div className="lg:col-span-7">
-            <h1 className="reveal reveal-2 font-display text-display-xl text-ink">
-              Run your club
+            <h1 className="reveal reveal-2 font-display text-display-lg text-canvas">
+              Club management,
               <br />
-              from your{" "}
               <span className="relative inline-block">
-                phone
-                <span className="absolute -bottom-2 left-0 right-0 h-[3px] bg-accent" />
+                simplified
+                <span className="absolute -bottom-2 left-0 right-0 h-[3px] bg-entry" />
               </span>
               .
             </h1>
 
-            <p className="reveal reveal-3 mt-8 text-lg md:text-xl text-ink/70 leading-relaxed max-w-xl">
-              CLBY is the gym management platform built for MENA. Bilingual,
-              mobile-first, with a{" "}
-              <span className="text-ink font-medium">branded member app</span>{" "}
-              included — so you stop chasing renewals on WhatsApp and start
-              running your club like a business.
+            <p className="reveal reveal-3 mt-8 text-lg md:text-xl text-canvas/70 leading-relaxed max-w-xl">
+              CLBY is the all-in-one gym management platform built for MENA,
+              mobile-first, with your own{" "}
+              <span className="text-canvas font-medium">branded member app</span>.
             </p>
 
             <div className="reveal reveal-4 mt-10 flex flex-wrap items-center gap-5">
-              <div className="flex items-center gap-2 text-sm text-ink/70">
-                <CheckCircle2 className="h-4 w-4 text-accent" />
+              <div className="flex items-center gap-2 text-sm text-canvas/70">
+                <CheckCircle2 className="h-4 w-4 text-entry" />
                 30-day free trial
               </div>
-              <div className="flex items-center gap-2 text-sm text-ink/70">
-                <CheckCircle2 className="h-4 w-4 text-accent" />
+              <div className="flex items-center gap-2 text-sm text-canvas/70">
+                <CheckCircle2 className="h-4 w-4 text-entry" />
                 Setup in one afternoon
               </div>
-              <div className="flex items-center gap-2 text-sm text-ink/70">
-                <CheckCircle2 className="h-4 w-4 text-accent" />
-                Arabic & English
+            </div>
+
+            {/* App store badges — members download the CLBY marketplace app */}
+            <div className="reveal reveal-5 mt-8">
+              <p className="text-xs font-mono uppercase tracking-wider text-muted mb-3">
+                Members · Download the app
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <AppStoreBadge
+                  href="#"
+                  platform="ios"
+                />
+                <AppStoreBadge
+                  href="#"
+                  platform="android"
+                />
               </div>
             </div>
 
@@ -144,10 +174,10 @@ function Hero() {
               <MessageCircle className="h-3.5 w-3.5" />
               Prefer WhatsApp?{" "}
               <a
-                href="https://wa.me/201000000000?text=Hi%20CLBY%2C%20I'd%20like%20to%20book%20a%20demo"
+                href="https://wa.me/201027823660?text=Hi%20CLBY%2C%20I'd%20like%20to%20book%20a%20demo"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-2 hover:text-ink transition-colors"
+                className="underline underline-offset-2 hover:text-canvas transition-colors"
               >
                 Message us directly
               </a>
@@ -175,7 +205,7 @@ function SocialProof() {
   ];
 
   return (
-    <section className="py-14 border-y border-ink/10 bg-paper overflow-hidden">
+    <section className="py-14 border-y border-canvas/10 bg-surface overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-5 md:px-8 mb-8">
         <p className="text-center text-xs font-mono uppercase tracking-wider text-muted">
           Trusted by clubs across Egypt
@@ -186,7 +216,7 @@ function SocialProof() {
           {logos.map((logo, i) => (
             <span
               key={i}
-              className="font-display text-2xl md:text-3xl text-ink/40 tracking-wide"
+              className="font-display text-2xl md:text-3xl text-canvas/40 tracking-wide"
             >
               {logo}
             </span>
@@ -213,13 +243,13 @@ function Features() {
     },
     {
       icon: <Bell className="h-5 w-5" />,
-      title: "WhatsApp automations",
-      body: "Renewal reminders, class confirmations, overdue payments — all sent automatically on the channel your members actually read.",
+      title: "Group sessions & classes",
+      body: "Schedule recurring classes, manage capacity, track bookings, and let members reserve their spot in seconds.",
     },
     {
       icon: <CreditCard className="h-5 w-5" />,
       title: "Local payments, natively",
-      body: "Fawry, Paymob, InstaPay — ready to use. Collect in EGP. No USD FX games, no failed transactions.",
+      body: "Members card payments, BNPL, Apple Pay.",
     },
     {
       icon: <LineChart className="h-5 w-5" />,
@@ -234,32 +264,32 @@ function Features() {
   ];
 
   return (
-    <section id="features" className="py-20 md:py-32 px-5 md:px-8">
+    <section id="features" className="py-12 md:py-20 px-5 md:px-8">
       <div className="max-w-[1400px] mx-auto">
-        <div className="max-w-3xl mb-14 md:mb-20">
+        <div className="max-w-3xl mb-8 md:mb-12">
           <div className="text-xs font-mono uppercase tracking-wider text-muted mb-4">
             What's inside
           </div>
           <h2 className="font-display text-display-lg">
             Everything your club needs.
             <br />
-            <span className="text-ink/40">Nothing it doesn't.</span>
+            <span className="text-canvas/40">Nothing it doesn't.</span>
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-ink/10 border border-ink/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-canvas/10 border border-canvas/10">
           {features.map((f, i) => (
             <div
               key={i}
-              className="bg-canvas p-8 md:p-10 hover:bg-paper transition-colors group"
+              className="bg-ink p-8 md:p-10 hover:bg-surface transition-colors group"
             >
-              <div className="h-10 w-10 rounded-sm bg-ink text-canvas flex items-center justify-center mb-6 group-hover:bg-accent transition-colors">
+              <div className="h-10 w-10 rounded-sm bg-surface text-canvas flex items-center justify-center mb-6 group-hover:bg-entry transition-colors">
                 {f.icon}
               </div>
               <h3 className="font-display text-2xl mb-3 leading-tight">
                 {f.title}
               </h3>
-              <p className="text-ink/70 leading-relaxed">{f.body}</p>
+              <p className="text-canvas/70 leading-relaxed">{f.body}</p>
             </div>
           ))}
         </div>
@@ -272,25 +302,25 @@ function Features() {
 
 function ProductShowcase() {
   return (
-    <section className="bg-ink text-canvas py-20 md:py-32 px-5 md:px-8 relative overflow-hidden">
+    <section className="bg-surface text-canvas py-12 md:py-20 px-5 md:px-8 relative overflow-hidden">
       {/* decorative element */}
-      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-accent/20 blur-3xl pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-entry/20 blur-3xl pointer-events-none" />
 
       <div className="max-w-[1400px] mx-auto relative">
-        <div className="max-w-3xl mb-16 md:mb-20">
+        <div className="max-w-3xl mb-10 md:mb-14">
           <div className="text-xs font-mono uppercase tracking-wider text-canvas/50 mb-4">
             The difference
           </div>
           <h2 className="font-display text-display-lg">
             Before CLBY,
             <br />
-            <span className="text-accent">after CLBY.</span>
+            <span className="text-entry">after CLBY.</span>
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           {/* Before */}
-          <div className="bg-canvas/5 border border-canvas/10 rounded-sm p-6 md:p-10">
+          <div className="bg-ink/60 border border-canvas/10 rounded-sm p-6 md:p-10">
             <div className="text-xs font-mono uppercase tracking-wider text-red-300/80 mb-6">
               Before — the chaos
             </div>
@@ -312,11 +342,11 @@ function ProductShowcase() {
           </div>
 
           {/* After */}
-          <div className="bg-accent/[0.12] border border-accent/30 rounded-sm p-6 md:p-10 relative">
-            <div className="absolute -top-3 -right-3 bg-accent text-canvas text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
+          <div className="bg-entry/[0.12] border border-entry/30 rounded-sm p-6 md:p-10 relative">
+            <div className="absolute -top-3 -right-3 bg-entry text-ink text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
               With CLBY
             </div>
-            <div className="text-xs font-mono uppercase tracking-wider text-accent mb-6">
+            <div className="text-xs font-mono uppercase tracking-wider text-entry mb-6">
               After — you run your club
             </div>
             <ul className="space-y-4">
@@ -329,7 +359,7 @@ function ProductShowcase() {
                 "Real-time reports — MRR, churn, revenue, everything",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-entry mt-0.5 flex-shrink-0" />
                   <span className="text-canvas">{item}</span>
                 </li>
               ))}
@@ -340,7 +370,7 @@ function ProductShowcase() {
         <div className="mt-16 text-center">
           <a
             href="#demo"
-            className="group inline-flex items-center gap-2 bg-canvas text-ink font-medium px-6 py-3 rounded-sm hover:bg-accent hover:text-canvas transition-colors"
+            className="group inline-flex items-center gap-2 bg-ink text-canvas font-medium px-6 py-3 rounded-sm hover:bg-entry hover:text-ink transition-colors"
           >
             See it on your gym — book a demo
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -354,139 +384,128 @@ function ProductShowcase() {
 /* ─────────────────────────────────────────  PRICING  ──────── */
 
 function Pricing() {
+  const marketplaceFeatures = [
+    "Listed on the CLBY marketplace app",
+    "Your dedicated admin dashboard",
+    "Unlimited members & staff",
+    "All modules included",
+    "Members card payments, BNPL, Apple Pay",
+    "Group sessions & classes",
+    "Reports & analytics",
+    "WhatsApp support",
+  ];
+
+  const brandedFeatures = [
+    "Your own branded app (iOS + Android)",
+    "Your logo, colors, splash screen",
+    "Published under your own account",
+    "Everything in the Marketplace plan",
+    "Custom onboarding & priority support",
+    "Optional custom features",
+  ];
+
   return (
-    <section id="pricing" className="py-20 md:py-32 px-5 md:px-8">
+    <section id="pricing" className="py-12 md:py-20 px-5 md:px-8">
       <div className="max-w-[1400px] mx-auto">
-        <div className="max-w-3xl mb-14 md:mb-20">
+        <div className="max-w-3xl mb-8 md:mb-12">
           <div className="text-xs font-mono uppercase tracking-wider text-muted mb-4">
             Pricing
           </div>
           <h2 className="font-display text-display-lg">
-            One price.
+            Two ways to run
             <br />
-            <span className="text-ink/40">No tier traps.</span>
+            <span className="text-canvas/40">with CLBY.</span>
           </h2>
-          <p className="mt-6 text-lg text-ink/70 max-w-xl">
-            Pay for what you run. Unlimited members, branded app, all 27 modules —
-            included at every size.
+          <p className="mt-6 text-lg text-canvas/70 max-w-xl">
+            Start on the shared marketplace or launch your own branded app.
+            Same powerful platform behind both.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left: price card */}
-          <div className="lg:col-span-7">
-            <div className="relative bg-ink text-canvas rounded-sm p-8 md:p-12 border border-ink">
-              <div className="absolute -top-3 left-8 bg-accent text-canvas text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
-                Current plan
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-                <div>
-                  <div className="text-xs font-mono uppercase tracking-wider text-canvas/50 mb-3">
-                    Base — 1 branch
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-6xl md:text-7xl leading-none tabular">
-                      5,000
-                    </span>
-                    <span className="text-canvas/60 font-mono">EGP / mo</span>
-                  </div>
-                </div>
-                <div className="md:border-l md:border-canvas/10 md:pl-12">
-                  <div className="text-xs font-mono uppercase tracking-wider text-canvas/50 mb-3">
-                    Each additional branch
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-6xl md:text-7xl leading-none tabular">
-                      2,000
-                    </span>
-                    <span className="text-canvas/60 font-mono">EGP / mo</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-10 pt-8 border-t border-canvas/10 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                {[
-                  "Unlimited members",
-                  "Branded white-label app",
-                  "Admin dashboard (web)",
-                  "All 27 modules included",
-                  "Unlimited staff accounts",
-                  "Fawry, Paymob, InstaPay",
-                  "WhatsApp automations",
-                  "Reports & analytics",
-                  "Arabic & English (RTL)",
-                  "WhatsApp support",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-sm text-canvas/85">
-                    <CheckCircle2 className="h-4 w-4 text-accent flex-shrink-0" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-
-              <a
-                href="#demo"
-                className="mt-10 group inline-flex items-center justify-center gap-2 bg-accent text-canvas font-medium px-6 py-3.5 rounded-sm hover:bg-canvas hover:text-ink transition-colors w-full md:w-auto"
-              >
-                Book a demo
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Marketplace plan */}
+          <div className="relative bg-surface text-canvas rounded-sm p-8 md:p-10 border border-canvas/20">
+            <div className="absolute -top-3 left-8 bg-entry text-ink text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
+              Marketplace
             </div>
+
+            <div className="mb-8">
+              <p className="text-xs font-mono uppercase tracking-wider text-canvas/50 mb-2">
+                CLBY App
+              </p>
+              <p className="text-sm text-canvas/70 mb-6">
+                List your gym on the CLBY consumer marketplace. Members discover
+                and join you through one shared app.
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-5xl md:text-6xl leading-none tabular">
+                  5,000
+                </span>
+                <span className="text-canvas/60 font-mono text-sm">EGP / mo</span>
+              </div>
+              <p className="text-xs text-canvas/50 mt-2">
+                + 2,000 EGP / mo per extra branch
+              </p>
+            </div>
+
+            <div className="border-t border-canvas/10 pt-6 space-y-3">
+              {marketplaceFeatures.map((item, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-sm text-canvas/85">
+                  <CheckCircle2 className="h-4 w-4 text-entry flex-shrink-0 mt-0.5" />
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="#demo"
+              className="mt-8 group inline-flex items-center justify-center gap-2 bg-entry text-ink font-medium px-6 py-3 rounded-sm hover:bg-entry/90 transition-colors w-full"
+            >
+              Book a demo
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </a>
           </div>
 
-          {/* Right: price calculator */}
-          <div className="lg:col-span-5">
-            <div className="border border-ink/15 bg-paper rounded-sm p-8">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted mb-5">
-                Quick math for your club
-              </div>
-              <div className="space-y-2.5">
-                {[
-                  { branches: "1 branch", price: 5000 },
-                  { branches: "2 branches", price: 7000 },
-                  { branches: "3 branches", price: 9000 },
-                  { branches: "5 branches", price: 13000 },
-                  { branches: "10 branches", price: 23000 },
-                ].map((row, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-2.5 border-b border-ink/10 last:border-0"
-                  >
-                    <span className="text-ink/80">{row.branches}</span>
-                    <div className="text-right">
-                      <span className="font-display text-2xl tabular">
-                        {row.price.toLocaleString()}
-                      </span>
-                      <span className="ml-1 text-xs font-mono text-muted">EGP/mo</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 p-4 bg-accent/5 border border-accent/20 rounded-sm">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <span className="font-medium text-ink">Annual plan:</span>{" "}
-                    <span className="text-ink/70">
-                      2 months free. Pay for 10, get 12.
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 p-4 bg-ink text-canvas rounded-sm">
-                <div className="flex items-start gap-2">
-                  <Zap className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <span className="font-medium">Founding Gyms:</span>{" "}
-                    <span className="text-canvas/80">
-                      First 10 clubs get 50% off for 12 months + setup waived.
-                      6 spots left.
-                    </span>
-                  </div>
-                </div>
-              </div>
+          {/* Branded White-Label */}
+          <div className="relative bg-surface text-canvas rounded-sm p-8 md:p-10 border border-energy/30">
+            <div className="absolute -top-3 left-8 bg-energy text-ink text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
+              White-Label
             </div>
+
+            <div className="mb-8">
+              <p className="text-xs font-mono uppercase tracking-wider text-canvas/50 mb-2">
+                Branded App
+              </p>
+              <p className="text-sm text-canvas/70 mb-6">
+                Your own app in the App Store and Google Play — with your brand,
+                icon, and identity. Built on the same platform.
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-5xl md:text-6xl leading-none">
+                  Get a quote
+                </span>
+              </div>
+              <p className="text-xs text-canvas/50 mt-2">
+                Tailored to your gym size and needs
+              </p>
+            </div>
+
+            <div className="border-t border-canvas/10 pt-6 space-y-3">
+              {brandedFeatures.map((item, i) => (
+                <div key={i} className="flex items-start gap-2.5 text-sm text-canvas/85">
+                  <CheckCircle2 className="h-4 w-4 text-energy flex-shrink-0 mt-0.5" />
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="#demo"
+              className="mt-8 group inline-flex items-center justify-center gap-2 bg-energy text-ink font-medium px-6 py-3 rounded-sm hover:bg-energy/90 transition-colors w-full"
+            >
+              Request a quote
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </a>
           </div>
         </div>
       </div>
@@ -509,7 +528,7 @@ function Comparison() {
   ];
 
   return (
-    <section className="bg-paper py-20 md:py-28 px-5 md:px-8 border-y border-ink/10">
+    <section className="bg-surface py-12 md:py-20 px-5 md:px-8 border-y border-canvas/10">
       <div className="max-w-[1400px] mx-auto">
         <div className="max-w-3xl mb-12">
           <div className="text-xs font-mono uppercase tracking-wider text-muted mb-4">
@@ -518,14 +537,14 @@ function Comparison() {
           <h2 className="font-display text-display-lg">
             Why not Excel?
             <br />
-            <span className="text-ink/40">Why not Mindbody?</span>
+            <span className="text-canvas/40">Why not Mindbody?</span>
           </h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b-2 border-ink">
+              <tr className="border-b-2 border-canvas/20">
                 <th className="py-4 pr-4 text-xs font-mono uppercase tracking-wider text-muted"></th>
                 <th className="py-4 px-4 text-xs font-mono uppercase tracking-wider text-muted">
                   Excel + WhatsApp
@@ -534,8 +553,8 @@ function Comparison() {
                   Foreign SaaS
                 </th>
                 <th className="py-4 px-4 text-xs font-mono uppercase tracking-wider">
-                  <span className="inline-flex items-center gap-1.5 bg-ink text-canvas px-2.5 py-1 rounded-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  <span className="inline-flex items-center gap-1.5 bg-surface text-canvas px-2.5 py-1 rounded-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-entry" />
                     CLBY
                   </span>
                 </th>
@@ -543,8 +562,8 @@ function Comparison() {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className="border-b border-ink/10">
-                  <td className="py-4 pr-4 text-ink/80 font-medium">{row.feature}</td>
+                <tr key={i} className="border-b border-canvas/10">
+                  <td className="py-4 pr-4 text-canvas/80 font-medium">{row.feature}</td>
                   <td className="py-4 px-4">{renderCell(row.excel)}</td>
                   <td className="py-4 px-4">{renderCell(row.foreign)}</td>
                   <td className="py-4 px-4">{renderCell(row.clby)}</td>
@@ -561,8 +580,8 @@ function Comparison() {
 function renderCell(val: boolean | string) {
   if (val === true) {
     return (
-      <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-accent/10">
-        <CheckCircle2 className="h-4 w-4 text-accent" />
+      <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-entry/10">
+        <CheckCircle2 className="h-4 w-4 text-entry" />
       </div>
     );
   }
@@ -589,21 +608,13 @@ function FAQ() {
       a: "You don't need one. If your manager can use Instagram, she can use CLBY. We handle all the technical setup. Our customer WhatsApp support answers in under an hour during business hours.",
     },
     {
-      q: "Can I use it in Arabic?",
-      a: "Yes — everything is bilingual, including the member app. Full RTL support. We built for the MENA market first, not as an afterthought.",
-    },
-    {
-      q: "What payments do you support?",
-      a: "Fawry, Paymob, InstaPay, and Vodafone Cash are all natively integrated. Cash payments can be logged manually. We don't charge transaction fees — you pay your payment provider directly.",
-    },
-    {
       q: "What happens after the free trial?",
       a: "You decide. 30 days, full product, no credit card required. If it's a fit, you pick monthly or annual billing. If it's not, we help you export your data and part ways as friends.",
     },
   ];
 
   return (
-    <section id="faq" className="py-20 md:py-32 px-5 md:px-8">
+    <section id="faq" className="py-12 md:py-20 px-5 md:px-8">
       <div className="max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-4">
@@ -613,13 +624,13 @@ function FAQ() {
             <h2 className="font-display text-display-lg">
               Questions, answered.
             </h2>
-            <p className="mt-6 text-ink/70">
+            <p className="mt-6 text-canvas/70">
               Still unsure?{" "}
               <a
-                href="https://wa.me/201000000000?text=Hi%20CLBY%2C%20I%20have%20a%20question"
+                href="https://wa.me/201027823660?text=Hi%20CLBY%2C%20I%20have%20a%20question"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent underline underline-offset-2"
+                className="text-entry underline underline-offset-2"
               >
                 Ask us on WhatsApp
               </a>
@@ -631,15 +642,15 @@ function FAQ() {
             {items.map((item, i) => (
               <details
                 key={i}
-                className="group border border-ink/15 bg-paper rounded-sm overflow-hidden"
+                className="group border border-canvas/15 bg-surface rounded-sm overflow-hidden"
               >
-                <summary className="cursor-pointer flex items-center justify-between gap-4 p-6 list-none hover:bg-canvas transition-colors">
+                <summary className="cursor-pointer flex items-center justify-between gap-4 p-6 list-none hover:bg-ink transition-colors">
                   <span className="font-display text-xl md:text-2xl pr-4 leading-tight">
                     {item.q}
                   </span>
-                  <div className="h-7 w-7 rounded-full border border-ink/20 flex items-center justify-center flex-shrink-0 group-open:bg-ink group-open:border-ink transition-all">
+                  <div className="h-7 w-7 rounded-full border border-canvas/20 flex items-center justify-center flex-shrink-0 group-open:bg-entry/10 group-open:border-entry/40 transition-all">
                     <svg
-                      className="h-3.5 w-3.5 text-ink group-open:text-canvas group-open:rotate-45 transition-all"
+                      className="h-3.5 w-3.5 text-canvas group-open:text-entry group-open:rotate-45 transition-all"
                       viewBox="0 0 16 16"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
@@ -648,7 +659,7 @@ function FAQ() {
                     </svg>
                   </div>
                 </summary>
-                <div className="px-6 pb-6 text-ink/70 leading-relaxed">
+                <div className="px-6 pb-6 text-canvas/70 leading-relaxed">
                   {item.a}
                 </div>
               </details>
@@ -664,16 +675,16 @@ function FAQ() {
 
 function FinalCTA() {
   return (
-    <section className="relative bg-ink text-canvas py-24 md:py-32 px-5 md:px-8 overflow-hidden">
+    <section className="relative bg-surface text-canvas py-14 md:py-22 px-5 md:px-8 overflow-hidden">
       <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-accent/30 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-entry/30 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-entry/20 blur-3xl" />
       </div>
       <div className="max-w-[1400px] mx-auto relative text-center">
         <h2 className="font-display text-display-xl mb-8 leading-[0.95]">
           Stop chasing renewals.
           <br />
-          <span className="text-accent italic">Start running your club.</span>
+          <span className="text-entry italic">Start running your club.</span>
         </h2>
         <p className="text-xl text-canvas/70 max-w-2xl mx-auto mb-10">
           Book a 30-minute demo. We'll show you CLBY on your gym — not a generic
@@ -682,24 +693,21 @@ function FinalCTA() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <a
             href="#demo"
-            className="group inline-flex items-center gap-2 bg-accent text-canvas font-medium px-8 py-4 rounded-sm hover:bg-canvas hover:text-ink transition-colors"
+            className="group inline-flex items-center gap-2 bg-entry text-ink font-medium px-8 py-4 rounded-sm hover:bg-ink hover:text-canvas transition-colors"
           >
             Book my demo
             <ArrowUpRight className="h-5 w-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
           </a>
           <a
-            href="https://wa.me/201000000000?text=Hi%20CLBY%2C%20I'd%20like%20to%20book%20a%20demo"
+            href="https://wa.me/201027823660?text=Hi%20CLBY%2C%20I'd%20like%20to%20book%20a%20demo"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-canvas/80 hover:text-canvas transition-colors"
+            className="inline-flex items-center gap-2 text-canvas/80 hover:text-entry transition-colors"
           >
             <MessageCircle className="h-5 w-5" />
             Or WhatsApp us
           </a>
         </div>
-        <p className="mt-8 text-sm text-canvas/50 font-mono">
-          6 of 10 founding spots remaining · 50% off for 12 months
-        </p>
       </div>
     </section>
   );
@@ -709,7 +717,7 @@ function FinalCTA() {
 
 function Footer() {
   return (
-    <footer className="bg-canvas py-12 px-5 md:px-8 border-t border-ink/10">
+    <footer className="bg-ink py-12 px-5 md:px-8 border-t border-canvas/10">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-6">
@@ -718,34 +726,31 @@ function Footer() {
               Club management, simplified.
             </span>
           </div>
-          <div className="flex flex-wrap gap-6 text-sm text-ink/60">
-            <a href="#features" className="hover:text-ink transition-colors">
+          <div className="flex flex-wrap gap-6 text-sm text-canvas/60">
+            <a href="#features" className="hover:text-canvas transition-colors">
               Features
             </a>
-            <a href="#pricing" className="hover:text-ink transition-colors">
+            <a href="#pricing" className="hover:text-canvas transition-colors">
               Pricing
             </a>
-            <a href="#faq" className="hover:text-ink transition-colors">
+            <a href="#faq" className="hover:text-canvas transition-colors">
               FAQ
             </a>
             <a
-              href="https://wa.me/201000000000"
+              href="https://wa.me/201027823660"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-ink transition-colors"
+              className="hover:text-canvas transition-colors"
             >
               WhatsApp
             </a>
-            <a href="mailto:hello@clby.app" className="hover:text-ink transition-colors">
-              Email
-            </a>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-ink/5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs text-muted">
+        <div className="mt-8 pt-8 border-t border-canvas/5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs text-muted">
           <div>© {new Date().getFullYear()} CLBY. Made in Cairo.</div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-ink transition-colors">Privacy</a>
-            <a href="#" className="hover:text-ink transition-colors">Terms</a>
+            <a href="/privacy" className="hover:text-canvas transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-canvas transition-colors">Terms</a>
           </div>
         </div>
       </div>

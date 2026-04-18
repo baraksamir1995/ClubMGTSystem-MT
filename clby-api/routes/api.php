@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\SaasPlanController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\AccessController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AttendanceController;
@@ -56,7 +59,9 @@ Route::get('/health', function () {
 });
 
 // Public routes (no auth)
+Route::get('/gyms', [GymController::class, 'listPublic']);
 Route::get('/gyms/{id}', [GymController::class, 'showPublic']);
+Route::post('/leads', [LeadController::class, 'store']);
 Route::post('/paymob/webhook', [PaymobController::class, 'webhook'])->name('paymob.webhook');
 
 // Auth routes — no auth required, strict rate limit
@@ -308,4 +313,33 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Analytics
     Route::get('/analytics/all', [AnalyticsController::class, 'all']);
     Route::get('/analytics/dashboard', [AnalyticsController::class, 'dashboard']);
+});
+
+// ─── Super-admin routes (platform-wide) ────────────────────────────────────
+Route::prefix('super-admin')->middleware(['auth:sanctum', \App\Http\Middleware\RequireSuperAdmin::class])->group(function () {
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/gyms', [SuperAdminController::class, 'index']);
+    Route::get('/gyms/{id}', [SuperAdminController::class, 'show']);
+    Route::post('/gyms', [SuperAdminController::class, 'store']);
+    Route::patch('/gyms/{id}', [SuperAdminController::class, 'update']);
+    Route::post('/gyms/{id}/toggle-active', [SuperAdminController::class, 'toggleActive']);
+    Route::delete('/gyms/{id}', [SuperAdminController::class, 'destroy']);
+
+    // Plans
+    Route::get('/plans', [SaasPlanController::class, 'index']);
+    Route::post('/plans', [SaasPlanController::class, 'store']);
+    Route::patch('/plans/{id}', [SaasPlanController::class, 'update']);
+    Route::delete('/plans/{id}', [SaasPlanController::class, 'destroy']);
+
+    // Payments / Invoices
+    Route::get('/invoices', [SaasPlanController::class, 'invoices']);
+    Route::post('/invoices', [SaasPlanController::class, 'createInvoice']);
+    Route::post('/invoices/{id}/mark-paid', [SaasPlanController::class, 'markPaid']);
+    Route::delete('/invoices/{id}', [SaasPlanController::class, 'deleteInvoice']);
+
+    // Landing page leads
+    Route::get('/leads', [LeadController::class, 'index']);
+    Route::post('/leads/{id}/toggle-contacted', [LeadController::class, 'toggleContacted']);
+    Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
 });

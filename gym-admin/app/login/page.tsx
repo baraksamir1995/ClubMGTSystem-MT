@@ -44,6 +44,13 @@ export default function LoginPage() {
       try {
         const meRes = await fetch('/api/me');
         const json = await meRes.json();
+
+        // Super-admin goes to platform dashboard
+        if (json.role === 'super_admin') {
+          window.location.href = '/super-admin';
+          return;
+        }
+
         if (json.gym) {
           localStorage.setItem('gym_info', JSON.stringify({ name: json.gym.name, logoUrl: json.gym.logo_url }));
         }

@@ -2,7 +2,7 @@ import LegalPage from "@/components/LegalPage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — CLBY",
+  title: "Privacy Policy. CLBY",
   description:
     "How CLBY collects, uses, and protects personal information for gym owners, staff, and members.",
 };
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy."
-      subtitle="Straightforward explanation of what we collect, why we collect it, and the choices you have. Written in plain language — no legal gymnastics."
+      subtitle="Straightforward explanation of what we collect, why we collect it, and the choices you have. Written in plain language. No legal gymnastics."
       lastUpdated="April 18, 2026"
       sections={[
         {
@@ -43,25 +43,25 @@ export default function PrivacyPage() {
               </p>
               <ul>
                 <li>
-                  <strong>Account details</strong> — your name, email, phone
+                  <strong>Account details</strong>: your name, email, phone
                   number, and password when you sign up as a gym owner, staff
                   member, or gym member.
                 </li>
                 <li>
-                  <strong>Gym profile</strong> — business name, branches,
+                  <strong>Gym profile</strong>: business name, branches,
                   address, operating hours, logo, and the services you offer.
                 </li>
                 <li>
-                  <strong>Member records</strong> — data entered by gyms about
+                  <strong>Member records</strong>: data entered by gyms about
                   their members (plan, sessions, attendance, notes).
                 </li>
                 <li>
-                  <strong>Payment data</strong> — amounts, methods, and
+                  <strong>Payment data</strong>: amounts, methods, and
                   transaction IDs. We do not store full card numbers; those are
                   handled by our payment partners.
                 </li>
                 <li>
-                  <strong>Usage data</strong> — device type, approximate
+                  <strong>Usage data</strong>: device type, approximate
                   location (when you opt in for nearby-gym discovery), pages
                   visited, and error logs.
                 </li>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
                   reminders).
                 </li>
                 <li>
-                  Improve the product — anonymized and aggregated only, never
+                  Improve the product. Anonymized and aggregated only, never
                   tied back to an individual.
                 </li>
                 <li>
@@ -124,7 +124,7 @@ export default function PrivacyPage() {
                 Online payments are handled by our payment partners (such as
                 Paymob and other licensed providers). When you pay through the
                 app, card details are entered directly into the processor's
-                secure environment — CLBY does not see or store your full card
+                secure environment. CLBY does not see or store your full card
                 number.
               </p>
               <p>
@@ -141,23 +141,23 @@ export default function PrivacyPage() {
               <p>We share data only with:</p>
               <ul>
                 <li>
-                  <strong>Your gym</strong> — the gym you sign up with sees the
+                  <strong>Your gym</strong>: the gym you sign up with sees the
                   information required to manage your membership.
                 </li>
                 <li>
-                  <strong>Infrastructure providers</strong> — AWS and similar
+                  <strong>Infrastructure providers</strong>: AWS and similar
                   services that host our servers and store files, under strict
                   confidentiality agreements.
                 </li>
                 <li>
-                  <strong>Payment processors</strong> — to execute transactions.
+                  <strong>Payment processors</strong>: to execute transactions.
                 </li>
                 <li>
-                  <strong>Communication providers</strong> — for transactional
+                  <strong>Communication providers</strong>: for transactional
                   emails and WhatsApp / SMS notifications.
                 </li>
                 <li>
-                  <strong>Law enforcement</strong> — only when we receive a
+                  <strong>Law enforcement</strong>: only when we receive a
                   valid legal request and only to the minimum extent required.
                 </li>
               </ul>
@@ -225,7 +225,7 @@ export default function PrivacyPage() {
                 We do not use third-party advertising cookies.
               </p>
               <p>
-                You can disable cookies in your browser — most of the site will
+                You can disable cookies in your browser. Most of the site will
                 still work, but you will need to log in again on each visit.
               </p>
             </>

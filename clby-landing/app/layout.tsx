@@ -22,11 +22,11 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CLBY — All-in-one gym access",
+  title: "CLBY: All-in-one gym access",
   description:
     "Gateway · motion · access. Discover gyms, book classes, and manage everything from one app. Built for MENA, bilingual, mobile-first.",
   openGraph: {
-    title: "CLBY — All-in-one gym access",
+    title: "CLBY: All-in-one gym access",
     description:
       "Gateway · motion · access. Discover gyms, book classes, and manage everything from one app.",
     url: "https://clby.app",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "CLBY — All-in-one gym access",
+    title: "CLBY: All-in-one gym access",
     description:
       "Gateway · motion · access. Discover gyms, book classes, and manage everything from one app.",
   },

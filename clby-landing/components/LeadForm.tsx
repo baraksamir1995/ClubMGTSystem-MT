@@ -101,7 +101,7 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
             </h3>
             <p className="text-canvas/70 leading-relaxed">
               We'll send you a WhatsApp message within 24 hours to book your demo.
-              Expect a short, founder-led walkthrough — no slides, just your gym.
+              Expect a short, founder-led walkthrough. No slides, just your gym.
             </p>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           rows={2}
           optional
           placeholder="Current setup, team size, biggest pain…"
-          hint="Optional — but helps us tailor the demo."
+          hint="Optional, but helps us tailor the demo."
         />
       </div>
 

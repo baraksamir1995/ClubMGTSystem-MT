@@ -148,9 +148,9 @@ export default function DashboardMockup() {
                 Just happened
               </div>
               <div className="space-y-1.5">
-                <ActivityRow text="Nour M. renewed — Gold plan" amount="EGP 2,400" accent />
+                <ActivityRow text="Nour M. renewed Gold plan" amount="EGP 2,400" accent />
                 <ActivityRow text="12 check-ins in last hour" amount="Live" accent />
-                <ActivityRow text="WhatsApp blast sent — 184 members" amount="✓" accent />
+                <ActivityRow text="WhatsApp blast sent to 184 members" amount="✓" accent />
               </div>
             </div>
           </div>
@@ -184,7 +184,7 @@ function KPICard({
       <div className="font-display text-xl md:text-2xl leading-none tabular">{value}</div>
       <div
         className={`mt-1 text-[10px] font-mono ${
-          negative ? "text-red-700" : positive ? "text-success" : "text-muted"
+          negative ? "text-red-400" : positive ? "text-success" : "text-muted"
         }`}
       >
         {delta}

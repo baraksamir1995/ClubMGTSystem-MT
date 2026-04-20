@@ -15,7 +15,7 @@ const config: Config = {
         paper: "#FAFAF7",      // lighter canvas variant
         entry: "#B8FF2E",      // green = entry / CTAs
         energy: "#FF6B2B",     // orange = energy / highlights
-        muted: "#6B6F78",
+        muted: "#9CA3AF",
         line: "#2A2A2A",       // dark border
         lineLight: "#E4DFD5",  // light border
         success: "#B8FF2E",

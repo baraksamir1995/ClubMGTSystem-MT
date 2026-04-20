@@ -2,16 +2,16 @@ import LegalPage from "@/components/LegalPage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — CLBY",
+  title: "Terms of Service. CLBY",
   description:
-    "The terms you agree to when using CLBY — the gym and club management platform.",
+    "The terms you agree to when using CLBY, the gym and club management platform.",
 };
 
 export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service."
-      subtitle="The rules of the game — what you can expect from us, and what we ask from you in return. No surprises, no buried clauses."
+      subtitle="The rules of the game: what you can expect from us, and what we ask from you in return. No surprises, no buried clauses."
       lastUpdated="April 18, 2026"
       sections={[
         {
@@ -19,8 +19,8 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                By creating an account or using any CLBY product — the
-                marketplace app, branded apps, or admin dashboard — you agree to
+                By creating an account or using any CLBY product (the
+                marketplace app, branded apps, or admin dashboard) you agree to
                 these Terms. If you are signing up on behalf of a company or
                 gym, you confirm that you have the authority to bind that
                 entity.
@@ -43,11 +43,11 @@ export default function TermsPage() {
               </p>
               <ul>
                 <li>
-                  <strong>Marketplace plan</strong> — your gym is listed on the
+                  <strong>Marketplace plan</strong>: your gym is listed on the
                   shared CLBY consumer app, alongside other gyms.
                 </li>
                 <li>
-                  <strong>White-Label plan</strong> — you get a branded app
+                  <strong>White-Label plan</strong>: you get a branded app
                   published under your own identity in the App Store and Google
                   Play.
                 </li>
@@ -71,7 +71,7 @@ export default function TermsPage() {
               </p>
               <p>
                 One person per account, please. Staff members should have their
-                own logins — this keeps audit trails clean and access revocable.
+                own logins. This keeps audit trails clean and access revocable.
               </p>
             </>
           ),
@@ -201,7 +201,7 @@ export default function TermsPage() {
               </p>
               <p>
                 The branded apps we build for you remain part of the CLBY
-                platform — they are not custom software that you own outright.
+                platform. They are not custom software that you own outright.
                 If you leave CLBY, the app is retired from the stores.
               </p>
             </>
@@ -266,7 +266,7 @@ export default function TermsPage() {
               </p>
               <p>
                 We are not liable for indirect, incidental, or consequential
-                damages — lost profits, missed members, damaged reputation, and
+                damages: lost profits, missed members, damaged reputation, and
                 the like.
               </p>
             </>

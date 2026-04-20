@@ -143,7 +143,7 @@ function Hero() {
               </div>
             </div>
 
-            {/* App store badges — members download the CLBY marketplace app */}
+            {/* App store badges. Members download the CLBY marketplace app */}
             <div className="reveal reveal-5 mt-8">
               <p className="text-xs font-mono uppercase tracking-wider text-muted mb-3">
                 Members · Download the app
@@ -216,7 +216,7 @@ function SocialProof() {
           {logos.map((logo, i) => (
             <span
               key={i}
-              className="font-display text-2xl md:text-3xl text-canvas/40 tracking-wide"
+              className="font-display text-2xl md:text-3xl text-canvas/60 tracking-wide"
             >
               {logo}
             </span>
@@ -234,7 +234,7 @@ function Features() {
     {
       icon: <Smartphone className="h-5 w-5" />,
       title: "Branded member app",
-      body: "Your logo, your colors — in your members' pockets. White-label included at every tier. Not an upsell.",
+      body: "Your logo, your colors, in your members' pockets. White-label included at every tier. Not an upsell.",
     },
     {
       icon: <QrCode className="h-5 w-5" />,
@@ -273,7 +273,7 @@ function Features() {
           <h2 className="font-display text-display-lg">
             Everything your club needs.
             <br />
-            <span className="text-canvas/40">Nothing it doesn't.</span>
+            <span className="text-canvas/60">Nothing it doesn't.</span>
           </h2>
         </div>
 
@@ -283,7 +283,7 @@ function Features() {
               key={i}
               className="bg-ink p-8 md:p-10 hover:bg-surface transition-colors group"
             >
-              <div className="h-10 w-10 rounded-sm bg-surface text-canvas flex items-center justify-center mb-6 group-hover:bg-entry transition-colors">
+              <div className="h-10 w-10 rounded-sm bg-surface text-canvas flex items-center justify-center mb-6 group-hover:bg-entry group-hover:text-ink transition-colors">
                 {f.icon}
               </div>
               <h3 className="font-display text-2xl mb-3 leading-tight">
@@ -322,7 +322,7 @@ function ProductShowcase() {
           {/* Before */}
           <div className="bg-ink/60 border border-canvas/10 rounded-sm p-6 md:p-10">
             <div className="text-xs font-mono uppercase tracking-wider text-red-300/80 mb-6">
-              Before — the chaos
+              Before: the chaos
             </div>
             <ul className="space-y-4">
               {[
@@ -347,16 +347,16 @@ function ProductShowcase() {
               With CLBY
             </div>
             <div className="text-xs font-mono uppercase tracking-wider text-entry mb-6">
-              After — you run your club
+              After: you run your club
             </div>
             <ul className="space-y-4">
               {[
-                "Every member in one place — searchable, sortable",
-                "Auto renewals & reminders — zero WhatsApp fatigue",
+                "Every member in one place. Searchable, sortable",
+                "Auto renewals & reminders. Zero WhatsApp fatigue",
                 "Every EGP tracked, receipts sent automatically",
-                "Churn risk dashboard — catch members before they leave",
+                "Churn risk dashboard. Catch members before they leave",
                 "Members see their sessions, bookings, streaks in-app",
-                "Real-time reports — MRR, churn, revenue, everything",
+                "Real-time reports. MRR, churn, revenue, everything",
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <CheckCircle2 className="h-4 w-4 text-entry mt-0.5 flex-shrink-0" />
@@ -372,7 +372,7 @@ function ProductShowcase() {
             href="#demo"
             className="group inline-flex items-center gap-2 bg-ink text-canvas font-medium px-6 py-3 rounded-sm hover:bg-entry hover:text-ink transition-colors"
           >
-            See it on your gym — book a demo
+            See it on your gym. Book a demo
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </a>
         </div>
@@ -392,7 +392,6 @@ function Pricing() {
     "Members card payments, BNPL, Apple Pay",
     "Group sessions & classes",
     "Reports & analytics",
-    "WhatsApp support",
   ];
 
   const brandedFeatures = [
@@ -414,7 +413,7 @@ function Pricing() {
           <h2 className="font-display text-display-lg">
             Two ways to run
             <br />
-            <span className="text-canvas/40">with CLBY.</span>
+            <span className="text-canvas/60">with CLBY.</span>
           </h2>
           <p className="mt-6 text-lg text-canvas/70 max-w-xl">
             Start on the shared marketplace or launch your own branded app.
@@ -424,7 +423,7 @@ function Pricing() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Marketplace plan */}
-          <div className="relative bg-surface text-canvas rounded-sm p-8 md:p-10 border border-canvas/20">
+          <div className="relative bg-surface text-canvas rounded-sm p-8 md:p-10 border border-canvas/20 flex flex-col">
             <div className="absolute -top-3 left-8 bg-entry text-ink text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
               Marketplace
             </div>
@@ -448,7 +447,7 @@ function Pricing() {
               </p>
             </div>
 
-            <div className="border-t border-canvas/10 pt-6 space-y-3">
+            <div className="border-t border-canvas/10 pt-6 space-y-3 flex-1">
               {marketplaceFeatures.map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5 text-sm text-canvas/85">
                   <CheckCircle2 className="h-4 w-4 text-entry flex-shrink-0 mt-0.5" />
@@ -467,7 +466,7 @@ function Pricing() {
           </div>
 
           {/* Branded White-Label */}
-          <div className="relative bg-surface text-canvas rounded-sm p-8 md:p-10 border border-energy/30">
+          <div className="relative bg-surface text-canvas rounded-sm p-8 md:p-10 border border-energy/30 flex flex-col">
             <div className="absolute -top-3 left-8 bg-energy text-ink text-[10px] font-mono uppercase tracking-wider px-3 py-1 rounded-sm">
               White-Label
             </div>
@@ -477,7 +476,7 @@ function Pricing() {
                 Branded App
               </p>
               <p className="text-sm text-canvas/70 mb-6">
-                Your own app in the App Store and Google Play — with your brand,
+                Your own app in the App Store and Google Play, with your brand,
                 icon, and identity. Built on the same platform.
               </p>
               <div className="flex items-baseline gap-2">
@@ -490,7 +489,7 @@ function Pricing() {
               </p>
             </div>
 
-            <div className="border-t border-canvas/10 pt-6 space-y-3">
+            <div className="border-t border-canvas/10 pt-6 space-y-3 flex-1">
               {brandedFeatures.map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5 text-sm text-canvas/85">
                   <CheckCircle2 className="h-4 w-4 text-energy flex-shrink-0 mt-0.5" />
@@ -537,7 +536,7 @@ function Comparison() {
           <h2 className="font-display text-display-lg">
             Why not Excel?
             <br />
-            <span className="text-canvas/40">Why not Mindbody?</span>
+            <span className="text-canvas/60">Why not Mindbody?</span>
           </h2>
         </div>
 
@@ -586,7 +585,7 @@ function renderCell(val: boolean | string) {
     );
   }
   if (val === false) {
-    return <span className="text-muted/60 font-mono text-sm">—</span>;
+    return <span className="text-muted/60 font-mono text-sm">-</span>;
   }
   return <span className="text-muted font-mono text-xs">{val}</span>;
 }
@@ -597,11 +596,11 @@ function FAQ() {
   const items = [
     {
       q: "How fast can I get set up?",
-      a: "One afternoon. We personally onboard every founding gym — we import your member list from Excel, set up your branded app, train your manager, and stay on WhatsApp with you for the first 14 days. No tickets, no forms, no waiting.",
+      a: "One afternoon. We personally onboard every founding gym. We import your member list from Excel, set up your branded app, train your manager, and stay on WhatsApp with you for the first 14 days. No tickets, no forms, no waiting.",
     },
     {
       q: "Do my members need to download something new?",
-      a: "Yes — but it's your app, not ours. With your logo, colors, and name in the App Store / Play Store. They download it once, then they have check-in, bookings, payments, and session tracking in one place.",
+      a: "Yes, but it's your app, not ours. With your logo, colors, and name in the App Store / Play Store. They download it once, then they have check-in, bookings, payments, and session tracking in one place.",
     },
     {
       q: "What if I don't have a tech team?",
@@ -687,8 +686,8 @@ function FinalCTA() {
           <span className="text-entry italic">Start running your club.</span>
         </h2>
         <p className="text-xl text-canvas/70 max-w-2xl mx-auto mb-10">
-          Book a 30-minute demo. We'll show you CLBY on your gym — not a generic
-          one — and import your member list before you leave the call.
+          Book a 30-minute demo. We'll show you CLBY on your gym, not a generic
+          one, and import your member list before you leave the call.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <a

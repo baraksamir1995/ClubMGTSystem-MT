@@ -43,7 +43,6 @@ const nextConfig = {
       ],
     },
   },
-  optimizeFonts: false,
   images: {
     remotePatterns: [],
   },

@@ -1421,7 +1421,7 @@ class _RefreshLogoMark extends StatelessWidget {
       width: _size,
       height: _size,
       decoration: BoxDecoration(
-        color: _bg,
+        color: hasLogo ? Colors.transparent : _bg,
         borderRadius: BorderRadius.circular(6),
       ),
       clipBehavior: Clip.antiAlias,
@@ -1430,7 +1430,7 @@ class _RefreshLogoMark extends StatelessWidget {
               imageUrl: logoUrl,
               width: _size,
               height: _size,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               placeholder: (_, __) => _buildInitial(),
               errorWidget: (_, __, ___) => _buildInitial(),
             )

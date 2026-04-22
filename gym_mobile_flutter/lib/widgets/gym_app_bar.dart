@@ -112,7 +112,7 @@ class _GymLogoMark extends StatelessWidget {
       width: _size,
       height: _size,
       decoration: BoxDecoration(
-        color: _bg,
+        color: hasLogo ? Colors.transparent : _bg,
         borderRadius: BorderRadius.circular(_radius),
       ),
       clipBehavior: Clip.antiAlias,
@@ -121,7 +121,7 @@ class _GymLogoMark extends StatelessWidget {
               imageUrl: logoUrl,
               width: _size,
               height: _size,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               placeholder: (ctx, url) => _buildInitial(),
               errorWidget: (ctx, url, err) => _buildInitial(),
             )

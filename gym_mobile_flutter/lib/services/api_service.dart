@@ -1288,12 +1288,9 @@ class ApiService {
   Future<Map<String, dynamic>?> getActivePopup() async {
     try {
       final data = await _get('/api/content/popups');
-      print('[ApiService.getActivePopup] raw: $data');
       final list = _extractList(data);
-      print('[ApiService.getActivePopup] list length: ${list.length}');
       return list.isNotEmpty ? list.first : null;
-    } catch (e, st) {
-      print('[ApiService.getActivePopup] error: $e\n$st');
+    } catch (_) {
       return null;
     }
   }

@@ -20,7 +20,6 @@ class PopupProvider extends ChangeNotifier {
   Future<void> loadActivePopup(String gymId) async {
     try {
       _activePopup = await _repository.fetchActivePopup(gymId);
-      debugPrint('[PopupProvider] loadActivePopup result: ${_activePopup?.id ?? "null"} title=${_activePopup?.title}');
       notifyListeners();
     } catch (e) {
       debugPrint('[PopupProvider] Failed to load popup: $e');
@@ -32,13 +31,12 @@ class PopupProvider extends ChangeNotifier {
   ///   2. It hasn't been shown this session already
   ///   3. The user hasn't permanently dismissed it
   Future<void> maybeShowPopup(BuildContext context) async {
-    debugPrint('[PopupProvider] maybeShowPopup called shown=$_shownThisSession popup=${_activePopup?.id}');
-    if (_shownThisSession) { debugPrint('[PopupProvider] skip: already shown this session'); return; }
+    if (_shownThisSession) return;
     final popup = _activePopup;
-    if (popup == null) { debugPrint('[PopupProvider] skip: no active popup loaded'); return; }
+    if (popup == null) return;
 
     final dismissed = await _isDismissed(popup.id);
-    if (dismissed) { debugPrint('[PopupProvider] skip: dismissed in storage id=${popup.id}'); return; }
+    if (dismissed) return;
 
     _shownThisSession = true;
 

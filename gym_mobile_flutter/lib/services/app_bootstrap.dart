@@ -54,14 +54,12 @@ class AppBootstrap {
   Future<void> _run() async {
     // ── 1. Wait for AuthProvider to complete its session check ────────────
     await _waitForAuth();
-    debugPrint('[AppBootstrap] after waitForAuth: authed=${_auth.isAuthenticated} profile=${_auth.profile?.id} gymId=${_auth.profile?.gymId}');
 
     // ── 2. Nothing to preload for unauthenticated / guest users ──────────
-    if (!_auth.isAuthenticated) { debugPrint('[AppBootstrap] not authenticated — skipping'); return; }
+    if (!_auth.isAuthenticated) return;
 
     final gymId = _auth.profile?.gymId;
-    if (gymId == null) { debugPrint('[AppBootstrap] no gymId on profile — skipping'); return; }
-    debugPrint('[AppBootstrap] running preload for gym=$gymId');
+    if (gymId == null) return;
 
     // ── 3. Load member data, notifications, banners, popup concurrently ──
     //       Notifications, banners, and popup only need gymId.

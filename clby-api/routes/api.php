@@ -62,7 +62,9 @@ Route::get('/health', function () {
 Route::get('/gyms', [GymController::class, 'listPublic']);
 Route::get('/gyms/{id}', [GymController::class, 'showPublic']);
 Route::post('/leads', [LeadController::class, 'store']);
-Route::post('/paymob/webhook', [PaymobController::class, 'webhook'])->name('paymob.webhook');
+Route::post('/paymob/webhook', [PaymobController::class, 'webhook'])
+    ->middleware('throttle:120,1')
+    ->name('paymob.webhook');
 
 // Auth routes — no auth required, strict rate limit
 Route::prefix('auth')->middleware('throttle:auth')->group(function () {
@@ -95,7 +97,6 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Payments (own)
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
-    Route::post('/payments/{id}/stamp-txn', [PaymentController::class, 'stampTransaction']);
 
     // Memberships (own purchase)
     Route::post('/memberships/purchase', [MembershipController::class, 'purchase']);
@@ -140,6 +141,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/members', [MemberController::class, 'index']);
     Route::get('/members/{id}', [MemberController::class, 'show']);
     Route::delete('/members/account', [MemberController::class, 'deleteAccount']);
+
+    // Attendance (self — controller auto-scopes to caller for members)
+    Route::get('/attendance', [AttendanceController::class, 'index']);
 
     // Invitations (own)
     Route::post('/invitations', [InvitationController::class, 'store']);
@@ -202,6 +206,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::post('/payments', [PaymentController::class, 'store'])->middleware('permission:payments,create');
     Route::put('/payments/{id}', [PaymentController::class, 'update'])->middleware('permission:payments,edit');
     Route::delete('/payments/{id}', [PaymentController::class, 'destroy'])->middleware('permission:payments,delete');
+    Route::post('/payments/{id}/stamp-txn', [PaymentController::class, 'stampTransaction'])->middleware('permission:payments,edit');
 
     // Payment Config (settings-level, requires settings permission)
     Route::get('/payment-config/credentials', [PaymentConfigController::class, 'credentials'])->middleware('permission:settings,view');
@@ -209,7 +214,6 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::post('/payment-config', [PaymentConfigController::class, 'upsert'])->middleware('permission:settings,edit');
 
     // Attendance management
-    Route::get('/attendance', [AttendanceController::class, 'index']);
     Route::post('/attendance', [AttendanceController::class, 'store'])->middleware('permission:attendance,create');
 
     // Access management
@@ -308,6 +312,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Invitation management (admin)
     Route::get('/invitations', [InvitationController::class, 'index']);
+    Route::post('/invitations/redeem', [InvitationController::class, 'redeem'])->middleware('permission:attendance,create');
     Route::patch('/invitations/{id}/invalidate', [InvitationController::class, 'invalidate'])->middleware('permission:invitations,edit');
 
     // Analytics

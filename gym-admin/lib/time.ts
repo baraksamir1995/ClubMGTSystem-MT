@@ -37,8 +37,9 @@ export function parsePgTimestamp(pg: string): Date {
   let s = pg.replace(' ', 'T');
   // Fix short timezone offset: +00 → +00:00
   s = s.replace(/([+-])(\d{2})$/, '$1$2:00');
-  // If no timezone info at all, assume UTC
-  if (!/[Z+-]\d/.test(s)) s += 'Z';
+  // If no timezone info at the end, assume UTC. The check is anchored so that
+  // hyphens inside the date (e.g. "2026-04-15") don't falsely satisfy it.
+  if (!/(Z|[+-]\d{2}(:\d{2})?)$/.test(s)) s += 'Z';
   return new Date(s);
 }
 

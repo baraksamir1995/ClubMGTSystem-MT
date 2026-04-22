@@ -109,9 +109,11 @@ export default function SessionsTracker({ initialMembers }: Props) {
 
   // ── Stats ────────────────────────────────────────────────────────────────
 
-  const totalSessions  = members.reduce((s, m) => s + m.sessionCount, 0);
-  const totalUsed      = members.reduce((s, m) => s + m.sessionsUsed, 0);
-  const totalRemaining = members.reduce((s, m) => s + m.sessionsRemaining, 0);
+  // Coerce each field to a safe number so a malformed row can't poison the reduce with NaN.
+  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const totalSessions  = members.reduce((s, m) => s + n(m.sessionCount),      0);
+  const totalUsed      = members.reduce((s, m) => s + n(m.sessionsUsed),      0);
+  const totalRemaining = members.reduce((s, m) => s + n(m.sessionsRemaining), 0);
   const overallPct     = totalSessions > 0 ? Math.round((totalUsed / totalSessions) * 100) : 0;
 
   // ── Members filter + sort ────────────────────────────────────────────────
@@ -170,20 +172,17 @@ export default function SessionsTracker({ initialMembers }: Props) {
       if (!res.ok) throw new Error();
       const updated = await res.json();
       setMembers((prev) =>
-        prev.map((m) =>
-          m.membershipId === membershipId
-            ? {
-                ...m,
-                sessionsUsed:      updated.sessionsUsed,
-                sessionsRemaining: updated.sessionsRemaining,
-                pctUsed: updated.sessionCount > 0
-                  ? Math.round((updated.sessionsUsed / updated.sessionCount) * 100)
-                  : 0,
-              }
-            : m,
-        ),
+        prev.map((m) => {
+          if (m.membershipId !== membershipId) return m;
+          // Trust server response when present, otherwise fall back to a local +1 on the
+          // existing row so we never write undefined into state.
+          const sessionCount      = Number(updated.sessionCount      ?? m.sessionCount)      || 0;
+          const sessionsUsed      = Number(updated.sessionsUsed      ?? m.sessionsUsed + 1)  || 0;
+          const sessionsRemaining = Number(updated.sessionsRemaining ?? Math.max(0, sessionCount - sessionsUsed)) || 0;
+          const pctUsed = sessionCount > 0 ? Math.round((sessionsUsed / sessionCount) * 100) : 0;
+          return { ...m, sessionCount, sessionsUsed, sessionsRemaining, pctUsed };
+        }),
       );
-      // Reload history if it's visible so the new log appears
       if (logsLoaded) loadHistory();
     } finally {
       setLoadingId(null);

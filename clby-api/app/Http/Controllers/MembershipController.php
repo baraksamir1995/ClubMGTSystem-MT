@@ -298,15 +298,62 @@ class MembershipController extends Controller
         }
 
         $validated = $request->validate([
+            'action' => 'sometimes|string|in:log',
             'status' => 'sometimes|string',
             'payment_status' => 'sometimes|string',
             'notes' => 'nullable|string',
         ]);
 
-        DB::table('member_memberships')
-            ->where('id', $id)
-            ->where('gym_id', $gymId)
-            ->update(array_merge($validated, ['updated_at' => now()]));
+        // Action: log a session (admin-triggered manual consumption).
+        // Atomically increments sessions_used / decrements sessions_remaining.
+        if (($validated['action'] ?? null) === 'log') {
+            return DB::transaction(function () use ($id, $gymId) {
+                $membership = DB::table('member_memberships')
+                    ->where('id', $id)
+                    ->where('gym_id', $gymId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $membership) {
+                    return response()->json(['error' => 'Membership not found'], 404);
+                }
+                if ($membership->status !== 'active') {
+                    return response()->json(['error' => 'Membership is not active'], 422);
+                }
+                $total = (int) ($membership->sessions_total ?? 0);
+                $used = (int) ($membership->sessions_used ?? 0);
+                $remaining = (int) ($membership->sessions_remaining ?? max(0, $total - $used));
+                if ($remaining <= 0) {
+                    return response()->json(['error' => 'No sessions remaining'], 422);
+                }
+
+                $newUsed = $used + 1;
+                $newRemaining = max(0, $total - $newUsed);
+
+                DB::table('member_memberships')
+                    ->where('id', $id)
+                    ->update([
+                        'sessions_used' => $newUsed,
+                        'sessions_remaining' => $newRemaining,
+                        'updated_at' => now(),
+                    ]);
+
+                return response()->json([
+                    'sessionCount' => $total,
+                    'sessionsUsed' => $newUsed,
+                    'sessionsRemaining' => $newRemaining,
+                ]);
+            });
+        }
+
+        // Plain field update.
+        $update = array_diff_key($validated, ['action' => true]);
+        if (!empty($update)) {
+            DB::table('member_memberships')
+                ->where('id', $id)
+                ->where('gym_id', $gymId)
+                ->update(array_merge($update, ['updated_at' => now()]));
+        }
 
         return response()->json(['message' => 'Updated']);
     }
@@ -505,7 +552,7 @@ class MembershipController extends Controller
             ->where('id', $member->user_id)
             ->value('full_name') ?? 'Unknown';
 
-        return DB::transaction(function () use ($member, $memberId, $membership, $gymId, $request, $planName, $memberName) {
+        return DB::transaction(function () use ($memberId, $membership, $gymId, $request, $planName, $memberName) {
             // Cancel the membership
             DB::table('member_memberships')
                 ->where('id', $membership->id)
@@ -516,25 +563,28 @@ class MembershipController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            // Set member status to inactive
-            DB::table('gym_members')
-                ->where('id', $memberId)
-                ->update(['status' => 'inactive', 'updated_at' => now()]);
-
-            // Cancel future bookings (bookings table uses member_id = profile UUID, class_id = session UUID)
-            $profileId = $member->user_id;
-            DB::table('bookings')
-                ->where('member_id', $profileId)
+            // Cancel future confirmed session bookings (the live booking table is session_bookings).
+            $cancelledBookings = DB::table('session_bookings')
+                ->where('gym_member_id', $memberId)
                 ->where('status', 'confirmed')
-                ->whereExists(function ($q) {
-                    $q->select(DB::raw(1))
+                ->whereIn('session_id', function ($q) {
+                    $q->select('id')
                       ->from('class_sessions')
-                      ->whereColumn('class_sessions.id', 'bookings.class_id')
-                      ->where('class_sessions.session_date', '>=', now()->toDateString());
+                      ->where('session_date', '>=', now()->toDateString());
                 })
-                ->update(['status' => 'cancelled']);
+                ->update(['status' => 'cancelled', 'updated_at' => now()]);
 
-            // Log activity
+            // Only mark member inactive if they have no other active memberships.
+            $hasOtherActive = DB::table('member_memberships')
+                ->where('gym_member_id', $memberId)
+                ->where('status', 'active')
+                ->exists();
+            if (! $hasOtherActive) {
+                DB::table('gym_members')
+                    ->where('id', $memberId)
+                    ->update(['status' => 'inactive', 'updated_at' => now()]);
+            }
+
             $this->logActivity(
                 $gymId,
                 $request->user()->id,
@@ -545,7 +595,10 @@ class MembershipController extends Controller
                 $membership->id,
             );
 
-            return response()->json(['message' => 'Plan detached successfully']);
+            return response()->json([
+                'message' => 'Plan detached successfully',
+                'cancelled_bookings' => $cancelledBookings,
+            ]);
         });
     }
 
@@ -583,61 +636,76 @@ class MembershipController extends Controller
         if (! $source) return response()->json(['error' => 'Source member not found'], 404);
         if (! $dest) return response()->json(['error' => 'Destination member not found'], 404);
 
-        // Source must have an active membership
-        $membership = DB::table('member_memberships')
-            ->where('gym_member_id', $sourceMemberId)
-            ->where('status', 'active')
-            ->first();
-
-        if (! $membership) {
-            return response()->json(['error' => 'Source member has no active plan to transfer'], 422);
-        }
-
-        // Check plan hasn't expired
-        if ($membership->end_date && $membership->end_date < now()->toDateString()) {
-            return response()->json(['error' => 'Cannot transfer an expired plan'], 422);
-        }
-
-        // Destination must NOT have an active membership
-        $destActive = DB::table('member_memberships')
-            ->where('gym_member_id', $destMemberId)
-            ->where('status', 'active')
-            ->exists();
-
-        if ($destActive) {
-            return response()->json(['error' => 'Destination member already has an active plan'], 422);
-        }
-
-        // Get names for logging
+        // Get names for logging (outside the txn).
         $sourceName = DB::table('profiles')->where('id', $source->user_id)->value('full_name') ?? 'Unknown';
         $destName = DB::table('profiles')->where('id', $dest->user_id)->value('full_name') ?? 'Unknown';
-        $planName = DB::table('membership_plans')->where('id', $membership->plan_id)->value('name') ?? 'Unknown';
 
-        return DB::transaction(function () use ($sourceMemberId, $destMemberId, $membership, $gymId, $request, $sourceName, $destName, $planName) {
+        return DB::transaction(function () use ($sourceMemberId, $destMemberId, $gymId, $request, $sourceName, $destName) {
+            // Re-read source membership under a row lock to avoid TOCTOU (concurrent detach/freeze/transfer).
+            $membership = DB::table('member_memberships')
+                ->where('gym_member_id', $sourceMemberId)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $membership) {
+                return response()->json(['error' => 'Source member has no active plan to transfer'], 422);
+            }
+            if ($membership->end_date && $membership->end_date < now()->toDateString()) {
+                return response()->json(['error' => 'Cannot transfer an expired plan'], 422);
+            }
+
+            // Destination active-check under lock.
+            $destActive = DB::table('member_memberships')
+                ->where('gym_member_id', $destMemberId)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->exists();
+            if ($destActive) {
+                return response()->json(['error' => 'Destination member already has an active plan'], 422);
+            }
+
+            $planName = DB::table('membership_plans')->where('id', $membership->plan_id)->value('name') ?? 'Unknown';
             $newMembershipId = Str::uuid()->toString();
 
-            // Create new membership for destination member (copy remaining plan)
+            // Copy the full plan context to the destination (preserve freeze state,
+            // branch allowlist, purchase context, invitations). Start date is kept
+            // so purchase history stays intact; end_date already governs expiry.
             DB::table('member_memberships')->insert([
                 'id' => $newMembershipId,
                 'gym_id' => $gymId,
                 'gym_member_id' => $destMemberId,
                 'plan_id' => $membership->plan_id,
-                'status' => 'active',
-                'start_date' => now()->toDateString(),
+                'status' => $membership->status,
+                'payment_status' => $membership->payment_status,
+                'start_date' => $membership->start_date,
                 'end_date' => $membership->end_date,
                 'sessions_total' => $membership->sessions_total,
                 'sessions_used' => $membership->sessions_used ?? 0,
                 'sessions_remaining' => $membership->sessions_remaining,
-                'max_visits' => $membership->max_visits ?? null,
-                'visits_used' => 0,
+                'max_visits' => $membership->max_visits,
+                'visits_used' => $membership->visits_used ?? 0,
+                'invitations_remaining' => $membership->invitations_remaining ?? 0,
+                'invitations_used' => $membership->invitations_used ?? 0,
+                'freeze_status' => $membership->freeze_status,
+                'freeze_days_used' => $membership->freeze_days_used ?? 0,
+                'freeze_count' => $membership->freeze_count ?? 0,
+                'frozen_at' => $membership->frozen_at,
+                'frozen_until' => $membership->frozen_until,
+                'branch_id' => $membership->branch_id,
+                'allowed_branch_ids' => $membership->allowed_branch_ids,
+                'original_price' => $membership->original_price,
+                'discount_amount' => $membership->discount_amount,
+                'final_price' => $membership->final_price,
+                'promo_code_id' => $membership->promo_code_id,
+                'plan_promotion_id' => $membership->plan_promotion_id,
                 'notes' => "Transferred from {$sourceName}",
                 'transferred_from' => $sourceMemberId,
-                'branch_id' => $membership->branch_id ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Cancel source membership
+            // Cancel source membership.
             DB::table('member_memberships')
                 ->where('id', $membership->id)
                 ->update([
@@ -648,26 +716,29 @@ class MembershipController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            // Set source member inactive, destination active
-            DB::table('gym_members')->where('id', $sourceMemberId)
-                ->update(['status' => 'inactive', 'updated_at' => now()]);
+            // Member status flips: source inactive (iff no other active plans), destination active.
+            $sourceHasOtherActive = DB::table('member_memberships')
+                ->where('gym_member_id', $sourceMemberId)
+                ->where('status', 'active')
+                ->exists();
+            if (! $sourceHasOtherActive) {
+                DB::table('gym_members')->where('id', $sourceMemberId)
+                    ->update(['status' => 'inactive', 'updated_at' => now()]);
+            }
             DB::table('gym_members')->where('id', $destMemberId)
                 ->update(['status' => 'active', 'updated_at' => now()]);
 
-            // Cancel source member's future bookings (bookings uses member_id = profile UUID, class_id)
-            $sourceProfileId = $source->user_id;
-            DB::table('bookings')
-                ->where('member_id', $sourceProfileId)
+            // Cancel source's future confirmed session bookings.
+            $cancelledBookings = DB::table('session_bookings')
+                ->where('gym_member_id', $sourceMemberId)
                 ->where('status', 'confirmed')
-                ->whereExists(function ($q) {
-                    $q->select(DB::raw(1))
+                ->whereIn('session_id', function ($q) {
+                    $q->select('id')
                       ->from('class_sessions')
-                      ->whereColumn('class_sessions.id', 'bookings.class_id')
-                      ->where('class_sessions.session_date', '>=', now()->toDateString());
+                      ->where('session_date', '>=', now()->toDateString());
                 })
-                ->update(['status' => 'cancelled']);
+                ->update(['status' => 'cancelled', 'updated_at' => now()]);
 
-            // Log activity
             $this->logActivity(
                 $gymId,
                 $request->user()->id,
@@ -682,6 +753,7 @@ class MembershipController extends Controller
             return response()->json([
                 'message' => 'Plan transferred successfully',
                 'membership_id' => $newMembershipId,
+                'cancelled_bookings' => $cancelledBookings,
             ]);
         });
     }

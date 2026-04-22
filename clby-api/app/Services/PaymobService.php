@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -12,19 +14,21 @@ class PaymobService
 
     /**
      * Resolve Paymob credentials for a gym (per-gym config or env fallback).
+     * Stored creds are encrypted at rest; we transparently decrypt here.
      */
     public function resolveCredentials(string $gymId): array
     {
         $result = DB::select('SELECT get_gym_payment_creds(?) AS data', [$gymId]);
-        $config = json_decode($result[0]->data ?? '{}', true);
+        $config = json_decode($result[0]->data ?? '{}', true) ?: [];
 
-        if (! empty($config['secret_key'])) {
+        $secret = self::tryDecrypt($config['secret_key'] ?? null);
+        if ($secret !== null && $secret !== '') {
             return [
-                'secret_key' => $config['secret_key'],
-                'public_key' => $config['public_key'] ?? '',
-                'integration_id' => $config['integration_id'] ?? '',
-                'valu_integration_id' => $config['valu_integration_id'] ?? '',
-                'applepay_integration_id' => $config['applepay_integration_id'] ?? '',
+                'secret_key' => $secret,
+                'public_key' => self::tryDecrypt($config['public_key'] ?? null) ?? '',
+                'integration_id' => self::tryDecrypt($config['integration_id'] ?? null) ?? '',
+                'valu_integration_id' => self::tryDecrypt($config['valu_integration_id'] ?? null) ?? '',
+                'applepay_integration_id' => self::tryDecrypt($config['applepay_integration_id'] ?? null) ?? '',
             ];
         }
 
@@ -35,6 +39,38 @@ class PaymobService
             'valu_integration_id' => config('services.paymob.valu_integration_id', ''),
             'applepay_integration_id' => config('services.paymob.applepay_integration_id', ''),
         ];
+    }
+
+    /**
+     * Encrypt a credential value for storage. Empty/null pass through.
+     */
+    public static function encryptCredential(?string $value): ?string
+    {
+        if ($value === null || $value === '') return $value;
+        return Crypt::encryptString($value);
+    }
+
+    /**
+     * Decrypt a stored credential. Falls back to the raw value if it was stored
+     * unencrypted (legacy rows) so we don't break existing installs.
+     */
+    public static function tryDecrypt(?string $value): ?string
+    {
+        if ($value === null || $value === '') return $value;
+        try {
+            return Crypt::decryptString($value);
+        } catch (DecryptException) {
+            return $value;
+        }
+    }
+
+    /**
+     * Strip anything resembling an auth token or API key from a logged response body.
+     */
+    private function redactResponseBody(string $body): string
+    {
+        $body = preg_replace('/("(?:auth|token|key|secret|api[_-]?key)"\s*:\s*")[^"]*/i', '$1[REDACTED]', $body) ?? $body;
+        return mb_substr($body, 0, 500);
     }
 
     /**
@@ -100,7 +136,7 @@ class PaymobService
         if ($response->failed()) {
             Log::error('Paymob intention error', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'body' => $this->redactResponseBody($response->body()),
             ]);
             throw new \RuntimeException('Paymob intention error: ' . $response->status());
         }
@@ -127,7 +163,10 @@ class PaymobService
         ]);
 
         if ($response->failed()) {
-            Log::error('Paymob refund error', ['status' => $response->status(), 'body' => $response->body()]);
+            Log::error('Paymob refund error', [
+                'status' => $response->status(),
+                'body' => $this->redactResponseBody($response->body()),
+            ]);
             throw new \RuntimeException('Paymob refund failed: ' . $response->status());
         }
 

@@ -38,18 +38,23 @@ class _AttendanceScreenState extends State<AttendanceScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _disableProtection();
+    // Clear any blur overlay on teardown as a safety net.
+    ScreenProtector.protectDataLeakageWithBlurOff();
     super.dispose();
   }
 
-  // ── Lifecycle: blur QR in app-switcher preview ────────────────────────────
-
+  // Always clear blur on resume so a stuck overlay from any previous
+  // paused state can't leave the UI black. The matching blur-on-paused
+  // is intentionally disabled: the Attendance screen lives in a bottom-tab
+  // StatefulShellRoute.indexedStack and stayed mounted while the user was
+  // on other tabs, so its lifecycle callbacks fired during image-picker
+  // transitions and the overlay survived the return, producing a black
+  // screen on the Profile tab. See the TODOs in _enableProtection — the
+  // app-switcher blur should be re-added with proper visibility gating
+  // before production.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      // Hides QR content in the iOS/Android app-switcher thumbnail.
-      ScreenProtector.protectDataLeakageWithBlur();
-    } else if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed) {
       ScreenProtector.protectDataLeakageWithBlurOff();
     }
   }
@@ -99,7 +104,16 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         memberStatus != 'suspended';
 
     return Scaffold(
-      appBar: GymAppBar(gym: gym),
+      appBar: GymAppBar(
+        gym: gym,
+        fallbackTitle: 'Attendance',
+        greeting: 'Attendance',
+        greetingStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF1D1D1B),
+        ),
+      ),
       floatingActionButton: hasActivePlan
           ? FloatingActionButton.extended(
               onPressed: () => Navigator.push(

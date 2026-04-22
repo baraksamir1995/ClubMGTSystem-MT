@@ -39,13 +39,25 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isPasswordRecovery => _isPasswordRecovery;
 
   Future<void> _init() async {
-    // Check if we have a stored token
-    final hasToken = await _service.hasSession();
-    if (hasToken) {
-      await _service.loadCachedUserId();
-      _userId = _service.currentUserId;
-      if (_userId != null) {
-        _loadProfileAndGym();
+    // Flip isLoading synchronously so anything listening (e.g. AppBootstrap
+    // waiting for auth) knows a session check is in flight. Without this,
+    // fire-and-forget init would let _waitForAuth return immediately and
+    // bootstrap would skip all preloads.
+    _isLoading = true;
+    try {
+      final hasToken = await _service.hasSession();
+      if (hasToken) {
+        await _service.loadCachedUserId();
+        _userId = _service.currentUserId;
+        if (_userId != null) {
+          await _loadProfileAndGym();
+          return;
+        }
+      }
+    } finally {
+      if (_userId == null) {
+        _isLoading = false;
+        notifyListeners();
       }
     }
   }

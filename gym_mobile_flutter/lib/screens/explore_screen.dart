@@ -9,6 +9,7 @@ import '../models/trainer_profile_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../utils/theme.dart';
+import '../widgets/gym_app_bar.dart';
 import '../widgets/services_section.dart';
 import '../widgets/shimmer_loader.dart';
 import '../widgets/screen_refresh_indicator.dart';
@@ -161,61 +162,70 @@ class _ExploreScreenState extends State<ExploreScreen> {
   // ── App bar ────────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar(ThemeData theme, Color primary) {
-    return AppBar(
-      automaticallyImplyLeading: false,
-      titleSpacing: 20,
-      title: _searchActive
-          ? TextField(
-              controller: _searchController,
-              autofocus: true,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search classes, specialists, programs…',
-                hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 15,
-                ),
-                border: InputBorder.none,
-              ),
-              style: const TextStyle(fontSize: 15),
-            )
-          : Text(
-              'Explore',
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-      actions: [
-        GestureDetector(
-          onTap: _toggleSearch,
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            margin: const EdgeInsets.only(right: 16),
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _searchActive ? Icons.close_rounded : Icons.search_rounded,
-              size: 20,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
+    final searchAction = GestureDetector(
+      onTap: _toggleSearch,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(right: 16),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          shape: BoxShape.circle,
         ),
-      ],
-      backgroundColor: theme.colorScheme.surface,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Divider(
-          height: 1,
-          thickness: 1,
-          color: theme.colorScheme.outline.withValues(alpha: 0.12),
+        child: Icon(
+          _searchActive ? Icons.close_rounded : Icons.search_rounded,
+          size: 20,
+          color: theme.colorScheme.onSurface,
         ),
       ),
+    );
+
+    if (_searchActive) {
+      return AppBar(
+        automaticallyImplyLeading: false,
+        titleSpacing: 20,
+        title: TextField(
+          controller: _searchController,
+          autofocus: true,
+          onChanged: _onSearchChanged,
+          decoration: InputDecoration(
+            hintText: 'Search classes, specialists, programs…',
+            hintStyle: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 15,
+            ),
+            border: InputBorder.none,
+          ),
+          style: const TextStyle(fontSize: 15),
+        ),
+        actions: [searchAction],
+        backgroundColor: theme.colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: theme.colorScheme.outline.withValues(alpha: 0.12),
+          ),
+        ),
+      );
+    }
+
+    final gym = context.watch<AuthProvider>().gym;
+    return GymAppBar(
+      gym: gym,
+      fallbackTitle: 'Explore',
+      greeting: 'Explore',
+      greetingStyle: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        color: Color(0xFF1D1D1B),
+      ),
+      showNotificationBell: false,
+      actions: [searchAction],
     );
   }
 

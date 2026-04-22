@@ -51,7 +51,27 @@ class _ServicePackagesScreenState extends State<ServicePackagesScreen> {
   String _per(Map<String, dynamic> pkg) =>
       ((pkg['session_count'] as int?) ?? 0) <= 1 ? 'session' : 'pack';
 
-  bool _isFeatured(int i) => i == _packages.length - 1 && _packages.length > 1;
+  double _perSession(Map<String, dynamic> pkg) {
+    final price = (pkg['price'] as num?)?.toDouble() ?? 0;
+    final count = (pkg['session_count'] as int?) ?? 1;
+    return count > 0 ? price / count : price;
+  }
+
+  int _bestValueIndex() {
+    if (_packages.length < 2) return -1;
+    int bestIdx = 0;
+    double bestPer = _perSession(_packages[0]);
+    for (int i = 1; i < _packages.length; i++) {
+      final per = _perSession(_packages[i]);
+      if (per < bestPer) {
+        bestPer = per;
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  }
+
+  bool _isFeatured(int i) => i == _bestValueIndex();
 
   String _tag(int i) {
     if (_isFeatured(i)) return 'Best value';

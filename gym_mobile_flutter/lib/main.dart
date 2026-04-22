@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:screen_protector/screen_protector.dart';
 import 'providers/auth_provider.dart';
 import 'providers/member_provider.dart';
 import 'features/banners/banner_provider.dart';
@@ -24,9 +23,15 @@ Future<void> main() async {
   await NotificationService().initFirebase();
   await NotificationService().init();
 
-  // Prevent screenshots and screen recording of sensitive member data.
-  await ScreenProtector.preventScreenshotOn();
-  await ScreenProtector.protectDataLeakageWithColor(Colors.black);
+  // Screen-protection (screenshot prevention + app-switcher color overlay)
+  // was globally enabled here. It caused two different black-screen bugs:
+  //   1) leftover blur from the Attendance lifecycle observer firing on
+  //      other tabs' paused transitions.
+  //   2) the global black color overlay sticking around after iOS
+  //      image_picker / image_cropper modals returned, leaving the Profile
+  //      screen black after save.
+  // Re-enable per-screen on sensitive routes only (Attendance QR, payments)
+  // before production — see project backlog.
 
   runApp(const GymApp());
 }

@@ -106,8 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final picked = await picker.pickImage(source: source, imageQuality: 90);
     if (picked == null) return;
 
-    // Crop
-    final CroppedFile? cropped;
+    CroppedFile? cropped;
     try {
       cropped = await ImageCropper().cropImage(
         sourcePath: picked.path,
@@ -350,6 +349,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: GymAppBar(
         gym: gym,
+        fallbackTitle: 'Profile',
+        greeting: 'Profile',
+        greetingStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF1D1D1B),
+        ),
         actions: [
           if (!_isEditing)
             TextButton.icon(

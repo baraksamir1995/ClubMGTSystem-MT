@@ -240,7 +240,7 @@ class ApiService {
 
   Future<Gym?> getGymInfo(String gymId) async {
     try {
-      final data = await _get('/api/settings');
+      final data = await _get('/api/gyms/$gymId');
       return Gym.fromJson(data as Map<String, dynamic>);
     } catch (_) {
       return null;
@@ -1288,9 +1288,12 @@ class ApiService {
   Future<Map<String, dynamic>?> getActivePopup() async {
     try {
       final data = await _get('/api/content/popups');
+      print('[ApiService.getActivePopup] raw: $data');
       final list = _extractList(data);
+      print('[ApiService.getActivePopup] list length: ${list.length}');
       return list.isNotEmpty ? list.first : null;
-    } catch (_) {
+    } catch (e, st) {
+      print('[ApiService.getActivePopup] error: $e\n$st');
       return null;
     }
   }

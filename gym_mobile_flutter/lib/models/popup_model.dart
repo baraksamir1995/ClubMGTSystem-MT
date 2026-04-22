@@ -37,8 +37,20 @@ class PopupModel {
       ctaActionValue: json['cta_action_value'] as String?,
       isActive: json['is_active'] as bool? ?? false,
       priority: (json['priority'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: _parsePgTimestamp(json['created_at'] as String),
     );
+  }
+
+  /// Postgres returns timestamps like "2026-04-22 19:43:57+02" which Dart's
+  /// DateTime.parse rejects (needs the T separator and +HH:MM offset).
+  static DateTime _parsePgTimestamp(String raw) {
+    var s = raw.replaceFirst(' ', 'T');
+    s = s.replaceFirstMapped(
+      RegExp(r'([+-])(\d{2})$'),
+      (m) => '${m[1]}${m[2]}:00',
+    );
+    if (!RegExp(r'(Z|[+-]\d{2}(:\d{2})?)$').hasMatch(s)) s = '${s}Z';
+    return DateTime.parse(s);
   }
 
   bool get hasCta =>

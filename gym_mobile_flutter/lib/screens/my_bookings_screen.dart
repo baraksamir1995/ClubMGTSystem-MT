@@ -322,7 +322,10 @@ class _BookingCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     // Right: status badge
-                    _StatusBadge(status: booking.status),
+                    _StatusBadge(
+                      status: booking.status,
+                      sessionEndTime: booking.sessionEndTime,
+                    ),
                   ],
                 ),
               ),
@@ -347,14 +350,18 @@ class _BookingCard extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final String status;
+  final DateTime? sessionEndTime;
 
-  const _StatusBadge({required this.status});
+  const _StatusBadge({required this.status, this.sessionEndTime});
 
   @override
   Widget build(BuildContext context) {
     Color color;
     IconData icon;
     String label;
+
+    final hasFinished = sessionEndTime != null &&
+        sessionEndTime!.isBefore(DateTime.now());
 
     switch (status) {
       case 'attended':
@@ -368,9 +375,16 @@ class _StatusBadge extends StatelessWidget {
         label = 'Cancelled';
         break;
       default:
-        color = Colors.green;
-        icon = Icons.check_circle_rounded;
-        label = 'Booked';
+        if (hasFinished) {
+          // Confirmed/booked but the session already ended without a check-in.
+          color = Colors.grey;
+          icon = Icons.check_circle_outline;
+          label = 'Finished';
+        } else {
+          color = Colors.green;
+          icon = Icons.check_circle_rounded;
+          label = 'Booked';
+        }
     }
 
     return Container(

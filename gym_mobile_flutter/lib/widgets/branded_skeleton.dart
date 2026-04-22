@@ -144,7 +144,8 @@ class BrandedSkeletonCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: _buildRows(),
+                  mainAxisSize: MainAxisSize.min,
+                  children: _buildRows(height - 32),
                 ),
               ),
             ),
@@ -155,18 +156,26 @@ class BrandedSkeletonCard extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildRows() {
+  List<Widget> _buildRows(double availableHeight) {
     final widths = [0.4, 0.7, 0.5, 0.3, 0.6];
     final heights = [14.0, 18.0, 12.0, 10.0, 12.0];
+    final count = rows.clamp(1, 5);
+    const gap = 8.0;
 
-    return List.generate(rows.clamp(1, 5), (i) {
+    final required = heights.take(count).fold<double>(0, (a, b) => a + b) +
+        (count - 1) * gap;
+    final scale = required > availableHeight && availableHeight > 0
+        ? availableHeight / required
+        : 1.0;
+
+    return List.generate(count, (i) {
       return Padding(
-        padding: EdgeInsets.only(bottom: i < rows - 1 ? 8.0 : 0),
+        padding: EdgeInsets.only(bottom: i < count - 1 ? gap * scale : 0),
         child: FractionallySizedBox(
           alignment: Alignment.centerLeft,
           widthFactor: widths[i % widths.length],
           child: Container(
-            height: heights[i % heights.length],
+            height: heights[i % heights.length] * scale,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(4),

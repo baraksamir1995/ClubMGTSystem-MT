@@ -28,13 +28,26 @@ class AttendanceController extends Controller
             'type' => 'nullable|string',
         ]);
 
-        $gymId = $request->user()->gym_id;
+        $user = $request->user();
+        $gymId = $user->gym_id;
 
         if (!$gymId) {
             return response()->json(['data' => []]);
         }
 
         $memberId = $validated['gym_member_id'] ?? $validated['member_id'] ?? null;
+
+        // Non-admin roles (members) can only see their own attendance
+        if (!in_array($user->role, ['gym_admin', 'staff', 'trainer', 'super_admin'])) {
+            $ownMemberId = DB::table('gym_members')
+                ->where('user_id', $user->id)
+                ->where('gym_id', $gymId)
+                ->value('id');
+            if (!$ownMemberId) {
+                return response()->json(['data' => [], 'pagination' => ['page' => 1, 'pages' => 1, 'total' => 0, 'limit' => 0]]);
+            }
+            $memberId = $ownMemberId;
+        }
         $fromDate = $validated['from_date'] ?? $validated['from'] ?? null;
         $toDate = $validated['to_date'] ?? $validated['to'] ?? null;
         $perPage = $validated['limit'] ?? 25;

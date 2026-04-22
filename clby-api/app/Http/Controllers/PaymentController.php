@@ -98,7 +98,7 @@ class PaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'currency' => 'nullable|string|max:5',
             'payment_method' => 'nullable|string|max:50',
-            'status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'status' => 'nullable|string|in:pending,paid,failed,refunded,partial_refund',
             'notes' => 'nullable|string',
             'paid_at' => 'nullable|date',
             'source' => 'nullable|string|max:50',
@@ -148,7 +148,7 @@ class PaymentController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'nullable|string|in:pending,paid,failed,refunded',
+            'status' => 'nullable|string|in:pending,paid,failed,refunded,partial_refund',
             'paid_at' => 'nullable|date',
             'notes' => 'nullable|string',
         ]);
@@ -216,6 +216,12 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'transaction_id' => 'required|string',
         ]);
+
+        $gymId = $request->user()->gym_id;
+        $payment = Payment::where('id', $id)->where('gym_id', $gymId)->first();
+        if (! $payment) {
+            return response()->json(['error' => 'Payment not found'], 404);
+        }
 
         DB::select('SELECT stamp_paymob_transaction_id(?, ?)', [
             $id,

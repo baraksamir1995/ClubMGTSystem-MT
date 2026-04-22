@@ -17,7 +17,7 @@ class SessionController extends Controller
         $gymId = $request->user()->gym_id;
 
         $query = ClassSession::where('gym_id', $gymId)
-            ->with('classModel:id,name,class_type,color,instructor');
+            ->with('classModel:id,name,class_type,color,instructor,image_url,description,location');
 
         if ($date = $request->query('date')) {
             $query->where('session_date', $date);
@@ -48,7 +48,7 @@ class SessionController extends Controller
             'capacity' => 'nullable|integer|min:1',
             'instructor' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
-            'session_type' => 'nullable|string|in:popup,regular',
+            'session_type' => 'nullable|string|in:popup,recurring',
             'branch_id' => 'nullable|uuid',
             'studio_id' => 'nullable|uuid',
             'walk_in_allowed' => 'nullable|boolean',
@@ -102,7 +102,7 @@ class SessionController extends Controller
             'capacity' => 'nullable|integer|min:1',
             'instructor' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
-            'session_type' => 'nullable|string|in:popup,regular',
+            'session_type' => 'nullable|string|in:popup,recurring',
             'is_published' => 'sometimes|boolean',
             'walk_in_allowed' => 'sometimes|boolean',
             'branch_id' => 'nullable|uuid',

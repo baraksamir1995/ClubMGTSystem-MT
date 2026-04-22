@@ -16,7 +16,7 @@ export interface WeeklySlot {
   instructor: string | null;
   location: string | null;
   capacity: number | null;
-  session_type: 'regular' | 'popup' | 'recurring';
+  session_type: 'popup' | 'recurring';
 }
 
 interface Props {

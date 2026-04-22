@@ -9,7 +9,7 @@ import type { TrainerProfile } from '@/components/trainers/trainer-modal';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-type SessionType = 'regular' | 'popup' | 'recurring';
+type SessionType = 'popup' | 'recurring';
 const SESSION_TYPES: { value: SessionType; label: string; icon: LucideIcon; desc: string }[] = [
   { value: 'popup',     label: 'Pop-up',    icon: Zap,    desc: 'One-off special session' },
   { value: 'recurring', label: 'Recurring', icon: Repeat, desc: 'Repeating weekly class'  },
@@ -33,7 +33,9 @@ export default function ScheduleSlotModal({ classes, existing, defaultDay, onClo
   const [instructor,  setInstructor]  = useState(existing?.instructor ?? '');
   const [location,    setLocation]    = useState(existing?.location ?? '');
   const [capacity,    setCapacity]    = useState(existing?.capacity?.toString() ?? '');
-  const [sessionType,    setSessionType]    = useState<SessionType>(existing?.session_type ?? 'regular');
+  const [sessionType,    setSessionType]    = useState<SessionType>(
+    existing?.session_type === 'popup' ? 'popup' : 'recurring',
+  );
   const [loading,        setLoading]        = useState(false);
   const [trainers,       setTrainers]       = useState<TrainerProfile[]>([]);
   const [loadingTrainers, setLoadingTrainers] = useState(true);
@@ -125,7 +127,7 @@ export default function ScheduleSlotModal({ classes, existing, defaultDay, onClo
             <div className="grid grid-cols-2 gap-2">
               {SESSION_TYPES.map(({ value, label, icon: Icon, desc }) => (
                 <button key={value} type="button"
-                  onClick={() => setSessionType(prev => prev === value ? 'regular' : value)}
+                  onClick={() => setSessionType(value)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors ${
                     sessionType === value
                       ? 'border-purple-500 bg-purple-500/10 text-purple-300'

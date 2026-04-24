@@ -11,6 +11,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Cap Node heap to fit within 2GB RAM + 2GB swap on tiny EC2 instances
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 RUN npm run build
 
 # ───── Stage 3: runtime ─────

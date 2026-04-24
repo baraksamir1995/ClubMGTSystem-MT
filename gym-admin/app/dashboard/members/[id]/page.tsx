@@ -7,6 +7,7 @@ import MemberDetailActions from '@/components/members/member-detail-actions';
 import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
 import ServicePackagesList from '@/components/members/service-packages-list';
+import SessionTransfersList from '@/components/members/session-transfers-list';
 
 export const dynamic = 'force-dynamic';
 
@@ -331,6 +332,9 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
       {(serviceAssignments ?? []).length > 0 && (
         <ServicePackagesList assignments={serviceAssignments} />
       )}
+
+      {/* Session Transfers (sent + received) */}
+      <SessionTransfersList gymMemberId={params.id} />
 
         </>}
       />

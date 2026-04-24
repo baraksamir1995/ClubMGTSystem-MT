@@ -34,7 +34,7 @@ class DurationSessionPlanCard extends StatelessWidget {
 
   _CardState get _state {
     final remaining = membership.sessionsRemaining ?? 0;
-    final total     = membership.sessionCount ?? 0;
+    final total     = membership.effectiveSessionTotal ?? 0;
     final daysLeft  = membership.endDate != null
         ? membership.endDate!.difference(DateTime.now()).inDays
         : null;
@@ -52,7 +52,7 @@ class DurationSessionPlanCard extends StatelessWidget {
     final now     = DateTime.now();
     final start   = membership.startDate;
     final end     = membership.endDate;
-    final total   = membership.sessionCount ?? 0;
+    final total   = membership.effectiveSessionTotal ?? 0;
     final used    = membership.sessionsUsed ?? 0;
     final remaining = membership.sessionsRemaining ?? 0;
 
@@ -171,13 +171,15 @@ class DurationSessionPlanCard extends StatelessWidget {
                     // Pills
                     Row(
                       children: [
-                        _Pill(
-                          icon: Icons.fitness_center_rounded,
-                          label: 'Gym access',
-                          bg: const Color(0xFF1D3A2A),
-                          fg: _green,
-                        ),
-                        const SizedBox(width: 8),
+                        if (!membership.isTransferred) ...[
+                          _Pill(
+                            icon: Icons.fitness_center_rounded,
+                            label: 'Gym access',
+                            bg: const Color(0xFF1D3A2A),
+                            fg: _green,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         _Pill(
                           icon: Icons.timer_outlined,
                           label: state == _CardState.exhausted
@@ -190,6 +192,15 @@ class DurationSessionPlanCard extends StatelessWidget {
                               ? _sectionLbl
                               : const Color(0xFFAFA9EC),
                         ),
+                        if (membership.isTransferred) ...[
+                          const SizedBox(width: 8),
+                          _Pill(
+                            icon: Icons.redeem_outlined,
+                            label: 'Transferred',
+                            bg: const Color(0xFF3A2A0E),
+                            fg: const Color(0xFFFFD580),
+                          ),
+                        ],
                       ],
                     ),
 

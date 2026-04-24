@@ -74,6 +74,7 @@ class MemberController extends Controller
         $member = GymMember::where('gym_id', $gymId)
             ->with([
                 'user',
+                'memberships' => fn ($q) => $q->orderBy('start_date', 'desc'),
                 'memberships.plan',
                 'attendanceLogs' => fn ($q) => $q->with('branch:id,name')->orderBy('check_in_at', 'desc')->limit(20),
             ])

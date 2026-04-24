@@ -154,12 +154,15 @@ class MemberMembership {
       planType == 'duration' ||
       planType == 'duration_session';
 
-  // Plans that allow gym entrance QR scan
-  bool get hasGymAccess =>
-      planType == 'monthly' ||
-      planType == 'annual' ||
-      planType == 'duration' ||
-      planType == 'duration_session';
+  // Plans that allow gym entrance QR scan. Transferred rows are session-only;
+  // even if the source plan granted gym access, the receiver only gets sessions.
+  bool get hasGymAccess {
+    if (isTransferred) return false;
+    return planType == 'monthly' ||
+        planType == 'annual' ||
+        planType == 'duration' ||
+        planType == 'duration_session';
+  }
 
   // Plans that allow studio/session QR scan
   bool get hasStudioAccess =>

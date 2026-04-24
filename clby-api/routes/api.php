@@ -33,6 +33,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServicePackageController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\SessionTransferController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\TrainerController;
@@ -141,8 +142,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Member details (own — scoped by gym_member_id in query)
     Route::get('/members', [MemberController::class, 'index']);
-    Route::get('/members/{id}', [MemberController::class, 'show']);
     Route::delete('/members/account', [MemberController::class, 'deleteAccount']);
+
+    // Session transfers (member-initiated share) — MUST be above /members/{id}
+    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:30,1');
+    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
+
+    Route::get('/members/{id}', [MemberController::class, 'show']);
 
     // Attendance (self — controller auto-scopes to caller for members)
     Route::get('/attendance', [AttendanceController::class, 'index']);
@@ -178,6 +185,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::patch('/memberships/{id}', [MembershipController::class, 'updateMembership'])->middleware('permission:members,edit');
     Route::post('/members/{id}/membership/detach', [MembershipController::class, 'detach'])->middleware('permission:members,edit');
     Route::post('/members/{id}/transfer', [MembershipController::class, 'transfer'])->middleware('permission:members,edit');
+
+    // Admin: view a specific member's session-transfer history (sent + received)
+    Route::get('/members/{id}/session-transfers', [SessionTransferController::class, 'forMember']);
 
     // Classes management
     Route::post('/classes', [ClassController::class, 'store'])->middleware('permission:classes,create');

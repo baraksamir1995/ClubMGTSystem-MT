@@ -112,6 +112,26 @@ class AuthController extends Controller
         return response()->json(['message' => 'Verification email sent.']);
     }
 
+    /**
+     * Unauthenticated resend: looks the user up by email. Always returns 200
+     * regardless of outcome, to avoid leaking which emails are registered.
+     */
+    public function resendVerificationPublic(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+        if ($user && ! $user->email_verified) {
+            $this->sendVerificationEmail($user);
+        }
+
+        return response()->json([
+            'message' => 'If that email exists and is unverified, a confirmation link has been sent.',
+        ]);
+    }
+
     public function verifyEmail(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -152,6 +172,17 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);
+        }
+
+        // Members must verify their email before logging in. Admin roles are
+        // created by super-admins / onboarding and don't go through the
+        // self-signup email flow, so exempt them.
+        $requiresVerification = in_array($user->role, ['member', null], true);
+        if ($requiresVerification && ! $user->email_verified) {
+            return response()->json([
+                'message' => 'Please verify your email before signing in. Check your inbox for the confirmation link.',
+                'code' => 'email_not_verified',
+            ], 403);
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;

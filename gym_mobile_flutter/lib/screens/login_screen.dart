@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../features/auth/auth_widgets.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -67,8 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final lower = error.toLowerCase();
       if (lower.contains('banned') || lower.contains('user is banned')) {
         _err('This account has been deleted. You can still restore it by signing up again.');
-      } else if (lower.contains('email not confirmed') || lower.contains('not confirmed')) {
-        _err('Please confirm your email first. Check your inbox for the confirmation link.');
+      } else if (lower.contains('verify your email') || lower.contains('not verified') || lower.contains('email not confirmed')) {
+        _showUnverifiedEmailSheet(_emailCtrl.text.trim());
       } else if (lower.contains('invalid login') || lower.contains('invalid credentials')) {
         _err('Incorrect email or password.');
       } else {
@@ -77,6 +78,40 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       context.go('/home');
     }
+  }
+
+  void _showUnverifiedEmailSheet(String email) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Verify your email'),
+        content: const Text(
+          'We sent a confirmation link when you signed up. Tap the link in the email to activate your account. Check spam if you can’t find it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ApiService().resendVerificationEmail(email);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Verification email sent. Check your inbox.'),
+                ));
+              } catch (_) {
+                if (!mounted) return;
+                _err('Could not resend. Try again in a minute.');
+              }
+            },
+            child: const Text('Resend email'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _err(String msg) {

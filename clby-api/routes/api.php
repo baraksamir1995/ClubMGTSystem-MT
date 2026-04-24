@@ -74,6 +74,7 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
+    Route::post('/resend-verification-public', [AuthController::class, 'resendVerificationPublic']);
 });
 
 // ─── Member-accessible routes (any authenticated user) ──────────────────────

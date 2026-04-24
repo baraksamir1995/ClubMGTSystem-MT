@@ -162,6 +162,14 @@ class ApiService {
     });
   }
 
+  /// Resend the email-verification link for an unauthenticated user whose
+  /// login was rejected with email_not_verified.
+  Future<void> resendVerificationEmail(String email) async {
+    await _post('/api/auth/resend-verification-public', {
+      'email': email,
+    });
+  }
+
   Future<void> resetPassword(String token, String newPassword) async {
     await _post('/api/auth/reset-password', {
       'token': token,

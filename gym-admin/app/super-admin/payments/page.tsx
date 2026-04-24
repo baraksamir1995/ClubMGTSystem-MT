@@ -20,7 +20,7 @@ interface Invoice {
 }
 
 interface Gym { id: string; name: string }
-interface Plan { id: string; name: string; price_monthly: number; price_annual: number }
+interface Plan { id: string; name: string; price_monthly: number; price_annual: number; is_active?: boolean }
 
 export default function PaymentsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);

@@ -39,6 +39,7 @@ import 'screens/program_detail_screen.dart';
 import 'screens/payment_summary_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/reset_password_screen.dart';
+import 'screens/transfer_sessions_screen.dart';
 import 'models/banner_model.dart';
 import 'models/checkout_item.dart';
 import 'models/service_model.dart';
@@ -142,6 +143,13 @@ GoRouter buildRouter(BuildContext context) {
             child: child,
           ),
           transitionDuration: const Duration(milliseconds: 300),
+        ),
+      ),
+      GoRoute(
+        path: '/transfer-sessions',
+        name: 'transfer-sessions',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: TransferSessionsScreen(),
         ),
       ),
       // Offer detail — navigated to from Explore feed offer cards

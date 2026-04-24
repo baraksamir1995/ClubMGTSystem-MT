@@ -18,6 +18,12 @@ class MemberMembership {
   final String? status;
   final String? paymentStatus;
   final int? sessionsUsed;
+  // Per-membership-row totals (preferred over plan's session_count when set).
+  // Populated directly from member_memberships.sessions_total / sessions_remaining.
+  final int? sessionsTotal;
+  final int? sessionsRemainingRaw;
+  // If non-null, this membership row was created by a session transfer.
+  final String? transferredFrom;
 
   // Freeze fields (plan config)
   final bool freezeEnabled;
@@ -63,6 +69,9 @@ class MemberMembership {
     this.status,
     this.paymentStatus,
     this.sessionsUsed,
+    this.sessionsTotal,
+    this.sessionsRemainingRaw,
+    this.transferredFrom,
     this.freezeEnabled = false,
     this.freezeMaxDays,
     this.freezeMaxCount,
@@ -81,12 +90,24 @@ class MemberMembership {
     this.allowedBranchIds,
   });
 
+  /// Prefer row-level sessions_remaining (post-transfer-accurate). Fall back to
+  /// sessions_total - used, then plan.session_count - used for legacy rows.
   int? get sessionsRemaining {
-    if (sessionCount == null) return null;
+    if (sessionsRemainingRaw != null) {
+      return sessionsRemainingRaw! < 0 ? 0 : sessionsRemainingRaw;
+    }
     final used = sessionsUsed ?? 0;
-    final remaining = sessionCount! - used;
+    final total = sessionsTotal ?? sessionCount;
+    if (total == null) return null;
+    final remaining = total - used;
     return remaining < 0 ? 0 : remaining;
   }
+
+  /// Total for display ("X of Y"). Prefer row-level sessions_total.
+  int? get effectiveSessionTotal => sessionsTotal ?? sessionCount;
+
+  /// True when this row was created by an incoming session transfer.
+  bool get isTransferred => transferredFrom != null;
 
   bool get isFrozen => freezeStatus == 'frozen';
 
@@ -182,6 +203,9 @@ class MemberMembership {
       status: json['status'] as String?,
       paymentStatus: json['payment_status'] as String?,
       sessionsUsed: json['sessions_used'] as int?,
+      sessionsTotal: json['sessions_total'] as int?,
+      sessionsRemainingRaw: json['sessions_remaining'] as int?,
+      transferredFrom: json['transferred_from'] as String?,
       freezeEnabled: planJson?['freeze_enabled'] as bool? ?? false,
       freezeMaxDays: planJson?['freeze_max_days'] as int?,
       freezeMaxCount: planJson?['freeze_max_count'] as int?,

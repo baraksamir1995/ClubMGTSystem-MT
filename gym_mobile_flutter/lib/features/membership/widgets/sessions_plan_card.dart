@@ -17,7 +17,7 @@ class SessionsPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = membership.sessionCount ?? 0;
+    final total = membership.effectiveSessionTotal ?? 0;
     final used = membership.sessionsUsed ?? 0;
     final remaining = membership.sessionsRemaining ?? total;
     final progress = total > 0 ? (used / total).clamp(0.0, 1.0) : 0.0;
@@ -55,7 +55,14 @@ class SessionsPlanCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _buildPlanTypePill(),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _buildPlanTypePill(),
+                        if (membership.isTransferred) _buildTransferredPill(),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -179,6 +186,25 @@ class SessionsPlanCard extends StatelessWidget {
           color: _pillText,
           fontSize: 9,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransferredPill() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3D6),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Text(
+        'Transferred',
+        style: TextStyle(
+          color: Color(0xFF8A5A00),
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.2,
         ),
       ),

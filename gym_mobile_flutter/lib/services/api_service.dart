@@ -346,6 +346,51 @@ class ApiService {
     }
   }
 
+  // ─── Session transfers ───────────────────────────────────────────────────
+
+  /// Looks up a member in the same gym by phone. Returns minimal info only
+  /// (full_name + photo_url), or null if no match. Backend also returns 404
+  /// for the caller's own phone.
+  Future<Map<String, dynamic>?> lookupMemberByPhone(String phone) async {
+    try {
+      final data = await _get('/api/members/lookup?phone=${Uri.encodeQueryComponent(phone)}');
+      if (data is Map<String, dynamic> && data['data'] is Map<String, dynamic>) {
+        return data['data'] as Map<String, dynamic>;
+      }
+      return null;
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Transfer [count] sessions to the member whose [phone] matches. Caller
+  /// must have an active session-capable membership with that balance.
+  Future<Map<String, dynamic>> transferSessions({
+    required String phone,
+    required int count,
+  }) async {
+    final data = await _post('/api/members/session-transfers', {
+      'phone': phone,
+      'count': count,
+    });
+    return (data is Map && data['data'] is Map)
+        ? Map<String, dynamic>.from(data['data'] as Map)
+        : <String, dynamic>{};
+  }
+
+  /// Caller's transfer history: {sent: [...], received: [...]}.
+  Future<Map<String, List<Map<String, dynamic>>>> getMyTransfers() async {
+    final data = await _get('/api/members/me/transfers');
+    final payload = (data is Map && data['data'] is Map) ? data['data'] as Map : const {};
+    List<Map<String, dynamic>> cast(dynamic v) =>
+        (v as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    return {
+      'sent': cast(payload['sent']),
+      'received': cast(payload['received']),
+    };
+  }
+
   Future<List<MemberMembership>> getAllMemberships(String memberId) async {
     try {
       final raw = await _get('/api/members/$memberId');

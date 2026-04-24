@@ -658,6 +658,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
             ],
 
+            // ── Share Sessions ────────────────────────────────────────────
+            if ((membership?.hasStudioAccess ?? false) &&
+                (membership?.sessionsRemaining ?? 0) > 0) ...[
+              Text(
+                'Share Sessions',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: InkWell(
+                  onTap: () => context.push('/transfer-sessions'),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.redeem_outlined,
+                              color: primaryColor, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Send sessions to a friend',
+                                style: theme.textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                '${membership!.sessionsRemaining} available',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.5)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
             Text(
               'Account',
               style: theme.textTheme.titleMedium?.copyWith(

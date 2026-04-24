@@ -58,6 +58,7 @@ class GymController extends Controller
             'branding_config' => $gym->branding_config,
             'category' => $gym->category,
             'services' => $gym->services,
+            'mobile_payments_enabled' => $gym->mobile_payments_enabled,
         ]);
     }
 

@@ -264,7 +264,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                     <span className="ml-1 bg-purple-500/20 text-purple-400 text-xs px-1.5 py-0.5 rounded-full">{branchFilter.length}</span>
                   )}
                 </button>
-                <div className={`${branchDropdownOpen ? '' : 'hidden'} absolute z-20 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto">
+                <div className={`${branchDropdownOpen ? '' : 'hidden'} absolute z-20 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto`}>
                   {branches.map(b => (
                     <label key={b} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-700/50 cursor-pointer text-sm text-white">
                       <input

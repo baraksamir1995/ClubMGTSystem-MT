@@ -38,8 +38,8 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Create profile
-        $user = User::create([
+        // Create profile (forceCreate so id + role pass through $fillable)
+        $user = User::forceCreate([
             'id' => $userId,
             'email' => $validated['email'],
             'password' => $validated['password'],

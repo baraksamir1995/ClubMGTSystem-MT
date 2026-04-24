@@ -312,12 +312,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                     placeholder="e.g. 10" className={inputCls} />
                   <span className="text-xs text-gray-500 whitespace-nowrap">sessions</span>
                 </div>
-                {planType === 'sessions' && (
-                  <p className="text-xs text-gray-600 mt-1">Leave empty for unlimited sessions.</p>
-                )}
-                {planType === 'duration_session' && (
-                  <p className="text-xs text-gray-600 mt-1">Member must have both time remaining AND sessions left to access the gym.</p>
-                )}
+                <p className="text-xs text-gray-600 mt-1">Leave empty for unlimited sessions.</p>
               </div>
             )}
             {planType === 'sessions' && !!sessionCount && (

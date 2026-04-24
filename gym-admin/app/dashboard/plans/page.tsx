@@ -48,7 +48,18 @@ async function fetchApi(path: string, token: string) {
     return null;
   }
 }
-export default async function PlansPage() {
+interface PageMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export default async function PlansPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   const cookieStore = await cookies();
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
   if (!token) redirect('/login');
@@ -56,13 +67,17 @@ export default async function PlansPage() {
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
 
+  const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
+  const perPage = 10;
+
   const [plansData, branchesData] = await Promise.all([
-    fetchApi('/plans', token),
+    fetchApi(`/plans?per_page=${perPage}&page=${page}&include_inactive=true`, token),
     fetchApi('/branches', token),
   ]);
 
-  const plans = (plansData?.data ?? plansData ?? []) as Plan[];
+  const plans = (plansData?.data ?? []) as Plan[];
+  const meta = (plansData?.meta ?? null) as PageMeta | null;
   const branches = (branchesData?.data ?? branchesData ?? []).map((b: any) => ({ id: b.id, name: b.name })) as Pick<GymBranch, 'id' | 'name'>[];
 
-  return <PlansTable plans={plans} branches={branches} permissions={permissions} />;
+  return <PlansTable plans={plans} branches={branches} permissions={permissions} meta={meta} />;
 }

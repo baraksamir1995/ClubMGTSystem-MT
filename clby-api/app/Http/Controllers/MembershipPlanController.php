@@ -15,8 +15,13 @@ class MembershipPlanController extends Controller
     {
         $gymId = $request->user()->gym_id;
         $query = MembershipPlan::where('gym_id', $gymId)
-            ->whereNull('deleted_at')
-            ->where('is_active', true);
+            ->whereNull('deleted_at');
+
+        // Public consumers (mobile explore) want only active plans. Admin
+        // dashboards may pass include_inactive=true to see all.
+        if ($request->query('include_inactive') !== 'true') {
+            $query->where('is_active', true);
+        }
 
         if ($planType = $request->query('plan_type')) {
             $query->where('plan_type', $planType);
@@ -25,8 +30,26 @@ class MembershipPlanController extends Controller
             $query->where('plan_type', '!=', 'sessions');
         }
 
-        $plans = $query->orderBy('created_at', 'desc')->get();
-        return response()->json(['data' => $plans]);
+        $query->orderBy('created_at', 'desc');
+
+        // Opt-in server pagination: if per_page is present, paginate and
+        // return meta. Otherwise preserve legacy behaviour (full list).
+        $perPage = $request->query('per_page');
+        if ($perPage !== null && $perPage !== '') {
+            $perPage = max(1, min((int) $perPage, 100));
+            $paginated = $query->paginate($perPage);
+            return response()->json([
+                'data' => $paginated->items(),
+                'meta' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ],
+            ]);
+        }
+
+        return response()->json(['data' => $query->get()]);
     }
 
     public function store(Request $request): JsonResponse

@@ -1,12 +1,20 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, ToggleLeft, ToggleRight, CreditCard, Search } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Pencil, ToggleLeft, ToggleRight, CreditCard, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PlanModal from './plan-modal';
 import DeactivatePlanModal from './deactivate-plan-modal';
 import type { Plan } from '@/app/dashboard/plans/page';
 import { can, type Permission } from '@/lib/get-permissions';
+
+interface PageMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
 
 const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
@@ -27,7 +35,7 @@ const billingCycleLabel: Record<string, string> = {
   'annual':    'Annual',
 };
 
-export default function PlansTable({ plans: initialPlans, branches, permissions }: { plans: Plan[]; branches: { id: string; name: string }[]; permissions: Permission[] | null }) {
+export default function PlansTable({ plans: initialPlans, branches, permissions, meta }: { plans: Plan[]; branches: { id: string; name: string }[]; permissions: Permission[] | null; meta?: PageMeta | null }) {
   const branchMap = useMemo(() => Object.fromEntries(branches.map(b => [b.id, b.name])), [branches]);
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [modalOpen, setModalOpen] = useState(false);
@@ -279,6 +287,48 @@ export default function PlansTable({ plans: initialPlans, branches, permissions 
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {meta && meta.last_page > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-700">
+              <p className="text-xs text-gray-500">
+                Showing {(meta.current_page - 1) * meta.per_page + 1}–
+                {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total}
+              </p>
+              <div className="flex items-center gap-2">
+                {meta.current_page > 1 ? (
+                  <Link
+                    href={`/dashboard/plans?page=${meta.current_page - 1}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Prev
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800 rounded-md cursor-not-allowed">
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Prev
+                  </span>
+                )}
+                <span className="text-xs text-gray-400 px-2">
+                  Page {meta.current_page} of {meta.last_page}
+                </span>
+                {meta.current_page < meta.last_page ? (
+                  <Link
+                    href={`/dashboard/plans?page=${meta.current_page + 1}`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                  >
+                    Next
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800 rounded-md cursor-not-allowed">
+                    Next
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>

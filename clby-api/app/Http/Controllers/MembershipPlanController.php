@@ -14,42 +14,72 @@ class MembershipPlanController extends Controller
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
-        $query = MembershipPlan::where('gym_id', $gymId)
-            ->whereNull('deleted_at');
+        $status = $request->query('status');     // active | inactive | all | null
+        $search = trim((string) $request->query('search', ''));
+        $planType = $request->query('plan_type');
+        $excludeSessions = $request->query('exclude_sessions') === 'true';
 
-        // Public consumers (mobile explore) want only active plans. Admin
-        // dashboards may pass include_inactive=true to see all.
-        if ($request->query('include_inactive') !== 'true') {
+        $applyScope = function ($q) use ($gymId, $search, $planType, $excludeSessions) {
+            $q->where('gym_id', $gymId)->whereNull('deleted_at');
+            if ($search !== '') {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('name', 'ilike', "%{$search}%")
+                       ->orWhere('description', 'ilike', "%{$search}%");
+                });
+            }
+            if ($planType && $planType !== 'all') {
+                $q->where('plan_type', $planType);
+            }
+            if ($excludeSessions) {
+                $q->where('plan_type', '!=', 'sessions');
+            }
+            return $q;
+        };
+
+        $query = $applyScope(MembershipPlan::query());
+
+        // Back-compat: if no status specified, default to active-only (mobile
+        // consumers rely on this). Admin dashboards pass status explicitly.
+        if ($status === null) {
             $query->where('is_active', true);
+        } elseif ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
         }
-
-        if ($planType = $request->query('plan_type')) {
-            $query->where('plan_type', $planType);
-        }
-        if ($request->query('exclude_sessions') === 'true') {
-            $query->where('plan_type', '!=', 'sessions');
-        }
+        // status === 'all' — no is_active filter
 
         $query->orderBy('created_at', 'desc');
 
-        // Opt-in server pagination: if per_page is present, paginate and
-        // return meta. Otherwise preserve legacy behaviour (full list).
         $perPage = $request->query('per_page');
-        if ($perPage !== null && $perPage !== '') {
-            $perPage = max(1, min((int) $perPage, 100));
-            $paginated = $query->paginate($perPage);
-            return response()->json([
-                'data' => $paginated->items(),
-                'meta' => [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page' => $paginated->lastPage(),
-                    'per_page' => $paginated->perPage(),
-                    'total' => $paginated->total(),
-                ],
-            ]);
+        if ($perPage === null || $perPage === '') {
+            return response()->json(['data' => $query->get()]);
         }
 
-        return response()->json(['data' => $query->get()]);
+        $perPage = max(1, min((int) $perPage, 100));
+        $paginated = $query->paginate($perPage);
+
+        // Counts in the same search/type scope, independent of status filter,
+        // so stat cards stay meaningful when switching between Active/Inactive.
+        $countsBase = $applyScope(MembershipPlan::query());
+        $total = (clone $countsBase)->count();
+        $active = (clone $countsBase)->where('is_active', true)->count();
+        $inactive = $total - $active;
+
+        return response()->json([
+            'data' => $paginated->items(),
+            'meta' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'counts' => [
+                    'total' => $total,
+                    'active' => $active,
+                    'inactive' => $inactive,
+                ],
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse

@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Plus, Pencil, ToggleLeft, ToggleRight, CreditCard, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Plus, Pencil, ToggleLeft, ToggleRight, CreditCard, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PlanModal from './plan-modal';
 import DeactivatePlanModal from './deactivate-plan-modal';
-import type { Plan } from '@/app/dashboard/plans/page';
+import type { Plan, PageMeta, PlanStatusFilter, PlanTypeFilter } from '@/app/dashboard/plans/page';
 import { can, type Permission } from '@/lib/get-permissions';
 
-interface PageMeta {
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
+interface Filters {
+  search: string;
+  status: PlanStatusFilter;
+  type: PlanTypeFilter;
 }
 
 const fmt = (amount: number, currency = 'EGP') =>
@@ -35,34 +34,56 @@ const billingCycleLabel: Record<string, string> = {
   'annual':    'Annual',
 };
 
-export default function PlansTable({ plans: initialPlans, branches, permissions, meta }: { plans: Plan[]; branches: { id: string; name: string }[]; permissions: Permission[] | null; meta?: PageMeta | null }) {
+export default function PlansTable({ plans: initialPlans, branches, permissions, meta, filters }: { plans: Plan[]; branches: { id: string; name: string }[]; permissions: Permission[] | null; meta?: PageMeta | null; filters: Filters }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
   const branchMap = useMemo(() => Object.fromEntries(branches.map(b => [b.id, b.name])), [branches]);
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | undefined>(undefined);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [searchDraft, setSearchDraft] = useState(filters.search);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deactivatingPlan, setDeactivatingPlan] = useState<Plan | null>(null);
+
+  // Keep local list in sync when server sends new data (page/filter change).
+  useEffect(() => { setPlans(initialPlans); }, [initialPlans]);
+  useEffect(() => { setSearchDraft(filters.search); }, [filters.search]);
+
+  const statusFilter = filters.status;
+  const typeFilter = filters.type;
+
+  const pushFilters = (next: Partial<Filters & { page: number }>) => {
+    const sp = new URLSearchParams();
+    const search = next.search ?? filters.search;
+    const status = next.status ?? filters.status;
+    const type = next.type ?? filters.type;
+    const page = next.page ?? 1; // reset to page 1 on any filter change
+    if (search) sp.set('search', search);
+    if (status !== 'all') sp.set('status', status);
+    if (type !== 'all') sp.set('type', type);
+    if (page > 1) sp.set('page', String(page));
+    const qs = sp.toString();
+    startTransition(() => {
+      router.push(qs ? `${pathname}?${qs}` : pathname);
+    });
+  };
+
+  // Debounce search — push to URL 400ms after the user stops typing.
+  useEffect(() => {
+    if (searchDraft === filters.search) return;
+    const t = setTimeout(() => pushFilters({ search: searchDraft, page: 1 }), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchDraft]);
 
   const openCreate = () => { setEditingPlan(undefined); setModalOpen(true); };
   const openEdit = (p: Plan) => { setEditingPlan(p); setModalOpen(true); };
 
-  const filtered = useMemo(() => {
-    let list = [...plans];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q));
-    }
-    if (statusFilter === 'active')   list = list.filter(p => p.is_active);
-    if (statusFilter === 'inactive') list = list.filter(p => !p.is_active);
-    if (typeFilter !== 'all')        list = list.filter(p => p.plan_type === typeFilter);
-    return list;
-  }, [plans, search, statusFilter, typeFilter]);
-
-  const totalActive   = plans.filter(p => p.is_active).length;
-  const totalInactive = plans.filter(p => !p.is_active).length;
+  const totalCount = meta?.counts?.total ?? plans.length;
+  const totalActive = meta?.counts?.active ?? plans.filter(p => p.is_active).length;
+  const totalInactive = meta?.counts?.inactive ?? plans.filter(p => !p.is_active).length;
 
   const doToggle = async (plan: Plan, newActive: boolean) => {
     setTogglingId(plan.id);
@@ -114,14 +135,14 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: 'Total Plans',   value: plans.length,   color: 'text-white',          filter: 'all' },
-            { label: 'Active Plans',  value: totalActive,    color: 'text-emerald-400',    filter: 'active' },
-            { label: 'Inactive Plans', value: totalInactive, color: 'text-gray-400',       filter: 'inactive' },
-          ].map(s => (
+          {([
+            { label: 'Total Plans',    value: totalCount,    color: 'text-white',       filter: 'all' as const },
+            { label: 'Active Plans',   value: totalActive,   color: 'text-emerald-400', filter: 'active' as const },
+            { label: 'Inactive Plans', value: totalInactive, color: 'text-gray-400',    filter: 'inactive' as const },
+          ]).map(s => (
             <button
               key={s.filter}
-              onClick={() => setStatusFilter(statusFilter === s.filter as 'all' | 'active' | 'inactive' ? 'all' : s.filter as 'all' | 'active' | 'inactive')}
+              onClick={() => pushFilters({ status: statusFilter === s.filter ? 'all' : s.filter, page: 1 })}
               className={`bg-gray-800 border rounded-xl p-4 text-left transition-colors ${
                 statusFilter === s.filter ? 'border-purple-500' : 'border-gray-700 hover:border-gray-600'
               }`}
@@ -138,37 +159,40 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchDraft}
+              onChange={e => setSearchDraft(e.target.value)}
               placeholder="Search by plan name or description…"
               className="w-full pl-9 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
             />
+            {isPending && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 animate-spin" />}
           </div>
           <div className="flex flex-wrap gap-3 items-center">
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')} className={selectCls}>
+            <select value={statusFilter} onChange={e => pushFilters({ status: e.target.value as PlanStatusFilter, page: 1 })} className={selectCls}>
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={selectCls}>
+            <select value={typeFilter} onChange={e => pushFilters({ type: e.target.value as PlanTypeFilter, page: 1 })} className={selectCls}>
               <option value="all">All Types</option>
               <option value="duration">Duration</option>
               <option value="sessions">Sessions Only</option>
               <option value="duration_session">Duration + Sessions</option>
             </select>
-            <span className="ml-auto text-xs text-gray-500">{filtered.length} of {plans.length} plans</span>
+            <span className="ml-auto text-xs text-gray-500">
+              {meta ? `${meta.total} result${meta.total === 1 ? '' : 's'}` : `${plans.length} plans`}
+            </span>
           </div>
         </div>
 
         {/* Table */}
         <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-          {filtered.length === 0 ? (
+          {plans.length === 0 ? (
             <div className="p-12 text-center">
               <CreditCard className="w-10 h-10 text-gray-600 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">
-                {plans.length === 0 ? 'No plans yet. Create your first plan.' : 'No plans match your filters'}
+                {totalCount === 0 ? 'No plans yet. Create your first plan.' : 'No plans match your filters'}
               </p>
-              {plans.length === 0 && can(permissions, 'members', 'create') && (
+              {totalCount === 0 && can(permissions, 'members', 'create') && (
                 <button onClick={openCreate} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
                   <Plus className="w-4 h-4" /> Create your first plan
                 </button>
@@ -189,7 +213,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700/50">
-                  {filtered.map(plan => (
+                  {plans.map(plan => (
                     <tr key={plan.id} className="hover:bg-gray-700/30 transition-colors">
                       <td className="px-5 py-3.5">
                         <p className={`font-medium ${plan.is_active ? 'text-white' : 'text-gray-500'}`}>{plan.name}</p>
@@ -298,13 +322,13 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
               </p>
               <div className="flex items-center gap-2">
                 {meta.current_page > 1 ? (
-                  <Link
-                    href={`/dashboard/plans?page=${meta.current_page - 1}`}
+                  <button
+                    onClick={() => pushFilters({ page: meta.current_page - 1 })}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Prev
-                  </Link>
+                  </button>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800 rounded-md cursor-not-allowed">
                     <ChevronLeft className="w-3.5 h-3.5" />
@@ -315,13 +339,13 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                   Page {meta.current_page} of {meta.last_page}
                 </span>
                 {meta.current_page < meta.last_page ? (
-                  <Link
-                    href={`/dashboard/plans?page=${meta.current_page + 1}`}
+                  <button
+                    onClick={() => pushFilters({ page: meta.current_page + 1 })}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
                   >
                     Next
                     <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
+                  </button>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800 rounded-md cursor-not-allowed">
                     Next

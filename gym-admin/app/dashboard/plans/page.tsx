@@ -48,17 +48,30 @@ async function fetchApi(path: string, token: string) {
     return null;
   }
 }
-interface PageMeta {
+export interface PageMeta {
   current_page: number;
   last_page: number;
   per_page: number;
   total: number;
+  counts: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
 }
+
+export type PlanStatusFilter = 'all' | 'active' | 'inactive';
+export type PlanTypeFilter = 'all' | 'duration' | 'sessions' | 'duration_session';
 
 export default async function PlansPage({
   searchParams,
 }: {
-  searchParams?: { page?: string };
+  searchParams?: {
+    page?: string;
+    search?: string;
+    status?: PlanStatusFilter;
+    type?: PlanTypeFilter;
+  };
 }) {
   const cookieStore = await cookies();
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
@@ -68,10 +81,21 @@ export default async function PlansPage({
   const permissions = await getStaffPermissions(token);
 
   const page = Math.max(1, Number(searchParams?.page ?? '1') || 1);
+  const search = (searchParams?.search ?? '').trim();
+  const status: PlanStatusFilter = searchParams?.status ?? 'all';
+  const type: PlanTypeFilter = searchParams?.type ?? 'all';
   const perPage = 10;
 
+  const params = new URLSearchParams({
+    per_page: String(perPage),
+    page: String(page),
+    status,
+  });
+  if (search) params.set('search', search);
+  if (type !== 'all') params.set('plan_type', type);
+
   const [plansData, branchesData] = await Promise.all([
-    fetchApi(`/plans?per_page=${perPage}&page=${page}&include_inactive=true`, token),
+    fetchApi(`/plans?${params.toString()}`, token),
     fetchApi('/branches', token),
   ]);
 
@@ -79,5 +103,13 @@ export default async function PlansPage({
   const meta = (plansData?.meta ?? null) as PageMeta | null;
   const branches = (branchesData?.data ?? branchesData ?? []).map((b: any) => ({ id: b.id, name: b.name })) as Pick<GymBranch, 'id' | 'name'>[];
 
-  return <PlansTable plans={plans} branches={branches} permissions={permissions} meta={meta} />;
+  return (
+    <PlansTable
+      plans={plans}
+      branches={branches}
+      permissions={permissions}
+      meta={meta}
+      filters={{ search, status, type }}
+    />
+  );
 }

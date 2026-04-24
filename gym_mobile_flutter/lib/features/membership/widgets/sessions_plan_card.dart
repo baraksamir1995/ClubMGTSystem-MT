@@ -55,12 +55,14 @@ class SessionsPlanCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildPlanTypePill(),
-                        if (membership.isTransferred) _buildTransferredPill(),
+                        if (membership.isTransferred) ...[
+                          const SizedBox(width: 6),
+                          _buildTransferredPill(),
+                        ],
                       ],
                     ),
                   ],

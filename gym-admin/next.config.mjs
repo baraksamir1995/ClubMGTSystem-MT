@@ -1,3 +1,10 @@
+// Next.js dev mode uses react-refresh which evaluates strings. Allow
+// 'unsafe-eval' only in development so CSP doesn't break hot reload.
+const isDev = process.env.NODE_ENV !== 'production';
+const scriptSrc = isDev
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  : "script-src 'self' 'unsafe-inline'";
+
 // SECURITY: HIGH-2 — Comprehensive security headers for all responses
 const securityHeaders = [
   // SECURITY: HIGH-2 — Prevent SSL downgrade attacks
@@ -15,7 +22,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      scriptSrc,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",

@@ -68,6 +68,30 @@ Automate generation of single-gym branded Flutter builds.
 
 ---
 
+## Postmark Transactional Emails
+
+Replace the stubbed email flows with Postmark.
+
+### Current state
+- `app/Services/EmailService.php` has templates ready but is hardcoded to Resend and never called
+- `forgotPassword` generates a token but has a `TODO` — doesn't send the email
+- `email_verification_tokens` table exists but no verification flow is wired
+- No verification sent on registration
+
+### Work
+1. Rewrite `EmailService` to use Postmark API (`https://api.postmarkapp.com/email`, `X-Postmark-Server-Token` header)
+2. Wire `EmailService::sendPasswordReset()` into `AuthController@forgotPassword`
+3. Add email verification on registration — generate token, insert into `email_verification_tokens`, send email
+4. Add `/api/auth/verify-email?token=...` endpoint to mark profile verified
+5. Env vars: `POSTMARK_TOKEN`, `POSTMARK_FROM_EMAIL`, set `MAIL_MAILER=postmark` in Coolify prod
+
+### Prerequisites
+- Postmark account + Server API token
+- `clbyapp.com` sender domain verified in Postmark
+- Decide on sender address (e.g. `no-reply@clbyapp.com`)
+
+---
+
 ## Future Ideas (not scoped yet)
 
 - Billing / subscriptions per gym (auto-charge vs manual invoices)

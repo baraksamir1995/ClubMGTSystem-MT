@@ -7,6 +7,7 @@ import 'auth_widgets.dart';
 import 'gym_selector.dart';
 import '../../utils/env.dart';
 import '../../utils/error_utils.dart';
+import '../../widgets/legal_links.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -628,6 +629,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             isLoading: _isLoading,
             enabled: _isStep2Valid,
             onTap: _register,
+          ),
+          const SizedBox(height: 16),
+          const LegalConsentLine(
+            prefix: 'By creating an account, you agree to our ',
           ),
         ],
       ),

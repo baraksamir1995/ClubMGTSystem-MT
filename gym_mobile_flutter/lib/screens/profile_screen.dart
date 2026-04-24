@@ -12,6 +12,7 @@ import '../features/branches/branch_provider.dart';
 import '../features/popups/popup_provider.dart';
 import '../features/rating/rating_reminder_provider.dart';
 import '../widgets/gym_app_bar.dart';
+import '../widgets/legal_links.dart';
 import '../widgets/screen_refresh_indicator.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -773,6 +774,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(color: Colors.red),
                     ),
                     onTap: _confirmDeleteAccount,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            Text(
+              'Legal',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.description_outlined, color: primaryColor, size: 18),
+                    ),
+                    title: const Text('Terms of Service'),
+                    trailing: const Icon(Icons.open_in_new, size: 16),
+                    onTap: openTermsOfService,
+                  ),
+                  const Divider(height: 1, indent: 70),
+                  ListTile(
+                    leading: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.shield_outlined, color: primaryColor, size: 18),
+                    ),
+                    title: const Text('Privacy Policy'),
+                    trailing: const Icon(Icons.open_in_new, size: 16),
+                    onTap: openPrivacyPolicy,
                   ),
                 ],
               ),

@@ -51,6 +51,9 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^6.0.0
 
+  # Deep links (password reset, email verify)
+  app_links: ^6.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -41,17 +41,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
+    final auth = context.read<AuthProvider>();
+    final token = auth.recoveryToken;
+    if (token == null || token.isEmpty) {
+      _showError('Reset link expired. Please request a new one.');
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      await ApiService().changePassword(_pwCtrl.text);
+      await ApiService().resetPassword(token, _pwCtrl.text);
       if (!mounted) return;
-      context.read<AuthProvider>().clearPasswordRecovery();
+      auth.clearPasswordRecovery();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Password updated successfully!'),
         backgroundColor: kAuthGreen,
         behavior: SnackBarBehavior.floating,
       ));
-      context.go('/home');
+      context.go('/login');
     } on ApiException catch (e) {
       if (!mounted) return;
       _showError(e.message);

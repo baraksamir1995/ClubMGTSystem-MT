@@ -23,6 +23,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _isLoading = false;
   bool _isGuest = false;
   bool _isPasswordRecovery = false;
+  String? _recoveryToken;
   String? _error;
 
   AuthProvider(this._service) {
@@ -38,6 +39,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isAuthenticated => _userId != null;
   bool get isGuest => _isGuest;
   bool get isPasswordRecovery => _isPasswordRecovery;
+  String? get recoveryToken => _recoveryToken;
 
   Future<void> _init() async {
     // Flip isLoading synchronously so anything listening (e.g. AppBootstrap
@@ -235,8 +237,15 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void startPasswordRecovery(String token) {
+    _recoveryToken = token;
+    _isPasswordRecovery = true;
+    notifyListeners();
+  }
+
   void clearPasswordRecovery() {
     _isPasswordRecovery = false;
+    _recoveryToken = null;
     notifyListeners();
   }
 

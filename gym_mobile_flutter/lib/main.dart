@@ -8,6 +8,7 @@ import 'features/branches/branch_provider.dart';
 import 'features/popups/popup_provider.dart';
 import 'features/rating/rating_reminder_provider.dart';
 import 'services/api_service.dart';
+import 'services/deep_link_service.dart';
 import 'services/notification_service.dart';
 import 'router.dart';
 import 'utils/env.dart';
@@ -81,6 +82,29 @@ class _AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<_AppRoot> {
   late final _router = buildRouter(context);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final auth = context.read<AuthProvider>();
+      DeepLinkService.instance.init((uri) {
+        if (uri.scheme == 'gymapp' && uri.host == 'password-reset') {
+          final token = uri.queryParameters['token'];
+          if (token != null && token.isNotEmpty) {
+            auth.startPasswordRecovery(token);
+          }
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    DeepLinkService.instance.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

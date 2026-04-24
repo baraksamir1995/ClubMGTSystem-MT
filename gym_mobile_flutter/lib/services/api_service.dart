@@ -162,10 +162,9 @@ class ApiService {
     });
   }
 
-  Future<void> resetPassword(String token, String email, String newPassword) async {
+  Future<void> resetPassword(String token, String newPassword) async {
     await _post('/api/auth/reset-password', {
       'token': token,
-      'email': email,
       'password': newPassword,
       'password_confirmation': newPassword,
     });

@@ -173,7 +173,7 @@ export default async function ClassesPageRoute() {
     });
 
   // Class types from the classes data (distinct class_type values)
-  const classTypeSet = new Set(rawClasses.map((c: any) => c.class_type).filter(Boolean));
+  const classTypeSet = new Set<string>(rawClasses.map((c: any) => c.class_type).filter(Boolean));
   const initialClassTypes: { id: string; name: string }[] = [...classTypeSet].map(ct => ({ id: ct, name: ct }));
 
   const initialBranches: GymBranch[] = (branchesData?.data ?? branchesData ?? []) as GymBranch[];

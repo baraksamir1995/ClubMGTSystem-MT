@@ -323,6 +323,7 @@ class PaymobController extends Controller
             if (($updates['status'] ?? '') === 'paid' && $target->gym_member_id) {
                 $gymMember = DB::table('gym_members')->where('id', $target->gym_member_id)->lockForUpdate()->first();
                 if ($gymMember && $gymMember->member_number === null) {
+                    DB::select('SELECT pg_advisory_xact_lock(?)', [crc32((string) $gymId)]);
                     $maxNumber = DB::table('gym_members')
                         ->where('gym_id', $gymId)
                         ->whereNotNull('member_number')

@@ -180,10 +180,12 @@ class PaymentController extends Controller
                         ->first();
 
                     if ($gymMember && $gymMember->member_number === null) {
+                        // Postgres forbids FOR UPDATE with aggregates; use advisory
+                        // lock keyed on gym_id to serialize member-number allocation.
+                        DB::select('SELECT pg_advisory_xact_lock(?)', [crc32((string) $gymId)]);
                         $maxNumber = DB::table('gym_members')
                             ->where('gym_id', $gymId)
                             ->whereNotNull('member_number')
-                            ->lockForUpdate()
                             ->max('member_number') ?? 0;
 
                         DB::table('gym_members')

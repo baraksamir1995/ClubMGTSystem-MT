@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../utils/env.dart';
+import 'analytics_service.dart';
 
 const _storage = FlutterSecureStorage();
 const _tokenKey = 'auth_token';
@@ -87,10 +88,20 @@ class PaymobService {
     if (response.statusCode >= 400) {
       final body = jsonDecode(response.body) as Map<String, dynamic>?;
       final msg = body?['message'] ?? body?['error'] ?? 'Failed to create payment intention';
+      AnalyticsService.instance.logPaymentFailed(
+        paymentId: '',
+        reason: msg.toString(),
+      );
       throw Exception(msg);
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final paymentId = data['payment_id'] as String? ?? '';
+    AnalyticsService.instance.logPaymentStarted(
+      paymentId: paymentId,
+      amount: amountEgp,
+      currency: 'EGP',
+    );
     return PaymobIntention(
       clientSecret: data['client_secret'] as String,
       publicKey:    data['public_key']    as String,

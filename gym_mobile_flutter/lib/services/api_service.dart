@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../utils/logger.dart';
+import 'analytics_service.dart';
 import 'package:http/http.dart' as http;
 import '../models/gym_model.dart';
 import '../models/capacity_model.dart';
@@ -49,9 +52,11 @@ class ApiService {
 
   // ── HTTP helpers ────────────────────────────────────────────────────────────
 
+  static const _timeout = Duration(seconds: 15);
+
   Future<dynamic> _get(String path, {Map<String, String>? queryParams}) async {
     final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: queryParams);
-    final response = await http.get(uri, headers: await _headers);
+    final response = await http.get(uri, headers: await _headers).timeout(_timeout);
     return _parse(response);
   }
 
@@ -61,7 +66,7 @@ class ApiService {
       uri,
       headers: await _headers,
       body: body != null ? jsonEncode(body) : null,
-    );
+    ).timeout(_timeout);
     return _parse(response);
   }
 
@@ -71,7 +76,7 @@ class ApiService {
       uri,
       headers: await _headers,
       body: jsonEncode(body),
-    );
+    ).timeout(_timeout);
     return _parse(response);
   }
 
@@ -81,13 +86,13 @@ class ApiService {
       uri,
       headers: await _headers,
       body: jsonEncode(body),
-    );
+    ).timeout(_timeout);
     return _parse(response);
   }
 
   Future<dynamic> _delete(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await http.delete(uri, headers: await _headers);
+    final response = await http.delete(uri, headers: await _headers).timeout(_timeout);
     return _parse(response);
   }
 
@@ -337,7 +342,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('getCurrentMembership error: $e');
+      appLog('getCurrentMembership error: $e');
       return null;
     }
   }
@@ -372,7 +377,10 @@ class ApiService {
     });
     // Re-fetch updated membership
     final updated = await getCurrentMembership(gymMemberId);
-    return updated!;
+    if (updated == null) {
+      throw ApiException(statusCode: 500, message: 'Failed to refresh membership after freeze');
+    }
+    return updated;
   }
 
   Future<MemberMembership> unfreezeMembership(
@@ -382,7 +390,10 @@ class ApiService {
   ) async {
     await _post('/api/memberships/$membershipId/unfreeze');
     final updated = await getCurrentMembership(gymMemberId);
-    return updated!;
+    if (updated == null) {
+      throw ApiException(statusCode: 500, message: 'Failed to refresh membership after unfreeze');
+    }
+    return updated;
   }
 
   Future<List<Map<String, dynamic>>> getFreezeLogs(String membershipId) async {
@@ -563,6 +574,10 @@ class ApiService {
       'session_id': sessionId,
       'gym_member_id': memberId,
     });
+    AnalyticsService.instance.logBookingCreated(
+      sessionId: sessionId,
+      className: '',
+    );
   }
 
   Future<List<BookingRecord>> getMyBookings(String memberId) async {
@@ -599,13 +614,14 @@ class ApiService {
       if (list.isEmpty) return null;
       return BookingRecord.fromJson(list.first as Map<String, dynamic>);
     } catch (e) {
-      debugPrint('[Rating] getLastUnratedAttendedSession error: $e');
+      appLog('[Rating] getLastUnratedAttendedSession error: $e');
       return null;
     }
   }
 
   Future<void> cancelBooking(String bookingId) async {
     await _delete('/api/bookings/$bookingId');
+    AnalyticsService.instance.logBookingCancelled(sessionId: bookingId);
   }
 
   // ─── Attendance ───────────────────────────────────────────────────────────
@@ -644,6 +660,7 @@ class ApiService {
       'gym_member_id': memberId,
       if (branchId != null) 'branch_id': branchId,
     });
+    AnalyticsService.instance.logCheckIn(method: 'manual');
   }
 
   Future<Map<String, dynamic>> validateGymQrToken(String token) async {
@@ -664,6 +681,7 @@ class ApiService {
         'gym_member_id': gymMemberId,
         'token': token,
       });
+      AnalyticsService.instance.logCheckIn(method: 'qr');
       // Response is { data: { status: 'allowed' } } or { data: { status: 'denied', reason: '...' } }
       if (data is Map && data['data'] is Map) {
         return Map<String, dynamic>.from(data['data'] as Map);
@@ -770,6 +788,12 @@ class ApiService {
       if (originalAmount != null) 'original_amount': originalAmount,
       if (promoCodeId != null) 'promo_code_id': promoCodeId,
     });
+    AnalyticsService.instance.logMembershipPurchased(
+      planId: planId,
+      planName: '',
+      amount: amount,
+      currency: currency,
+    );
     if (data is Map && data['id'] != null) return data['id'] as String;
     if (data is String) return data;
     return data.toString();
@@ -799,6 +823,11 @@ class ApiService {
       if (specialistName != null) 'specialist_name': specialistName,
       if (originalAmount != null) 'original_amount': originalAmount,
       if (promoCodeId != null) 'promo_code_id': promoCodeId,
+    });
+    AnalyticsService.instance.logEvent('service_package_purchased', params: {
+      'package_id': packageId,
+      'value': amount,
+      'currency': currency,
     });
     if (data is Map && data['id'] != null) return data['id'] as String;
     if (data is String) return data;
@@ -875,8 +904,8 @@ class ApiService {
       }
       return null;
     } catch (e, stack) {
-      debugPrint('getPaymentById error: $e');
-      debugPrint('getPaymentById stack: $stack');
+      appLog('getPaymentById error: $e');
+      appLog('getPaymentById stack: $stack');
       return null;
     }
   }
@@ -992,7 +1021,7 @@ class ApiService {
       if (list.isEmpty) return null;
       return list.first as Map<String, dynamic>;
     } catch (e) {
-      debugPrint('getTrainerProfile error: $e');
+      appLog('getTrainerProfile error: $e');
       return null;
     }
   }
@@ -1014,7 +1043,7 @@ class ApiService {
       final avgRating = (r['avg_rating'] as num?)?.toDouble();
       return TrainerProfile.fromJson(r, avgRating: avgRating);
     } catch (e) {
-      debugPrint('getTrainerFullProfile error: $e');
+      appLog('getTrainerFullProfile error: $e');
       return null;
     }
   }
@@ -1029,7 +1058,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      debugPrint('getTrainerUpcomingSessions error: $e');
+      appLog('getTrainerUpcomingSessions error: $e');
       return [];
     }
   }
@@ -1044,7 +1073,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      debugPrint('getTrainerReviews error: $e');
+      appLog('getTrainerReviews error: $e');
       return [];
     }
   }
@@ -1057,7 +1086,7 @@ class ApiService {
       final data = await _get('/api/plans', queryParams: {'explore': 'true', 'exclude_sessions': 'true'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getMembershipPlansForExplore error: $e');
+      appLog('getMembershipPlansForExplore error: $e');
       return [];
     }
   }
@@ -1067,7 +1096,7 @@ class ApiService {
       final data = await _get('/api/offers', queryParams: {'active': 'true', 'limit': '5'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getCurrentOffers error: $e');
+      appLog('getCurrentOffers error: $e');
       return [];
     }
   }
@@ -1078,7 +1107,7 @@ class ApiService {
       if (data is Map<String, dynamic>) return data;
       return null;
     } catch (e) {
-      debugPrint('getOfferById error: $e');
+      appLog('getOfferById error: $e');
       return null;
     }
   }
@@ -1089,7 +1118,7 @@ class ApiService {
       final data = await _get('/api/trainers', queryParams: {'active': 'true'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getTrainersForExplore error: $e');
+      appLog('getTrainersForExplore error: $e');
       return [];
     }
   }
@@ -1100,7 +1129,7 @@ class ApiService {
       final data = await _get('/api/programs', queryParams: {'status': 'published'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getProgramsForExplore error: $e');
+      appLog('getProgramsForExplore error: $e');
       return [];
     }
   }
@@ -1111,7 +1140,7 @@ class ApiService {
       final data = await _get('/api/plans', queryParams: {'plan_type': 'sessions'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getSessionPackagesForExplore error: $e');
+      appLog('getSessionPackagesForExplore error: $e');
       return [];
     }
   }
@@ -1122,7 +1151,7 @@ class ApiService {
       final data = await _get('/api/content/partners');
       return _extractList(data);
     } catch (e) {
-      debugPrint('getPartnersForExplore error: $e');
+      appLog('getPartnersForExplore error: $e');
       return [];
     }
   }
@@ -1135,7 +1164,7 @@ class ApiService {
       final data = await _get('/api/plans', queryParams: {'exclude_sessions': 'true'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getMembershipPlansListing error: $e');
+      appLog('getMembershipPlansListing error: $e');
       return [];
     }
   }
@@ -1145,7 +1174,7 @@ class ApiService {
       final data = await _get('/api/offers', queryParams: {'active': 'true'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getAllCurrentOffers error: $e');
+      appLog('getAllCurrentOffers error: $e');
       return [];
     }
   }
@@ -1157,7 +1186,7 @@ class ApiService {
       final data = await _get('/api/trainers', queryParams: params);
       return _extractList(data);
     } catch (e) {
-      debugPrint('getTrainersListing error: $e');
+      appLog('getTrainersListing error: $e');
       return [];
     }
   }
@@ -1170,7 +1199,7 @@ class ApiService {
       });
       return _extractList(data);
     } catch (e) {
-      debugPrint('getTrainersByType error: $e');
+      appLog('getTrainersByType error: $e');
       return [];
     }
   }
@@ -1180,7 +1209,7 @@ class ApiService {
       final data = await _get('/api/programs/$id');
       return data as Map<String, dynamic>?;
     } catch (e) {
-      debugPrint('getProgramById error: $e');
+      appLog('getProgramById error: $e');
       return null;
     }
   }
@@ -1192,7 +1221,7 @@ class ApiService {
       final list = _extractList(data);
       return list.isNotEmpty ? list.first : null;
     } catch (e) {
-      debugPrint('getTrainerByName error: $e');
+      appLog('getTrainerByName error: $e');
       return null;
     }
   }
@@ -1207,7 +1236,7 @@ class ApiService {
       final planName = ms.planName ?? '';
       return (planName: planName, discountPct: 0.0);
     } catch (e) {
-      debugPrint('getMemberActivePlan error: $e');
+      appLog('getMemberActivePlan error: $e');
       return null;
     }
   }
@@ -1217,7 +1246,7 @@ class ApiService {
       final data = await _get('/api/programs', queryParams: {'status': 'published'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getProgramsListing error: $e');
+      appLog('getProgramsListing error: $e');
       return [];
     }
   }
@@ -1230,7 +1259,7 @@ class ApiService {
       });
       return _extractList(data);
     } catch (e) {
-      debugPrint('getSessionPackagesForService error: $e');
+      appLog('getSessionPackagesForService error: $e');
       return [];
     }
   }
@@ -1246,7 +1275,7 @@ class ApiService {
       }
       return counts;
     } catch (e) {
-      debugPrint('getServicePackageCounts error: $e');
+      appLog('getServicePackageCounts error: $e');
       return {};
     }
   }
@@ -1258,7 +1287,7 @@ class ApiService {
       final data = await _get('/api/plans', queryParams: {'plan_type': 'sessions'});
       return _extractList(data);
     } catch (e) {
-      debugPrint('getSessionPackagesListing error: $e');
+      appLog('getSessionPackagesListing error: $e');
       return [];
     }
   }
@@ -1269,7 +1298,7 @@ class ApiService {
       final data = await _get('/api/search', queryParams: {'q': query});
       return _extractList(data);
     } catch (e) {
-      debugPrint('searchExplore error: $e');
+      appLog('searchExplore error: $e');
       return [];
     }
   }

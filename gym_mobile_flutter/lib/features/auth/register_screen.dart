@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/gym_model.dart';
 import '../../services/api_service.dart';
+import '../../services/analytics_service.dart';
 import 'auth_widgets.dart';
 import 'gym_selector.dart';
 import '../../utils/env.dart';
@@ -218,6 +219,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         gymId: _selectedGym!.id,
         dateOfBirth: dob,
         gender: _gender == 0 ? 'male' : 'female',
+      );
+
+      AnalyticsService.instance.logSignUp();
+      AnalyticsService.instance.logGymSelected(
+        _selectedGym!.id,
+        _selectedGym!.name,
       );
 
       // Sign out after registration so user must confirm email / sign in

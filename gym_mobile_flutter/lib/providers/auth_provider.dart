@@ -5,6 +5,7 @@ import '../models/gym_model.dart';
 import '../models/member_model.dart';
 import '../services/notification_service.dart';
 import '../services/api_service.dart';
+import '../services/analytics_service.dart';
 import '../utils/env.dart';
 import '../utils/error_utils.dart';
 
@@ -112,6 +113,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     try {
       _gym = await _service.getGymInfo(Env.gymId);
+      AnalyticsService.instance.logGuestModeEntered();
     } catch (e) {
       _error = 'Failed to load gym: ${friendlyError(e)}';
     }
@@ -135,6 +137,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       _userId = result.userId;
       if (_userId != null) {
         await _loadProfileAndGym();
+        AnalyticsService.instance.logLogin();
+        AnalyticsService.instance.setUserId(_userId);
       }
       return null;
     } on ApiException catch (e) {
@@ -152,6 +156,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> signOut() async {
     await _service.signOut();
+    AnalyticsService.instance.logEvent('logout');
+    AnalyticsService.instance.setUserId(null);
     _userId = null;
     _profile = null;
     _gym = null;

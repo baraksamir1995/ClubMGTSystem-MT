@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'services/analytics_route_observer.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/home_screen.dart';
@@ -47,7 +48,7 @@ const _publicRoutes = {'/splash', '/onboarding', '/login', '/register', '/forgot
 GoRouter buildRouter(BuildContext context) {
   final authProvider = context.read<AuthProvider>();
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/splash',
     refreshListenable: authProvider,
     redirect: (BuildContext ctx, GoRouterState state) {
@@ -338,7 +339,13 @@ GoRouter buildRouter(BuildContext context) {
         path: '/banner-details',
         name: 'banner-details',
         pageBuilder: (context, state) {
-          final banner = state.extra as BannerModel;
+          final banner = state.extra as BannerModel?;
+          if (banner == null) {
+            return CustomTransitionPage(
+              child: const Scaffold(body: Center(child: Text('Banner not found'))),
+              transitionsBuilder: (context, animation, _, child) => child,
+            );
+          }
           return CustomTransitionPage(
             child: BannerDetailsScreen(banner: banner),
             transitionsBuilder: (context, animation, _, child) => SlideTransition(
@@ -557,6 +564,9 @@ GoRouter buildRouter(BuildContext context) {
       ),
     ),
   );
+
+  AnalyticsRouteObserver.attach(router);
+  return router;
 }
 
 /// Placeholder shown for locked guest branches (tap is intercepted before navigation).

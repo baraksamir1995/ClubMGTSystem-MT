@@ -19,7 +19,9 @@ abstract class Env {
 
   /// Call this once at startup to catch misconfigured builds early.
   static void validate() {
-    assert(apiUrl.isNotEmpty, 'API_URL must be set via --dart-define');
+    if (apiUrl.isEmpty) {
+      throw StateError('API_URL must be set via --dart-define');
+    }
     // GYM_ID is optional — empty = CLBY marketplace, set = white-label gym app
   }
 }

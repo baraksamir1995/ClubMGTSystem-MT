@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/branch_model.dart';
+import '../../utils/logger.dart';
 import 'branch_repository.dart';
 
 class BranchProvider extends ChangeNotifier {
@@ -30,7 +31,7 @@ class BranchProvider extends ChangeNotifier {
       _branches = await _repository.fetchActiveBranches(gymId);
       _loadedGymId = gymId;
     } catch (e) {
-      debugPrint('[BranchProvider] Failed to load branches: $e');
+      appLog('[BranchProvider] Failed to load branches: $e');
       _branches = [];
     } finally {
       _isLoading = false;

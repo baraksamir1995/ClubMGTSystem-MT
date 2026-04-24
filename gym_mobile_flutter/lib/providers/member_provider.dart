@@ -7,7 +7,6 @@ import '../models/attendance_model.dart';
 import '../models/notification_model.dart';
 import '../models/payment_model.dart';
 import '../services/api_service.dart';
-import '../services/api_service.dart';
 import '../models/capacity_model.dart';
 import '../models/booking_record_model.dart';
 import '../models/invitation_model.dart';

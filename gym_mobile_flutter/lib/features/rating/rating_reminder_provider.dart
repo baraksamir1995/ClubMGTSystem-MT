@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../models/booking_record_model.dart';
 import '../../models/session_model.dart';
 import '../../services/api_service.dart';
+import '../../utils/logger.dart';
 import '../../widgets/rating_sheet.dart';
 
 class RatingReminderProvider extends ChangeNotifier {
@@ -26,12 +27,12 @@ class RatingReminderProvider extends ChangeNotifier {
   /// applies timing guards, then caches the result in [_pending].
   Future<void> checkPendingRating(
       ApiService service, String memberId) async {
-    debugPrint('[Rating] checkPendingRating — shownThisSession=$_shownThisSession memberId=$memberId');
+    appLog('[Rating] checkPendingRating — shownThisSession=$_shownThisSession memberId=$memberId');
     if (_shownThisSession) return;
 
     try {
       final booking = await service.getLastUnratedAttendedSession(memberId);
-      debugPrint('[Rating] booking=${booking?.id} sessionEndTime=${booking?.sessionEndTime} status=${booking?.status}');
+      appLog('[Rating] booking=${booking?.id} sessionEndTime=${booking?.sessionEndTime} status=${booking?.status}');
       if (booking == null) {
         _pending = null;
         return;
@@ -39,18 +40,18 @@ class RatingReminderProvider extends ChangeNotifier {
 
       final attempts =
           int.tryParse(await _storage.read(key: _attemptsKey(booking.id)) ?? '0') ?? 0;
-      debugPrint('[Rating] attempts=$attempts');
+      appLog('[Rating] attempts=$attempts');
       if (attempts >= _maxAttempts) {
         _pending = null;
         return;
       }
 
       final nextShowStr = await _storage.read(key: _nextShowKey(booking.id));
-      debugPrint('[Rating] nextShowStr=$nextShowStr');
+      appLog('[Rating] nextShowStr=$nextShowStr');
       if (nextShowStr != null) {
         final nextShow = DateTime.tryParse(nextShowStr);
         if (nextShow != null && DateTime.now().isBefore(nextShow)) {
-          debugPrint('[Rating] suppressed until $nextShow');
+          appLog('[Rating] suppressed until $nextShow');
           _pending = null;
           return;
         }
@@ -59,7 +60,7 @@ class RatingReminderProvider extends ChangeNotifier {
       _pending = booking;
       notifyListeners();
     } catch (e) {
-      debugPrint('[Rating] error: $e');
+      appLog('[Rating] error: $e');
     }
   }
 

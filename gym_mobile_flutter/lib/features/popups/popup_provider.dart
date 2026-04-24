@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../models/popup_model.dart';
+import '../../utils/logger.dart';
 import 'popup_overlay.dart';
 import 'popup_repository.dart';
 
@@ -22,7 +23,7 @@ class PopupProvider extends ChangeNotifier {
       _activePopup = await _repository.fetchActivePopup(gymId);
       notifyListeners();
     } catch (e) {
-      debugPrint('[PopupProvider] Failed to load popup: $e');
+      appLog('[PopupProvider] Failed to load popup: $e');
     }
   }
 

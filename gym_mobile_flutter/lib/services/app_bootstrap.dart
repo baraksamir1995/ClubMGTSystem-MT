@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import '../utils/logger.dart';
 
 import '../features/banners/banner_provider.dart';
 import '../features/branches/branch_provider.dart';
@@ -46,7 +47,7 @@ class AppBootstrap {
     try {
       await _run().timeout(_totalTimeout);
     } catch (e) {
-      debugPrint('[AppBootstrap] Bootstrap ended early: $e');
+      appLog('[AppBootstrap] Bootstrap ended early: $e');
       // Never block navigation — let the app start even if data failed.
     }
   }
@@ -77,7 +78,7 @@ class AppBootstrap {
       try {
         await _member.loadSessions(gymId).timeout(_sessionsTimeout);
       } catch (e) {
-        debugPrint('[AppBootstrap] Sessions load timed out or failed: $e');
+        appLog('[AppBootstrap] Sessions load timed out or failed: $e');
       }
     }
 

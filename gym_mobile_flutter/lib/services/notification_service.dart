@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../utils/logger.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -49,7 +50,7 @@ class NotificationService {
     try {
       return await FirebaseMessaging.instance.getToken();
     } catch (e) {
-      debugPrint('[FCM] getToken failed: $e');
+      appLog('[FCM] getToken failed: $e');
       return null;
     }
   }

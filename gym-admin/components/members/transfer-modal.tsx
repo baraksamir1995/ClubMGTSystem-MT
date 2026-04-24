@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, ArrowRight, Search, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -32,6 +33,7 @@ export default function TransferModal({
   gymMembers,
   onClose,
 }: Props) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Member | null>(null);
   const [step, setStep] = useState<'select' | 'review'>('select');
@@ -60,7 +62,7 @@ export default function TransferModal({
       if (!res.ok) { toast.error(data.error ?? 'Transfer failed'); return; }
       toast.success('Membership transferred successfully');
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

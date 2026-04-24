@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function AddSessionsModal({ membershipId, memberName, sessionsUsed, sessionsTotal, onClose }: Props) {
+  const router = useRouter();
   const [sessions, setSessions] = useState('');
   const [preset, setPreset]     = useState<number | null>(null);
   const [loading, setLoading]   = useState(false);
@@ -35,7 +37,7 @@ export default function AddSessionsModal({ membershipId, memberName, sessionsUse
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
       toast.success(`${resolvedSessions} sessions added`);
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

@@ -15,7 +15,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
@@ -30,10 +30,10 @@ const nextConfig = {
   // SECURITY: MEDIUM-1 — Remove framework fingerprinting header
   poweredByHeader: false,
 
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
+  eslint: { ignoreDuringBuilds: false },
   experimental: {
-    optimizePackageImports: [],
+    optimizePackageImports: ['recharts', 'lucide-react'],
     outputFileTracingExcludes: {
       '*': [
         '**/@swc/core*',

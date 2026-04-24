@@ -109,7 +109,7 @@ export default async function PaymentsPage() {
     fetchApi('/trainers', token),
     fetchApi('/service-packages', token),
     fetchApi('/promo-codes', token),
-    fetchApi('/members?limit=9999&status=active', token),
+    fetchApi('/members?limit=500&status=active', token),
     fetchApi('/plan-promotions', token),
   ]);
 

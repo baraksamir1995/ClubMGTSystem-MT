@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, KeyboardEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, CreditCard, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Plan } from '@/app/dashboard/plans/page';
@@ -117,6 +118,7 @@ function TagInput({
 }
 
 export default function PlanModal({ plan, branches, onClose }: Props) {
+  const router = useRouter();
   const isEdit = !!plan;
 
   const existingPreset = plan?.plan_type !== 'sessions' ? getPresetFromDays(plan?.duration_days ?? null) : null;
@@ -203,7 +205,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
       toast.success(isEdit ? 'Plan updated' : 'Plan created');
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

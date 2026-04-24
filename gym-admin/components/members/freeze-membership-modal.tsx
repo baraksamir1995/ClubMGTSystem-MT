@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Snowflake, X, Play, AlertCircle } from 'lucide-react';
 
 interface ActiveMembership {
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function FreezeMembershipModal({ membership, memberName, onClose }: Props) {
+  const router = useRouter();
   const isFrozen = membership.freeze_status === 'frozen';
   const [days, setDays] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
         throw new Error(body.error ?? 'Failed to freeze membership');
       }
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -78,7 +80,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
         throw new Error(body.error ?? 'Failed to unfreeze membership');
       }
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch (e: any) {
       setError(e.message);
     } finally {

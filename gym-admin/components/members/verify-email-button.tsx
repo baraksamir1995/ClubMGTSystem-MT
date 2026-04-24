@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { MailCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function VerifyEmailButton({ memberId, memberName, emailVerified, onVerified }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   if (emailVerified) return null;
@@ -32,7 +34,7 @@ export default function VerifyEmailButton({ memberId, memberName, emailVerified,
       if (!res.ok) { toast.error(data.error ?? 'Failed to verify email'); return; }
       toast.success('Email verified');
       if (onVerified) onVerified();
-      else window.location.reload();
+      else router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

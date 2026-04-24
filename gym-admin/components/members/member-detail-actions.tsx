@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CreditCard, ArrowLeftRight, CalendarPlus, Plus, Snowflake, Play, Unlink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AssignPlanModal from './assign-plan-modal';
@@ -60,6 +61,7 @@ export default function MemberDetailActions({
   activeMembership,
   gymMembers,
 }: Props) {
+  const router = useRouter();
   const [planModal, setplanModal]         = useState(false);
   const [transferModal, setTransferModal] = useState(false);
   const [extendModal, setExtendModal]     = useState(false);
@@ -88,7 +90,7 @@ export default function MemberDetailActions({
         throw new Error(body.error ?? 'Failed to detach plan');
       }
       toast.success('Plan detached. Member set to inactive.');
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message ?? 'Something went wrong');
       setDetachConfirm(false);

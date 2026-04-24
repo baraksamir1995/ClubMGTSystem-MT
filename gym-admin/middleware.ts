@@ -1,33 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-// SECURITY: MEDIUM-3 — In-memory login attempt rate limiter (per IP, 10 req/min)
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
-const LOGIN_RATE_LIMIT = 10;
-const LOGIN_WINDOW_MS = 60_000;
-
-function checkLoginRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = loginAttempts.get(ip);
-  if (!entry || now > entry.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
-    return true;
-  }
-  entry.count++;
-  return entry.count <= LOGIN_RATE_LIMIT;
-}
-
 export async function middleware(request: NextRequest) {
-  // SECURITY: MEDIUM-3 — Rate limit login page access
-  if (request.nextUrl.pathname === '/login' && request.method === 'POST') {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    if (!checkLoginRateLimit(ip)) {
-      return NextResponse.json(
-        { error: 'Too many login attempts. Please try again later.' },
-        { status: 429 },
-      );
-    }
-  }
-
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('auth_token')?.value;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
 
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function MemberModal({ member, onClose }: Props) {
+  const router = useRouter();
   const isEditing = !!member;
 
   const [form, setForm] = useState({
@@ -82,7 +84,7 @@ export default function MemberModal({ member, onClose }: Props) {
 
       toast.success(isEditing ? 'Member updated' : 'Member added');
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

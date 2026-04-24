@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, CreditCard, Tag, Percent, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -40,6 +41,7 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 
 export default function AssignPlanModal({ memberId, plans, currentPlanId, onClose }: Props) {
+  const router = useRouter();
   const [selectedPlanId,    setSelectedPlanId]    = useState(currentPlanId ?? '');
   const [startDate,         setStartDate]         = useState(new Date().toISOString().slice(0, 10));
   const [loading,           setLoading]           = useState(false);
@@ -124,7 +126,7 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
       toast.success(isChange ? 'Plan changed successfully' : 'Plan assigned successfully');
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Search, Users, CheckSquare, Square, Loader2, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Plan } from '@/app/dashboard/plans/page';
@@ -21,6 +22,7 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
 export default function AssignPlanModal({ plan, onClose }: Props) {
+  const router = useRouter();
   const [members, setMembers]     = useState<Member[]>([]);
   const [fetching, setFetching]   = useState(true);
   const [search, setSearch]       = useState('');
@@ -129,7 +131,7 @@ export default function AssignPlanModal({ plan, onClose }: Props) {
               ))}
             </div>
             <div className="px-6 py-4 border-t border-gray-700 flex-shrink-0">
-              <button onClick={() => { onClose(); window.location.reload(); }}
+              <button onClick={() => { onClose(); router.refresh(); }}
                 className="w-full px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white transition-colors">
                 Done
               </button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Trash2 } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function DeleteMemberButton({ memberId, memberName }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -30,7 +32,7 @@ export default function DeleteMemberButton({ memberId, memberName }: Props) {
       }
 
       toast.success(`${memberName} has been removed`);
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

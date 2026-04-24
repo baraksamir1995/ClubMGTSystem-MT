@@ -14,11 +14,12 @@ const ADMIN_ROLES = new Set(['gym_admin', 'trainer', 'staff']);
  * Avoids hitting the backend on every API route call within the same second.
  * TTL: 5 seconds — short enough that logout/role changes take effect quickly.
  */
-const meCache = new Map<string, { data: any; expiresAt: number }>();
+const meCache = new Map<string, { data: any; expiresAt: number }>(); // keyed by token suffix
 const ME_CACHE_TTL = 5_000; // 5 seconds
 
 async function fetchMe(token: string) {
-  const cached = meCache.get(token);
+  const cacheKey = token.slice(-16);
+  const cached = meCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.data;
   }
@@ -32,12 +33,12 @@ async function fetchMe(token: string) {
   });
 
   if (!res.ok) {
-    meCache.delete(token);
+    meCache.delete(cacheKey);
     return null;
   }
 
   const data = await res.json();
-  meCache.set(token, { data, expiresAt: Date.now() + ME_CACHE_TTL });
+  meCache.set(cacheKey, { data, expiresAt: Date.now() + ME_CACHE_TTL });
 
   // Evict stale entries to prevent memory leak
   if (meCache.size > 100) {

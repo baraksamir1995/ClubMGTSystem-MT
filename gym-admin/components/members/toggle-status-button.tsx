@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { UserX, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function ToggleStatusButton({ memberId, memberName, currentStatus }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const isActive = currentStatus === 'active';
 
@@ -36,7 +38,7 @@ export default function ToggleStatusButton({ memberId, memberName, currentStatus
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
       toast.success(`Member ${action}d`);
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

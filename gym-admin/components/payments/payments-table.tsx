@@ -59,6 +59,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   const [methodFilter, setMethodFilter]     = useState('');
   const [serviceFilter, setServiceFilter]   = useState('');
   const [branchFilter, setBranchFilter]     = useState<string[]>([]);
+  const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
   const [page, setPage]                     = useState(1);
   const [updatingId, setUpdatingId]         = useState<string | null>(null);
 
@@ -133,7 +134,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   };
 
   const handleRefunded = () => {
-    window.location.reload();
+    router.refresh();
   };
 
   const overduePayments = payments.filter(p => p.status === 'overdue');
@@ -253,10 +254,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => {
-                    const el = document.getElementById('branch-dropdown');
-                    if (el) el.classList.toggle('hidden');
-                  }}
+                  onClick={() => setBranchDropdownOpen(v => !v)}
                   className={`${selectCls} flex items-center gap-1.5 min-w-[140px]`}
                 >
                   {branchFilter.length === 0
@@ -266,7 +264,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                     <span className="ml-1 bg-purple-500/20 text-purple-400 text-xs px-1.5 py-0.5 rounded-full">{branchFilter.length}</span>
                   )}
                 </button>
-                <div id="branch-dropdown" className="hidden absolute z-20 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto">
+                <div className={`${branchDropdownOpen ? '' : 'hidden'} absolute z-20 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto">
                   {branches.map(b => (
                     <label key={b} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-700/50 cursor-pointer text-sm text-white">
                       <input

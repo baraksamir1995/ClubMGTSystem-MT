@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, DollarSign, Search, Link2, Copy, Check, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { MemberOption, ServiceOption, TrainerOption, PromoCode } from '@/app/dashboard/payments/page';
@@ -45,6 +46,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function RecordPaymentModal({ memberOptions, serviceOptions, trainerOptions, branches, promoCodes, onClose }: Props) {
+  const router = useRouter();
   const [search, setSearch]           = useState('');
   const [selectedMember, setSelectedMember] = useState<MemberOption | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
@@ -205,7 +207,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
         if (!res.ok) { toast.error(data.error ?? 'Failed to record payment'); return; }
         toast.success('Payment recorded');
         onClose();
-        window.location.reload();
+        router.refresh();
       }
     } catch {
       toast.error('Network error');
@@ -568,7 +570,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   Send via WhatsApp
                 </button>
               </div>
-              <button type="button" onClick={() => { onClose(); window.location.reload(); }}
+              <button type="button" onClick={() => { onClose(); router.refresh(); }}
                 className="w-full py-2 rounded-lg text-sm text-gray-500 hover:text-gray-300 transition-colors">
                 Done
               </button>

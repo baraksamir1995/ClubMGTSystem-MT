@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 import { resolveGymId, laravelApi } from '@/lib/api-gym-id';
+import { denyUnlessPermitted } from '@/lib/get-permissions';
 
 export async function GET(req: NextRequest) {
   const resolved = await resolveGymId();
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
   const resolved = await resolveGymId();
   if (resolved.response) return resolved.response;
   const { token } = resolved;
+
+  const denied = await denyUnlessPermitted(token, 'studios', 'create');
+  if (denied) return denied;
 
   const body = await req.json();
   const res = await laravelApi('/studios', token, {

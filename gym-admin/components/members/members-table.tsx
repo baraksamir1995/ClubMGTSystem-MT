@@ -69,7 +69,7 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
     setPage(initialPagination?.page ?? 1);
     setTotalPages(initialPagination?.pages ?? 1);
     setTotal(initialPagination?.total ?? initialMembers.length);
-  }, [initialMembers]);
+  }, [initialMembers, initialPagination]);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sort, setSort]           = useState('newest');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, CalendarPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function ExtendMembershipModal({ membershipId, memberName, currentExpiry, onClose }: Props) {
+  const router = useRouter();
   const [days, setDays]       = useState('');
   const [preset, setPreset]   = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ export default function ExtendMembershipModal({ membershipId, memberName, curren
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
       toast.success(`Membership extended by ${resolvedDays} days`);
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch {
       toast.error('Network error');
     } finally {

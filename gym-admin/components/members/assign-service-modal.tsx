@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Dumbbell, Salad, HeartPulse, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -42,6 +43,7 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
 export default function AssignServiceModal({ memberId, memberName, onClose }: Props) {
+  const router = useRouter();
   const [serviceType, setServiceType] = useState<string>('personal_trainer');
   const [packages, setPackages]       = useState<Pkg[]>([]);
   const [trainers, setTrainers]       = useState<Trainer[]>([]);
@@ -90,7 +92,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
       }
       toast.success('Service package assigned');
       onClose();
-      window.location.reload();
+      router.refresh();
     } catch (e: any) {
       setError(e.message);
     } finally {

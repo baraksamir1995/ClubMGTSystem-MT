@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\EmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -65,10 +67,73 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Send verification email
+        $this->sendVerificationEmail($user);
+
         return response()->json([
             'user' => $user,
             'token' => $token,
         ], 201);
+    }
+
+    private function sendVerificationEmail(User $user): void
+    {
+        $verifyToken = Str::random(64);
+
+        DB::table('email_verification_tokens')->updateOrInsert(
+            ['user_id' => $user->id],
+            [
+                'token' => hash('sha256', $verifyToken),
+                'expires_at' => now()->addDays(7),
+                'created_at' => now(),
+            ]
+        );
+
+        try {
+            (new EmailService())->sendConfirmation($user->email, $verifyToken);
+        } catch (\Throwable $e) {
+            Log::error('sendVerificationEmail failed', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function resendVerificationEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->email_verified) {
+            return response()->json(['message' => 'Email already verified.']);
+        }
+
+        $this->sendVerificationEmail($user);
+
+        return response()->json(['message' => 'Verification email sent.']);
+    }
+
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        $record = DB::table('email_verification_tokens')
+            ->where('token', hash('sha256', $validated['token']))
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (! $record) {
+            return response()->json(['message' => 'Invalid or expired token.'], 422);
+        }
+
+        DB::table('profiles')
+            ->where('id', $record->user_id)
+            ->update(['email_verified' => true, 'updated_at' => now()]);
+
+        DB::table('email_verification_tokens')->where('user_id', $record->user_id)->delete();
+
+        return response()->json(['message' => 'Email verified successfully.']);
     }
 
     public function login(Request $request): JsonResponse
@@ -142,17 +207,26 @@ class AuthController extends Controller
         }
 
         $token = Str::random(64);
+        $tokenHash = hash('sha256', $token);
 
         DB::table('password_reset_tokens')->updateOrInsert(
             ['user_id' => $user->id],
             [
-                'token' => hash('sha256', $token),
+                'token' => $tokenHash,
                 'expires_at' => now()->addHour(),
                 'created_at' => now(),
             ]
         );
 
-        // TODO: Send email with reset token (Phase 3 — Edge Function replacement)
+        try {
+            (new EmailService())->sendPasswordReset($user->email, $token);
+        } catch (\Throwable $e) {
+            Log::error('forgotPassword email send failed', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+            // Swallow — don't reveal email-delivery issues to clients
+        }
 
         return response()->json(['message' => 'If that email exists, a reset link has been sent.']);
     }

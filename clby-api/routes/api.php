@@ -72,6 +72,7 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
 });
 
 // ─── Member-accessible routes (any authenticated user) ──────────────────────
@@ -79,6 +80,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/resend-verification', [AuthController::class, 'resendVerificationEmail']);
 
     // Profile (own)
     Route::get('/me', [AuthController::class, 'me']);

@@ -209,11 +209,11 @@ class AuthController extends Controller
         $token = Str::random(64);
         $tokenHash = hash('sha256', $token);
 
+        // Table schema: email (PK), token, created_at — no user_id, no expires_at
         DB::table('password_reset_tokens')->updateOrInsert(
-            ['user_id' => $user->id],
+            ['email' => $user->email],
             [
                 'token' => $tokenHash,
-                'expires_at' => now()->addHour(),
                 'created_at' => now(),
             ]
         );
@@ -238,16 +238,20 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
+        // Tokens older than 1 hour are considered expired
         $record = DB::table('password_reset_tokens')
             ->where('token', hash('sha256', $validated['token']))
-            ->where('expires_at', '>', now())
+            ->where('created_at', '>', now()->subHour())
             ->first();
 
         if (! $record) {
             return response()->json(['message' => 'Invalid or expired token.'], 422);
         }
 
-        $user = User::find($record->user_id);
+        $user = User::where('email', $record->email)->first();
+        if (! $user) {
+            return response()->json(['message' => 'Invalid token.'], 422);
+        }
         $user->update([
             'password' => $validated['password'],
             'must_reset_password' => false,
@@ -258,7 +262,7 @@ class AuthController extends Controller
             ->where('id', $user->id)
             ->update(['encrypted_password' => Hash::make($validated['password'])]);
 
-        DB::table('password_reset_tokens')->where('user_id', $user->id)->delete();
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
 
         return response()->json(['message' => 'Password reset successfully.']);
     }

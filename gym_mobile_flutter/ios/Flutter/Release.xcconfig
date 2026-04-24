@@ -2,3 +2,5 @@
 #include "Generated.xcconfig"
 
 APP_DISPLAY_NAME = CLBY
+PRODUCT_BUNDLE_IDENTIFIER = com.clbyapp.clby
+DEVELOPMENT_TEAM = AXBRK75K78

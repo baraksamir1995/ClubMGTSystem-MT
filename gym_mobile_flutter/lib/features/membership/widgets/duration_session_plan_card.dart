@@ -33,14 +33,15 @@ class DurationSessionPlanCard extends StatelessWidget {
   static const _amber           = Color(0xFFD97706);
 
   _CardState get _state {
+    final isUnlimited = membership.isUnlimitedSessions;
     final remaining = membership.sessionsRemaining ?? 0;
     final total     = membership.effectiveSessionTotal ?? 0;
     final daysLeft  = membership.endDate != null
         ? membership.endDate!.difference(DateTime.now()).inDays
         : null;
 
-    if (remaining <= 0) return _CardState.exhausted;
-    final lowSessions = total > 0 && remaining <= max(3, (total * 0.15).round());
+    if (!isUnlimited && remaining <= 0) return _CardState.exhausted;
+    final lowSessions = !isUnlimited && total > 0 && remaining <= max(3, (total * 0.15).round());
     if ((daysLeft != null && daysLeft <= 14) || lowSessions) return _CardState.warning;
     return _CardState.normal;
   }
@@ -52,6 +53,7 @@ class DurationSessionPlanCard extends StatelessWidget {
     final now     = DateTime.now();
     final start   = membership.startDate;
     final end     = membership.endDate;
+    final isUnlimited = membership.isUnlimitedSessions;
     final total   = membership.effectiveSessionTotal ?? 0;
     final used    = membership.sessionsUsed ?? 0;
     final remaining = membership.sessionsRemaining ?? 0;
@@ -85,15 +87,17 @@ class DurationSessionPlanCard extends StatelessWidget {
         : state == _CardState.warning ? _amber
         : const Color(0xFF1D9E75);
 
-    final subtitle = state == _CardState.exhausted
-        ? 'Sessions exhausted — gym access still running'
-        : state == _CardState.warning
-            ? 'Expiring soon — sessions running low'
-            : 'Active — $used of $total sessions used';
+    final subtitle = isUnlimited
+        ? 'Active — $used session${used == 1 ? '' : 's'} used'
+        : state == _CardState.exhausted
+            ? 'Sessions exhausted — gym access still running'
+            : state == _CardState.warning
+                ? 'Expiring soon — sessions running low'
+                : 'Active — $used of $total sessions used';
     final subtitleColor = state == _CardState.warning ? _amber : _sectionLbl;
 
     String? sessionHint;
-    if (state != _CardState.exhausted && daysLeft != null && daysLeft > 0 && remaining > 0) {
+    if (!isUnlimited && state != _CardState.exhausted && daysLeft != null && daysLeft > 0 && remaining > 0) {
       final rate = remaining / daysLeft;
       sessionHint = state == _CardState.warning
           ? 'Use ${rate.ceil()} session${rate.ceil() != 1 ? 's' : ''}/day before expiry'
@@ -182,13 +186,15 @@ class DurationSessionPlanCard extends StatelessWidget {
                         ],
                         _Pill(
                           icon: Icons.timer_outlined,
-                          label: state == _CardState.exhausted
-                              ? 'All $total sessions used'
-                              : '$total sessions included',
-                          bg: state == _CardState.exhausted
+                          label: isUnlimited
+                              ? 'Unlimited sessions'
+                              : state == _CardState.exhausted
+                                  ? 'All $total sessions used'
+                                  : '$total sessions included',
+                          bg: !isUnlimited && state == _CardState.exhausted
                               ? const Color(0xFF1E1E30)
                               : const Color(0xFF2A1F4A),
-                          fg: state == _CardState.exhausted
+                          fg: !isUnlimited && state == _CardState.exhausted
                               ? _sectionLbl
                               : const Color(0xFFAFA9EC),
                         ),
@@ -225,9 +231,9 @@ class DurationSessionPlanCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         _StatCol(
-                          label: 'Sessions left',
-                          value: '$remaining',
-                          sub: 'of $total',
+                          label: isUnlimited ? 'Sessions used' : 'Sessions left',
+                          value: isUnlimited ? '$used' : '$remaining',
+                          sub: isUnlimited ? 'unlimited' : 'of $total',
                           align: CrossAxisAlignment.end,
                         ),
                       ],
@@ -289,19 +295,19 @@ class DurationSessionPlanCard extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  '$remaining',
+                                  isUnlimited ? '∞' : '$remaining',
                                   style: TextStyle(
-                                    color: state == _CardState.exhausted
+                                    color: (!isUnlimited && state == _CardState.exhausted)
                                         ? _sectionLbl
                                         : Colors.white,
-                                    fontSize: 18,
+                                    fontSize: isUnlimited ? 22 : 18,
                                     fontWeight: FontWeight.w700,
                                     height: 1,
                                   ),
                                 ),
-                                const Text(
-                                  'remaining',
-                                  style: TextStyle(color: _sectionLbl, fontSize: 7),
+                                Text(
+                                  isUnlimited ? 'unlimited' : 'remaining',
+                                  style: const TextStyle(color: _sectionLbl, fontSize: 7),
                                 ),
                               ],
                             ),
@@ -319,12 +325,14 @@ class DurationSessionPlanCard extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    state == _CardState.exhausted
-                                        ? '$total of $total used'
-                                        : '$used used · $remaining left',
+                                    isUnlimited
+                                        ? '$used session${used == 1 ? '' : 's'} used'
+                                        : state == _CardState.exhausted
+                                            ? '$total of $total used'
+                                            : '$used used · $remaining left',
                                     style: const TextStyle(color: _midText, fontSize: 10, fontWeight: FontWeight.w500),
                                   ),
-                                  Text(
+                                  if (!isUnlimited) Text(
                                     '$sessionUsedPct%',
                                     style: const TextStyle(color: _midText, fontSize: 10, fontWeight: FontWeight.w500),
                                   ),

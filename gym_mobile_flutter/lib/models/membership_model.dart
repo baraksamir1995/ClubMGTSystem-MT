@@ -104,7 +104,15 @@ class MemberMembership {
   }
 
   /// Total for display ("X of Y"). Prefer row-level sessions_total.
+  /// Null means unlimited (bounded by end_date / session_expiry_days only).
   int? get effectiveSessionTotal => sessionsTotal ?? sessionCount;
+
+  /// Unlimited sessions within the plan's time frame — plan was created
+  /// with session_count = null.
+  bool get isUnlimitedSessions {
+    if (planType != 'sessions' && planType != 'duration_session') return false;
+    return effectiveSessionTotal == null;
+  }
 
   /// True when this row was created by an incoming session transfer.
   bool get isTransferred => transferredFrom != null;

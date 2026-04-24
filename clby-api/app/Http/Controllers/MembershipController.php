@@ -323,15 +323,20 @@ class MembershipController extends Controller
                 if ($membership->status !== 'active') {
                     return response()->json(['error' => 'Membership is not active'], 422);
                 }
-                $total = (int) ($membership->sessions_total ?? 0);
                 $used = (int) ($membership->sessions_used ?? 0);
-                $remaining = (int) ($membership->sessions_remaining ?? max(0, $total - $used));
-                if ($remaining <= 0) {
+                // NULL sessions_total = unlimited for the plan's time window.
+                $isUnlimited = $membership->sessions_total === null;
+                $total = $isUnlimited ? null : (int) $membership->sessions_total;
+                $remaining = $isUnlimited
+                    ? null
+                    : (int) ($membership->sessions_remaining ?? max(0, ($total ?? 0) - $used));
+
+                if (! $isUnlimited && $remaining !== null && $remaining <= 0) {
                     return response()->json(['error' => 'No sessions remaining'], 422);
                 }
 
                 $newUsed = $used + 1;
-                $newRemaining = max(0, $total - $newUsed);
+                $newRemaining = $isUnlimited ? null : max(0, ($total ?? 0) - $newUsed);
 
                 DB::table('member_memberships')
                     ->where('id', $id)
@@ -345,6 +350,7 @@ class MembershipController extends Controller
                     'sessionCount' => $total,
                     'sessionsUsed' => $newUsed,
                     'sessionsRemaining' => $newRemaining,
+                    'unlimited' => $isUnlimited,
                 ]);
             });
         }

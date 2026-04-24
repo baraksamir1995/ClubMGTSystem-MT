@@ -17,11 +17,12 @@ class SessionsPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isUnlimited = membership.isUnlimitedSessions;
     final total = membership.effectiveSessionTotal ?? 0;
     final used = membership.sessionsUsed ?? 0;
     final remaining = membership.sessionsRemaining ?? total;
-    final progress = total > 0 ? (used / total).clamp(0.0, 1.0) : 0.0;
-    final usedPct = total > 0 ? ((used / total) * 100).round() : 0;
+    final progress = !isUnlimited && total > 0 ? (used / total).clamp(0.0, 1.0) : 0.0;
+    final usedPct = !isUnlimited && total > 0 ? ((used / total) * 100).round() : 0;
 
     return Container(
       width: double.infinity,
@@ -79,28 +80,40 @@ class SessionsPlanCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Sessions remaining (large)
-              Text(
-                '$remaining',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                  'of $total',
+              // Sessions remaining (large) — or "Unlimited" label
+              if (isUnlimited)
+                const Text(
+                  'Unlimited',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                )
+              else ...[
+                Text(
+                  '$remaining',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
                   ),
                 ),
-              ),
+                const SizedBox(width: 4),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    'of $total',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.55),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
               const Spacer(),
               if (membership.endDate != null)
                 Column(
@@ -129,47 +142,59 @@ class SessionsPlanCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.15),
-              valueColor: const AlwaysStoppedAnimation<Color>(_pillBg),
+          if (isUnlimited)
+            // Unlimited plan — progress bar doesn't apply, just show used count
+            Text(
+              '$used sessions used so far',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            )
+          else ...[
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                valueColor: const AlwaysStoppedAnimation<Color>(_pillBg),
+              ),
             ),
-          ),
 
-          const SizedBox(height: 6),
+            const SizedBox(height: 6),
 
-          // Progress labels
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '0 sessions',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 10,
+            // Progress labels
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '0 sessions',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 10,
+                  ),
                 ),
-              ),
-              Text(
-                '$used used · $usedPct%',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
+                Text(
+                  '$used used · $usedPct%',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              Text(
-                '$total sessions',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 10,
+                Text(
+                  '$total sessions',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 10,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

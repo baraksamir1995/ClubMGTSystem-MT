@@ -113,10 +113,38 @@ class MembershipPlanController extends Controller
             'add_ons' => 'nullable|array',
         ]);
 
+        $this->validateSessionPlanConstraints($validated);
+
         $validated['gym_id'] = $request->user()->gym_id;
         $plan = MembershipPlan::create($validated);
 
         return response()->json(['data' => $plan], 201);
+    }
+
+    /**
+     * A sessions-capable plan with unlimited sessions (null session_count)
+     * must bound usage by a time window — either duration_days (for the
+     * membership lifetime) or session_expiry_days (rolling expiry). Without
+     * either the grant would be "infinite forever".
+     */
+    private function validateSessionPlanConstraints(array $data): void
+    {
+        $planType = $data['plan_type'] ?? 'duration';
+        if (! in_array($planType, ['sessions', 'duration_session'], true)) return;
+
+        $sessionCount = $data['session_count'] ?? null;
+        if ($sessionCount !== null) return; // bounded by count
+
+        $hasTimeframe = (($data['duration_days'] ?? null) !== null)
+            || (($data['session_expiry_days'] ?? null) !== null);
+        if (! $hasTimeframe) {
+            abort(response()->json([
+                'message' => 'Unlimited sessions (empty session count) require either a duration or an expiry window.',
+                'errors' => [
+                    'session_count' => ['Set a session count, or a duration / session expiry.'],
+                ],
+            ], 422));
+        }
     }
 
     public function update(Request $request, string $id): JsonResponse
@@ -153,6 +181,10 @@ class MembershipPlanController extends Controller
             'facilities' => 'nullable|array',
             'add_ons' => 'nullable|array',
         ]);
+
+        // Merge incoming changes with existing plan so the timeframe check
+        // sees the final shape, not just the partial update payload.
+        $this->validateSessionPlanConstraints(array_merge($plan->toArray(), $validated));
 
         $plan->update($validated);
         return response()->json(['data' => $plan]);

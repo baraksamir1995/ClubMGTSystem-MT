@@ -170,29 +170,36 @@ class PaymentController extends Controller
         // When payment is marked as paid, assign member_number if not yet assigned
         // and update the linked membership's payment_status
         if (($validated['status'] ?? '') === 'paid') {
-            $payment = Payment::find($id);
-            if ($payment && $payment->gym_member_id) {
-                // Assign member_number if null
-                $gymMember = DB::table('gym_members')->where('id', $payment->gym_member_id)->first();
-                if ($gymMember && $gymMember->member_number === null) {
-                    $maxNumber = DB::table('gym_members')
-                        ->where('gym_id', $gymId)
-                        ->whereNotNull('member_number')
-                        ->max('member_number') ?? 0;
-
-                    DB::table('gym_members')
+            DB::transaction(function () use ($id, $gymId) {
+                $payment = Payment::find($id);
+                if ($payment && $payment->gym_member_id) {
+                    // Assign member_number if null (with lock to prevent duplicates)
+                    $gymMember = DB::table('gym_members')
                         ->where('id', $payment->gym_member_id)
-                        ->update(['member_number' => $maxNumber + 1]);
-                }
+                        ->lockForUpdate()
+                        ->first();
 
-                // Update linked membership payment_status to paid
-                if ($payment->membership_id) {
-                    DB::table('member_memberships')
-                        ->where('id', $payment->membership_id)
-                        ->where('payment_status', 'pending')
-                        ->update(['payment_status' => 'paid']);
+                    if ($gymMember && $gymMember->member_number === null) {
+                        $maxNumber = DB::table('gym_members')
+                            ->where('gym_id', $gymId)
+                            ->whereNotNull('member_number')
+                            ->lockForUpdate()
+                            ->max('member_number') ?? 0;
+
+                        DB::table('gym_members')
+                            ->where('id', $payment->gym_member_id)
+                            ->update(['member_number' => $maxNumber + 1]);
+                    }
+
+                    // Update linked membership payment_status to paid
+                    if ($payment->membership_id) {
+                        DB::table('member_memberships')
+                            ->where('id', $payment->membership_id)
+                            ->where('payment_status', 'pending')
+                            ->update(['payment_status' => 'paid']);
+                    }
                 }
-            }
+            });
         }
 
         return response()->json(['message' => 'Payment updated successfully']);

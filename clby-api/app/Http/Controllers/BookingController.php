@@ -17,6 +17,14 @@ class BookingController extends Controller
      */
     public function index(Request $request, string $sessionId): JsonResponse
     {
+        $gymId = $request->user()->gym_id;
+
+        // Verify session belongs to user's gym
+        $session = DB::table('class_sessions')->where('id', $sessionId)->where('gym_id', $gymId)->first();
+        if (! $session) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
         $bookings = SessionBooking::where('session_id', $sessionId)
             ->with('gymMember.user:id,full_name,email,phone,photo_url')
             ->orderBy('created_at', 'desc')
@@ -34,6 +42,12 @@ class BookingController extends Controller
         $gymMemberId = $request->query('gym_member_id');
         if (! $gymMemberId) {
             return response()->json(['data' => []]);
+        }
+
+        // Verify the gym_member belongs to the authenticated user
+        $gymMember = DB::table('gym_members')->where('id', $gymMemberId)->first();
+        if (! $gymMember || $gymMember->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         $query = SessionBooking::where('gym_member_id', $gymMemberId)
@@ -113,7 +127,11 @@ class BookingController extends Controller
             'status' => 'required|string|in:confirmed,booked,cancelled,attended,absent,no_show,waitlisted',
         ]);
 
-        $booking = SessionBooking::findOrFail($id);
+        $gymId = $request->user()->gym_id;
+
+        // Scope to user's gym via session
+        $booking = SessionBooking::whereHas('session', fn ($q) => $q->where('gym_id', $gymId))
+            ->findOrFail($id);
         $oldStatus = $booking->status;
         $booking->update(['status' => $validated['status']]);
 
@@ -125,9 +143,13 @@ class BookingController extends Controller
         return response()->json(['data' => $booking]);
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $booking = SessionBooking::findOrFail($id);
+        $gymId = $request->user()->gym_id;
+
+        // Scope to user's gym via session
+        $booking = SessionBooking::whereHas('session', fn ($q) => $q->where('gym_id', $gymId))
+            ->findOrFail($id);
         $sessionId = $booking->session_id;
 
         DB::select('SELECT remove_booking(?)', [$id]);

@@ -14,7 +14,7 @@ class SearchController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = $request->query('q', '');
-        if (strlen($query) < 2) {
+        if (mb_strlen($query) < 2) {
             return response()->json(['data' => []]);
         }
 

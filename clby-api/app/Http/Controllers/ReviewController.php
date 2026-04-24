@@ -36,6 +36,12 @@ class ReviewController extends Controller
             'review' => 'nullable|string|max:1000',
         ]);
 
+        // Verify the gym_member belongs to the authenticated user
+        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        if (! $gymMember || $gymMember->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $validated['gym_id'] = $request->user()->gym_id;
 
         $rating = SessionRating::create($validated);

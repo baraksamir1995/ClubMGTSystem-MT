@@ -18,7 +18,7 @@ class FileController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|max:10240', // 10MB max
+            'file' => 'required|file|max:10240|mimes:jpg,jpeg,png,gif,webp,pdf', // 10MB max
             'folder' => 'nullable|string|max:100',
         ]);
 

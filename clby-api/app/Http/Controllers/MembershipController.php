@@ -276,10 +276,13 @@ class MembershipController extends Controller
     /**
      * Get freeze logs for a membership.
      */
-    public function freezeLogs(string $id): JsonResponse
+    public function freezeLogs(Request $request, string $id): JsonResponse
     {
+        $gymId = $request->user()->gym_id;
+
         $logs = DB::table('membership_freeze_logs')
             ->where('membership_id', $id)
+            ->where('gym_id', $gymId)
             ->orderBy('frozen_at', 'desc')
             ->get();
 
@@ -299,8 +302,8 @@ class MembershipController extends Controller
 
         $validated = $request->validate([
             'action' => 'sometimes|string|in:log',
-            'status' => 'sometimes|string',
-            'payment_status' => 'sometimes|string',
+            'status' => 'sometimes|string|in:active,expired,cancelled,frozen',
+            'payment_status' => 'sometimes|string|in:paid,unpaid,pending,partial,refunded',
             'notes' => 'nullable|string',
         ]);
 

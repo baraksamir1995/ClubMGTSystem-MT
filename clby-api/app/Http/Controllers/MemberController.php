@@ -325,9 +325,26 @@ class MemberController extends Controller
 
     public function deleteAccount(Request $request): JsonResponse
     {
-        DB::select('SELECT delete_own_account()');
+        $user = $request->user();
+        $userId = $user->id;
 
-        $request->user()->currentAccessToken()->delete();
+        DB::transaction(function () use ($userId) {
+            // Remove gym memberships and related data
+            $memberIds = DB::table('gym_members')->where('user_id', $userId)->pluck('id');
+            if ($memberIds->isNotEmpty()) {
+                DB::table('session_bookings')->whereIn('gym_member_id', $memberIds)->delete();
+                DB::table('member_memberships')->whereIn('gym_member_id', $memberIds)->delete();
+                DB::table('attendance_logs')->whereIn('gym_member_id', $memberIds)->delete();
+                DB::table('member_service_assignments')->whereIn('gym_member_id', $memberIds)->delete();
+                DB::table('gym_members')->where('user_id', $userId)->delete();
+            }
+
+            // Remove profile and auth record
+            DB::table('profiles')->where('id', $userId)->delete();
+            DB::table('auth.users')->where('id', $userId)->delete();
+        });
+
+        $user->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Account deleted successfully']);
     }

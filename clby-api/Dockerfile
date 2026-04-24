@@ -33,4 +33,5 @@ RUN echo "expose_php = Off" > /usr/local/etc/php/conf.d/security.ini
 
 EXPOSE 8080
 
-CMD (php artisan migrate --force --no-interaction || true) && php artisan config:clear && php artisan serve --host=0.0.0.0 --port=8080
+# NOTE: artisan serve is for development only. Use PHP-FPM + nginx for production.
+CMD php artisan migrate --force --no-interaction && php artisan config:clear && php artisan serve --host=0.0.0.0 --port=8080

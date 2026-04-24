@@ -20,6 +20,11 @@ class AnalyticsController extends Controller
             return response()->json(['members' => [], 'revenue' => [], 'classes' => []]);
         }
 
+        $request->validate([
+            'from' => 'nullable|date',
+            'to' => 'nullable|date',
+        ]);
+
         $from = $request->query('from', now()->subDays(90)->toDateString());
         $to = $request->query('to', now()->toDateString());
 

@@ -23,7 +23,7 @@ class StorageService
     public function upload(UploadedFile $file, string $folder, ?string $gymId = null): array
     {
         $prefix = $gymId ? "{$gymId}/{$folder}" : $folder;
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $filename = Str::uuid() . '.' . ($file->guessExtension() ?? 'bin');
         $path = "{$prefix}/{$filename}";
 
         Storage::disk($this->disk)->put($path, $file->getContent(), 'public');

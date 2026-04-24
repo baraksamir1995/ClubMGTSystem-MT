@@ -33,9 +33,9 @@ class SessionController extends Controller
 
         $sessions = $query->orderBy('session_date')
             ->orderBy('start_time')
-            ->get();
+            ->paginate($request->query('per_page', 50));
 
-        return response()->json(['data' => $sessions]);
+        return response()->json($sessions);
     }
 
     public function store(Request $request): JsonResponse
@@ -159,6 +159,13 @@ class SessionController extends Controller
             'gym_member_id' => 'required|uuid',
         ]);
 
+        // Verify the gym_member belongs to the authenticated user or user is admin
+        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        $user = $request->user();
+        if (! $gymMember || ($gymMember->user_id !== $user->id && ! in_array($user->role, ['gym_admin', 'super_admin', 'staff']))) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         // Find the current/next session for this class
         $session = ClassSession::where('class_id', $validated['class_id'])
             ->where('session_date', '>=', now()->subDay()->toDateString())
@@ -206,6 +213,13 @@ class SessionController extends Controller
         $validated = $request->validate([
             'gym_member_id' => 'required|uuid',
         ]);
+
+        // Verify the gym_member belongs to the authenticated user or user is admin
+        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        $user = $request->user();
+        if (! $gymMember || ($gymMember->user_id !== $user->id && ! in_array($user->role, ['gym_admin', 'super_admin', 'staff']))) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         $result = DB::select('SELECT consume_class_session(?) AS data', [
             $validated['gym_member_id'],

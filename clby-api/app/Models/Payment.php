@@ -17,12 +17,12 @@ class Payment extends Model
     protected $fillable = [
         'membership_id', 'member_id', 'gym_id', 'gym_member_id',
         'amount', 'currency', 'method', 'payment_method', 'status',
-        'stripe_payment_intent_id', 'invoice_number', 'notes',
-        'refund_amount', 'refund_reason', 'refunded_at',
+        'invoice_number', 'notes',
+        'refund_reason',
         'transaction_id', 'metadata', 'paid_at', 'source',
         'service_type', 'service_name', 'original_amount', 'discount_amount',
         'promo_code_id', 'plan_promotion_id', 'specialist_name',
-        'paymob_transaction_id', 'payment_link_url', 'refunded_amount', 'branch_id',
+        'payment_link_url', 'branch_id',
     ];
 
     protected function casts(): array

@@ -42,6 +42,17 @@ class ContentController extends Controller
         'popups' => 'popup',
     ];
 
+    /** Allowed columns per content type */
+    private const ALLOWED_COLUMNS = [
+        'announcements' => ['title', 'content', 'is_active', 'priority', 'start_date', 'end_date'],
+        'banners' => ['title', 'subtitle', 'description', 'image_url', 'link_url', 'is_active', 'position', 'start_date', 'end_date'],
+        'faqs' => ['question', 'answer', 'position', 'is_active', 'category'],
+        'onboarding' => ['title', 'subtitle', 'description', 'image_url', 'position', 'is_active'],
+        'partners' => ['name', 'description', 'image_url', 'link_url', 'is_active', 'position'],
+        'photos' => ['title', 'description', 'image_url', 'is_active', 'position'],
+        'popups' => ['title', 'subtitle', 'description', 'image_url', 'link_url', 'is_active', 'start_date', 'end_date', 'show_once'],
+    ];
+
     /** Convert camelCase keys to snake_case */
     private function toSnakeCase(array $data): array
     {
@@ -51,6 +62,13 @@ class ContentController extends Controller
             $result[$snakeKey] = $value;
         }
         return $result;
+    }
+
+    /** Filter data to only allowed columns for a content type */
+    private function filterAllowed(array $data, string $type): array
+    {
+        $allowed = self::ALLOWED_COLUMNS[$type] ?? [];
+        return array_intersect_key($data, array_flip($allowed));
     }
 
     public function index(Request $request, string $type): JsonResponse
@@ -70,7 +88,7 @@ class ContentController extends Controller
         if (! $table) return response()->json(['error' => 'Invalid content type'], 400);
 
         $gymId = $request->user()->gym_id;
-        $data = $this->toSnakeCase($request->all());
+        $data = $this->filterAllowed($this->toSnakeCase($request->all()), $type);
         $data['id'] = Str::uuid()->toString();
         $data['gym_id'] = $gymId;
         $data['created_at'] = now();
@@ -89,9 +107,6 @@ class ContentController extends Controller
             $data['image_url'] = $result['url'];
         }
 
-        // Remove non-column fields
-        unset($data['_token'], $data['file'], $data['updated_at']);
-
         DB::table($table)->insert($data);
 
         // Return with the singular key the frontend expects
@@ -105,8 +120,7 @@ class ContentController extends Controller
         if (! $table) return response()->json(['error' => 'Invalid content type'], 400);
 
         $gymId = $request->user()->gym_id;
-        $data = $this->toSnakeCase($request->all());
-        unset($data['id'], $data['gym_id'], $data['created_at'], $data['updated_at'], $data['_token'], $data['file']);
+        $data = $this->filterAllowed($this->toSnakeCase($request->all()), $type);
 
         DB::table($table)->where('id', $id)->where('gym_id', $gymId)->update($data);
 

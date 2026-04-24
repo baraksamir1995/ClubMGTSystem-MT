@@ -16,7 +16,6 @@ class User extends Authenticatable
     public $incrementing = false;
 
     protected $fillable = [
-        'id',
         'email',
         'password',
         'must_reset_password',
@@ -30,7 +29,6 @@ class User extends Authenticatable
         'photo_url',
         'fcm_token',
         'gym_id',
-        'role',
         'preferred_language',
         'notification_preferences',
     ];

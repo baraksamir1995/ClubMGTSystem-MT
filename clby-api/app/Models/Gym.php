@@ -19,11 +19,11 @@ class Gym extends Model
     protected $fillable = [
         'name', 'description', 'address', 'city', 'country',
         'phone', 'email', 'website', 'logo_url', 'timezone', 'language',
-        'owner_id', 'saas_tier', 'is_active', 'branding_config',
+        'owner_id', 'saas_tier', 'branding_config',
         'mobile_payments_enabled', 'operating_hours', 'max_branches',
         'price_per_branch', 'capacity_feature_enabled', 'max_capacity',
         'category', 'latitude', 'longitude', 'services', 'is_listed',
-        'cover_image_url', 'avg_rating', 'rating_count',
+        'cover_image_url',
     ];
 
     protected function casts(): array

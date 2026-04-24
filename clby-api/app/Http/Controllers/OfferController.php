@@ -30,6 +30,22 @@ class OfferController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'short_description' => 'nullable|string|max:500',
+            'full_description' => 'nullable|string',
+            'offer_price' => 'required|numeric|min:0',
+            'original_price' => 'nullable|numeric|min:0',
+            'status' => 'nullable|string|in:active,inactive,draft',
+            'hero_image_url' => 'nullable|string|max:500',
+            'valid_from' => 'nullable|date',
+            'valid_until' => 'nullable|date',
+            'category' => 'nullable|string|max:100',
+            'expires_at' => 'nullable|date',
+            'session_count' => 'nullable|integer|min:0',
+        ]);
+
         $gymId = $request->user()->gym_id;
         $data = $request->only([
             'title', 'description', 'short_description', 'full_description',

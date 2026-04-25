@@ -120,6 +120,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
   const handleSubmit = async () => {
     if (!classId || !date || !startTime || !endTime) { toast.error('Fill in all required fields'); return; }
     if (branches.length > 1 && !branchId) { toast.error('Please select a branch'); return; }
+    if (!studioId) { toast.error('Please select a studio'); return; }
     if (startTime >= endTime) { toast.error('End time must be after start time'); return; }
     if (showParallel && !parallelStudioId) { toast.error('Select a studio for the parallel session'); return; }
 
@@ -315,7 +316,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
 
           {/* Studio — filtered by selected branch */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Studio <span className="text-gray-500">(optional)</span></label>
+            <label className="block text-xs text-gray-400 mb-1.5">Studio <span className="text-red-400">*</span></label>
             <select value={studioId} onChange={e => setStudioId(e.target.value)}
               disabled={branches.length > 1 && !branchId}
               className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 disabled:opacity-50">

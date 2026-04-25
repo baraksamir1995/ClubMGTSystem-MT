@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         class_id: classId, start_date: date, start_time: startTime,
         end_time: endTime, capacity, instructor, location,
+        studio_id: studioId, branch_id: branchId,
       }),
     });
     const json = await res.json();

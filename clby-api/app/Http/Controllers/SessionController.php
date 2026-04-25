@@ -50,7 +50,7 @@ class SessionController extends Controller
             'location' => 'nullable|string|max:255',
             'session_type' => 'nullable|string|in:popup,recurring',
             'branch_id' => 'nullable|uuid',
-            'studio_id' => 'nullable|uuid',
+            'studio_id' => 'required|uuid',
             'walk_in_allowed' => 'nullable|boolean',
         ]);
 
@@ -71,11 +71,13 @@ class SessionController extends Controller
             'capacity' => 'nullable|integer|min:1',
             'instructor' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
+            'studio_id' => 'required|uuid',
+            'branch_id' => 'nullable|uuid',
         ]);
 
         $gymId = $request->user()->gym_id;
 
-        $result = DB::select('SELECT create_recurring_session(?, ?, ?, ?, ?, ?, ?, ?) AS id', [
+        $result = DB::select('SELECT create_recurring_session(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AS id', [
             $gymId,
             $validated['class_id'],
             $validated['start_date'],
@@ -84,6 +86,8 @@ class SessionController extends Controller
             $validated['capacity'] ?? null,
             $validated['instructor'] ?? null,
             $validated['location'] ?? null,
+            $validated['studio_id'],
+            $validated['branch_id'] ?? null,
         ]);
 
         return response()->json(['data' => ['id' => $result[0]->id]], 201);

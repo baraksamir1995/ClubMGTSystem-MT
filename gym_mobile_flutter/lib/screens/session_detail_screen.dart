@@ -60,15 +60,16 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final location =
         session.location?.isNotEmpty == true ? session.location! : gym?.name;
 
-    // Deep link — requires gymapp:// scheme registered in iOS Info.plist
-    // and Android AndroidManifest.xml (intent-filter with scheme="gymapp").
-    // Falls back gracefully: recipients without the app see plain text.
-    final deepLink = 'gymapp://session/${session.id}';
+    // Use an https URL so WhatsApp / iMessage auto-link it. The marketing
+    // site can later 302/meta-refresh into gymapp://session/<id> for users
+    // who have the app installed and offer an App Store fallback for those
+    // who don't.
+    final shareLink = 'https://www.clbyapp.com/session/${session.id}';
 
     final buffer = StringBuffer();
     buffer.write('Join me for $className$coachPart at $timeStr on $dateStr 💪');
     if (location != null) buffer.write('\n📍 $location');
-    buffer.write('\nBook here: $deepLink');
+    buffer.write('\nBook here: $shareLink');
 
     Share.share(
       buffer.toString(),

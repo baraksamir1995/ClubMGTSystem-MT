@@ -17,7 +17,11 @@ class SessionController extends Controller
         $gymId = $request->user()->gym_id;
 
         $query = ClassSession::where('gym_id', $gymId)
-            ->with('classModel:id,name,class_type,color,instructor,image_url,description,location');
+            ->with([
+                'classModel:id,name,class_type,color,instructor,image_url,description,location',
+                'studio:id,name',
+                'branch:id,name',
+            ]);
 
         if ($date = $request->query('date')) {
             $query->where('session_date', $date);

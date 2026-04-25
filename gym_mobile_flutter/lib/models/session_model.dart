@@ -58,6 +58,8 @@ class Session {
 
   factory Session.fromJson(Map<String, dynamic> json) {
     final classJson = (json['classes'] ?? json['class_model']) as Map<String, dynamic>?;
+    final studioJson = json['studio'] as Map<String, dynamic>?;
+    final studioName = studioJson?['name'] as String?;
     DateTime? endTime;
     if (json['end_time'] != null) {
       endTime = _parseSessionDateTime(json, timeKey: 'end_time');
@@ -70,7 +72,7 @@ class Session {
       classId: json['class_id'] as String?,
       className: classJson?['name'] as String?,
       instructor: (json['instructor'] as String?) ?? classJson?['default_instructor'] as String?,
-      location: (json['location'] as String?) ?? classJson?['location'] as String?,
+      location: studioName ?? (json['location'] as String?) ?? classJson?['location'] as String?,
       classColor: classJson?['color'] as String?,
       scheduledAt: _parseSessionDateTime(json),
       durationMinutes: json['duration_minutes'] as int?,

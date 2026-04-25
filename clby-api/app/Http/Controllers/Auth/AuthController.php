@@ -217,6 +217,8 @@ class AuthController extends Controller
             'emergency_contact_phone' => 'sometimes|nullable|string|max:20',
             'preferred_language' => 'sometimes|string|in:en,ar',
             'notification_preferences' => 'sometimes|array',
+            'photo_url' => 'sometimes|nullable|string|max:1024',
+            'fcm_token' => 'sometimes|nullable|string',
         ]);
 
         $request->user()->update($validated);

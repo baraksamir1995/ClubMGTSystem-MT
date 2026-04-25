@@ -1005,6 +1005,10 @@ class ApiService {
     }
 
     final url = data['url'] as String? ?? data['path'] as String? ?? '';
+    if (url.isNotEmpty) {
+      // Persist on the user's profile so the avatar survives app restarts.
+      await _put('/api/me', {'photo_url': url});
+    }
     return url;
   }
 

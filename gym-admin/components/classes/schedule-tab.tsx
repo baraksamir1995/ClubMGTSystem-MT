@@ -117,6 +117,9 @@ export default function ScheduleTab({
     settings?.is_published &&
     sessions.some(s => s.status !== 'cancelled' && !s.is_published)
   );
+  // Anything to publish at all? Used to disable "Publish Schedule" pre-publish
+  // when the gym has no live sessions yet.
+  const hasPublishableContent = sessions.some(s => s.status !== 'cancelled');
 
   const handlePublish = async (publish: boolean) => {
     setPublishing(true);
@@ -212,9 +215,14 @@ export default function ScheduleTab({
             )}
             <button
               onClick={() => handlePublish(true)}
-              disabled={publishing || (isPublished && !hasUnpublishedChanges)}
+              disabled={
+                publishing ||
+                (isPublished && !hasUnpublishedChanges) ||
+                (!isPublished && !hasPublishableContent)
+              }
+              title={!isPublished && !hasPublishableContent ? 'Add at least one session to publish' : undefined}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 ${
-                isPublished && !hasUnpublishedChanges
+                (isPublished && !hasUnpublishedChanges) || (!isPublished && !hasPublishableContent)
                   ? 'bg-gray-700 text-gray-500 cursor-default'
                   : 'bg-purple-600 hover:bg-purple-500 text-white'
               }`}>

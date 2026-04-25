@@ -40,7 +40,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
   const [sessionType,  setSessionType]  = useState<SessionType>(
     (existing?.session_type === 'popup' || existing?.session_type === 'recurring')
       ? existing.session_type
-      : 'popup'
+      : 'recurring'
   );
   const [date,         setDate]         = useState(existing?.session_date ?? defaultDate ?? todayLocal);
   const [startTime,    setStartTime]    = useState(existing?.start_time?.slice(0, 5) ?? '09:00');

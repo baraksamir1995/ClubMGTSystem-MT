@@ -205,9 +205,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = context.read<AuthProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final errorColor = Theme.of(context).colorScheme.error;
-    showDialog(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => _ChangePasswordDialog(
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _ChangePasswordSheet(
         onSave: (newPassword) async {
           final error = await authProvider.changePassword(newPassword);
           if (!ctx.mounted) return;
@@ -966,16 +972,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _ChangePasswordDialog extends StatefulWidget {
+class _ChangePasswordSheet extends StatefulWidget {
   final Future<void> Function(String) onSave;
 
-  const _ChangePasswordDialog({required this.onSave});
+  const _ChangePasswordSheet({required this.onSave});
 
   @override
-  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+  State<_ChangePasswordSheet> createState() => _ChangePasswordSheetState();
 }
 
-class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
   final _formKey = GlobalKey<FormState>();
   final _newPasswordController = TextEditingController();
   final _confirmController = TextEditingController();
@@ -992,83 +998,118 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Change Password'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _newPasswordController,
-              obscureText: _obscureNew,
-              decoration: InputDecoration(
-                labelText: 'New Password',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureNew
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () =>
-                      setState(() => _obscureNew = !_obscureNew),
+    final theme = Theme.of(context);
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + keyboard),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Required';
-                if (v.length < 6) return 'Minimum 6 characters';
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _confirmController,
-              obscureText: _obscureConfirm,
-              decoration: InputDecoration(
-                labelText: 'Confirm Password',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirm
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () =>
-                      setState(() => _obscureConfirm = !_obscureConfirm),
+              const SizedBox(height: 16),
+
+              Text(
+                'Change Password',
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: _obscureNew,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureNew
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureNew = !_obscureNew),
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (v.length < 6) return 'Minimum 6 characters';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _confirmController,
+                obscureText: _obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  if (v != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          if (!_formKey.currentState!.validate()) return;
+                          setState(() => _isSaving = true);
+                          await widget.onSave(_newPasswordController.text);
+                          if (mounted) setState(() => _isSaving = false);
+                        },
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Save'),
                 ),
               ),
-              validator: (v) {
-                if (v != _newPasswordController.text) {
-                  return 'Passwords do not match';
-                }
-                return null;
-              },
-            ),
-          ],
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 44,
+                child: TextButton(
+                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(minimumSize: const Size(80, 40)),
-          onPressed: _isSaving
-              ? null
-              : () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  setState(() => _isSaving = true);
-                  await widget.onSave(_newPasswordController.text);
-                  if (mounted) setState(() => _isSaving = false);
-                },
-          child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Save'),
-        ),
-      ],
     );
   }
 }

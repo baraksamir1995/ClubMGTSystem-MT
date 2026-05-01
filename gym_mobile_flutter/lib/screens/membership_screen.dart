@@ -85,6 +85,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                   summary: memberProvider.membershipSummary!,
                   subscription: memberProvider.currentMembership,
                   primary: primaryColor,
+                  secondary: theme.colorScheme.secondary,
                   onFreeze: (memberProvider.currentMembership?.canFreeze ?? false)
                       ? () => _showFreezeSheet(context, memberProvider, primaryColor)
                       : null,

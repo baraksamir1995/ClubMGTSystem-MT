@@ -283,6 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   summary: memberProvider.membershipSummary!,
                   subscription: memberProvider.currentMembership,
                   primary: primary,
+                  secondary: Theme.of(context).colorScheme.secondary,
                 )
               else
                 _NoMembershipCard(primary: primary),

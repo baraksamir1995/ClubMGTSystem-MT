@@ -19,6 +19,10 @@ class MembershipCardUnified extends StatelessWidget {
   final MembershipSummary summary;
   final MemberMembership? subscription;
   final Color primary;
+  // Gym's secondary brand color. When provided we gradient primary →
+  // secondary so the card carries both brand colors. Falls back to a
+  // darkened primary when the gym only configured one color.
+  final Color? secondary;
   final VoidCallback? onFreeze;
   final VoidCallback? onUnfreeze;
 
@@ -27,6 +31,7 @@ class MembershipCardUnified extends StatelessWidget {
     required this.summary,
     required this.primary,
     this.subscription,
+    this.secondary,
     this.onFreeze,
     this.onUnfreeze,
   });
@@ -68,6 +73,11 @@ class MembershipCardUnified extends StatelessWidget {
     final showSessionsHero = hasSessions || isSessionsOnly || isDurationSessions;
     final showDaysHero = hasDuration && daysSafe != null;
 
+    // Live gradient uses the gym's branding (primary + secondary). Fallback
+    // to a darkened primary when the gym only configured one color.
+    final gradientStart = primary;
+    final gradientEnd = secondary ?? _darken(primary, 0.18);
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -77,7 +87,7 @@ class MembershipCardUnified extends StatelessWidget {
               ? [const Color(0xFF1E3A8A), const Color(0xFF1E40AF)]
               : isExpired
                   ? [Colors.grey.shade800, Colors.grey.shade700]
-                  : [primary, _darken(primary, 0.18)],
+                  : [gradientStart, gradientEnd],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [

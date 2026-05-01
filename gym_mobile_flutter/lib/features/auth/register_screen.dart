@@ -105,10 +105,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _passwordCtrl.text.length >= 8 &&
       _confirmCtrl.text == _passwordCtrl.text;
 
+  /// Phone is optional. The field is considered "left blank" if the user
+  /// only kept the +20 prefix (or left it fully empty). If they typed
+  /// digits, we still validate the format.
+  bool get _phoneLeftBlank {
+    final t = _phoneCtrl.text.trim();
+    return t.isEmpty || t == '+20';
+  }
+
   bool get _isStep2Valid =>
       _selectedGym != null &&
-      _phoneCtrl.text.trim().isNotEmpty &&
-      _normalizeEgyptianPhone(_phoneCtrl.text.trim()) != null &&
+      (_phoneLeftBlank || _normalizeEgyptianPhone(_phoneCtrl.text.trim()) != null) &&
       _emailCtrl.text.trim().isNotEmpty &&
       RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim());
 
@@ -129,7 +136,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
   String? get _phoneError {
     if (!_step2Submitted) return null;
-    if (_phoneCtrl.text.trim().isEmpty) return 'Mobile number is required';
+    if (_phoneLeftBlank) return null; // optional field
     if (_normalizeEgyptianPhone(_phoneCtrl.text.trim()) == null) return 'Invalid Egyptian number';
     return null;
   }
@@ -167,8 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _validateStep2() {
     if (_selectedGym == null) return 'Please select a gym';
-    if (_phoneCtrl.text.trim().isEmpty) return 'Mobile number is required';
-    if (_normalizeEgyptianPhone(_phoneCtrl.text.trim()) == null) {
+    if (!_phoneLeftBlank && _normalizeEgyptianPhone(_phoneCtrl.text.trim()) == null) {
       return 'Enter a valid Egyptian mobile number (e.g. 01012345678)';
     }
     if (_emailCtrl.text.trim().isEmpty) return 'Email is required';
@@ -208,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email     = _emailCtrl.text.trim();
     final password  = _passwordCtrl.text;
     final fullName  = '${_firstNameCtrl.text.trim()} ${_lastNameCtrl.text.trim()}';
-    final phone     = _normalizeEgyptianPhone(_phoneCtrl.text.trim());
+    final phone     = _phoneLeftBlank ? null : _normalizeEgyptianPhone(_phoneCtrl.text.trim());
     final dob       = _dob?.toIso8601String().substring(0, 10);
     try {
       final service = ApiService();
@@ -216,7 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: email,
         password: password,
         fullName: fullName,
-        phone: phone ?? '',
+        phone: phone,
         gymId: _selectedGym!.id,
         dateOfBirth: dob,
         gender: _gender == 0 ? 'male' : 'female',
@@ -604,12 +610,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
 
           AuthField(
-            label: 'Mobile number',
+            label: 'Mobile number (optional)',
             controller: _phoneCtrl,
             placeholder: '+20 10X XXX XXXX',
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             errorText: _phoneError,
+          ),
+          const SizedBox(height: 6),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Add a number to be discoverable for session transfers from other members. You can add it later from your profile.',
+              style: TextStyle(fontSize: 12, color: kAuthSec, height: 1.4),
+            ),
           ),
           const SizedBox(height: 14),
 

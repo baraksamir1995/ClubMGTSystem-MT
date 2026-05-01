@@ -337,6 +337,9 @@ class ApiService {
         '/api/me/membership-summary',
         queryParams: gymId != null ? {'gym_id': gymId} : null,
       );
+      appLog('membership_summary.raw: total=${data is Map ? data['total_sessions'] : '?'} '
+          'breakdown=${data is Map ? data['breakdown'] : '?'} '
+          'buckets=${data is Map && data['buckets'] is List ? (data['buckets'] as List).length : '?'}');
       if (data is! Map<String, dynamic>) return null;
       return MembershipSummary.fromJson(data);
     } catch (e) {
@@ -359,12 +362,19 @@ class ApiService {
         return MemberMembership.fromJson(msData);
       }
 
-      // Fallback: find active paid membership from list
+      // Fallback: find active paid SUBSCRIPTION from the list. Transferred
+      // buckets carry the sender's plan_id, so picking one of those would
+      // mislabel the member's plan as the sender's plan name. Filter them
+      // out — they're surfaced via the bucket-aware membership summary.
       final memberships = data['memberships'] as List?;
       if (memberships != null && memberships.isNotEmpty) {
         for (final m in memberships) {
           final ms = m as Map<String, dynamic>;
-          if (ms['status'] == 'active' && ms['payment_status'] == 'paid') {
+          final isSubscription = ms['source_type'] == 'subscription'
+              || (ms['source_type'] == null && ms['transferred_from'] == null);
+          if (ms['status'] == 'active'
+              && ms['payment_status'] == 'paid'
+              && isSubscription) {
             return MemberMembership.fromJson(ms);
           }
         }

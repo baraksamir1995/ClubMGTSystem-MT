@@ -95,7 +95,14 @@ class MembershipBucket {
       sessionsTotal: (json['sessions_total'] as num?)?.toInt(),
       sessionsRemaining: (json['sessions_remaining'] as num?)?.toInt(),
       sessionsUsed: (json['sessions_used'] as num?)?.toInt() ?? 0,
-      isUnlimited: json['is_unlimited'] as bool? ?? (json['sessions_total'] == null),
+      isUnlimited: json['is_unlimited'] as bool?
+          // Fallback: a session-based plan (sessions / duration_session)
+          // with a null sessions_total is unlimited. Pure duration plans
+          // also have null sessions_total but they have no session concept
+          // — explicitly exclude them.
+          ?? (json['sessions_total'] == null
+              && (json['plan_type'] == 'sessions'
+                  || json['plan_type'] == 'duration_session')),
       startDate: json['start_date'] != null
           ? DateTime.tryParse(json['start_date'] as String)
           : null,

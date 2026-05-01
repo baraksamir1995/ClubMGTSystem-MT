@@ -673,8 +673,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
 
             // ── Share Sessions ────────────────────────────────────────────
-            if ((membership?.hasStudioAccess ?? false) &&
-                (membership?.sessionsRemaining ?? 0) > 0) ...[
+            // Use the bucket-aware summary so the count and the gate reflect
+            // every active+paid bucket (subscription + transfers), not just
+            // the subscription's row.
+            if (((memberProvider.membershipSummary?.totalSessions ?? 0) > 0
+                    && (memberProvider.membershipSummary?.buckets.isNotEmpty ?? false))
+                || ((membership?.hasStudioAccess ?? false) && (membership?.sessionsRemaining ?? 0) > 0)) ...[
               Text(
                 'Share Sessions',
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -709,7 +713,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               Text(
-                                '${membership!.sessionsRemaining} available',
+                                '${memberProvider.membershipSummary?.totalSessions ?? membership?.sessionsRemaining ?? 0} available',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant),
                               ),

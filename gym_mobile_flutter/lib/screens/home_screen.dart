@@ -8,12 +8,9 @@ import '../core/widgets/banner_carousel.dart';
 import '../features/banners/banner_provider.dart';
 import '../features/popups/popup_provider.dart';
 import '../models/gym_model.dart';
-import '../features/membership/widgets/sessions_plan_card.dart';
-import '../features/membership/widgets/duration_plan_card.dart';
-import '../features/membership/widgets/duration_session_plan_card.dart';
 import '../models/membership_model.dart';
 import '../models/session_model.dart';
-import '../widgets/unified_membership_card.dart';
+import '../widgets/membership_card_unified.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../screens/session_detail_screen.dart';
@@ -282,13 +279,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 BrandedSkeletonCard.fromContext(context, height: 170)
               else if (memberProvider.membershipSummary != null
                   && memberProvider.membershipSummary!.buckets.isNotEmpty)
-                UnifiedMembershipCard(
+                MembershipCardUnified(
                   summary: memberProvider.membershipSummary!,
-                  primary: primary,
-                )
-              else if (memberProvider.currentMembership != null)
-                _MembershipCard(
-                  membership: memberProvider.currentMembership!,
+                  subscription: memberProvider.currentMembership,
                   primary: primary,
                 )
               else
@@ -391,30 +384,6 @@ class _SectionHeader extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-// ─── Membership card router ───────────────────────────────────────────────────
-// Sessions plan  → SessionsPlanCard  (dark purple)
-// Duration plans → DurationPlanCard  (warm brown)
-
-class _MembershipCard extends StatelessWidget {
-  final MemberMembership membership;
-  final Color primary;
-
-  const _MembershipCard(
-      {required this.membership, required this.primary});
-
-  @override
-  Widget build(BuildContext context) {
-    switch (membership.planType) {
-      case 'sessions':
-        return SessionsPlanCard(membership: membership);
-      case 'duration_session':
-        return DurationSessionPlanCard(membership: membership);
-      default:
-        return DurationPlanCard(membership: membership);
-    }
   }
 }
 

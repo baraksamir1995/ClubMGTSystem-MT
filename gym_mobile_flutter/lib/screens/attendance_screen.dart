@@ -94,14 +94,23 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     final gym = authProvider.gym;
     final member = memberProvider.member;
     final membership = memberProvider.currentMembership;
+    final summary = memberProvider.membershipSummary;
     final memberStatus = member?.status;
 
     final primary = Theme.of(context).colorScheme.primary;
 
-    // Active plan = active membership AND member not suspended
-    final hasActivePlan = membership != null &&
+    // Active plan check — allow QR scanning when the member has either an
+    // active subscription OR any active+paid transferred bucket. The studio
+    // QR access predicate on the backend already permits transferred-only
+    // members, so the mobile gate must not be stricter than the API.
+    final hasActiveSubscription = membership != null &&
         membership.isActive &&
         memberStatus != 'suspended';
+    final hasTransferredAccess = summary != null &&
+        summary.totalSessions > 0 &&
+        summary.buckets.any((b) => b.isTransferred) &&
+        memberStatus != 'suspended';
+    final hasActivePlan = hasActiveSubscription || hasTransferredAccess;
 
     return Scaffold(
       appBar: GymAppBar(

@@ -67,9 +67,24 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
         if (type == 'gym_access') {
           final membership = memberProvider.currentMembership;
+          final summary = memberProvider.membershipSummary;
 
           if (membership?.isFrozen == true) {
             _showFrozenSheet(memberProvider);
+            return;
+          }
+          // Transferred-only members (no active subscription) cannot enter
+          // the gym floor — gifted sessions are studio-only by design. Catch
+          // it locally so the user sees a clear message instead of a generic
+          // backend denial.
+          if (membership == null
+              && summary != null
+              && summary.buckets.any((b) => b.isTransferred)) {
+            _showResult(_CheckInResult.error(
+              title: 'Studio access only',
+              subtitle: 'Transferred sessions can only be used at studio classes — gym-floor entry needs your own active membership.',
+              icon: Icons.fitness_center_outlined,
+            ));
             return;
           }
           if (membership != null && !membership.hasGymAccess) {

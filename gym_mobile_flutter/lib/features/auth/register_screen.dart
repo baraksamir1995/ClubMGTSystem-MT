@@ -7,6 +7,7 @@ import 'auth_widgets.dart';
 import 'gym_selector.dart';
 import '../../utils/env.dart';
 import '../../utils/error_utils.dart';
+import '../../widgets/country_codes.dart';
 import '../../widgets/legal_links.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -31,7 +32,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirm = true;
 
   // Step 2 — contact + gym
-  final _phoneCtrl = TextEditingController(text: '+20');
+  final _phoneCtrl = TextEditingController();
+  Country _country = kCountries.first;
   final _emailCtrl = TextEditingController();
 
   // Gym selection
@@ -105,17 +107,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _passwordCtrl.text.length >= 8 &&
       _confirmCtrl.text == _passwordCtrl.text;
 
-  /// Phone is optional. The field is considered "left blank" if the user
-  /// only kept the +20 prefix (or left it fully empty). If they typed
-  /// digits, we still validate the format.
-  bool get _phoneLeftBlank {
-    final t = _phoneCtrl.text.trim();
-    return t.isEmpty || t == '+20';
-  }
+  /// Phone is optional. The dropdown always carries a country code; "blank"
+  /// means the user typed no digits. Once they do type digits, we accept
+  /// any country (no per-region regex) — the backend stores the composed
+  /// E.164-ish string.
+  bool get _phoneLeftBlank => _phoneCtrl.text.trim().isEmpty;
+
+  String _composedPhone() => composePhone(
+        dialCode: _country.dialCode,
+        typed: _phoneCtrl.text,
+      );
 
   bool get _isStep2Valid =>
       _selectedGym != null &&
-      (_phoneLeftBlank || _normalizeEgyptianPhone(_phoneCtrl.text.trim()) != null) &&
       _emailCtrl.text.trim().isNotEmpty &&
       RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim());
 
@@ -136,9 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
   String? get _phoneError {
     if (!_step2Submitted) return null;
-    if (_phoneLeftBlank) return null; // optional field
-    if (_normalizeEgyptianPhone(_phoneCtrl.text.trim()) == null) return 'Invalid Egyptian number';
-    return null;
+    return null; // optional field, no client-side format check beyond country code
   }
   String? get _emailError {
     if (!_step2Submitted) return null;
@@ -152,31 +154,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  /// Normalizes an Egyptian phone number to +20XXXXXXXXXX format.
-  /// Accepts: 01XXXXXXXXX, 201XXXXXXXXX, +201XXXXXXXXX (with optional spaces/dashes).
-  /// Returns null if the number is not a valid Egyptian mobile number.
-  String? _normalizeEgyptianPhone(String raw) {
-    final digits = raw.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-    String normalized;
-    if (digits.startsWith('+20')) {
-      normalized = digits;
-    } else if (digits.startsWith('20')) {
-      normalized = '+$digits';
-    } else if (digits.startsWith('0')) {
-      normalized = '+20${digits.substring(1)}';
-    } else {
-      normalized = '+20$digits';
-    }
-    // Valid Egyptian mobile: +201XXXXXXXXX (13 chars, starts with +201)
-    if (RegExp(r'^\+201[0-9]{9}$').hasMatch(normalized)) return normalized;
-    return null;
-  }
-
   String? _validateStep2() {
     if (_selectedGym == null) return 'Please select a gym';
-    if (!_phoneLeftBlank && _normalizeEgyptianPhone(_phoneCtrl.text.trim()) == null) {
-      return 'Enter a valid Egyptian mobile number (e.g. 01012345678)';
-    }
     if (_emailCtrl.text.trim().isEmpty) return 'Email is required';
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim())) {
       return 'Enter a valid email address';
@@ -214,7 +193,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email     = _emailCtrl.text.trim();
     final password  = _passwordCtrl.text;
     final fullName  = '${_firstNameCtrl.text.trim()} ${_lastNameCtrl.text.trim()}';
-    final phone     = _phoneLeftBlank ? null : _normalizeEgyptianPhone(_phoneCtrl.text.trim());
+    final phone     = _phoneLeftBlank ? null : _composedPhone();
     final dob       = _dob?.toIso8601String().substring(0, 10);
     try {
       final service = ApiService();
@@ -259,6 +238,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+
+  // ── Country picker (bottom sheet) ──────────────────────────────────────────
+  Future<void> _openCountryPicker() async {
+    FocusScope.of(context).unfocus();
+    final screenH = MediaQuery.of(context).size.height;
+    final picked = await showModalBottomSheet<Country>(
+      context: context,
+      backgroundColor: Colors.white,
+      // Cap at 50% of screen so the sheet feels lightweight rather than
+      // taking over the page; the inner ListView still scrolls.
+      constraints: BoxConstraints(maxHeight: screenH * 0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: kAuthBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Select country',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kAuthText),
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                itemCount: kCountries.length,
+                itemBuilder: (_, i) {
+                  final c = kCountries[i];
+                  final selected = c.dialCode == _country.dialCode && c.name == _country.name;
+                  return ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    leading: Text(c.flag, style: const TextStyle(fontSize: 22)),
+                    title: Text(c.name, style: const TextStyle(fontSize: 14, color: kAuthText)),
+                    trailing: Text(c.dialCode,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected ? kAuthPrimary : kAuthSec,
+                        )),
+                    onTap: () => Navigator.of(ctx).pop(c),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => _country = picked);
+    }
+  }
 
   // ── Date picker ─────────────────────────────────────────────────────────────
   Future<void> _pickDob() async {
@@ -609,21 +655,96 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 14),
           ],
 
-          AuthField(
-            label: 'Mobile number (optional)',
-            controller: _phoneCtrl,
-            placeholder: '+20 10X XXX XXXX',
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            errorText: _phoneError,
-          ),
-          const SizedBox(height: 6),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              'Add a number to be discoverable for session transfers from other members. You can add it later from your profile.',
-              style: TextStyle(fontSize: 12, color: kAuthSec, height: 1.4),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'MOBILE NUMBER (OPTIONAL)',
+                style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w500,
+                  color: kAuthSec, letterSpacing: 0.7,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Country picker — opens a bottom sheet to choose dial code.
+                  GestureDetector(
+                    onTap: _openCountryPicker,
+                    child: Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: kAuthFieldBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: kAuthBorder, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_country.flag, style: const TextStyle(fontSize: 20)),
+                          const SizedBox(width: 8),
+                          Text(
+                            _country.dialCode,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: kAuthText,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.expand_more, color: kAuthSec, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: kAuthFieldBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: (_phoneError != null && _phoneError!.isNotEmpty)
+                              ? const Color(0xFFEF4444)
+                              : kAuthBorder,
+                          width: 1.5,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.center,
+                      child: TextField(
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
+                        style: const TextStyle(fontSize: 15, color: kAuthText),
+                        decoration: const InputDecoration(
+                          hintText: '10X XXX XXXX',
+                          hintStyle: TextStyle(color: kAuthPh, fontSize: 15),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_phoneError != null && _phoneError!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Text(
+                    _phoneError!,
+                    style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 14),
 

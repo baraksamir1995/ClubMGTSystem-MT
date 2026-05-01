@@ -4,10 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
-import '../widgets/active_service_card.dart';
+import '../widgets/membership_card_unified.dart';
 import '../widgets/freeze_bottom_sheet.dart';
 import '../widgets/shimmer_loader.dart';
-import '../widgets/transferred_bucket_card.dart';
 import '../models/service_assignment_model.dart';
 
 class MembershipScreen extends StatefulWidget {
@@ -77,55 +76,24 @@ class _MembershipScreenState extends State<MembershipScreen> {
               if (!memberProvider.isLoadingMember)
                 _buildExpiryBanner(context, memberProvider),
 
-              // Active service card with freeze
+              // Unified membership card with freeze actions
               if (memberProvider.isLoadingMember)
                 BrandedSkeletonCard.fromContext(context, height: 200)
-              else if (memberProvider.currentMembership != null)
-                ActiveServiceCard(
-                  membership: memberProvider.currentMembership!,
-                  primaryColor: primaryColor,
-                  onFreeze: memberProvider.currentMembership!.canFreeze
+              else if (memberProvider.membershipSummary != null
+                  && memberProvider.membershipSummary!.buckets.isNotEmpty)
+                MembershipCardUnified(
+                  summary: memberProvider.membershipSummary!,
+                  subscription: memberProvider.currentMembership,
+                  primary: primaryColor,
+                  onFreeze: (memberProvider.currentMembership?.canFreeze ?? false)
                       ? () => _showFreezeSheet(context, memberProvider, primaryColor)
                       : null,
-                  onUnfreeze: memberProvider.currentMembership!.isFrozen
+                  onUnfreeze: (memberProvider.currentMembership?.isFrozen ?? false)
                       ? () => _unfreeze(context, memberProvider)
                       : null,
                 )
               else
                 _buildNoMembership(context, theme),
-
-              // Transferred sessions — separate bucket cards so the user
-              // can see each gift's remaining count, expiry, and sender.
-              Builder(builder: (_) {
-                final summary = memberProvider.membershipSummary;
-                if (summary == null) return const SizedBox.shrink();
-                final transferred = summary.buckets
-                    .where((b) => b.isTransferred)
-                    .toList();
-                if (transferred.isEmpty) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Transferred Sessions',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ...transferred.map((b) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: TransferredBucketCard(
-                              bucket: b,
-                              primary: primaryColor,
-                            ),
-                          )),
-                    ],
-                  ),
-                );
-              }),
 
               // Service assignments (PT, Nutrition, Physio)
               if (!memberProvider.isLoadingServices &&

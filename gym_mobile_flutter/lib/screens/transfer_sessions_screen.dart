@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/member_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/country_codes.dart';
 
 /// Share sessions with another member in the same gym.
 /// Phone → lookup → count → transfer. Sender permanently loses the count.
@@ -15,11 +16,12 @@ class TransferSessionsScreen extends StatefulWidget {
 
 class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
   final _phoneCtrl = TextEditingController();
+  Country _country = kCountries.first;
   int _count = 1;
   bool _isLooking = false;
   bool _isTransferring = false;
   Map<String, dynamic>? _recipient;
-  String? _errorText;
+  bool _hasInputError = false;
 
   @override
   void dispose() {
@@ -27,28 +29,41 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     super.dispose();
   }
 
+  String _composedPhone() => composePhone(
+        dialCode: _country.dialCode,
+        typed: _phoneCtrl.text,
+      );
+
   Future<void> _lookup() async {
-    final phone = _phoneCtrl.text.trim();
-    if (phone.isEmpty) {
-      setState(() => _errorText = 'Enter a phone number');
+    final national = _phoneCtrl.text.trim();
+    if (national.isEmpty) {
+      _showError('Enter a phone number');
+      setState(() => _hasInputError = true);
       return;
     }
     setState(() {
       _isLooking = true;
-      _errorText = null;
+      _hasInputError = false;
       _recipient = null;
     });
     try {
-      final res = await ApiService().lookupMemberByPhone(phone);
+      final res = await ApiService().lookupMemberByPhone(_composedPhone());
       if (!mounted) return;
-      setState(() {
-        _recipient = res;
-        if (res == null) _errorText = 'No member found with that phone';
-      });
+      setState(() => _recipient = res);
+      if (res == null) {
+        _showError('No member found with that phone');
+        if (mounted) setState(() => _hasInputError = true);
+      }
     } on ApiException catch (e) {
-      if (mounted) setState(() => _errorText = e.message);
+      if (mounted) {
+        _showError(e.message);
+        setState(() => _hasInputError = true);
+      }
     } catch (_) {
-      if (mounted) setState(() => _errorText = 'Lookup failed. Try again.');
+      if (mounted) {
+        _showError('Lookup failed. Try again.');
+        setState(() => _hasInputError = true);
+      }
     } finally {
       if (mounted) setState(() => _isLooking = false);
     }
@@ -60,7 +75,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     setState(() => _isTransferring = true);
     try {
       await ApiService().transferSessions(
-        phone: _phoneCtrl.text.trim(),
+        phone: _composedPhone(),
         count: _count,
       );
       if (!mounted) return;
@@ -77,11 +92,14 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
   }
 
   String _mapReason(String raw) {
+    final lower = raw.toLowerCase();
     if (raw.contains('insufficient_sessions')) return 'You don\'t have enough sessions left.';
     if (raw.contains('no_eligible_membership')) return 'You don\'t have a session-based membership to share.';
     if (raw.contains('cannot_transfer_to_self')) return 'You can\'t send sessions to yourself.';
     if (raw.contains('receiver_not_in_gym')) return 'That member is not part of this gym.';
     if (raw.contains('receiver_not_found')) return 'No member found with that phone.';
+    if (lower.contains('too many attempts')) return 'Too many attempts. Wait a minute and try again.';
+    if (raw.contains('transfer_internal_error')) return 'Server error during transfer. Try again or contact support.';
     return 'Transfer failed. Try again.';
   }
 
@@ -113,9 +131,22 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final membership = context.watch<MemberProvider>().currentMembership;
-    final available = membership?.sessionsRemaining ?? 0;
-    final hasBalance = available > 0 && (membership?.hasStudioAccess ?? false);
+    final memberProvider = context.watch<MemberProvider>();
+    final summary = memberProvider.membershipSummary;
+    final membership = memberProvider.currentMembership;
+
+    // Aggregate available sessions across every active+paid bucket the
+    // member holds — transfer_sessions can drain across buckets in one go,
+    // so the share UI must reflect the full pool, not just the subscription.
+    // Fall back to the legacy single-bucket read if the summary failed to
+    // load.
+    final available = summary?.totalSessions ?? (membership?.sessionsRemaining ?? 0);
+    // Studio access is what makes sessions transferable. If a summary is
+    // present we trust the bucket count alone (any bucket exists → some
+    // path to studios). Else fall back to the subscription's hasStudioAccess.
+    final hasBalance = available > 0
+        && (summary != null && summary.buckets.isNotEmpty
+            || (membership?.hasStudioAccess ?? false));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Share Sessions')),
@@ -148,15 +179,91 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
               const Text('Recipient phone number',
                   style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              TextField(
-                controller: _phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: '+20 100 123 4567',
-                  errorText: _errorText,
-                  border: const OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _lookup(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 118,
+                    height: 56,
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        isDense: true,
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<Country>(
+                          isExpanded: true,
+                          value: _country,
+                          items: kCountries.map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(c.flag, style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 8),
+                                Text(c.dialCode,
+                                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(c.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13)),
+                                ),
+                              ],
+                            ),
+                          )).toList(),
+                          selectedItemBuilder: (_) => kCountries.map((c) => Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(c.flag, style: const TextStyle(fontSize: 18)),
+                              const SizedBox(width: 6),
+                              Text(c.dialCode,
+                                  style: const TextStyle(fontWeight: FontWeight.w600)),
+                            ],
+                          )).toList(),
+                          onChanged: (c) {
+                            if (c != null) setState(() => _country = c);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 56,
+                      child: TextField(
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        onChanged: (_) {
+                          if (_hasInputError) {
+                            setState(() => _hasInputError = false);
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: '100 123 4567',
+                          border: const OutlineInputBorder(),
+                          enabledBorder: _hasInputError
+                              ? const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.red, width: 1.4),
+                                )
+                              : const OutlineInputBorder(),
+                          focusedBorder: _hasInputError
+                              ? const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.red, width: 1.6),
+                                )
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 16),
+                          isDense: true,
+                        ),
+                        onSubmitted: (_) => _lookup(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               SizedBox(

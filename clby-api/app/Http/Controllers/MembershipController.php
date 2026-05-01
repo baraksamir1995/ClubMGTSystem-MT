@@ -766,4 +766,133 @@ class MembershipController extends Controller
             ]);
         });
     }
+
+    /**
+     * Bucket-aware membership summary for the authenticated user.
+     *
+     * Returns aggregated totals (for the unified membership card) plus the
+     * per-bucket detail (for the Active Services list and transferred-bucket
+     * audit). Mobile renders the unified view; admin views render the
+     * buckets[] breakdown directly.
+     */
+    public function mySummary(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $gymId  = $request->query('gym_id') ?: $request->user()->gym_id;
+
+        if (! $gymId) {
+            return response()->json([
+                'total_sessions'   => 0,
+                'next_expiry_date' => null,
+                'breakdown'        => ['original_sessions' => 0, 'transferred_sessions' => 0],
+                'buckets'          => [],
+            ]);
+        }
+
+        $gymMember = DB::table('gym_members')
+            ->where('user_id', $userId)
+            ->where('gym_id', $gymId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (! $gymMember) {
+            return response()->json([
+                'total_sessions'   => 0,
+                'next_expiry_date' => null,
+                'breakdown'        => ['original_sessions' => 0, 'transferred_sessions' => 0],
+                'buckets'          => [],
+            ]);
+        }
+
+        // Eligible buckets only — anything expired or not paid is excluded
+        // from totals and breakdown. We still return them under buckets[]
+        // when expired so admin views can show history if they want; mobile
+        // filters by status client-side. For now keep it tight: only valid.
+        $rows = DB::table('member_memberships AS mm')
+            ->leftJoin('membership_plans AS mp', 'mp.id', '=', 'mm.plan_id')
+            ->leftJoin('member_memberships AS src', 'src.id', '=', 'mm.transferred_from')
+            ->leftJoin('gym_members AS src_gm', 'src_gm.id', '=', 'src.gym_member_id')
+            ->leftJoin('profiles AS src_user', 'src_user.id', '=', 'src_gm.user_id')
+            ->where('mm.gym_member_id', $gymMember->id)
+            ->where('mm.status', 'active')
+            ->where('mm.payment_status', 'paid')
+            ->where(function ($q) {
+                $q->whereNull('mm.end_date')->orWhere('mm.end_date', '>=', DB::raw('CURRENT_DATE'));
+            })
+            ->orderByRaw("CASE mm.source_type WHEN 'subscription' THEN 0 ELSE 1 END")
+            ->orderByRaw('mm.end_date ASC NULLS LAST')
+            ->orderBy('mm.created_at', 'asc')
+            ->select(
+                'mm.id',
+                'mm.source_type',
+                'mm.sessions_total',
+                'mm.sessions_used',
+                'mm.sessions_remaining',
+                'mm.end_date',
+                'mm.start_date',
+                'mm.branch_id',
+                'mm.allowed_branch_ids',
+                'mm.transferred_from',
+                'mm.freeze_status',
+                'mp.name as plan_name',
+                'mp.plan_type',
+                'mp.session_count as plan_session_count',
+                'src_user.full_name as transferred_from_member_name',
+            )
+            ->get();
+
+        $totalSessions        = 0;
+        $originalSessions     = 0;
+        $transferredSessions  = 0;
+        $nextExpiry           = null;
+
+        $buckets = $rows->map(function ($r) use (&$totalSessions, &$originalSessions, &$transferredSessions, &$nextExpiry) {
+            $isUnlimited = $r->sessions_total === null;
+            // Unlimited buckets count as 0 toward total_sessions to keep the
+            // unified card honest about countable credits. Mobile can still
+            // render "Unlimited" for the bucket itself.
+            $remaining = $isUnlimited ? 0 : (int) ($r->sessions_remaining ?? 0);
+
+            $totalSessions += $remaining;
+            if ($r->source_type === 'subscription') {
+                $originalSessions += $remaining;
+            } else {
+                $transferredSessions += $remaining;
+            }
+
+            if ($r->end_date !== null) {
+                if ($nextExpiry === null || $r->end_date < $nextExpiry) {
+                    $nextExpiry = $r->end_date;
+                }
+            }
+
+            return [
+                'id'                          => $r->id,
+                'source_type'                 => $r->source_type,
+                'plan_name'                   => $r->plan_name,
+                'plan_type'                   => $r->plan_type,
+                'sessions_total'              => $r->sessions_total !== null ? (int) $r->sessions_total : null,
+                'sessions_used'               => (int) ($r->sessions_used ?? 0),
+                'sessions_remaining'          => $r->sessions_remaining !== null ? (int) $r->sessions_remaining : null,
+                'is_unlimited'                => $isUnlimited,
+                'start_date'                  => $r->start_date,
+                'end_date'                    => $r->end_date,
+                'branch_id'                   => $r->branch_id,
+                'allowed_branch_ids'          => $r->allowed_branch_ids,
+                'freeze_status'               => $r->freeze_status,
+                'transferred_from'            => $r->transferred_from,
+                'transferred_from_member_name' => $r->transferred_from_member_name,
+            ];
+        })->values();
+
+        return response()->json([
+            'total_sessions'   => $totalSessions,
+            'next_expiry_date' => $nextExpiry,
+            'breakdown'        => [
+                'original_sessions'    => $originalSessions,
+                'transferred_sessions' => $transferredSessions,
+            ],
+            'buckets' => $buckets,
+        ]);
+    }
 }

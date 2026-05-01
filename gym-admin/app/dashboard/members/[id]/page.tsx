@@ -8,6 +8,7 @@ import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
 import ServicePackagesList from '@/components/members/service-packages-list';
 import SessionTransfersList from '@/components/members/session-transfers-list';
+import MemberBucketsPanel from '@/components/members/member-buckets-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -319,6 +320,8 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
             </div>
           )}
         </div>
+
+        <MemberBucketsPanel memberships={memberships} />
 
         <OverviewLists
           payments={payments}

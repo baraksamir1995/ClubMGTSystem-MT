@@ -88,6 +88,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/me', [AuthController::class, 'updateProfile']);
 
+    // Bucket-aware membership summary (unified card + per-bucket detail)
+    Route::get('/me/membership-summary', [MembershipController::class, 'mySummary']);
+
     // Sessions (read-only for members — browse schedule)
     Route::get('/sessions', [SessionController::class, 'index']);
     Route::post('/sessions/consume', [SessionController::class, 'consume']);

@@ -24,6 +24,10 @@ class MemberMembership {
   final int? sessionsRemainingRaw;
   // If non-null, this membership row was created by a session transfer.
   final String? transferredFrom;
+  // Explicit bucket source: 'subscription' (originals) or 'transfer'.
+  // The proxy `transferred_from != null` is kept for backward compatibility
+  // but new code should prefer this field.
+  final String? sourceType;
 
   // Freeze fields (plan config)
   final bool freezeEnabled;
@@ -72,6 +76,7 @@ class MemberMembership {
     this.sessionsTotal,
     this.sessionsRemainingRaw,
     this.transferredFrom,
+    this.sourceType,
     this.freezeEnabled = false,
     this.freezeMaxDays,
     this.freezeMaxCount,
@@ -115,7 +120,10 @@ class MemberMembership {
   }
 
   /// True when this row was created by an incoming session transfer.
-  bool get isTransferred => transferredFrom != null;
+  /// Prefer the explicit source_type once it's populated, fall back to the
+  /// transferred_from proxy for legacy rows.
+  bool get isTransferred =>
+      sourceType == 'transfer' || (sourceType == null && transferredFrom != null);
 
   bool get isFrozen => freezeStatus == 'frozen';
 
@@ -217,6 +225,7 @@ class MemberMembership {
       sessionsTotal: json['sessions_total'] as int?,
       sessionsRemainingRaw: json['sessions_remaining'] as int?,
       transferredFrom: json['transferred_from'] as String?,
+      sourceType: json['source_type'] as String?,
       freezeEnabled: planJson?['freeze_enabled'] as bool? ?? false,
       freezeMaxDays: planJson?['freeze_max_days'] as int?,
       freezeMaxCount: planJson?['freeze_max_count'] as int?,

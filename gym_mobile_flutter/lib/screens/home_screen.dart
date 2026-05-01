@@ -13,6 +13,7 @@ import '../features/membership/widgets/duration_plan_card.dart';
 import '../features/membership/widgets/duration_session_plan_card.dart';
 import '../models/membership_model.dart';
 import '../models/session_model.dart';
+import '../widgets/unified_membership_card.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../screens/session_detail_screen.dart';
@@ -279,6 +280,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 12),
               if (memberProvider.isLoadingMember)
                 BrandedSkeletonCard.fromContext(context, height: 170)
+              else if (memberProvider.membershipSummary != null
+                  && memberProvider.membershipSummary!.buckets.isNotEmpty)
+                UnifiedMembershipCard(
+                  summary: memberProvider.membershipSummary!,
+                  primary: primary,
+                )
               else if (memberProvider.currentMembership != null)
                 _MembershipCard(
                   membership: memberProvider.currentMembership!,

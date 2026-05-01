@@ -10,6 +10,7 @@ import '../models/gym_model.dart';
 import '../models/capacity_model.dart';
 import '../models/member_model.dart';
 import '../models/membership_model.dart';
+import '../models/membership_summary_model.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/attendance_model.dart';
 import '../models/notification_model.dart';
@@ -326,6 +327,23 @@ class ApiService {
   }
 
   // ─── Membership ───────────────────────────────────────────────────────────
+
+  /// Bucket-aware summary for the unified membership card. Returns null on
+  /// network/parse failures so the UI can fall back gracefully to the
+  /// per-row data already loaded for Active Services.
+  Future<MembershipSummary?> getMembershipSummary({String? gymId}) async {
+    try {
+      final data = await _get(
+        '/api/me/membership-summary',
+        queryParams: gymId != null ? {'gym_id': gymId} : null,
+      );
+      if (data is! Map<String, dynamic>) return null;
+      return MembershipSummary.fromJson(data);
+    } catch (e) {
+      appLog('getMembershipSummary error: $e');
+      return null;
+    }
+  }
 
   Future<MemberMembership?> getCurrentMembership(String memberId) async {
     try {

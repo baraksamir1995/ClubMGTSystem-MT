@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 import '../models/member_model.dart';
 import '../models/membership_model.dart';
+import '../models/membership_summary_model.dart';
 import '../models/session_model.dart';
 import '../models/attendance_model.dart';
 import '../models/notification_model.dart';
@@ -18,6 +19,7 @@ class MemberProvider extends ChangeNotifier {
 
   GymMember? _member;
   MemberMembership? _currentMembership;
+  MembershipSummary? _membershipSummary;
   List<Session> _sessions = [];
   List<BookingRecord> _myBookings = [];
   List<Attendance> _attendance = [];
@@ -62,6 +64,7 @@ class MemberProvider extends ChangeNotifier {
 
   GymMember? get member => _member;
   MemberMembership? get currentMembership => _currentMembership;
+  MembershipSummary? get membershipSummary => _membershipSummary;
   List<Session> get sessions => _sessions;
   List<BookingRecord> get myBookings => _myBookings;
   bool get isLoadingMyBookings => _isLoadingMyBookings;
@@ -155,11 +158,13 @@ class MemberProvider extends ChangeNotifier {
     try {
       _member = await _service.getGymMember(gymId);
       if (_member != null) {
-        // Fetch membership, check-in count, and capacity in parallel.
+        // Fetch membership, summary, check-in count, and capacity in parallel.
         final membershipFuture = _service.getCurrentMembership(_member!.id);
+        final summaryFuture = _service.getMembershipSummary(gymId: gymId);
         final checkInFuture = _service.getMonthlyCheckInCount(_member!.id);
         final capacityFuture = _service.getGymCapacity(gymId);
         _currentMembership = await membershipFuture;
+        _membershipSummary = await summaryFuture;
         _monthlyCheckIns = await checkInFuture;
         _capacity = await capacityFuture;
         _scheduleMembershipNotifications();
@@ -394,14 +399,17 @@ class MemberProvider extends ChangeNotifier {
     }
   }
 
-  /// Re-fetches the current membership from the server.
+  /// Re-fetches the current membership and summary from the server.
   /// Use this to pick up plan assignments made by the admin without
   /// triggering a full member reload.
   Future<void> refreshMembership() async {
     final m = _member;
     if (m == null) return;
     try {
-      _currentMembership = await _service.getCurrentMembership(m.id);
+      final ms = await _service.getCurrentMembership(m.id);
+      final summary = await _service.getMembershipSummary(gymId: m.gymId);
+      _currentMembership = ms;
+      _membershipSummary = summary;
       notifyListeners();
     } catch (_) {}
   }

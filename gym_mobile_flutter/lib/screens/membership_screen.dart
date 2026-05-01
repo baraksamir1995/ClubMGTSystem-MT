@@ -7,6 +7,7 @@ import '../providers/member_provider.dart';
 import '../widgets/active_service_card.dart';
 import '../widgets/freeze_bottom_sheet.dart';
 import '../widgets/shimmer_loader.dart';
+import '../widgets/transferred_bucket_card.dart';
 import '../models/service_assignment_model.dart';
 
 class MembershipScreen extends StatefulWidget {
@@ -92,6 +93,39 @@ class _MembershipScreenState extends State<MembershipScreen> {
                 )
               else
                 _buildNoMembership(context, theme),
+
+              // Transferred sessions — separate bucket cards so the user
+              // can see each gift's remaining count, expiry, and sender.
+              Builder(builder: (_) {
+                final summary = memberProvider.membershipSummary;
+                if (summary == null) return const SizedBox.shrink();
+                final transferred = summary.buckets
+                    .where((b) => b.isTransferred)
+                    .toList();
+                if (transferred.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Transferred Sessions',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ...transferred.map((b) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: TransferredBucketCard(
+                              bucket: b,
+                              primary: primaryColor,
+                            ),
+                          )),
+                    ],
+                  ),
+                );
+              }),
 
               // Service assignments (PT, Nutrition, Physio)
               if (!memberProvider.isLoadingServices &&

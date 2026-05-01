@@ -105,10 +105,13 @@ class MembershipController extends Controller
         $finalPrice = $amount;
 
         return DB::transaction(function () use ($validated, $gymId, $plan, $startDate, $endDate, $amount, $originalAmount, $discountAmount, $finalPrice) {
-            // Deactivate any existing active memberships for this member
+            // Deactivate any existing active SUBSCRIPTION memberships for
+            // this member. Transferred buckets are independent entitlements
+            // and must survive a new subscription assignment.
             DB::table('member_memberships')
                 ->where('gym_member_id', $validated['gym_member_id'])
                 ->where('status', 'active')
+                ->where('source_type', 'subscription')
                 ->update(['status' => 'expired', 'updated_at' => now()]);
 
             $membershipId = \Illuminate\Support\Str::uuid()->toString();
@@ -413,10 +416,13 @@ class MembershipController extends Controller
         $originalAmount = $validated['original_amount'] ?? $amount;
 
         return DB::transaction(function () use ($validated, $gymId, $gymMember, $plan, $startDate, $endDate, $amount, $originalAmount) {
-            // Deactivate previous active memberships
+            // Deactivate previous active SUBSCRIPTION memberships only —
+            // transferred buckets are independent entitlements and must
+            // survive a new purchase.
             DB::table('member_memberships')
                 ->where('gym_member_id', $gymMember->id)
                 ->where('status', 'active')
+                ->where('source_type', 'subscription')
                 ->update(['status' => 'expired', 'updated_at' => now()]);
 
             $membershipId = \Illuminate\Support\Str::uuid()->toString();
@@ -542,14 +548,18 @@ class MembershipController extends Controller
             return response()->json(['error' => 'Member not found'], 404);
         }
 
-        // Find active membership
+        // Detach only targets the active subscription. Transferred-session
+        // buckets are independent entitlements and must survive — they were
+        // gifted by another member and shouldn't disappear when admin
+        // detaches a paid plan.
         $membership = DB::table('member_memberships')
             ->where('gym_member_id', $memberId)
             ->where('status', 'active')
+            ->where('source_type', 'subscription')
             ->first();
 
         if (! $membership) {
-            return response()->json(['error' => 'Member has no active plan to detach'], 422);
+            return response()->json(['error' => 'Member has no active subscription plan to detach'], 422);
         }
 
         // Get plan name for logging
@@ -650,28 +660,34 @@ class MembershipController extends Controller
         $destName = DB::table('profiles')->where('id', $dest->user_id)->value('full_name') ?? 'Unknown';
 
         return DB::transaction(function () use ($sourceMemberId, $destMemberId, $gymId, $request, $sourceName, $destName) {
-            // Re-read source membership under a row lock to avoid TOCTOU (concurrent detach/freeze/transfer).
+            // Membership transfer only moves the source's active subscription
+            // — transferred-session buckets are independent gifts that stay
+            // with the receiver they were sent to.
             $membership = DB::table('member_memberships')
                 ->where('gym_member_id', $sourceMemberId)
                 ->where('status', 'active')
+                ->where('source_type', 'subscription')
                 ->lockForUpdate()
                 ->first();
 
             if (! $membership) {
-                return response()->json(['error' => 'Source member has no active plan to transfer'], 422);
+                return response()->json(['error' => 'Source member has no active subscription plan to transfer'], 422);
             }
             if ($membership->end_date && $membership->end_date < now()->toDateString()) {
                 return response()->json(['error' => 'Cannot transfer an expired plan'], 422);
             }
 
-            // Destination active-check under lock.
+            // Destination is only blocked if they already have an active
+            // subscription — having transferred-session buckets shouldn't
+            // prevent them from receiving a subscription transfer.
             $destActive = DB::table('member_memberships')
                 ->where('gym_member_id', $destMemberId)
                 ->where('status', 'active')
+                ->where('source_type', 'subscription')
                 ->lockForUpdate()
                 ->exists();
             if ($destActive) {
-                return response()->json(['error' => 'Destination member already has an active plan'], 422);
+                return response()->json(['error' => 'Destination member already has an active subscription plan'], 422);
             }
 
             $planName = DB::table('membership_plans')->where('id', $membership->plan_id)->value('name') ?? 'Unknown';
@@ -710,6 +726,7 @@ class MembershipController extends Controller
                 'plan_promotion_id' => $membership->plan_promotion_id,
                 'notes' => "Transferred from {$sourceName}",
                 'transferred_from' => $sourceMemberId,
+                'source_type' => 'subscription',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -819,6 +836,15 @@ class MembershipController extends Controller
             ->where(function ($q) {
                 $q->whereNull('mm.end_date')->orWhere('mm.end_date', '>=', DB::raw('CURRENT_DATE'));
             })
+            // Exclude exhausted session-based buckets so the membership card
+            // clears once the user has consumed everything. Duration-only
+            // plans (no session concept) and unlimited session plans
+            // (sessions_total NULL) stay visible while inside their window.
+            ->where(function ($q) {
+                $q->whereNotIn('mp.plan_type', ['sessions', 'duration_session'])
+                  ->orWhereNull('mm.sessions_total')
+                  ->orWhere('mm.sessions_remaining', '>', 0);
+            })
             ->orderByRaw("CASE mm.source_type WHEN 'subscription' THEN 0 ELSE 1 END")
             ->orderByRaw('mm.end_date ASC NULLS LAST')
             ->orderBy('mm.created_at', 'asc')
@@ -847,7 +873,13 @@ class MembershipController extends Controller
         $nextExpiry           = null;
 
         $buckets = $rows->map(function ($r) use (&$totalSessions, &$originalSessions, &$transferredSessions, &$nextExpiry) {
-            $isUnlimited = $r->sessions_total === null;
+            // Unlimited only applies to session-based plans (sessions /
+            // duration_session) where session_count was left blank. Pure
+            // duration plans have NULL sessions_total because they don't
+            // have a session concept at all — flagging them as "unlimited"
+            // misleads the UI.
+            $isSessionPlan = in_array($r->plan_type, ['sessions', 'duration_session'], true);
+            $isUnlimited = $isSessionPlan && $r->sessions_total === null;
             // Unlimited buckets count as 0 toward total_sessions to keep the
             // unified card honest about countable credits. Mobile can still
             // render "Unlimited" for the bucket itself.

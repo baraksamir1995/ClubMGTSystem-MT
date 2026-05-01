@@ -12,14 +12,23 @@ class ServicePackageController extends Controller
     {
         $gymId = $request->user()->gym_id;
         $query = ServiceSessionPackage::where('gym_id', $gymId)
-            ->whereNull('deleted_at')
-            ->where('is_active', true);
+            ->whereNull('deleted_at');
+
+        // By default callers only see active packages — that's what mobile
+        // members and the offer/assignment pickers need. Admin views pass
+        // include_inactive=1 so they can see archived packages and offer
+        // a Reactivate action.
+        if (! $request->boolean('include_inactive')) {
+            $query->where('is_active', true);
+        }
 
         if ($trainerType = $request->query('trainer_type')) {
             $query->where('trainer_type', $trainerType);
         }
 
-        $packages = $query->orderBy('created_at', 'desc')->get();
+        $packages = $query->orderBy('is_active', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
         return response()->json(['data' => $packages]);
     }
 

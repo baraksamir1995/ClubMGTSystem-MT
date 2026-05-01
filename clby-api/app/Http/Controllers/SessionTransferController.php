@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SessionTransferController extends Controller
 {
@@ -55,18 +56,58 @@ class SessionTransferController extends Controller
 
         $user = $request->user();
 
-        $result = DB::select(
-            'SELECT transfer_sessions(?, ?, ?, ?) AS data',
-            [$user->id, $user->gym_id, $validated['phone'], $validated['count']]
-        );
+        Log::info('session_transfer.attempt', [
+            'sender_user_id'  => $user->id,
+            'sender_email'    => $user->email,
+            'gym_id'          => $user->gym_id,
+            'recipient_phone' => $validated['phone'],
+            'count'           => $validated['count'],
+        ]);
+
+        try {
+            $result = DB::select(
+                'SELECT transfer_sessions(?, ?, ?, ?) AS data',
+                [$user->id, $user->gym_id, $validated['phone'], $validated['count']]
+            );
+        } catch (\Throwable $e) {
+            Log::error('session_transfer.exception', [
+                'sender_user_id' => $user->id,
+                'message'        => $e->getMessage(),
+                'sql_state'      => method_exists($e, 'getCode') ? $e->getCode() : null,
+            ]);
+            return response()->json([
+                'message' => 'transfer_internal_error',
+                'error'   => 'transfer_internal_error',
+                'detail'  => $e->getMessage(),
+            ], 500);
+        }
+
         $payload = json_decode($result[0]->data, true);
 
         if (($payload['status'] ?? '') !== 'ok') {
+            $reason = $payload['reason'] ?? 'transfer_failed';
+            Log::warning('session_transfer.failed', [
+                'sender_user_id' => $user->id,
+                'reason'         => $reason,
+                'payload'        => $payload,
+            ]);
+            // Mirror reason into `message` so mobile clients (which read
+            // body.message in api_service._parse) can map it to a friendly
+            // error string. Keep `error` for any callers that still rely on
+            // it.
             return response()->json([
-                'error' => $payload['reason'] ?? 'transfer_failed',
+                'message' => $reason,
+                'error'   => $reason,
                 'details' => $payload,
             ], 422);
         }
+
+        Log::info('session_transfer.ok', [
+            'sender_user_id' => $user->id,
+            'transfer_id'    => $payload['transfer_id'] ?? null,
+            'count'          => $payload['count'] ?? null,
+            'receiver'       => $payload['receiver_full_name'] ?? null,
+        ]);
 
         return response()->json(['data' => $payload], 201);
     }

@@ -150,7 +150,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Session transfers (member-initiated share) — MUST be above /members/{id}
     Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:30,1');
-    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:30,1');
     Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
 
     Route::get('/members/{id}', [MemberController::class, 'show']);

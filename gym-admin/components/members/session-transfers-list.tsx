@@ -62,26 +62,32 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
     );
   }
 
-  if (error || totalCount === 0) return null;
+  if (error) return null;
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
       <div className="flex items-center gap-2 mb-4">
         <Repeat2 className="w-4 h-4 text-purple-400" />
         <h2 className="text-sm font-semibold text-white">Session Transfers</h2>
-        <span className="ml-auto text-xs text-gray-500">
-          {sent.length} sent · {received.length} received
-        </span>
+        {totalCount > 0 && (
+          <span className="ml-auto text-xs text-gray-500">
+            {sent.length} sent · {received.length} received
+          </span>
+        )}
       </div>
 
-      <div className="space-y-2">
-        {sent.map((t) => (
-          <Row key={t.id} row={t} direction="sent" />
-        ))}
-        {received.map((t) => (
-          <Row key={t.id} row={t} direction="received" />
-        ))}
-      </div>
+      {totalCount === 0 ? (
+        <p className="text-sm text-gray-500">No transfers yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {sent.map((t) => (
+            <Row key={t.id} row={t} direction="sent" />
+          ))}
+          {received.map((t) => (
+            <Row key={t.id} row={t} direction="received" />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

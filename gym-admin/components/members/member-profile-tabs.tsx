@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AttendanceTab from './attendance-tab';
 import PaymentHistoryTab from './payment-history-tab';
+import SessionTransfersList from './session-transfers-list';
 import type { MemberPayment } from './payment-history-tab';
 
 interface AttendanceLog {
@@ -23,9 +24,10 @@ interface Props {
   payments: MemberPayment[];
   memberName: string;
   memberNumber: string;
+  gymMemberId: string;
 }
 
-const tabs = ['Overview', 'Payments', 'Attendance'] as const;
+const tabs = ['Overview', 'Payments', 'Attendance', 'Transfers History'] as const;
 
 export default function MemberProfileTabs({
   attendanceLogs,
@@ -36,6 +38,7 @@ export default function MemberProfileTabs({
   payments,
   memberName,
   memberNumber,
+  gymMemberId,
 }: Props) {
   const [active, setActive] = useState<typeof tabs[number]>('Overview');
 
@@ -84,6 +87,9 @@ export default function MemberProfileTabs({
           membershipEnd={membershipEnd}
           planName={planName}
         />
+      )}
+      {active === 'Transfers History' && (
+        <SessionTransfersList gymMemberId={gymMemberId} />
       )}
     </div>
   );

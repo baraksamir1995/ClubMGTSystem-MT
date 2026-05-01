@@ -9,7 +9,11 @@ export async function GET(req: NextRequest) {
   const { token } = resolved;
 
   const trainerType = req.nextUrl.searchParams.get('trainer_type');
-  const qs = trainerType ? `?trainer_type=${trainerType}` : '';
+  const includeInactive = req.nextUrl.searchParams.get('include_inactive');
+  const params = new URLSearchParams();
+  if (trainerType) params.set('trainer_type', trainerType);
+  if (includeInactive) params.set('include_inactive', includeInactive);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   const res = await laravelApi(`/service-packages${qs}`, token);
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: json.error ?? 'Failed' }, { status: res.status });

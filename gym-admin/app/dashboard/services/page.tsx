@@ -57,7 +57,7 @@ export default async function ServicesRoute() {
     fetchApi('/programs', token),
     fetchApi('/offers', token),
     fetchApi('/trainers', token),
-    fetchApi('/service-packages', token),
+    fetchApi('/service-packages?include_inactive=1', token),
     fetchApi('/branches', token),
   ]);
 

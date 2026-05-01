@@ -7,8 +7,6 @@ import MemberDetailActions from '@/components/members/member-detail-actions';
 import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
 import ServicePackagesList from '@/components/members/service-packages-list';
-import SessionTransfersList from '@/components/members/session-transfers-list';
-import MemberBucketsPanel from '@/components/members/member-buckets-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,8 +91,65 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
   const gymMembers = memberData.gym_members_for_transfer ?? [];
   const promoMap = {};
 
-  const currentMembership = memberships.find((m: any) => m.status === 'active') ?? null;
+  // A bucket is "live" if active+paid, not expired (end_date >= today or null),
+  // and — for session-based plans — not exhausted. Duration-only plans without
+  // a session concept stay live until their end_date.
+  const isLive = (m: any): boolean => {
+    if (m.status !== 'active' || m.payment_status !== 'paid') return false;
+    if (m.end_date && new Date(m.end_date).getTime() < Date.now() - 86_400_000) return false;
+    const planType = (m.plan ?? m.membership_plans)?.plan_type;
+    const isSessionPlan = planType === 'sessions' || planType === 'duration_session';
+    if (isSessionPlan && m.sessions_total != null && (m.sessions_remaining ?? 0) <= 0) return false;
+    return true;
+  };
+
+  // "Active Services" panel hides exhausted/expired subscriptions so admin
+  // staff aren't left looking at stale plan info. Same rule for transferred
+  // buckets below.
+  const currentMembership = memberships.find((m: any) =>
+    isLive(m)
+    && (m.source_type === 'subscription' || (m.source_type == null && !m.transferred_from))
+  ) ?? null;
   const plan = currentMembership?.membership_plans ?? currentMembership?.plan ?? null;
+
+  // Live transferred buckets only — exhausted gifts are dropped from the
+  // panel so it reflects what the member can actually use right now.
+  const transferredBuckets = (memberships ?? []).filter((m: any) =>
+    isLive(m)
+    && (m.source_type === 'transfer' || (m.source_type == null && m.transferred_from))
+  );
+  const transferredSessionsTotal = transferredBuckets.reduce(
+    (sum: number, b: any) => sum + (Number(b.sessions_total) || 0),
+    0,
+  );
+  const transferredSessionsUsed = transferredBuckets.reduce(
+    (sum: number, b: any) => sum + (Number(b.sessions_used) || 0),
+    0,
+  );
+
+  const aggregateSessionsTotal = currentMembership?.sessions_total != null || transferredBuckets.length > 0
+    ? (Number(currentMembership?.sessions_total) || 0) + transferredSessionsTotal
+    : null;
+  const aggregateSessionsUsed = (Number(currentMembership?.sessions_used) || 0) + transferredSessionsUsed;
+
+  // Nearest expiry across the subscription and every transferred bucket.
+  const candidateEndDates = [currentMembership?.end_date, ...transferredBuckets.map((b: any) => b.end_date)]
+    .filter(Boolean)
+    .map((d: string) => new Date(d));
+  const aggregateEndDate = candidateEndDates.length > 0
+    ? new Date(Math.min(...candidateEndDates.map((d: Date) => d.getTime())))
+    : null;
+
+  // Earliest expiry among transferred buckets only — surfaced separately so
+  // staff can answer "when do my gifted sessions expire?" without digging
+  // into the Transfers History tab.
+  const transferredEndDates = transferredBuckets
+    .map((b: any) => b.end_date)
+    .filter(Boolean)
+    .map((d: string) => new Date(d));
+  const transferredEarliestExpiry = transferredEndDates.length > 0
+    ? new Date(Math.min(...transferredEndDates.map((d: Date) => d.getTime())))
+    : null;
 
   const displayName = profile?.full_name ?? String(member.member_number ?? '---');
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -159,6 +214,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
         payments={payments}
         memberName={displayName}
         memberNumber={member.member_number ?? '---'}
+        gymMemberId={params.id}
         membershipStart={currentMembership?.status === 'active' ? currentMembership.start_date : null}
         membershipEnd={currentMembership?.status === 'active' ? currentMembership.end_date : null}
         planName={plan?.name ?? null}
@@ -213,26 +269,34 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           </dl>
         </div>
 
-        {/* Current Plan */}
+        {/* Active Services */}
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-4 h-4 text-purple-400" />
-            <h2 className="text-sm font-semibold text-white">Current Membership Plan</h2>
+            <h2 className="text-sm font-semibold text-white">Active Services</h2>
           </div>
 
-          {!currentMembership ? (
-            <p className="text-sm text-gray-500">No membership plan assigned.</p>
+          {!currentMembership && transferredBuckets.length === 0 ? (
+            <p className="text-sm text-gray-500">No active services.</p>
           ) : (
             <div className="space-y-3">
               <div className="bg-gray-700/40 rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-white font-semibold">{plan?.name ?? '---'}</p>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[getDisplayStatus(currentMembership)] ?? 'bg-gray-400/10 text-gray-400'}`}>
-                    {getDisplayStatus(currentMembership)}
-                  </span>
+                  <p className="text-white font-semibold">
+                    {currentMembership ? (plan?.name ?? '---') : 'Transferred sessions only'}
+                  </p>
+                  {currentMembership && (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[getDisplayStatus(currentMembership)] ?? 'bg-gray-400/10 text-gray-400'}`}>
+                      {getDisplayStatus(currentMembership)}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-400 capitalize mb-2">{plan?.plan_type?.replace('_', ' ') ?? ''} plan</p>
-                {(() => {
+                <p className="text-xs text-gray-400 capitalize mb-2">
+                  {currentMembership
+                    ? `${plan?.plan_type?.replace('_', ' ') ?? ''} plan`
+                    : 'No active subscription — sessions received from other members'}
+                </p>
+                {currentMembership && (() => {
                   const badge = getMembershipBadge(currentMembership);
                   return badge ? (
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>
@@ -240,34 +304,50 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                     </span>
                   ) : null;
                 })()}
-                {plan?.price != null && (
+                {currentMembership && plan?.price != null && (
                   <p className="text-sm font-medium text-purple-400 mt-1">{fmt(plan.price, plan.currency)}</p>
                 )}
               </div>
               <dl className="space-y-2">
                 {[
-                  { label: 'Start Date',   value: currentMembership.start_date ? new Date(currentMembership.start_date).toLocaleDateString('en-GB') : '---' },
-                  { label: 'Expiry Date',  value: currentMembership.end_date ? new Date(currentMembership.end_date).toLocaleDateString('en-GB') : 'No expiry' },
+                  {
+                    label: 'Start Date',
+                    value: currentMembership?.start_date
+                      ? new Date(currentMembership.start_date).toLocaleDateString('en-GB')
+                      : '---',
+                  },
+                  {
+                    label: 'Expiry Date',
+                    value: aggregateEndDate ? aggregateEndDate.toLocaleDateString('en-GB') : 'No expiry',
+                  },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between">
                     <dt className="text-xs text-gray-500">{label}</dt>
                     <dd className="text-xs text-white">{value}</dd>
                   </div>
                 ))}
-                {currentMembership.sessions_total != null && (
+                {aggregateSessionsTotal != null && aggregateSessionsTotal > 0 && (
                   <>
                     <div className="flex justify-between">
                       <dt className="text-xs text-gray-500">Sessions Used</dt>
                       <dd className="text-xs text-white">
-                        {currentMembership.sessions_used ?? 0} / {currentMembership.sessions_total}
+                        {aggregateSessionsUsed} / {aggregateSessionsTotal}
                       </dd>
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
                       <div
                         className="bg-purple-500 h-1.5 rounded-full transition-all"
-                        style={{ width: `${Math.min(100, Math.round((currentMembership.sessions_used ?? 0) / currentMembership.sessions_total * 100))}%` }}
+                        style={{ width: `${Math.min(100, Math.round(aggregateSessionsUsed / aggregateSessionsTotal * 100))}%` }}
                       />
                     </div>
+                    {transferredBuckets.length > 0 && (
+                      <p className="text-[11px] text-gray-500 italic">
+                        Includes {transferredSessionsTotal} session{transferredSessionsTotal !== 1 ? 's' : ''} from transfers
+                        {transferredEarliestExpiry && (
+                          <> · expire{transferredBuckets.length > 1 ? 's earliest' : 's'} {transferredEarliestExpiry.toLocaleDateString('en-GB')}</>
+                        )}
+                      </p>
+                    )}
                   </>
                 )}
               </dl>
@@ -321,11 +401,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           )}
         </div>
 
-        <MemberBucketsPanel memberships={memberships} />
-
         <OverviewLists
-          payments={payments}
-          attendanceLogs={attendanceLogs}
           memberships={memberships}
           promoMap={promoMap}
         />
@@ -335,9 +411,6 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
       {(serviceAssignments ?? []).length > 0 && (
         <ServicePackagesList assignments={serviceAssignments} />
       )}
-
-      {/* Session Transfers (sent + received) */}
-      <SessionTransfersList gymMemberId={params.id} />
 
         </>}
       />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Archive, UserX, UserCheck, X, User, Dumbbell } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, UserX, UserCheck, X, User, Dumbbell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TrainerModal, { type TrainerProfile } from '@/components/trainers/trainer-modal';
 import { can, type Permission } from '@/lib/get-permissions';
@@ -208,14 +208,29 @@ export default function SessionServiceTab({
     });
   };
 
-  const deletePackage = async (pkg: SessionPackage) => {
-    if (!confirm(`Deactivate "${pkg.name}"? Existing assignments and history will be preserved, but the package will no longer be available for new purchases.`)) return;
+  const archivePackage = async (pkg: SessionPackage) => {
+    if (!confirm(`Archive "${pkg.name}"? It stays in the database and won't be available for new purchases. You can reactivate it later.`)) return;
     setDeletingId(pkg.id);
     try {
       const res = await fetch(`/api/service-packages/${pkg.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to deactivate package'); return; }
-      setPackages(prev => prev.filter(p => p.id !== pkg.id));
-      toast.success('Package deactivated');
+      if (!res.ok) { toast.error('Failed to archive package'); return; }
+      setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, is_active: false } : p));
+      toast.success('Package archived');
+    } catch { toast.error('Network error'); }
+    finally { setDeletingId(null); }
+  };
+
+  const reactivatePackage = async (pkg: SessionPackage) => {
+    setDeletingId(pkg.id);
+    try {
+      const res = await fetch(`/api/service-packages/${pkg.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: true }),
+      });
+      if (!res.ok) { toast.error('Failed to reactivate package'); return; }
+      setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, is_active: true } : p));
+      toast.success('Package reactivated');
     } catch { toast.error('Network error'); }
     finally { setDeletingId(null); }
   };
@@ -377,10 +392,18 @@ export default function SessionServiceTab({
                   const perSession = pkg.session_count && pkg.session_count > 1
                     ? fmtPrice(pkg.price / pkg.session_count, pkg.currency)
                     : '—';
+                  const isArchived = !pkg.is_active;
                   return (
-                    <tr key={pkg.id} className={`${i > 0 ? 'border-t border-gray-700/50' : ''} hover:bg-gray-700/30 transition-colors`}>
+                    <tr key={pkg.id} className={`${i > 0 ? 'border-t border-gray-700/50' : ''} hover:bg-gray-700/30 transition-colors ${isArchived ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-white">{pkg.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-white">{pkg.name}</p>
+                          {isArchived && (
+                            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400">
+                              Archived
+                            </span>
+                          )}
+                        </div>
                         {pkg.description && <p className="text-xs text-gray-500 mt-0.5">{pkg.description}</p>}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-300">
@@ -392,18 +415,26 @@ export default function SessionServiceTab({
                       <td className="px-4 py-3 text-sm text-gray-400">{perSession}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          {can(permissions, 'plans', 'update') && (
+                          {can(permissions, 'plans', 'update') && !isArchived && (
                             <button onClick={() => setPackageModal({ open: true, existing: pkg })}
                               className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {can(permissions, 'plans', 'delete') && (
-                            <button onClick={() => deletePackage(pkg)} disabled={deletingId === pkg.id}
-                              title="Archive package"
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-amber-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
-                              <Archive className="w-3.5 h-3.5" />
-                            </button>
+                            isArchived ? (
+                              <button onClick={() => reactivatePackage(pkg)} disabled={deletingId === pkg.id}
+                                title="Reactivate package"
+                                className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
+                                <ArchiveRestore className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button onClick={() => archivePackage(pkg)} disabled={deletingId === pkg.id}
+                                title="Archive package"
+                                className="p-1.5 rounded-lg text-gray-500 hover:text-amber-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
+                                <Archive className="w-3.5 h-3.5" />
+                              </button>
+                            )
                           )}
                         </div>
                       </td>

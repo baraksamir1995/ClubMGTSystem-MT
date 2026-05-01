@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, CreditCard, Clock } from 'lucide-react';
-import { fmtTime12, parsePgTimestamp, fmtDateGym } from '@/lib/time';
-import type { MemberPayment } from './payment-history-tab';
+import { ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
 
 const PAGE_SIZE = 5;
 
@@ -26,20 +24,7 @@ const statusColor: Record<string, string> = {
   paused:    'bg-blue-400/10 text-blue-400',
 };
 
-const methodLabel: Record<string, string> = {
-  cash: 'Cash', bank_transfer: 'Bank Transfer', card: 'Card', other: 'Other',
-};
-
-interface AttendanceLog {
-  id: string;
-  check_in_at: string;
-  method: string | null;
-  access_point: string | null;
-}
-
 interface Props {
-  payments: MemberPayment[];
-  attendanceLogs: AttendanceLog[];
   memberships: any[];
   promoMap: Record<string, any>;
 }
@@ -69,92 +54,15 @@ function Pager({ page, total, onChange }: { page: number; total: number; onChang
   );
 }
 
-export default function OverviewLists({ payments, attendanceLogs, memberships, promoMap }: Props) {
-  const [payPage, setPayPage] = useState(1);
-  const [attPage, setAttPage] = useState(1);
+export default function OverviewLists({ memberships, promoMap }: Props) {
   const [planPage, setPlanPage] = useState(1);
 
-  const payPages  = Math.max(1, Math.ceil(payments.length / PAGE_SIZE));
-  const attPages  = Math.max(1, Math.ceil(attendanceLogs.length / PAGE_SIZE));
   const planPages = Math.max(1, Math.ceil(memberships.length / PAGE_SIZE));
 
-  const pagedPayments     = payments.slice((payPage - 1) * PAGE_SIZE, payPage * PAGE_SIZE);
-  const pagedAttendance   = attendanceLogs.slice((attPage - 1) * PAGE_SIZE, attPage * PAGE_SIZE);
   const pagedMemberships  = memberships.slice((planPage - 1) * PAGE_SIZE, planPage * PAGE_SIZE);
 
   return (
     <>
-      {/* Payment History */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-4 h-4 text-purple-400" />
-          <h2 className="text-sm font-semibold text-white">Payment History</h2>
-          {payments.length > 0 && (
-            <span className="ml-auto text-xs text-gray-500">{payments.length} records</span>
-          )}
-        </div>
-        {payments.length === 0 ? (
-          <p className="text-sm text-gray-500">No payments recorded.</p>
-        ) : (
-          <>
-            <div className="space-y-0">
-              {pagedPayments.map(p => (
-                <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-gray-700/50 last:border-0">
-                  <div>
-                    <p className="text-sm text-white">{p.item_name ?? methodLabel[p.payment_method] ?? 'Payment'}</p>
-                    <p className="text-xs text-gray-500">{new Date(p.created_at).toLocaleDateString('en-GB')}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-emerald-400">{fmt(p.amount, p.currency)}</p>
-                    <span className={`text-xs capitalize ${
-                      p.status === 'paid' ? 'text-emerald-400'
-                      : p.status === 'pending' ? 'text-amber-400'
-                      : p.status === 'overdue' ? 'text-red-400'
-                      : 'text-blue-400'
-                    }`}>{p.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Pager page={payPage} total={payPages} onChange={p => { setPayPage(p); }} />
-          </>
-        )}
-      </div>
-
-      {/* Attendance */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="w-4 h-4 text-purple-400" />
-          <h2 className="text-sm font-semibold text-white">Attendance</h2>
-          {attendanceLogs.length > 0 && (
-            <span className="ml-auto text-xs text-gray-500">{attendanceLogs.length} records</span>
-          )}
-        </div>
-        {attendanceLogs.length === 0 ? (
-          <p className="text-sm text-gray-500">No attendance records.</p>
-        ) : (
-          <>
-            <div className="space-y-0">
-              {pagedAttendance.map(log => (
-                <div key={log.id} className="flex items-center justify-between py-2.5 border-b border-gray-700/50 last:border-0">
-                  <div>
-                    <p className="text-sm text-white">{fmtDateGym(log.check_in_at)}</p>
-                    <p className="text-xs text-gray-500">{fmtTime12(log.check_in_at)}</p>
-                  </div>
-                  <div className="text-right flex items-center gap-2">
-                    {log.access_point && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400">{log.access_point}</span>
-                    )}
-                    <span className="text-xs text-gray-400 capitalize">{log.method ?? '—'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Pager page={attPage} total={attPages} onChange={p => { setAttPage(p); }} />
-          </>
-        )}
-      </div>
-
       {/* Plan History */}
       {memberships.length > 0 && (
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 lg:col-span-2">

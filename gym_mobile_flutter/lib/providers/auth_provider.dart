@@ -99,6 +99,18 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
           await _storage.write(key: _gymNameKey, value: _gym!.name);
         }
       }
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        // Token expired/revoked server-side. ApiService already cleared
+        // storage; drop local state so the router sends us to /login
+        // instead of leaving the user stuck on an empty home screen.
+        _userId = null;
+        _profile = null;
+        _gym = null;
+        _isGuest = false;
+      } else {
+        _error = friendlyError(e);
+      }
     } catch (e) {
       _error = friendlyError(e);
     } finally {

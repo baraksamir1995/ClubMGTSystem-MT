@@ -11,14 +11,36 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    /**
+     * Lowercase + trim the incoming email so auth lookups are
+     * case-insensitive regardless of how the user typed it.
+     */
+    private function normalizeEmail(Request $request): void
+    {
+        if ($request->has('email')) {
+            $request->merge([
+                'email' => strtolower(trim((string) $request->input('email', ''))),
+            ]);
+        }
+    }
+
     public function register(Request $request): JsonResponse
     {
+        $this->normalizeEmail($request);
+
         $validated = $request->validate([
-            'email' => 'required|email|unique:profiles,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('profiles', 'email')->where(
+                    fn ($q) => $q->whereRaw('LOWER(email) = ?', [strtolower((string) $request->input('email'))])
+                ),
+            ],
             'password' => ['required', 'confirmed', Password::min(8)],
             'full_name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -118,11 +140,13 @@ class AuthController extends Controller
      */
     public function resendVerificationPublic(Request $request): JsonResponse
     {
+        $this->normalizeEmail($request);
+
         $validated = $request->validate([
             'email' => 'required|email',
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::whereRaw('LOWER(email) = ?', [$validated['email']])->first();
         if ($user && ! $user->email_verified) {
             $this->sendVerificationEmail($user);
         }
@@ -158,12 +182,14 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
+        $this->normalizeEmail($request);
+
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $validated['email'])
+        $user = User::whereRaw('LOWER(email) = ?', [$validated['email']])
             ->where('is_active', true)
             ->whereNull('deleted_at')
             ->first();
@@ -228,11 +254,13 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request): JsonResponse
     {
+        $this->normalizeEmail($request);
+
         $validated = $request->validate([
             'email' => 'required|email',
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::whereRaw('LOWER(email) = ?', [$validated['email']])->first();
 
         if (! $user) {
             // Don't reveal if email exists

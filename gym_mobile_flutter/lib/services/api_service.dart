@@ -96,10 +96,18 @@ class ApiService {
     return _parse(response);
   }
 
-  dynamic _parse(http.Response response) {
+  Future<dynamic> _parse(http.Response response) async {
     if (response.body.isEmpty) return <String, dynamic>{};
     final body = jsonDecode(response.body);
     if (response.statusCode >= 400) {
+      if (response.statusCode == 401) {
+        // Sanctum tokens expire after 24h. Clear stale credentials so the
+        // next app start can't loop on a dead token and end up in a
+        // logged-in-but-empty state.
+        await _storage.delete(key: _tokenKey);
+        await _storage.delete(key: _userIdKey);
+        _cachedUserId = null;
+      }
       final msg = body is Map ? (body['message']?.toString() ?? 'Unknown error') : 'Unknown error';
       throw ApiException(statusCode: response.statusCode, message: msg);
     }
@@ -183,8 +191,8 @@ class ApiService {
     required String email,
     required String password,
     required String fullName,
-    required String phone,
     required String gymId,
+    String? phone,
     String? dateOfBirth,
     String? gender,
   }) async {
@@ -193,8 +201,8 @@ class ApiService {
       'password': password,
       'password_confirmation': password,
       'full_name': fullName,
-      'phone': phone,
       'gym_id': gymId,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
       if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
       if (gender != null) 'gender': gender,
     });
@@ -290,13 +298,9 @@ class ApiService {
   // ─── Profile / Member ─────────────────────────────────────────────────────
 
   Future<Profile?> getMemberProfile() async {
-    try {
-      final data = await _get('/api/me');
-      if (data == null) return null;
-      return Profile.fromJson(data as Map<String, dynamic>);
-    } catch (_) {
-      return null;
-    }
+    final data = await _get('/api/me');
+    if (data == null) return null;
+    return Profile.fromJson(data as Map<String, dynamic>);
   }
 
   Future<GymMember?> getGymMember(String gymId) async {

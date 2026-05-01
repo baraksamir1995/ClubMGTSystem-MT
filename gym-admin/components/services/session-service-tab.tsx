@@ -209,13 +209,13 @@ export default function SessionServiceTab({
   };
 
   const deletePackage = async (pkg: SessionPackage) => {
-    if (!confirm(`Delete "${pkg.name}"? This cannot be undone.`)) return;
+    if (!confirm(`Deactivate "${pkg.name}"? Existing assignments and history will be preserved, but the package will no longer be available for new purchases.`)) return;
     setDeletingId(pkg.id);
     try {
       const res = await fetch(`/api/service-packages/${pkg.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete package'); return; }
+      if (!res.ok) { toast.error('Failed to deactivate package'); return; }
       setPackages(prev => prev.filter(p => p.id !== pkg.id));
-      toast.success('Package deleted');
+      toast.success('Package deactivated');
     } catch { toast.error('Network error'); }
     finally { setDeletingId(null); }
   };

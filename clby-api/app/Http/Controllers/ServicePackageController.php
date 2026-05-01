@@ -51,8 +51,14 @@ class ServicePackageController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
+        // Deactivate rather than delete: keeps the row (and its package_id
+        // referenced by member_service_assignments / payments) intact so
+        // historical assignments and reports still resolve the package
+        // name. The active-list filter in index() hides it from gym-admin.
         $gymId = $request->user()->gym_id;
-        ServiceSessionPackage::where('gym_id', $gymId)->findOrFail($id)->update(['deleted_at' => now()]);
-        return response()->json(['message' => 'Deleted']);
+        $pkg = ServiceSessionPackage::where('gym_id', $gymId)->findOrFail($id);
+        $pkg->update(['is_active' => false]);
+
+        return response()->json(['message' => 'Deactivated']);
     }
 }

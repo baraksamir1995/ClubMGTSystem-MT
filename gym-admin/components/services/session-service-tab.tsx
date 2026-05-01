@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, UserX, UserCheck, X, User, Dumbbell } from 'lucide-react';
+import { Plus, Pencil, Archive, UserX, UserCheck, X, User, Dumbbell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TrainerModal, { type TrainerProfile } from '@/components/trainers/trainer-modal';
 import { can, type Permission } from '@/lib/get-permissions';
@@ -400,8 +400,9 @@ export default function SessionServiceTab({
                           )}
                           {can(permissions, 'plans', 'delete') && (
                             <button onClick={() => deletePackage(pkg)} disabled={deletingId === pkg.id}
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
-                              <Trash2 className="w-3.5 h-3.5" />
+                              title="Archive package"
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-amber-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
+                              <Archive className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>

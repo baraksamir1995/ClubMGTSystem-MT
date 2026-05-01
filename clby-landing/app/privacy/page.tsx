@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy."
       subtitle="Straightforward explanation of what we collect, why we collect it, and the choices you have. Written in plain language. No legal gymnastics."
-      lastUpdated="April 18, 2026"
+      lastUpdated="May 1, 2026"
       sections={[
         {
           heading: "Who we are",
@@ -43,9 +43,14 @@ export default function PrivacyPage() {
               </p>
               <ul>
                 <li>
-                  <strong>Account details</strong>: your name, email, phone
-                  number, and password when you sign up as a gym owner, staff
-                  member, or gym member.
+                  <strong>Account details</strong>: your name, email, and
+                  password when you sign up. Phone number, date of birth,
+                  gender, and address are optional and only requested if you
+                  choose to provide them.
+                </li>
+                <li>
+                  <strong>Profile photo</strong>: optional, only if you choose
+                  to upload one. Stored on Cloudflare R2.
                 </li>
                 <li>
                   <strong>Gym profile</strong>: business name, branches,
@@ -58,12 +63,20 @@ export default function PrivacyPage() {
                 <li>
                   <strong>Payment data</strong>: amounts, methods, and
                   transaction IDs. We do not store full card numbers; those are
-                  handled by our payment partners.
+                  handled by our payment partners (Stripe, Paymob).
                 </li>
                 <li>
-                  <strong>Usage data</strong>: device type, approximate
-                  location (when you opt in for nearby-gym discovery), pages
-                  visited, and error logs.
+                  <strong>Push notification token</strong>: a Firebase Cloud
+                  Messaging (FCM) token tied to your device, used solely to
+                  deliver in-app notifications such as class reminders and
+                  payment receipts.
+                </li>
+                <li>
+                  <strong>First-party analytics</strong>: anonymous, aggregated
+                  product usage (screen views, feature interactions, error
+                  logs) collected via Firebase Analytics. We do not collect
+                  the iOS IDFA. We do not share this data with advertising
+                  networks or data brokers.
                 </li>
               </ul>
             </>
@@ -145,22 +158,92 @@ export default function PrivacyPage() {
                   information required to manage your membership.
                 </li>
                 <li>
-                  <strong>Infrastructure providers</strong>: AWS and similar
-                  services that host our servers and store files, under strict
+                  <strong>Infrastructure providers</strong>: DigitalOcean
+                  (compute), Cloudflare R2 (file storage), and similar services
+                  that host our servers and store files, under strict
                   confidentiality agreements.
                 </li>
                 <li>
-                  <strong>Payment processors</strong>: to execute transactions.
+                  <strong>Payment processors</strong>: Stripe and Paymob, to
+                  execute transactions for in-person gym memberships and class
+                  packages.
                 </li>
                 <li>
-                  <strong>Communication providers</strong>: for transactional
-                  emails and WhatsApp / SMS notifications.
+                  <strong>Communication providers</strong>: Resend (email) and
+                  Firebase Cloud Messaging (push notifications) for
+                  transactional messages such as class reminders, receipts,
+                  and verification emails.
+                </li>
+                <li>
+                  <strong>Analytics</strong>: Firebase Analytics, configured
+                  for first-party use only with no IDFA collection and no
+                  ad-network integration.
                 </li>
                 <li>
                   <strong>Law enforcement</strong>: only when we receive a
                   valid legal request and only to the minimum extent required.
                 </li>
               </ul>
+            </>
+          ),
+        },
+        {
+          heading: "Sharing with other gym members",
+          body: (
+            <>
+              <p>
+                CLBY includes a feature that lets a member transfer remaining
+                in-person session credits to another member of the same gym.
+                When you transfer sessions:
+              </p>
+              <ul>
+                <li>
+                  The recipient is looked up by phone number — only members of
+                  the same gym can be found.
+                </li>
+                <li>
+                  The recipient sees your <strong>full name</strong> and
+                  <strong> profile photo</strong> (if you have one) so they can
+                  confirm they are receiving the credits from the right person.
+                </li>
+                <li>
+                  We do not share your email, password, address, or any other
+                  personal data with the recipient.
+                </li>
+                <li>
+                  Phone numbers are never displayed to other members. Lookups
+                  return only the matched member's name and photo.
+                </li>
+              </ul>
+              <p>
+                If you would prefer not to be discoverable for transfers, leave
+                your phone number blank in your profile and other members will
+                not be able to find you by phone.
+              </p>
+            </>
+          ),
+        },
+        {
+          heading: "Tracking and advertising",
+          body: (
+            <>
+              <p>
+                The CLBY mobile app does <strong>not</strong> track you across
+                other apps or websites. Specifically, we do not:
+              </p>
+              <ul>
+                <li>Collect the iOS IDFA or the Android Advertising ID.</li>
+                <li>Share user data with advertising networks or data brokers.</li>
+                <li>Combine your activity inside CLBY with activity from any
+                  third-party app or website for advertising purposes.</li>
+                <li>Sell, rent, or trade personal information.</li>
+                <li>Use your data to train third-party AI models.</li>
+              </ul>
+              <p>
+                Because we do not track in the sense defined by Apple's
+                AppTrackingTransparency framework, the app does not show an
+                ATT permission prompt.
+              </p>
             </>
           ),
         },
@@ -188,14 +271,20 @@ export default function PrivacyPage() {
               <p>You can, at any time:</p>
               <ul>
                 <li>Access the personal data we hold about you.</li>
-                <li>Correct inaccurate information.</li>
-                <li>Delete your account (subject to retention rules above).</li>
+                <li>Correct inaccurate information from the Profile screen.</li>
+                <li>
+                  <strong>Delete your account</strong> directly from the
+                  app: <em>Profile → Delete account</em>. This permanently
+                  removes your personal data, subject to the retention rules
+                  above (financial records may be retained where required by
+                  law).
+                </li>
                 <li>Export your data in a portable format.</li>
                 <li>Opt out of marketing communications.</li>
               </ul>
               <p>
-                To exercise any of these rights, contact us and we will respond
-                within a reasonable timeframe.
+                For any request we cannot fulfil from inside the app, contact
+                us and we will respond within a reasonable timeframe.
               </p>
             </>
           ),

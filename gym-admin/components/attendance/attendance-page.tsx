@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Radio, ClipboardList, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Radio, ClipboardList, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRefresh } from '@/lib/use-refresh';
 import ManualLogModal from './manual-log-modal';
@@ -38,7 +38,8 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
   const [livePage,      setLivePage]      = useState(1);
   const [liveTotalPages, setLiveTotalPages] = useState(1);
   const [liveTotal,     setLiveTotal]     = useState(0);
-  const LIVE_PAGE_SIZE = 20;
+  // 1 row goes in the hero card, the next 5 fill the compact list below.
+  const LIVE_PAGE_SIZE = 6;
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Logs tab filters
@@ -208,65 +209,73 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                 <p className="text-sm text-gray-400">No recent check-ins</p>
               </div>
             ) : (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                <div className="divide-y divide-gray-700/50">
-                  {logs.map((log, i) => (
-                    <div key={log.id} className={`flex items-center gap-4 px-5 py-3.5 ${i === 0 && livePage === 1 ? 'bg-emerald-400/5' : 'hover:bg-gray-700/20'} transition-colors`}>
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${i === 0 && livePage === 1 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`} />
-                      <div className="w-9 h-9 rounded-full bg-purple-600/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-purple-400">
-                          {String(log.full_name ?? log.member_number ?? '?').slice(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-medium">{log.full_name ?? '—'}</p>
-                        <p className="text-xs text-gray-500 font-mono">{log.member_number}</p>
-                      </div>
-                      <div className="flex flex-col gap-1 flex-shrink-0 items-end">
-                        {log.branch_name && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400">
-                            {log.branch_name}
-                          </span>
-                        )}
-                        {log.access_point && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400">
-                            {log.access_point}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm text-white">{fmtTime(log.check_in_at)}</p>
-                        <p className="text-xs text-gray-500">{fmtDate(log.check_in_at)}</p>
-                      </div>
-                      <span className="text-xs text-gray-600 flex-shrink-0">{METHODS[log.method ?? ''] ?? log.method ?? '—'}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-4">
+                {/* Hero card — magnified view of the most recent check-in on this page */}
+                <LatestScanHero log={logs[0]} isLive={livePage === 1} />
 
-                {liveTotalPages > 1 && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-gray-700">
-                    <p className="text-xs text-gray-500">
-                      Showing {(livePage - 1) * LIVE_PAGE_SIZE + 1}–{Math.min(livePage * LIVE_PAGE_SIZE, liveTotal)} of {liveTotal}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => fetchLive(Math.max(1, livePage - 1))} disabled={livePage === 1 || liveLoading}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      {Array.from({ length: Math.min(liveTotalPages, 5) }, (_, i) => {
-                        const start = Math.max(1, Math.min(livePage - 2, liveTotalPages - 4));
-                        return start + i;
-                      }).map(n => (
-                        <button key={n} onClick={() => fetchLive(n)} disabled={liveLoading}
-                          className={`w-8 h-8 text-xs rounded-lg transition-colors ${n === livePage ? 'bg-purple-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}>
-                          {n}
-                        </button>
-                      ))}
-                      <button onClick={() => fetchLive(Math.min(liveTotalPages, livePage + 1))} disabled={livePage === liveTotalPages || liveLoading}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
+                {logs.length > 1 && (
+                  <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+                    <div className="px-5 py-2.5 border-b border-gray-700/50 flex items-center justify-between">
+                      <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Recent</p>
+                      <p className="text-xs text-gray-600">{logs.length - 1} earlier on this page</p>
                     </div>
+                    <div className="divide-y divide-gray-700/50">
+                      {logs.slice(1).map((log) => (
+                        <div key={log.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-700/20 transition-colors">
+                          <Avatar log={log} size={36} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white font-medium truncate">{log.full_name ?? '—'}</p>
+                            <p className="text-xs text-gray-500 font-mono">{log.member_number || '—'}</p>
+                          </div>
+                          <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+                            {scanLocation(log) && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 max-w-[180px] truncate">
+                                {scanLocation(log)}
+                              </span>
+                            )}
+                            {log.branch_name && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400">
+                                {log.branch_name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm text-white">{fmtTime(log.check_in_at)}</p>
+                            <p className="text-xs text-gray-500">{fmtDate(log.check_in_at)}</p>
+                          </div>
+                          <span className="text-xs text-gray-600 flex-shrink-0 hidden lg:inline">
+                            {METHODS[log.method ?? ''] ?? log.method ?? '—'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {liveTotalPages > 1 && (
+                      <div className="flex items-center justify-between px-5 py-3 border-t border-gray-700">
+                        <p className="text-xs text-gray-500">
+                          Showing {(livePage - 1) * LIVE_PAGE_SIZE + 1}–{Math.min(livePage * LIVE_PAGE_SIZE, liveTotal)} of {liveTotal}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => fetchLive(Math.max(1, livePage - 1))} disabled={livePage === 1 || liveLoading}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          {Array.from({ length: Math.min(liveTotalPages, 5) }, (_, i) => {
+                            const start = Math.max(1, Math.min(livePage - 2, liveTotalPages - 4));
+                            return start + i;
+                          }).map(n => (
+                            <button key={n} onClick={() => fetchLive(n)} disabled={liveLoading}
+                              className={`w-8 h-8 text-xs rounded-lg transition-colors ${n === livePage ? 'bg-purple-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}>
+                              {n}
+                            </button>
+                          ))}
+                          <button onClick={() => fetchLive(Math.min(liveTotalPages, livePage + 1))} disabled={livePage === liveTotalPages || liveLoading}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -453,4 +462,154 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
       )}
     </>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live Feed helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Best label for the scan location: class > studio > legacy access_point.
+// Branch is rendered separately because it always sits next to the scan,
+// regardless of whether the scan was at a class, studio, or front door.
+function scanLocation(log: AttendanceLog): string | null {
+  return log.class_name || log.studio_name || log.access_point;
+}
+
+// Trainer / specialist name. Class instructors take priority because they're
+// the formal owner of the session; specialist_name falls back for service
+// (PT / nutrition) check-ins where no class session exists.
+function trainerName(log: AttendanceLog): string | null {
+  return log.instructor_name || log.specialist_name;
+}
+
+function planLabel(log: AttendanceLog): string | null {
+  if (log.plan_name) return log.plan_name;
+  if (log.plan_type) {
+    return ({
+      sessions: 'Sessions plan',
+      duration: 'Duration plan',
+      duration_session: 'Duration + sessions',
+    } as Record<string, string>)[log.plan_type] ?? log.plan_type;
+  }
+  return null;
+}
+
+function initials(name: string | null, fallback: string | null): string {
+  const source = (name ?? fallback ?? '?').trim();
+  if (!source) return '?';
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+interface AvatarProps {
+  log: AttendanceLog;
+  size: number;
+  ring?: boolean;
+}
+
+function Avatar({ log, size, ring }: AvatarProps) {
+  const dim = `${size}px`;
+  const fontPx = size >= 80 ? 'text-2xl' : size >= 56 ? 'text-base' : 'text-xs';
+  if (log.photo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={log.photo_url}
+        alt={log.full_name ?? log.member_number}
+        style={{ width: dim, height: dim }}
+        className={`rounded-full object-cover bg-gray-700 flex-shrink-0 ${ring ? 'ring-2 ring-emerald-400/50' : ''}`}
+      />
+    );
+  }
+  return (
+    <div
+      style={{ width: dim, height: dim }}
+      className={`rounded-full bg-purple-600/20 flex items-center justify-center flex-shrink-0 ${ring ? 'ring-2 ring-emerald-400/50' : ''}`}
+    >
+      <span className={`font-bold text-purple-400 ${fontPx}`}>{initials(log.full_name, log.member_number)}</span>
+    </div>
+  );
+}
+
+interface LatestScanHeroProps {
+  log: AttendanceLog;
+  isLive: boolean;
+}
+
+function LatestScanHero({ log, isLive }: LatestScanHeroProps) {
+  const where = scanLocation(log);
+  const trainer = trainerName(log);
+  const plan = planLabel(log);
+  const dt = new Date(log.check_in_at);
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-br from-gray-800 via-gray-800 to-gray-800/60 p-6">
+      <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-emerald-400/10 blur-3xl" />
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
+        <div className="flex items-center gap-5">
+          <Avatar log={log} size={88} ring={isLive} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                {isLive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                Latest
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                {METHODS[log.method ?? ''] ?? log.method ?? 'Check-in'}
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-white truncate">{log.full_name ?? '—'}</p>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-sm text-gray-400 font-mono">#{log.member_number || '—'}</span>
+              {plan && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400 font-medium">
+                  {plan}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 lg:border-l lg:border-gray-700/60 lg:pl-8">
+          <HeroField icon={<MapPin className="w-3.5 h-3.5" />} label="Location" value={where ?? log.branch_name ?? 'Gym entrance'} sub={where && log.branch_name ? log.branch_name : null} />
+          <HeroField icon={<UserIcon className="w-3.5 h-3.5" />} label="Trainer" value={trainer ?? '—'} mute={!trainer} />
+          <HeroField icon={<Calendar className="w-3.5 h-3.5" />} label="Date" value={fmtDate(log.check_in_at)} sub={dt.toLocaleDateString('en-US', { weekday: 'long' })} />
+          <HeroField icon={<Clock className="w-3.5 h-3.5" />} label="Time" value={fmtTime(log.check_in_at)} sub={relativeTime(dt)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface HeroFieldProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string | null;
+  mute?: boolean;
+}
+
+function HeroField({ icon, label, value, sub, mute }: HeroFieldProps) {
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+        {icon}
+        {label}
+      </div>
+      <p className={`text-sm font-semibold truncate ${mute ? 'text-gray-500' : 'text-white'}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-500 truncate">{sub}</p>}
+    </div>
+  );
+}
+
+function relativeTime(dt: Date): string {
+  const diffMs = Date.now() - dt.getTime();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hr ago`;
+  const day = Math.floor(hr / 24);
+  return `${day} day${day === 1 ? '' : 's'} ago`;
 }

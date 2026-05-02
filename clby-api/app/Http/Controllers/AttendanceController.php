@@ -63,12 +63,32 @@ class AttendanceController extends Controller
             ->where('al.gym_id', $gymId)
             ->select([
                 'al.id', 'al.gym_member_id', 'gm.member_number',
-                'p.full_name', 'al.check_in_at', 'al.method',
+                'p.full_name', 'p.photo_url', 'al.check_in_at', 'al.method',
                 'al.access_point', 'b.name as branch_name',
                 'al.specialist_name', 'c.name as class_name',
                 'cs.session_date', DB::raw('cs.start_time::text as session_time'),
                 DB::raw('COALESCE(cs.instructor, c.instructor) as instructor_name'),
                 'st.name as studio_name',
+                // Member's current active subscription (the plan they're on
+                // *now*, not necessarily the plan that was active at scan
+                // time — fine for the live feed which surfaces context for
+                // the most recent check-ins).
+                DB::raw("(
+                    SELECT mp.name FROM member_memberships mm
+                    JOIN membership_plans mp ON mp.id = mm.plan_id
+                    WHERE mm.gym_member_id = al.gym_member_id
+                      AND mm.status = 'active'
+                      AND mm.source_type = 'subscription'
+                    ORDER BY mm.start_date DESC LIMIT 1
+                ) as plan_name"),
+                DB::raw("(
+                    SELECT mp.plan_type FROM member_memberships mm
+                    JOIN membership_plans mp ON mp.id = mm.plan_id
+                    WHERE mm.gym_member_id = al.gym_member_id
+                      AND mm.status = 'active'
+                      AND mm.source_type = 'subscription'
+                    ORDER BY mm.start_date DESC LIMIT 1
+                ) as plan_type"),
             ]);
 
         if ($fromDate) $query->where('al.check_in_at', '>=', $fromDate);

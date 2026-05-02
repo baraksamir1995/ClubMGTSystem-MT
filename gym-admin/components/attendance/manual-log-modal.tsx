@@ -135,15 +135,21 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
       toast.success('Attendance logged');
       const finalPoint = (accessPoint === '__custom__' ? customPoint.trim() : accessPoint) || null;
       onSaved({
-        id:            data.id,
-        gym_member_id: selectedId,
-        member_number: selected!.member_number,
-        full_name:     selected!.full_name,
-        check_in_at:   new Date(checkInAt).toISOString(),
-        method:         'manual',
-        access_point:   finalPoint,
+        id:              data.id,
+        gym_member_id:   selectedId,
+        member_number:   selected!.member_number,
+        full_name:       selected!.full_name,
+        photo_url:       null,
+        check_in_at:     new Date(checkInAt).toISOString(),
+        method:          'manual',
+        access_point:    finalPoint,
         instructor_name: effectiveSpecialist,
-        branch_name:    effectiveBranchName,
+        branch_name:     effectiveBranchName,
+        studio_name:     null,
+        class_name:      null,
+        specialist_name: effectiveSpecialist,
+        plan_name:       null,
+        plan_type:       null,
       });
       onClose();
     } catch { toast.error('Network error'); }

@@ -10,11 +10,17 @@ export interface AttendanceLog {
   gym_member_id: string;
   member_number: string;
   full_name: string | null;
+  photo_url: string | null;
   check_in_at: string;
   method: string | null;
   access_point: string | null;
   instructor_name: string | null;
   branch_name: string | null;
+  studio_name: string | null;
+  class_name: string | null;
+  specialist_name: string | null;
+  plan_name: string | null;
+  plan_type: string | null;
 }
 
 export interface MemberOption {
@@ -74,11 +80,17 @@ export default async function AttendanceRoute() {
     gym_member_id:   l.gym_member_id,
     member_number:   l.member_number ?? '',
     full_name:       l.full_name ?? null,
+    photo_url:       l.photo_url ?? null,
     check_in_at:     l.check_in_at,
     method:          l.method ?? null,
     access_point:    l.access_point ?? null,
     instructor_name: l.instructor_name ?? null,
     branch_name:     l.branch_name ?? null,
+    studio_name:     l.studio_name ?? null,
+    class_name:      l.class_name ?? null,
+    specialist_name: l.specialist_name ?? null,
+    plan_name:       l.plan_name ?? null,
+    plan_type:       l.plan_type ?? null,
   }));
 
   const rawMembers = membersData?.data ?? membersData ?? [];

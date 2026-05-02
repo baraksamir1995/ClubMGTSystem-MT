@@ -111,6 +111,11 @@ class PaymentController extends Controller
             'service_id' => 'nullable|uuid',
             'specialist_name' => 'nullable|string|max:255',
             'branch_id' => 'nullable|uuid',
+            // When the recorded payment is for a service-session package, the
+            // admin form also sends the package + trainer ids so we can spin
+            // up the matching assignment row in the same request.
+            'service_package_id' => 'nullable|uuid',
+            'trainer_id' => 'nullable|uuid',
         ]);
 
         $gymId = $request->user()->gym_id;
@@ -119,30 +124,82 @@ class PaymentController extends Controller
             return response()->json(['message' => 'No gym association found.'], 403);
         }
 
+        // Resolve session-package + trainer for assignment creation.
+        $package = null;
+        $trainerName = $validated['specialist_name'] ?? null;
+        if (! empty($validated['service_package_id']) && ($validated['service_type'] ?? null) === 'session_package') {
+            $package = DB::table('service_session_packages')
+                ->where('id', $validated['service_package_id'])
+                ->where('gym_id', $gymId)
+                ->whereNull('deleted_at')
+                ->first();
+            if (! $package) {
+                return response()->json(['error' => 'Package not found'], 404);
+            }
+        }
+        if (! empty($validated['trainer_id'])) {
+            $trainer = DB::table('trainer_profiles')
+                ->where('id', $validated['trainer_id'])
+                ->where('gym_id', $gymId)
+                ->first();
+            if (! $trainer) {
+                return response()->json(['error' => 'Trainer not found'], 404);
+            }
+            $trainerName = $trainer->name ?? $trainerName;
+        }
+
         $status = $validated['status'] ?? 'pending';
 
-        $payment = Payment::create([
-            'gym_id' => $gymId,
-            'gym_member_id' => $validated['gym_member_id'],
-            'membership_id' => $validated['membership_id'] ?? null,
-            'amount' => $validated['amount'],
-            'currency' => $validated['currency'] ?? 'EGP',
-            'payment_method' => $validated['payment_method'] ?? 'cash',
-            'status' => $status,
-            'notes' => $validated['notes'] ?? null,
-            'paid_at' => $status === 'paid' ? ($validated['paid_at'] ?? now()) : ($validated['paid_at'] ?? null),
-            'source' => $validated['source'] ?? 'admin',
-            'original_amount' => $validated['original_amount'] ?? $validated['amount'],
-            'discount_amount' => $validated['discount_amount'] ?? 0,
-            'promo_code_id' => $validated['promo_code_id'] ?? null,
-            'plan_promotion_id' => $validated['plan_promotion_id'] ?? null,
-            'service_type' => $validated['service_type'] ?? null,
-            'service_name' => $validated['service_name'] ?? null,
-            'specialist_name' => $validated['specialist_name'] ?? null,
-            'branch_id' => $validated['branch_id'] ?? null,
-        ]);
+        return DB::transaction(function () use ($validated, $gymId, $status, $package, $trainerName) {
+            $payment = Payment::create([
+                'gym_id' => $gymId,
+                'gym_member_id' => $validated['gym_member_id'],
+                'membership_id' => $validated['membership_id'] ?? null,
+                'amount' => $validated['amount'],
+                'currency' => $validated['currency'] ?? 'EGP',
+                'payment_method' => $validated['payment_method'] ?? 'cash',
+                'status' => $status,
+                'notes' => $validated['notes'] ?? null,
+                'paid_at' => $status === 'paid' ? ($validated['paid_at'] ?? now()) : ($validated['paid_at'] ?? null),
+                'source' => $validated['source'] ?? 'admin',
+                'original_amount' => $validated['original_amount'] ?? $validated['amount'],
+                'discount_amount' => $validated['discount_amount'] ?? 0,
+                'promo_code_id' => $validated['promo_code_id'] ?? null,
+                'plan_promotion_id' => $validated['plan_promotion_id'] ?? null,
+                'service_type' => $validated['service_type'] ?? null,
+                'service_name' => $validated['service_name'] ?? null,
+                'specialist_name' => $trainerName,
+                'branch_id' => $validated['branch_id'] ?? null,
+            ]);
 
-        return response()->json(['data' => ['id' => $payment->id]], 201);
+            $assignmentId = null;
+            if ($package) {
+                $assignmentId = \Illuminate\Support\Str::uuid()->toString();
+                DB::table('member_service_assignments')->insert([
+                    'id' => $assignmentId,
+                    'gym_id' => $gymId,
+                    'gym_member_id' => $validated['gym_member_id'],
+                    'service_package_id' => $package->id,
+                    'trainer_id' => $validated['trainer_id'] ?? null,
+                    'trainer_name' => $trainerName,
+                    'package_name' => $package->name,
+                    'service_type' => $package->trainer_type,
+                    'sessions_total' => $package->session_count,
+                    'sessions_used' => 0,
+                    'status' => 'active',
+                    'notes' => $validated['notes'] ?? null,
+                    'assigned_at' => now(),
+                    'created_at' => now(),
+                ]);
+            }
+
+            return response()->json([
+                'data' => [
+                    'id' => $payment->id,
+                    'assignment_id' => $assignmentId,
+                ],
+            ], 201);
+        });
     }
 
     public function update(Request $request, string $id): JsonResponse

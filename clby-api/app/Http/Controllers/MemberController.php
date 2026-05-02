@@ -253,6 +253,133 @@ class MemberController extends Controller
     }
 
     /**
+     * List a member's service-package assignments (PT, nutrition, physio).
+     * Member-accessible: callers can read assignments inside their own gym.
+     */
+    public function services(Request $request, string $id): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        if (! $gymId) {
+            return response()->json(['data' => []]);
+        }
+
+        $member = GymMember::where('gym_id', $gymId)
+            ->whereNull('deleted_at')
+            ->find($id);
+
+        if (! $member) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        $assignments = DB::table('member_service_assignments')
+            ->where('gym_member_id', $id)
+            ->where('gym_id', $gymId)
+            ->orderBy('assigned_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $assignments]);
+    }
+
+    /**
+     * Admin: assign a service package to a member.
+     * Creates the assignment row and a pending payment in one transaction
+     * so the dashboard's Active Services panel and the member's mobile
+     * profile both reflect the assignment immediately.
+     */
+    public function assignService(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'service_package_id' => 'required|uuid',
+            'trainer_id' => 'nullable|uuid',
+            'payment_method' => 'nullable|string|max:50',
+            'notes' => 'nullable|string',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        if (! $gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        $member = GymMember::where('gym_id', $gymId)
+            ->whereNull('deleted_at')
+            ->find($id);
+
+        if (! $member) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        $package = DB::table('service_session_packages')
+            ->where('id', $validated['service_package_id'])
+            ->where('gym_id', $gymId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (! $package) {
+            return response()->json(['error' => 'Package not found'], 404);
+        }
+
+        $trainerName = null;
+        if (! empty($validated['trainer_id'])) {
+            $trainer = DB::table('trainer_profiles')
+                ->where('id', $validated['trainer_id'])
+                ->where('gym_id', $gymId)
+                ->first();
+
+            if (! $trainer) {
+                return response()->json(['error' => 'Trainer not found'], 404);
+            }
+            $trainerName = $trainer->name;
+        }
+
+        return DB::transaction(function () use ($validated, $gymId, $member, $package, $trainerName, $request) {
+            $assignmentId = Str::uuid()->toString();
+            DB::table('member_service_assignments')->insert([
+                'id' => $assignmentId,
+                'gym_id' => $gymId,
+                'gym_member_id' => $member->id,
+                'service_package_id' => $package->id,
+                'trainer_id' => $validated['trainer_id'] ?? null,
+                'trainer_name' => $trainerName,
+                'package_name' => $package->name,
+                'service_type' => $package->trainer_type,
+                'sessions_total' => $package->session_count,
+                'sessions_used' => 0,
+                'status' => 'active',
+                'notes' => $validated['notes'] ?? null,
+                'assigned_at' => now(),
+                'created_at' => now(),
+            ]);
+
+            $paymentId = Str::uuid()->toString();
+            DB::table('payments')->insert([
+                'id' => $paymentId,
+                'gym_id' => $gymId,
+                'gym_member_id' => $member->id,
+                'amount' => $package->price ?? 0,
+                'original_amount' => $package->price ?? 0,
+                'currency' => $package->currency ?? 'EGP',
+                'payment_method' => $validated['payment_method'] ?? 'cash',
+                'status' => 'pending',
+                'source' => 'admin',
+                'service_type' => 'service_package',
+                'service_name' => $package->name,
+                'specialist_name' => $trainerName,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'data' => [
+                    'assignment_id' => $assignmentId,
+                    'payment_id' => $paymentId,
+                ],
+            ], 201);
+        });
+    }
+
+    /**
      * Verify a member's email address (admin action).
      */
     public function verifyEmail(Request $request, string $id): JsonResponse

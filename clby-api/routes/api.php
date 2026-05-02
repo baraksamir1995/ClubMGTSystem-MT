@@ -149,11 +149,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::delete('/members/account', [MemberController::class, 'deleteAccount']);
 
     // Session transfers (member-initiated share) — MUST be above /members/{id}
-    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:30,1');
-    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:30,1');
+    // Lookup is hit by the live-search input as the user types — keep it
+    // generous so debounced typing doesn't trip the limit.
+    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:120,1');
+    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:60,1');
     Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
 
     Route::get('/members/{id}', [MemberController::class, 'show']);
+    Route::get('/members/{id}/services', [MemberController::class, 'services']);
 
     // Attendance (self — controller auto-scopes to caller for members)
     Route::get('/attendance', [AttendanceController::class, 'index']);
@@ -189,6 +192,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::patch('/memberships/{id}', [MembershipController::class, 'updateMembership'])->middleware('permission:members,edit');
     Route::post('/members/{id}/membership/detach', [MembershipController::class, 'detach'])->middleware('permission:members,edit');
     Route::post('/members/{id}/transfer', [MembershipController::class, 'transfer'])->middleware('permission:members,edit');
+    Route::post('/members/{id}/services', [MemberController::class, 'assignService'])->middleware('permission:members,edit');
 
     // Admin: view a specific member's session-transfer history (sent + received)
     Route::get('/members/{id}/session-transfers', [SessionTransferController::class, 'forMember']);

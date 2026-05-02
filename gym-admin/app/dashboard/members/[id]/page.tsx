@@ -6,7 +6,6 @@ import VerifyEmailButton from '@/components/members/verify-email-button';
 import MemberDetailActions from '@/components/members/member-detail-actions';
 import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
-import ServicePackagesList from '@/components/members/service-packages-list';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +116,12 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
   const transferredBuckets = (memberships ?? []).filter((m: any) =>
     isLive(m)
     && (m.source_type === 'transfer' || (m.source_type == null && m.transferred_from))
+  );
+
+  // Active PT / Nutrition / Physio packages assigned to this member.
+  // These show up alongside the membership in the Active Services panel.
+  const activeAssignments = (serviceAssignments ?? []).filter(
+    (a: any) => a.status === 'active'
   );
   const transferredSessionsTotal = transferredBuckets.reduce(
     (sum: number, b: any) => sum + (Number(b.sessions_total) || 0),
@@ -276,7 +281,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
             <h2 className="text-sm font-semibold text-white">Active Services</h2>
           </div>
 
-          {!currentMembership && transferredBuckets.length === 0 ? (
+          {!currentMembership && transferredBuckets.length === 0 && activeAssignments.length === 0 ? (
             <p className="text-sm text-gray-500">No active services.</p>
           ) : (
             <div className="space-y-3">
@@ -397,6 +402,56 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                   )}
                 </div>
               )}
+
+              {/* Active service-assignment rows — PT / Nutrition / Physio
+                  packages with progress bars. Sit alongside the membership
+                  inside this panel so admin sees one unified picture. */}
+              {activeAssignments.length > 0 && (
+                <div className={`pt-4 ${currentMembership || transferredBuckets.length > 0 ? 'mt-4 border-t border-gray-700' : ''} space-y-3`}>
+                  {activeAssignments.map((a: any) => {
+                    const used = Number(a.sessions_used) || 0;
+                    const total = Number(a.sessions_total) || 0;
+                    const left = Math.max(0, total - used);
+                    const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                    const labelMap: Record<string, string> = {
+                      personal_trainer: 'Personal Training',
+                      nutritionist:     'Nutrition',
+                      physiotherapist:  'Physiotherapy',
+                    };
+                    const label = labelMap[a.service_type] ?? (a.service_type ?? '').toString().replace('_', ' ');
+                    return (
+                      <div key={a.id} className="bg-gray-700/40 rounded-lg p-4 border border-gray-700">
+                        <div className="flex items-center justify-between gap-3 mb-1">
+                          <div className="min-w-0">
+                            <p className="text-white font-semibold truncate">{a.package_name ?? 'Package'}</p>
+                            <p className="text-xs text-gray-400 capitalize mt-0.5">
+                              {label}{a.trainer_name ? ` · with ${a.trainer_name}` : ''}
+                            </p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-400/10 text-emerald-400 capitalize shrink-0">
+                            Active
+                          </span>
+                        </div>
+                        {total > 0 && (
+                          <>
+                            <div className="flex justify-between mt-2">
+                              <dt className="text-xs text-gray-500">Sessions Used</dt>
+                              <dd className="text-xs text-white">{used} / {total}</dd>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                              <div
+                                className="bg-purple-500 h-1.5 rounded-full transition-all"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-1">{left} session{left !== 1 ? 's' : ''} remaining</p>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -406,11 +461,6 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           promoMap={promoMap}
         />
       </div>
-
-      {/* Service Assignments */}
-      {(serviceAssignments ?? []).length > 0 && (
-        <ServicePackagesList assignments={serviceAssignments} />
-      )}
 
         </>}
       />

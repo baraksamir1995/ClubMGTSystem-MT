@@ -15,9 +15,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _obscure        = true;
-  bool _isLoading      = false;
-  bool _submitted      = false;
+  bool _obscure   = true;
+  bool _isLoading = false;
+  bool _submitted = false;
 
   @override
   void initState() {
@@ -84,16 +84,20 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Verify your email'),
+        backgroundColor: kAuthCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Verify your email', style: TextStyle(color: kAuthInk, fontWeight: FontWeight.w600)),
         content: const Text(
-          'We sent a confirmation link when you signed up. Tap the link in the email to activate your account. Check spam if you can’t find it.',
+          "We sent a confirmation link when you signed up. Tap the link in the email to activate your account. Check spam if you can't find it.",
+          style: TextStyle(color: kAuthInk2, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: const Text('Close', style: TextStyle(color: kAuthInk2)),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: kAuthPrimary),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -117,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _err(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: kAuthError,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
@@ -125,77 +129,65 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: kAuthBg,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+          padding: EdgeInsets.fromLTRB(24, 32, 24, 16 + safeBottom + keyboard),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const GymBranding(),
-              const SizedBox(height: 22),
+              const AuthMark(size: 48),
+              const SizedBox(height: 24),
               const Text(
                 'Welcome back',
                 style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w500,
-                  color: kAuthText,
-                  letterSpacing: -0.5,
+                  fontSize: 32, fontWeight: FontWeight.w600,
+                  color: kAuthInk, letterSpacing: -0.8, height: 1.1,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               const Text(
-                'Sign in to continue',
-                style: TextStyle(fontSize: 14, color: kAuthSec),
+                'Sign in to manage your sessions and transfers.',
+                style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
               ),
               const SizedBox(height: 28),
 
-              // Email
               AuthField(
-                label: 'Email address',
+                label: 'Email',
                 controller: _emailCtrl,
-                placeholder: 'you@email.com',
+                placeholder: 'you@example.com',
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
+                leading: const Icon(Icons.mail_outline_rounded, size: 18, color: kAuthInk2),
                 errorText: _emailError,
               ),
               const SizedBox(height: 14),
 
-              // Password
               AuthField(
                 label: 'Password',
                 controller: _passwordCtrl,
-                placeholder: 'Your password',
+                placeholder: '••••••••',
                 isPassword: true,
                 obscureText: _obscure,
                 onToggleObscure: () => setState(() => _obscure = !_obscure),
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _signIn(),
+                leading: const Icon(Icons.lock_outline_rounded, size: 18, color: kAuthInk2),
                 errorText: _passwordError,
               ),
 
-              // Forgot password
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => context.push('/forgot-password'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text(
-                    'Forgot password?',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: kAuthPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                child: AuthTextLink(
+                  text: 'Forgot password?',
+                  onTap: () => context.push('/forgot-password'),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 24),
 
               AuthButton(
                 label: 'Sign in',
@@ -203,26 +195,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 enabled: _isFormValid,
                 onTap: _signIn,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 18),
 
               Center(
-                child: GestureDetector(
-                  onTap: () => context.go('/register'),
-                  child: RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 13, color: kAuthSec),
-                      children: [
-                        TextSpan(text: 'No account? '),
-                        TextSpan(
-                          text: 'Sign up',
-                          style: TextStyle(
-                            color: kAuthPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'New here? ',
+                      style: TextStyle(fontSize: 14, color: kAuthInk2),
                     ),
-                  ),
+                    AuthTextLink(
+                      text: 'Create an account',
+                      onTap: () => context.go('/register'),
+                    ),
+                  ],
                 ),
               ),
             ],

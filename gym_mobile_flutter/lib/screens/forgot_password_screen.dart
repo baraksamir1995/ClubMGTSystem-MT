@@ -12,15 +12,23 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // 0 = email form, 1 = confirmation (link sent)
+  // 0 = email form, 1 = link sent
   int _step = 0;
 
   final _emailCtrl = TextEditingController();
   bool _isLoading  = false;
+  bool _resendJustNow = false;
 
-  // Resend countdown
+  // Resend countdown — backend rate-limits resends; surface a countdown so
+  // users don't pound the button while throttled.
   Timer? _resendTimer;
   int _resendSeconds = 60;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailCtrl.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -29,14 +37,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  // ── Send reset link ───────────────────────────────────────────────────────────
-  Future<void> _send() async {
+  bool get _emailValid =>
+      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+').hasMatch(_emailCtrl.text.trim());
+
+  Future<void> _send({bool isResend = false}) async {
     final email = _emailCtrl.text.trim();
-    if (email.isEmpty) { _err('Please enter your email'); return; }
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-      _err('Enter a valid email address');
-      return;
-    }
+    if (!_emailValid) { _err('Enter a valid email address'); return; }
 
     setState(() => _isLoading = true);
     try {
@@ -45,20 +51,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() {
         _step = 1;
         _isLoading = false;
+        _resendJustNow = isResend;
       });
       _startResendTimer();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       _err(e.message);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       _err('Something went wrong. Please try again.');
     }
   }
 
-  // ── Resend countdown ─────────────────────────────────────────────────────────
   void _startResendTimer() {
     _resendSeconds = 60;
     _resendTimer?.cancel();
@@ -69,6 +75,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           _resendSeconds--;
         } else {
           t.cancel();
+          _resendJustNow = false;
         }
       });
     });
@@ -76,197 +83,213 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _resend() async {
     if (_resendSeconds > 0) return;
-    await _send();
+    await _send(isResend: true);
   }
 
   void _err(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: kAuthError,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kAuthBg,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-          child: _step == 0 ? _buildEmailStep() : _buildConfirmationStep(),
-        ),
+        child: _step == 0 ? _emailStep() : _sentStep(),
       ),
     );
   }
 
-  // ── Step 0: Email form ───────────────────────────────────────────────────────
-  Widget _buildEmailStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AuthBackButton(onTap: () => context.pop()),
-        const SizedBox(height: 22),
-        Container(
-          width: 54, height: 54,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEEEDFE),
-            borderRadius: BorderRadius.circular(16),
+  // ── Step 0: Enter email ─────────────────────────────────────────────────────
+  Widget _emailStep() {
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + safeBottom + keyboard),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AuthBackButton(onTap: () => context.pop()),
+          const SizedBox(height: 28),
+          const AuthPeachIcon(icon: Icons.mail_outline_rounded),
+          const SizedBox(height: 22),
+          const Text(
+            'Forgot password?',
+            style: TextStyle(
+              fontSize: 28, fontWeight: FontWeight.w600,
+              color: kAuthInk, letterSpacing: -0.6, height: 1.15,
+            ),
           ),
-          child: const Icon(Icons.lock_outline_rounded, color: kAuthPrimary, size: 26),
-        ),
-        const SizedBox(height: 22),
-        const Text(
-          'Forgot your\npassword?',
-          style: TextStyle(
-            fontSize: 24, fontWeight: FontWeight.w500,
-            color: kAuthText, letterSpacing: -0.4, height: 1.2,
+          const SizedBox(height: 8),
+          RichText(
+            text: const TextSpan(
+              style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+              children: [
+                TextSpan(text: "Enter the email tied to your account. We'll send a reset link valid for "),
+                TextSpan(
+                  text: '30 minutes',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: kAuthInk),
+                ),
+                TextSpan(text: '.'),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          "No worries. Enter your email and we'll send you a reset link.",
-          style: TextStyle(fontSize: 14, color: kAuthSec, height: 1.65),
-        ),
-        const SizedBox(height: 28),
-        AuthField(
-          label: 'Email address',
-          controller: _emailCtrl,
-          placeholder: 'you@email.com',
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _send(),
-        ),
-        const SizedBox(height: 28),
-        AuthButton(
-          label: 'Send reset link',
-          isLoading: _isLoading,
-          onTap: _send,
-        ),
-      ],
+          const SizedBox(height: 24),
+          AuthField(
+            label: 'Email',
+            controller: _emailCtrl,
+            placeholder: 'you@example.com',
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            autofocus: true,
+            leading: const Icon(Icons.mail_outline_rounded, size: 18, color: kAuthInk2),
+            onSubmitted: (_) => _send(),
+          ),
+          const SizedBox(height: 28),
+          AuthButton(
+            label: 'Send reset link',
+            isLoading: _isLoading,
+            enabled: _emailValid,
+            onTap: _send,
+          ),
+        ],
+      ),
     );
   }
 
-  // ── Step 1: Confirmation (link sent) ─────────────────────────────────────────
-  Widget _buildConfirmationStep() {
+  // ── Step 1: Link sent ───────────────────────────────────────────────────────
+  Widget _sentStep() {
     final canResend = _resendSeconds == 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AuthBackButton(onTap: () {
-          _resendTimer?.cancel();
-          setState(() { _step = 0; });
-        }),
-        const SizedBox(height: 22),
-
-        // Icon
-        Container(
-          width: 54, height: 54,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE1F5EE),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.mark_email_read_outlined,
-              color: kAuthGreen, size: 26),
-        ),
-        const SizedBox(height: 22),
-
-        const Text(
-          'Check your email',
-          style: TextStyle(
-            fontSize: 24, fontWeight: FontWeight.w500,
-            color: kAuthText, letterSpacing: -0.4,
-          ),
-        ),
-        const SizedBox(height: 8),
-        RichText(
-          text: TextSpan(
-            style: const TextStyle(fontSize: 14, color: kAuthSec, height: 1.65),
-            children: [
-              const TextSpan(text: 'We sent a password reset link to '),
-              TextSpan(
-                text: _emailCtrl.text.trim(),
-                style: const TextStyle(color: kAuthText, fontWeight: FontWeight.w500),
-              ),
-              const TextSpan(
-                text: '. Tap the link in that email to set a new password.',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        // Info card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F0FF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFD4D1F5), width: 1),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline_rounded,
-                  color: kAuthPrimary, size: 18),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  "The link will open the app directly on the new password screen. Check your spam folder if you don't see it.",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: kAuthSec,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        // Resend
-        Center(
-          child: GestureDetector(
-            onTap: canResend ? _resend : null,
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 13, color: kAuthPh),
-                children: canResend
-                    ? [
-                        TextSpan(
-                          text: 'Resend link',
-                          style: TextStyle(
-                            color: _isLoading ? kAuthPh : kAuthPrimary,
-                            fontWeight: FontWeight.w500,
+    return LayoutBuilder(builder: (ctx, constraints) {
+      return SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AuthBackButton(onTap: () {
+                    _resendTimer?.cancel();
+                    setState(() { _step = 0; });
+                  }),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 24),
+                        // Big peach circle with envelope + sparkle
+                        Container(
+                          width: 96, height: 96,
+                          decoration: const BoxDecoration(
+                            color: kAuthPeach,
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Icon(Icons.mail_outline_rounded, size: 44, color: kAuthInk),
+                              Positioned(
+                                top: -4, right: -8,
+                                child: Container(
+                                  width: 22, height: 22,
+                                  decoration: const BoxDecoration(
+                                    color: kAuthPrimary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(Icons.auto_awesome_rounded, size: 12, color: Colors.white),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ]
-                    : [
-                        const TextSpan(text: 'Resend in '),
-                        TextSpan(
-                          text: '${_resendSeconds}s',
-                          style: const TextStyle(
-                              color: kAuthPrimary, fontWeight: FontWeight.w500),
+                        const SizedBox(height: 22),
+                        const Text(
+                          'Check your email',
+                          style: TextStyle(
+                            fontSize: 26, fontWeight: FontWeight.w600,
+                            color: kAuthInk, letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text.rich(
+                          TextSpan(
+                            style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+                            children: [
+                              const TextSpan(text: 'We sent a reset link to\n'),
+                              TextSpan(
+                                text: _emailCtrl.text.trim().isEmpty ? 'you@example.com' : _emailCtrl.text.trim(),
+                                style: const TextStyle(color: kAuthInk, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 26),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: kAuthPeach,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Icon(Icons.info_outline_rounded, size: 18, color: kAuthInk),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  "Didn't get it? Check your spam folder, or wait a minute before requesting another link.",
+                                  style: TextStyle(fontSize: 13, color: kAuthInk, fontWeight: FontWeight.w500, height: 1.5),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
+                    ),
+                  ),
+
+                  AuthButton(
+                    label: 'Back to sign in',
+                    isGhost: true,
+                    onTap: () => context.go('/login'),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: canResend && !_isLoading ? _resend : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      width: double.infinity, height: 48,
+                      child: Center(
+                        child: Text(
+                          canResend
+                              ? (_resendJustNow ? 'Link sent again ✓' : 'Resend link')
+                              : 'Resend link in ${_resendSeconds}s',
+                          style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w500,
+                            color: canResend ? kAuthInk2 : kAuthInk3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        const SizedBox(height: 32),
-
-        // Back to sign in
-        AuthButton(
-          label: 'Back to Sign In',
-          isLoading: _isLoading,
-          isGhost: true,
-          onTap: () => context.go('/login'),
-        ),
-      ],
-    );
+      );
+    });
   }
 }

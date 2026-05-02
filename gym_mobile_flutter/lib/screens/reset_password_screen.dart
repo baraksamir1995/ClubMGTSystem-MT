@@ -16,9 +16,16 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _pwCtrl      = TextEditingController();
   final _confirmCtrl = TextEditingController();
-  bool _obscurePw      = true;
-  bool _obscureConfirm = true;
-  bool _isLoading      = false;
+  bool _show         = false; // single eye toggles both fields, per design
+  bool _isLoading    = false;
+  bool _done         = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pwCtrl.addListener(() => setState(() {}));
+    _confirmCtrl.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -27,24 +34,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
+  bool get _reqsOk =>
+      _pwCtrl.text.length >= 8 &&
+      RegExp(r'[A-Z]').hasMatch(_pwCtrl.text) &&
+      RegExp(r'[0-9]').hasMatch(_pwCtrl.text);
+
+  bool get _mismatch =>
+      _confirmCtrl.text.isNotEmpty && _pwCtrl.text != _confirmCtrl.text;
+
+  bool get _valid => _reqsOk && _confirmCtrl.text.isNotEmpty && !_mismatch;
+
   Future<void> _update() async {
-    if (_pwCtrl.text.isEmpty) {
-      _showError('Please enter a password');
-      return;
-    }
-    if (_pwCtrl.text.length < 8) {
-      _showError('Password must be at least 8 characters');
-      return;
-    }
-    if (_pwCtrl.text != _confirmCtrl.text) {
-      _showError('Passwords do not match');
-      return;
-    }
+    if (!_valid) return;
 
     final auth = context.read<AuthProvider>();
     final token = auth.recoveryToken;
     if (token == null || token.isEmpty) {
-      _showError('Reset link expired. Please request a new one.');
+      _err('Reset link expired. Please request a new one.');
       return;
     }
 
@@ -53,27 +59,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await ApiService().resetPassword(token, _pwCtrl.text);
       if (!mounted) return;
       auth.clearPasswordRecovery();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Password updated successfully!'),
-        backgroundColor: kAuthGreen,
-        behavior: SnackBarBehavior.floating,
-      ));
-      context.go('/login');
+      setState(() {
+        _isLoading = false;
+        _done = true;
+      });
     } on ApiException catch (e) {
       if (!mounted) return;
-      _showError(e.message);
+      setState(() => _isLoading = false);
+      _err(e.message);
     } catch (e) {
       if (!mounted) return;
-      _showError(friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
+      _err(friendlyError(e));
     }
   }
 
-  void _showError(String msg) {
+  void _err(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: Colors.red.shade700,
+      backgroundColor: kAuthError,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
@@ -83,80 +87,106 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kAuthBg,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
+        child: _done ? _successView() : _formView(),
+      ),
+    );
+  }
 
-              // Icon
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEEDFE),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.lock_reset_rounded,
-                    color: kAuthPrimary, size: 26),
-              ),
-              const SizedBox(height: 22),
-
-              const Text(
-                'New password',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  color: kAuthText,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Make it something strong',
-                style: TextStyle(fontSize: 14, color: kAuthSec),
-              ),
-              const SizedBox(height: 28),
-
-              AuthField(
-                label: 'New password',
-                controller: _pwCtrl,
-                placeholder: 'Enter new password',
-                isPassword: true,
-                obscureText: _obscurePw,
-                onToggleObscure: () =>
-                    setState(() => _obscurePw = !_obscurePw),
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_pwCtrl.text.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                AuthPasswordChecks(password: _pwCtrl.text),
-              ],
-              const SizedBox(height: 14),
-
-              AuthField(
-                label: 'Confirm password',
-                controller: _confirmCtrl,
-                placeholder: 'Repeat new password',
-                isPassword: true,
-                obscureText: _obscureConfirm,
-                onToggleObscure: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _update(),
-              ),
-              const SizedBox(height: 28),
-
-              AuthButton(
-                label: 'Set new password',
-                isLoading: _isLoading,
-                onTap: _update,
-              ),
-            ],
+  Widget _formView() {
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + safeBottom + keyboard),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AuthBackButton(onTap: () => context.go('/login')),
+          const SizedBox(height: 28),
+          const AuthPeachIcon(icon: Icons.lock_outline_rounded),
+          const SizedBox(height: 22),
+          const Text(
+            'Set a new password',
+            style: TextStyle(
+              fontSize: 28, fontWeight: FontWeight.w600,
+              color: kAuthInk, letterSpacing: -0.6, height: 1.15,
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          const Text(
+            "Choose something you haven't used before.",
+            style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+
+          AuthField(
+            label: 'New password',
+            controller: _pwCtrl,
+            placeholder: 'At least 8 characters',
+            isPassword: true,
+            obscureText: !_show,
+            onToggleObscure: () => setState(() => _show = !_show),
+            leading: const Icon(Icons.lock_outline_rounded, size: 18, color: kAuthInk2),
+          ),
+          const SizedBox(height: 10),
+          AuthStrengthMeter(password: _pwCtrl.text),
+          const SizedBox(height: 14),
+
+          AuthField(
+            label: 'Confirm password',
+            controller: _confirmCtrl,
+            placeholder: 'Type it again',
+            isPassword: true,
+            obscureText: !_show,
+            onToggleObscure: () => setState(() => _show = !_show),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _update(),
+            leading: const Icon(Icons.lock_outline_rounded, size: 18, color: kAuthInk2),
+            errorText: _mismatch ? "Passwords don't match" : null,
+          ),
+          const SizedBox(height: 16),
+          AuthPasswordChecks(password: _pwCtrl.text),
+          const SizedBox(height: 28),
+
+          AuthButton(
+            label: 'Update password',
+            isLoading: _isLoading,
+            enabled: _valid,
+            onTap: _update,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _successView() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      child: Column(
+        children: [
+          const Spacer(),
+          const AuthStatusIcon(),
+          const SizedBox(height: 26),
+          const Text(
+            'Password updated',
+            style: TextStyle(
+              fontSize: 26, fontWeight: FontWeight.w600,
+              color: kAuthInk, letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'You can now sign in with your new password.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+          ),
+          const Spacer(),
+          AuthButton(
+            label: 'Continue to sign in',
+            onTap: () => context.go('/login'),
+          ),
+        ],
       ),
     );
   }

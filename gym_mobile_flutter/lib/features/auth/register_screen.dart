@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/gym_model.dart';
 import '../../services/api_service.dart';
 import '../../services/analytics_service.dart';
-import 'auth_widgets.dart';
-import 'gym_selector.dart';
 import '../../utils/env.dart';
 import '../../utils/error_utils.dart';
 import '../../widgets/country_codes.dart';
 import '../../widgets/legal_links.dart';
+import 'auth_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,59 +19,61 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _pageController = PageController();
-  int _step = 0; // 0 = step 1, 1 = step 2
+  int _step = 0; // 0 Account · 1 You · 2 Club
 
-  // Step 1 — personal + password
-  final _firstNameCtrl  = TextEditingController();
-  final _lastNameCtrl   = TextEditingController();
-  final _passwordCtrl   = TextEditingController();
-  final _confirmCtrl    = TextEditingController();
-  DateTime? _dob;
-  int _gender = 0; // 0 = Male, 1 = Female
-  bool _obscurePw      = true;
-  bool _obscureConfirm = true;
+  // Step 1 — Account
+  final _emailCtrl    = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _obscurePw = true;
 
-  // Step 2 — contact + gym
+  // Step 2 — You
+  final _nameCtrl  = TextEditingController();
+  final _dayCtrl   = TextEditingController();
+  final _yearCtrl  = TextEditingController();
+  int? _month;
   final _phoneCtrl = TextEditingController();
   Country _country = kCountries.first;
-  final _emailCtrl = TextEditingController();
 
-  // Gym selection
+  // Step 3 — Club
+  final _gymSearchCtrl = TextEditingController();
   List<Gym> _gyms = [];
-  Gym? _selectedGym;
   bool _gymsLoading = true;
+  Gym? _selectedGym;
 
   bool _isLoading = false;
-  bool _dialogOpen = false;
-  bool _step1Submitted = false;
-  bool _step2Submitted = false;
+  bool _registered = false;
+
+  static const _months = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _firstNameCtrl.addListener(_rebuild);
-    _lastNameCtrl.addListener(_rebuild);
-    _passwordCtrl.addListener(_rebuild);
-    _confirmCtrl.addListener(_rebuild);
-    _phoneCtrl.addListener(_rebuild);
     _emailCtrl.addListener(_rebuild);
+    _passwordCtrl.addListener(_rebuild);
+    _nameCtrl.addListener(_rebuild);
+    _dayCtrl.addListener(_rebuild);
+    _yearCtrl.addListener(_rebuild);
+    _phoneCtrl.addListener(_rebuild);
+    _gymSearchCtrl.addListener(_rebuild);
     _loadGyms();
   }
 
   Future<void> _loadGyms() async {
     try {
       final gyms = await ApiService().getActiveGyms();
-      if (mounted) {
-        setState(() {
-          _gyms = gyms;
-          _gymsLoading = false;
-          // Auto-select gym from build-time GYM_ID if set
-          if (Env.gymId.isNotEmpty) {
-            final match = gyms.where((g) => g.id == Env.gymId);
-            if (match.isNotEmpty) _selectedGym = match.first;
-          }
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _gyms = gyms;
+        _gymsLoading = false;
+        // Auto-select gym from build-time GYM_ID if set.
+        if (Env.gymId.isNotEmpty) {
+          final match = gyms.where((g) => g.id == Env.gymId);
+          if (match.isNotEmpty) _selectedGym = match.first;
+        }
+      });
     } catch (_) {
       if (mounted) setState(() => _gymsLoading = false);
     }
@@ -80,174 +82,145 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _pageController.dispose();
-    _firstNameCtrl.dispose();
-    _lastNameCtrl.dispose();
-    _passwordCtrl.dispose();
-    _confirmCtrl.dispose();
-    _phoneCtrl.dispose();
     _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _nameCtrl.dispose();
+    _dayCtrl.dispose();
+    _yearCtrl.dispose();
+    _phoneCtrl.dispose();
+    _gymSearchCtrl.dispose();
     super.dispose();
   }
 
   void _rebuild() => setState(() {});
 
   // ── Validation ──────────────────────────────────────────────────────────────
-  String? _validateStep1() {
-    if (_firstNameCtrl.text.trim().isEmpty) return 'First name is required';
-    if (_lastNameCtrl.text.trim().isEmpty) return 'Last name is required';
-    if (_passwordCtrl.text.isEmpty) return 'Password is required';
-    if (_passwordCtrl.text.length < 8) return 'Password must be at least 8 characters';
-    if (_confirmCtrl.text != _passwordCtrl.text) return 'Passwords do not match';
-    return null;
-  }
+  bool get _validEmail =>
+      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+').hasMatch(_emailCtrl.text.trim());
 
-  bool get _isStep1Valid =>
-      _firstNameCtrl.text.trim().isNotEmpty &&
-      _lastNameCtrl.text.trim().isNotEmpty &&
+  bool get _validPassword =>
       _passwordCtrl.text.length >= 8 &&
-      _confirmCtrl.text == _passwordCtrl.text;
+      RegExp(r'[A-Z]').hasMatch(_passwordCtrl.text) &&
+      RegExp(r'[0-9]').hasMatch(_passwordCtrl.text);
 
-  /// Phone is optional. The dropdown always carries a country code; "blank"
-  /// means the user typed no digits. Once they do type digits, we accept
-  /// any country (no per-region regex) — the backend stores the composed
-  /// E.164-ish string.
-  bool get _phoneLeftBlank => _phoneCtrl.text.trim().isEmpty;
+  bool get _step0Valid => _validEmail && _validPassword;
 
-  String _composedPhone() => composePhone(
-        dialCode: _country.dialCode,
-        typed: _phoneCtrl.text,
-      );
-
-  bool get _isStep2Valid =>
-      _selectedGym != null &&
-      _emailCtrl.text.trim().isNotEmpty &&
-      RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim());
-
-  // Per-field errors (only show after submission attempt)
-  String? get _firstNameError => _step1Submitted && _firstNameCtrl.text.trim().isEmpty ? 'First name is required' : null;
-  String? get _lastNameError => _step1Submitted && _lastNameCtrl.text.trim().isEmpty ? 'Last name is required' : null;
-  String? get _passwordError {
-    if (!_step1Submitted) return null;
-    if (_passwordCtrl.text.isEmpty) return 'Password is required';
-    if (_passwordCtrl.text.length < 8) return 'At least 8 characters';
-    return null;
-  }
-  String? get _confirmError {
-    if (!_step1Submitted) return null;
-    if (_confirmCtrl.text.isEmpty) return 'Confirm your password';
-    if (_confirmCtrl.text != _passwordCtrl.text) return 'Passwords do not match';
-    return null;
-  }
-  String? get _phoneError {
-    if (!_step2Submitted) return null;
-    return null; // optional field, no client-side format check beyond country code
-  }
-  String? get _emailError {
-    if (!_step2Submitted) return null;
-    if (_emailCtrl.text.trim().isEmpty) return 'Email is required';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim())) return 'Invalid email';
-    return null;
-  }
-  String? get _gymError {
-    if (!_step2Submitted) return null;
-    if (_selectedGym == null) return 'Please select a gym';
-    return null;
-  }
-
-  String? _validateStep2() {
-    if (_selectedGym == null) return 'Please select a gym';
-    if (_emailCtrl.text.trim().isEmpty) return 'Email is required';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim())) {
-      return 'Enter a valid email address';
+  ({int? age, bool valid, bool ageOk}) get _dobInfo {
+    final d = int.tryParse(_dayCtrl.text);
+    final y = int.tryParse(_yearCtrl.text);
+    final m = _month;
+    final today = DateTime.now();
+    if (d == null || m == null || y == null) return (age: null, valid: false, ageOk: false);
+    if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > today.year) {
+      return (age: null, valid: false, ageOk: false);
     }
-    return null;
+    int age = today.year - y;
+    if (today.month < m || (today.month == m && today.day < d)) age--;
+    return (age: age, valid: true, ageOk: age >= 13 && age <= 120);
   }
+
+  bool get _step1Valid {
+    final dob = _dobInfo;
+    final phoneDigits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    final phoneOk = _phoneCtrl.text.trim().isEmpty || (phoneDigits.length >= 7 && phoneDigits.length <= 15);
+    return _nameCtrl.text.trim().length >= 2 && dob.valid && dob.ageOk && phoneOk;
+  }
+
+  bool get _step2Valid => _selectedGym != null;
 
   // ── Navigation ──────────────────────────────────────────────────────────────
-  void _nextStep() {
-    setState(() => _step1Submitted = true);
-    final err = _validateStep1();
-    if (err != null) return;
-    setState(() => _step = 1);
-    _pageController.nextPage(
+  void _goTo(int step) {
+    setState(() => _step = step);
+    _pageController.animateToPage(
+      step,
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeInOutCubic,
     );
+    FocusScope.of(context).unfocus();
   }
 
-  void _prevStep() {
-    setState(() => _step = 0);
-    _pageController.previousPage(
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeInOutCubic,
-    );
+  void _back() {
+    if (_step == 0) {
+      context.go('/login');
+      return;
+    }
+    _goTo(_step - 1);
   }
 
-  // ── Register ────────────────────────────────────────────────────────────────
+  // ── Submit ──────────────────────────────────────────────────────────────────
   Future<void> _register() async {
-    setState(() => _step2Submitted = true);
-    final err = _validateStep2();
-    if (err != null) return;
-
+    if (!_step2Valid) return;
     setState(() => _isLoading = true);
-    final email     = _emailCtrl.text.trim();
-    final password  = _passwordCtrl.text;
-    final fullName  = '${_firstNameCtrl.text.trim()} ${_lastNameCtrl.text.trim()}';
-    final phone     = _phoneLeftBlank ? null : _composedPhone();
-    final dob       = _dob?.toIso8601String().substring(0, 10);
+
+    final email    = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    final fullName = _nameCtrl.text.trim();
+    final phone    = _phoneCtrl.text.trim().isEmpty
+        ? null
+        : composePhone(dialCode: _country.dialCode, typed: _phoneCtrl.text);
+    final yyyy = int.parse(_yearCtrl.text);
+    final mm   = (_month ?? 1).toString().padLeft(2, '0');
+    final dd   = int.parse(_dayCtrl.text).toString().padLeft(2, '0');
+    final dob  = '$yyyy-$mm-$dd';
+
     try {
-      final service = ApiService();
-      await service.register(
+      final api = ApiService();
+      await api.register(
         email: email,
         password: password,
         fullName: fullName,
         phone: phone,
         gymId: _selectedGym!.id,
         dateOfBirth: dob,
-        gender: _gender == 0 ? 'male' : 'female',
       );
 
       AnalyticsService.instance.logSignUp();
-      AnalyticsService.instance.logGymSelected(
-        _selectedGym!.id,
-        _selectedGym!.name,
-      );
+      AnalyticsService.instance.logGymSelected(_selectedGym!.id, _selectedGym!.name);
 
-      // Sign out after registration so user must confirm email / sign in
-      await service.signOut();
+      // Sign out — backend requires email verification before sign-in.
+      await api.signOut();
 
       if (!mounted) return;
-      _showSuccessDialog();
+      setState(() {
+        _isLoading = false;
+        _registered = true;
+      });
     } on ApiException catch (e) {
       if (!mounted) return;
-      final lower = e.message.toLowerCase();
-      if (lower.contains('already') || lower.contains('exists') || lower.contains('taken')) {
-        _showError('This email is already registered. If your account was deleted, please use "Forgot Password" to regain access.');
-        return;
-      }
-      if (lower.contains('phone')) {
-        _showError(_friendlyDbError(e.message));
-        return;
-      }
-      _showError(_friendlyAuthError(e.message));
+      setState(() => _isLoading = false);
+      _showError(_friendlyError(e.message));
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isLoading = false);
       _showError(friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  String _friendlyError(String m) {
+    final l = m.toLowerCase();
+    if (l.contains('already') || l.contains('exists') || l.contains('taken')) {
+      return 'This email is already registered. Use Forgot Password if you lost access.';
+    }
+    if (l.contains('phone')) return 'This phone number is already registered.';
+    if (l.contains('weak password')) return 'Password is too weak. Use at least 8 characters.';
+    return m;
+  }
 
-  // ── Country picker (bottom sheet) ──────────────────────────────────────────
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: kAuthError,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ));
+  }
+
   Future<void> _openCountryPicker() async {
     FocusScope.of(context).unfocus();
     final screenH = MediaQuery.of(context).size.height;
     final picked = await showModalBottomSheet<Country>(
       context: context,
-      backgroundColor: Colors.white,
-      // Cap at 50% of screen so the sheet feels lightweight rather than
-      // taking over the page; the inner ListView still scrolls.
+      backgroundColor: kAuthCard,
       constraints: BoxConstraints(maxHeight: screenH * 0.5),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -260,18 +233,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Container(
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: kAuthBorder,
-                borderRadius: BorderRadius.circular(2),
+                color: kAuthHair, borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 8),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Select country',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kAuthText),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kAuthInk),
                 ),
               ),
             ),
@@ -285,13 +256,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     dense: true,
                     visualDensity: const VisualDensity(vertical: -2),
                     leading: Text(c.flag, style: const TextStyle(fontSize: 22)),
-                    title: Text(c.name, style: const TextStyle(fontSize: 14, color: kAuthText)),
-                    trailing: Text(c.dialCode,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                          color: selected ? kAuthPrimary : kAuthSec,
-                        )),
+                    title: Text(c.name, style: const TextStyle(fontSize: 14, color: kAuthInk)),
+                    trailing: Text(
+                      c.dialCode,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        color: selected ? kAuthPrimary : kAuthInk2,
+                      ),
+                    ),
                     onTap: () => Navigator.of(ctx).pop(c),
                   );
                 },
@@ -301,173 +274,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
-    if (picked != null && mounted) {
-      setState(() => _country = picked);
-    }
+    if (picked != null && mounted) setState(() => _country = picked);
   }
 
-  // ── Date picker ─────────────────────────────────────────────────────────────
-  Future<void> _pickDob() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(now.year - 20),
-      firstDate: DateTime(now.year - 100),
-      lastDate: DateTime(now.year - 10),
-      helpText: 'Date of Birth',
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: Theme.of(ctx).colorScheme.copyWith(primary: kAuthPrimary),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) setState(() => _dob = picked);
-  }
-
-  String _formatDob(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')} / ${d.month.toString().padLeft(2, '0')} / ${d.year}';
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: Colors.red.shade700,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
-  }
-
-  void _showSuccessDialog() {
-    _dialogOpen = true;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: kAuthPrimary,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Icon(Icons.mark_email_read_outlined, color: Colors.white, size: 36),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Check your email',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  color: kAuthText,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'We sent a confirmation link to ${_emailCtrl.text.trim()}. Please confirm your email before signing in.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: kAuthSec, height: 1.6),
-              ),
-              const SizedBox(height: 24),
-              AuthButton(
-                label: 'Go to Sign In',
-                onTap: () {
-                  _dialogOpen = false;
-                  Navigator.of(ctx).pop();
-                  context.go('/login');
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    // Auto-redirect to sign in after 4 seconds if user hasn't tapped the button
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted && _dialogOpen) {
-        _dialogOpen = false;
-        Navigator.of(context, rootNavigator: true).pop();
-        context.go('/login');
-      }
-    });
-  }
-
-  String _friendlyAuthError(String m) {
-    final l = m.toLowerCase();
-    if (l.contains('already registered') || l.contains('already exists')) {
-      return 'This email is already registered. Please sign in instead.';
-    }
-    if (l.contains('invalid email')) return 'Please enter a valid email address.';
-    if (l.contains('weak password')) return 'Password is too weak. Use at least 8 characters.';
-    return m;
-  }
-
-  String _friendlyDbError(String m) {
-    final l = m.toLowerCase();
-    if (l.contains('profiles_phone_unique') || (l.contains('unique') && l.contains('phone'))) {
-      return 'This phone number is already registered. Please use a different number.';
-    }
-    if (l.contains('permission denied') || l.contains('row-level security')) {
-      return 'Registration is not allowed at this time. Contact your gym.';
-    }
-    return 'Registration failed. Please try again or contact support.';
-  }
-
-  // ── UI ───────────────────────────────────────────────────────────────────────
+  // ── UI ──────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    if (_registered) return _SuccessView(email: _emailCtrl.text.trim());
     return Scaffold(
       backgroundColor: kAuthBg,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top bar (step indicator) ────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-              child: Column(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      if (_step == 1)
-                        AuthBackButton(onTap: _prevStep)
-                      else
-                        AuthBackButton(onTap: () => context.go('/login')),
-                      const Spacer(),
-                      const AuthLogo(size: 34),
-                      const Spacer(),
-                      Text(
-                        'Step ${_step + 1} of 2',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: kAuthPh,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  AuthProgressBar(progress: (_step + 1) / 2),
+                  AuthBackButton(onTap: _back),
+                  const Spacer(),
                 ],
               ),
             ),
-
-            // ── Pages ───────────────────────────────────────────────────────
+            const SizedBox(height: 8),
+            AuthStepBar(step: _step),
+            const SizedBox(height: 4),
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _Step1(),
-                  _Step2(),
+                  _accountStep(),
+                  _personalStep(),
+                  _clubStep(),
                 ],
               ),
             ),
@@ -477,301 +316,583 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // ── Step 1: Personal info + password ────────────────────────────────────────
-  Widget _Step1() {
+  // ── Step 0 — Account (email + password) ─────────────────────────────────────
+  Widget _accountStep() {
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      // Bottom padding accounts for keyboard so the scroll content can be
+      // pushed up when the user focuses a field — the focused TextField
+      // calls Scrollable.ensureVisible to scroll itself above the keyboard.
+      padding: EdgeInsets.fromLTRB(24, 14, 24, 16 + safeBottom + keyboard),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const AuthMark(size: 48),
+          const SizedBox(height: 18),
           const Text(
-            "Let's meet you",
+            'Create your account',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w500,
-              color: kAuthText,
-              letterSpacing: -0.4,
+              fontSize: 28, fontWeight: FontWeight.w600,
+              color: kAuthInk, letterSpacing: -0.6, height: 1.15,
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           const Text(
-            'A few basics to get started',
-            style: TextStyle(fontSize: 14, color: kAuthSec),
+            "Email and a strong password — we'll keep your account safe.",
+            style: TextStyle(fontSize: 14, color: kAuthInk2, height: 1.5),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
 
-          // First / Last name row
-          Row(
-            children: [
-              Expanded(
-                child: AuthField(
-                  label: 'First name',
-                  controller: _firstNameCtrl,
-                  placeholder: 'Ahmed',
-                  errorText: _firstNameError,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: AuthField(
-                  label: 'Last name',
-                  controller: _lastNameCtrl,
-                  placeholder: 'Hassan',
-                  errorText: _lastNameError,
-                ),
-              ),
-            ],
+          AuthField(
+            label: 'Email',
+            controller: _emailCtrl,
+            placeholder: 'you@example.com',
+            keyboardType: TextInputType.emailAddress,
+            leading: const Icon(Icons.mail_outline_rounded, size: 18, color: kAuthInk2),
           ),
           const SizedBox(height: 14),
-
-          // Date of birth
-          AuthTapField(
-            label: 'Date of birth',
-            value: _dob != null ? _formatDob(_dob!) : '',
-            placeholder: 'DD / MM / YYYY',
-            onTap: _pickDob,
-            trailing: const Icon(Icons.calendar_today_outlined,
-                size: 16, color: kAuthPh),
+          AuthField(
+            label: 'Password',
+            controller: _passwordCtrl,
+            placeholder: 'At least 8 characters',
+            isPassword: true,
+            obscureText: _obscurePw,
+            onToggleObscure: () => setState(() => _obscurePw = !_obscurePw),
+            leading: const Icon(Icons.lock_outline_rounded, size: 18, color: kAuthInk2),
           ),
-          const SizedBox(height: 14),
-
-          // Gender
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'GENDER',
-                style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w500,
-                  color: kAuthSec, letterSpacing: 0.7,
-                ),
-              ),
-              const SizedBox(height: 5),
-              AuthSegment(
-                options: const ['Male', 'Female'],
-                selected: _gender,
-                onSelect: (i) => setState(() => _gender = i),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Password
-          StatefulBuilder(builder: (_, ss) {
-            return AuthField(
-              label: 'Password',
-              controller: _passwordCtrl,
-              placeholder: 'Create a password',
-              isPassword: true,
-              obscureText: _obscurePw,
-              onToggleObscure: () => ss(() => _obscurePw = !_obscurePw),
-              onChanged: (_) => setState(() {}),
-              errorText: _passwordError,
-            );
-          }),
-          if (_passwordCtrl.text.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            AuthPasswordChecks(password: _passwordCtrl.text),
-          ],
-          const SizedBox(height: 14),
-
-          // Confirm password
-          StatefulBuilder(builder: (_, ss) {
-            return AuthField(
-              label: 'Confirm password',
-              controller: _confirmCtrl,
-              placeholder: 'Repeat your password',
-              isPassword: true,
-              obscureText: _obscureConfirm,
-              onToggleObscure: () => ss(() => _obscureConfirm = !_obscureConfirm),
-              textInputAction: TextInputAction.done,
-              errorText: _confirmError,
-            );
-          }),
+          const SizedBox(height: 12),
+          AuthReqChips(password: _passwordCtrl.text),
           const SizedBox(height: 28),
 
-          AuthButton(label: 'Continue', isLoading: _isLoading, enabled: _isStep1Valid, onTap: _nextStep),
-          const SizedBox(height: 20),
-          Center(
-            child: GestureDetector(
-              onTap: () => context.go('/login'),
-              child: RichText(
-                text: const TextSpan(
-                  style: TextStyle(fontSize: 13, color: kAuthSec),
-                  children: [
-                    TextSpan(text: 'Already a member? '),
-                    TextSpan(
-                      text: 'Sign in',
-                      style: TextStyle(
-                          color: kAuthPrimary, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
+          AuthButton(
+            label: 'Continue',
+            enabled: _step0Valid,
+            onTap: () => _goTo(1),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Already have an account? ',
+                style: TextStyle(fontSize: 14, color: kAuthInk2),
               ),
-            ),
+              AuthTextLink(
+                text: 'Sign in',
+                onTap: () => context.go('/login'),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ── Step 2: Contact info ─────────────────────────────────────────────────────
-  Widget _Step2() {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          24, 20, 24,
-          MediaQuery.of(context).viewInsets.bottom + 32,
-        ),
-        child: Column(
+  // ── Step 1 — You (name + DOB + optional mobile) ─────────────────────────────
+  Widget _personalStep() {
+    final dob = _dobInfo;
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, 14, 24, 16 + safeBottom + keyboard),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'How to reach you',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w500,
-              color: kAuthText,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'Used for verification and updates',
-            style: TextStyle(fontSize: 14, color: kAuthSec),
-          ),
-          const SizedBox(height: 24),
-
-          // Gym selection (hidden when GYM_ID is set at build time)
-          if (Env.gymId.isEmpty) ...[
-            GymSelector(
-              gyms: _gyms,
-              selected: _selectedGym,
-              isLoading: _gymsLoading,
-              errorText: _gymError,
-              onSelected: (gym) => setState(() => _selectedGym = gym),
-            ),
-            const SizedBox(height: 14),
-          ],
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'MOBILE NUMBER (OPTIONAL)',
-                style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w500,
-                  color: kAuthSec, letterSpacing: 0.7,
+                const AuthPeachIcon(icon: Icons.calendar_today_outlined),
+                const SizedBox(height: 18),
+                const Text(
+                  'A bit about you',
+                  style: TextStyle(
+                    fontSize: 28, fontWeight: FontWeight.w600,
+                    color: kAuthInk, letterSpacing: -0.6, height: 1.15,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 5),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Country picker — opens a bottom sheet to choose dial code.
-                  GestureDetector(
-                    onTap: _openCountryPicker,
-                    child: Container(
-                      height: 52,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: kAuthFieldBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: kAuthBorder, width: 1.5),
+                const SizedBox(height: 22),
+
+                AuthField(
+                  label: 'Full name',
+                  controller: _nameCtrl,
+                  placeholder: 'e.g. Ahmed Hassan',
+                  keyboardType: TextInputType.name,
+                  leading: const Icon(Icons.person_outline_rounded, size: 18, color: kAuthInk2),
+                ),
+                const SizedBox(height: 16),
+
+                // Date of birth — DD / Month / YYYY
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Text(
+                    'DATE OF BIRTH',
+                    style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600,
+                      color: kAuthInk2, letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 10,
+                      child: _FieldShell(
+                        child: _dobNum(_dayCtrl, 'DD', 2),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_country.flag, style: const TextStyle(fontSize: 20)),
-                          const SizedBox(width: 8),
-                          Text(
-                            _country.dialCode,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: kAuthText,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.expand_more, color: kAuthSec, size: 18),
-                        ],
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 16,
+                      child: _FieldShell(
+                        focusable: false,
+                        child: _dobMonth(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 12,
+                      child: _FieldShell(
+                        child: _dobNum(_yearCtrl, 'YYYY', 4),
+                      ),
+                    ),
+                  ],
+                ),
+                if (dob.valid && dob.ageOk) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: kAuthSuccessBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${dob.age} years old ✓',
+                      style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: kAuthSuccess,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: kAuthFieldBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: (_phoneError != null && _phoneError!.isNotEmpty)
-                              ? const Color(0xFFEF4444)
-                              : kAuthBorder,
-                          width: 1.5,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      alignment: Alignment.center,
-                      child: TextField(
-                        controller: _phoneCtrl,
-                        keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
-                        style: const TextStyle(fontSize: 15, color: kAuthText),
-                        decoration: const InputDecoration(
-                          hintText: '10X XXX XXXX',
-                          hintStyle: TextStyle(color: kAuthPh, fontSize: 15),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
+                ] else if (dob.valid && !dob.ageOk) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: kAuthErrorBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'You must be at least 13 to sign up.',
+                      style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: kAuthError,
                       ),
                     ),
                   ),
                 ],
-              ),
-              if (_phoneError != null && _phoneError!.isNotEmpty)
+                const SizedBox(height: 16),
+
+                // Mobile — optional
                 Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 4),
-                  child: Text(
-                    _phoneError!,
-                    style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                  padding: const EdgeInsets.only(left: 4, right: 4),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'MOBILE',
+                        style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: kAuthInk2, letterSpacing: 0.3,
+                        ),
+                      ),
+                      Spacer(),
+                      Text(
+                        'Optional',
+                        style: TextStyle(fontSize: 11, color: kAuthInk3, fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+                const SizedBox(height: 6),
+                _FieldShell(
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _openCountryPicker,
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_country.flag, style: const TextStyle(fontSize: 18)),
+                              const SizedBox(width: 6),
+                              Text(
+                                _country.dialCode,
+                                style: const TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w600, color: kAuthInk,
+                                ),
+                              ),
+                              const Icon(Icons.expand_more_rounded, size: 18, color: kAuthInk2),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _phoneCtrl,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500, color: kAuthInk,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: '10 1234 5678',
+                            hintStyle: TextStyle(color: kAuthInk3, fontSize: 15, fontWeight: FontWeight.w400),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: false,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d\s]')),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 28),
+      AuthButton(
+        label: 'Continue',
+        enabled: _step1Valid,
+        onTap: () => _goTo(2),
+      ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dobNum(TextEditingController ctrl, String hint, int max) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 16, fontWeight: FontWeight.w500, color: kAuthInk, letterSpacing: 1.0,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(
+          color: kAuthInk3, fontSize: 15, fontWeight: FontWeight.w400, letterSpacing: 0,
+        ),
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        filled: false,
+        isDense: true,
+        contentPadding: EdgeInsets.zero,
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(max),
+      ],
+    );
+  }
+
+  Widget _dobMonth() {
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<int>(
+        value: _month,
+        isExpanded: true,
+        hint: const Text(
+          'Month',
+          style: TextStyle(color: kAuthInk3, fontSize: 15, fontWeight: FontWeight.w400),
+        ),
+        icon: const Icon(Icons.expand_more_rounded, size: 18, color: kAuthInk2),
+        style: const TextStyle(
+          fontSize: 16, fontWeight: FontWeight.w500, color: kAuthInk,
+        ),
+        dropdownColor: kAuthCard,
+        borderRadius: BorderRadius.circular(12),
+        items: List.generate(12, (i) {
+          return DropdownMenuItem<int>(
+            value: i + 1,
+            child: Text(_months[i]),
+          );
+        }),
+        onChanged: (v) => setState(() => _month = v),
+      ),
+    );
+  }
+
+  // ── Step 2 — Club ───────────────────────────────────────────────────────────
+  Widget _clubStep() {
+    final q = _gymSearchCtrl.text.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? _gyms
+        : _gyms.where((g) => g.name.toLowerCase().contains(q)).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AuthPeachIcon(icon: Icons.location_on_outlined),
+          const SizedBox(height: 18),
+          const Text(
+            'Pick your club',
+            style: TextStyle(
+              fontSize: 28, fontWeight: FontWeight.w600,
+              color: kAuthInk, letterSpacing: -0.6, height: 1.15,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'This is the home location your sessions are tied to.',
+            style: TextStyle(fontSize: 14, color: kAuthInk2, height: 1.5),
+          ),
+          const SizedBox(height: 18),
+          AuthField(
+            label: 'Search',
+            controller: _gymSearchCtrl,
+            placeholder: 'Search by name or area',
+            leading: const Icon(Icons.search_rounded, size: 18, color: kAuthInk2),
           ),
           const SizedBox(height: 14),
-
-          AuthField(
-            label: 'Email address',
-            controller: _emailCtrl,
-            placeholder: 'you@email.com',
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _register(),
-            errorText: _emailError,
+          Expanded(
+            child: _gymsLoading
+                ? const Center(child: CircularProgressIndicator(color: kAuthPrimary, strokeWidth: 2.5))
+                : filtered.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(28),
+                          child: Text(
+                            q.isEmpty
+                                ? 'No clubs available right now.'
+                                : 'No clubs match "$q".',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: kAuthInk2, fontSize: 14),
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          final g = filtered[i];
+                          final selected = _selectedGym?.id == g.id;
+                          return _GymCard(
+                            gym: g,
+                            selected: selected,
+                            onTap: () => setState(() => _selectedGym = g),
+                          );
+                        },
+                      ),
           ),
-          const SizedBox(height: 28),
-
-          AuthButton(
-            label: 'Create account',
-            isLoading: _isLoading,
-            enabled: _isStep2Valid,
-            onTap: _register,
-          ),
-          const SizedBox(height: 16),
-          const LegalConsentLine(
-            prefix: 'By creating an account, you agree to our ',
+          Padding(
+            padding: EdgeInsets.fromLTRB(0, 8, 0, 16 + MediaQuery.of(context).padding.bottom),
+            child: Column(
+              children: [
+                AuthButton(
+                  label: 'Create account',
+                  isLoading: _isLoading,
+                  enabled: _step2Valid,
+                  onTap: _register,
+                ),
+                const SizedBox(height: 12),
+                const LegalConsentLine(
+                  prefix: 'By creating an account you agree to our ',
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    ),
+    );
+  }
+}
+
+// ── Field shell that matches AuthField's container (focus ring + shadow) ────
+// Wrap a TextField/dropdown to share the same look as the labeled AuthField.
+// Set focusable: false for non-text triggers (e.g. month dropdown) so they
+// don't try to track keyboard focus.
+class _FieldShell extends StatefulWidget {
+  final Widget child;
+  final bool focusable;
+  const _FieldShell({required this.child, this.focusable = true});
+
+  @override
+  State<_FieldShell> createState() => _FieldShellState();
+}
+
+class _FieldShellState extends State<_FieldShell> {
+  bool _focused = false;
+
+  void _onFocus(bool hasFocus) {
+    if (hasFocus != _focused) setState(() => _focused = hasFocus);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ringColor = _focused ? kAuthPrimary : Colors.transparent;
+    final body = AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: kAuthCard,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: ringColor == Colors.transparent
+            ? const [BoxShadow(color: Color(0x0A1F1A14), blurRadius: 2, offset: Offset(0, 1))]
+            : [BoxShadow(color: ringColor, blurRadius: 0, spreadRadius: 2)],
+      ),
+      alignment: Alignment.center,
+      child: widget.child,
+    );
+    if (!widget.focusable) return body;
+    return Focus(
+      canRequestFocus: false,
+      onFocusChange: _onFocus,
+      child: body,
+    );
+  }
+}
+
+// ── Gym card — selected = inverted dark card ─────────────────────────────────
+class _GymCard extends StatelessWidget {
+  final Gym gym;
+  final bool selected;
+  final VoidCallback onTap;
+  const _GymCard({required this.gym, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected ? kAuthInk : kAuthCard,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: selected
+              ? const [BoxShadow(color: Color(0x2D1F1A14), blurRadius: 18, offset: Offset(0, 6))]
+              : const [BoxShadow(color: Color(0x0A1F1A14), blurRadius: 2, offset: Offset(0, 1))],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 44, height: 44,
+                color: selected ? const Color(0x1FFFFFFF) : kAuthPeach,
+                child: gym.logoUrl != null && gym.logoUrl!.isNotEmpty
+                    ? Image.network(
+                        gym.logoUrl!,
+                        width: 44, height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.fitness_center_rounded,
+                          color: selected ? Colors.white : kAuthInk,
+                          size: 22,
+                        ),
+                      )
+                    : Icon(
+                        Icons.fitness_center_rounded,
+                        color: selected ? Colors.white : kAuthInk,
+                        size: 22,
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                gym.name,
+                style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : kAuthInk,
+                  letterSpacing: -0.1,
+                ),
+                maxLines: 2, overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 22, height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? Colors.white : Colors.transparent,
+                border: Border.all(
+                  color: selected ? Colors.white : const Color(0x2D1F1A14),
+                  width: 1.6,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: selected
+                  ? const Icon(Icons.check_rounded, size: 13, color: kAuthInk)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Success view — backend requires email verification before sign-in ───────
+class _SuccessView extends StatelessWidget {
+  final String email;
+  const _SuccessView({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kAuthBg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            children: [
+              const Spacer(),
+              const AuthStatusIcon(),
+              const SizedBox(height: 26),
+              const Text(
+                "You're all set",
+                style: TextStyle(
+                  fontSize: 28, fontWeight: FontWeight.w600,
+                  color: kAuthInk, letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text.rich(
+                TextSpan(
+                  style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+                  children: [
+                    const TextSpan(text: "We sent a confirmation link to\n"),
+                    TextSpan(
+                      text: email.isEmpty ? 'your inbox' : email,
+                      style: const TextStyle(color: kAuthInk, fontWeight: FontWeight.w600),
+                    ),
+                    const TextSpan(text: '.\nTap the link to activate your account, then sign in.'),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const Spacer(),
+              AuthButton(
+                label: 'Continue to sign in',
+                onTap: () => context.go('/login'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

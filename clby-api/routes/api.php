@@ -27,6 +27,7 @@ use App\Http\Controllers\PaymobController;
 use App\Http\Controllers\PlanPromotionController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\PromoCodeController;
+use App\Http\Controllers\PushController;
 use App\Http\Controllers\QrTokenController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ScheduleController;
@@ -341,6 +342,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Analytics
     Route::get('/analytics/all', [AnalyticsController::class, 'all']);
     Route::get('/analytics/dashboard', [AnalyticsController::class, 'dashboard']);
+
+    // Push notifications (test send)
+    Route::post('/push/test', [PushController::class, 'test']);
 });
 
 // ─── Super-admin routes (platform-wide) ────────────────────────────────────

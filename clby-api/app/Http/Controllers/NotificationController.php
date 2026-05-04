@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PushService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
+    public function __construct(private PushService $push) {}
+
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
@@ -35,6 +38,25 @@ class NotificationController extends Controller
         $data['updated_at'] = now();
 
         DB::table('gym_notifications')->insert($data);
+
+        // Fan out push to all gym members with a registered FCM token.
+        // Best-effort: if push isn't configured the service no-ops.
+        $recipients = DB::table('profiles')
+            ->where('gym_id', $gymId)
+            ->where('role', 'member')
+            ->whereNotNull('fcm_token')
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->pluck('id');
+
+        if ($recipients->isNotEmpty()) {
+            $this->push->sendToUsers(
+                $recipients,
+                $validated['title'],
+                $validated['body'],
+                ['type' => 'gym_announcement', 'gym_id' => $gymId, 'notification_id' => $data['id']],
+            );
+        }
 
         // Return the full row (includes DB defaults like status)
         $row = DB::table('gym_notifications')->where('id', $data['id'])->first();

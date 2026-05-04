@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
 import '../../features/banners/banner_provider.dart';
 import '../../features/branches/branch_provider.dart';
 import '../../features/popups/popup_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/member_provider.dart';
 import '../../services/app_bootstrap.dart';
+
+// ── Design tokens (warm cream + peach + orange) ─────────────────────────────
+const _kBg      = Color(0xFFF7F6F2);
+const _kInk     = Color(0xFF1F1A14);
+const _kInk2    = Color(0x9E1F1A14);
+const _kInk3    = Color(0x6B1F1A14);
+const _kPeach   = Color(0xFFF4DCC1);
+const _kPrimary = Color(0xFFE07A3B);
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,10 +26,11 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<double> _scaleAnimation;
+    with TickerProviderStateMixin {
+  late final AnimationController _glowCtrl;
+  late final AnimationController _markCtrl;
+  late final AnimationController _textCtrl;
+  late final AnimationController _hintCtrl;
 
   static const _storage = FlutterSecureStorage();
   static const _onboardingKey = 'onboarding_completed';
@@ -30,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen>
   static const _gymNameKey = 'cached_gym_name';
 
   /// Minimum time the splash is visible regardless of load speed.
-  static const _minDisplayMs = 2000;
+  static const _minDisplayMs = 1400;
 
   String? _logoUrl;
   String? _gymName;
@@ -41,30 +49,26 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
+    // Snappy timings. The mark animation does NOT auto-start here; it
+    // waits for the cached branding read to complete so the mark fades
+    // in once with the right logo, instead of flashing the default mark
+    // and then swapping to the gym logo mid-animation.
+    _glowCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 600),
+    )..forward();
+    _markCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 450),
+    );
+    _textCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 350),
+    );
+    _hintCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 300),
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
-    );
+    _resolveBrandingAndAnimate();
 
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.7, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _controller.forward();
-    _loadCachedBranding();
-
-    // Bootstrap runs after the first frame so providers are available.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Listen to AuthProvider so we update the logo as soon as live gym
-      // data is fetched — even if it differs from the secure-storage cache.
       _authProvider = context.read<AuthProvider>();
       _authProvider!.addListener(_onAuthChanged);
       _listenerAdded = true;
@@ -72,6 +76,11 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
+  /// AuthProvider may receive fresh gym data during bootstrap. We persist
+  /// the URL/name to the cache so the next cold start renders correctly,
+  /// but we deliberately do NOT swap the displayed logo mid-splash —
+  /// otherwise the mark would flash and the splash would feel like it's
+  /// hanging.
   void _onAuthChanged() {
     if (!mounted) return;
     final gym = context.read<AuthProvider>().gym;
@@ -79,33 +88,42 @@ class _SplashScreenState extends State<SplashScreen>
     final liveUrl = gym.logoUrl;
     final liveName = gym.name;
     if (liveUrl != null && liveUrl != _logoUrl) {
-      if (_logoUrl != null) CachedNetworkImage.evictFromCache(_logoUrl!);
-      setState(() {
-        _logoUrl = liveUrl;
-        _gymName = liveName;
-      });
-      // Write the fresh URL to cache so next cold-start is correct.
       _storage.write(key: _gymLogoKey, value: liveUrl);
+    }
+    if (liveName != null && liveName != _gymName) {
       _storage.write(key: _gymNameKey, value: liveName);
     }
   }
 
-  /// Reads gym name/logo from secure storage so the splash renders immediately
-  /// without waiting for network (the cache is warmed on first login).
-  Future<void> _loadCachedBranding() async {
+  /// Reads the cached gym branding, pre-warms the image cache, then
+  /// triggers the mark + text + hint animations as a single chain.
+  Future<void> _resolveBrandingAndAnimate() async {
     final logo = await _storage.read(key: _gymLogoKey);
     final name = await _storage.read(key: _gymNameKey);
-    if (mounted) {
-      setState(() {
-        _logoUrl = logo;
-        _gymName = name;
-      });
+
+    // Pre-decode the network image so CachedNetworkImage doesn't blink
+    // when the mark fades in.
+    if (logo != null && logo.isNotEmpty && mounted) {
+      try {
+        await precacheImage(CachedNetworkImageProvider(logo), context);
+      } catch (_) {/* fall through to default mark */}
     }
+
+    if (!mounted) return;
+    setState(() {
+      _logoUrl = logo;
+      _gymName = name;
+    });
+
+    _markCtrl.forward();
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _textCtrl.forward();
+    });
+    Future.delayed(const Duration(milliseconds: 450), () {
+      if (mounted) _hintCtrl.forward();
+    });
   }
 
-  /// Runs [AppBootstrap] to pre-load all critical data, then navigates.
-  /// The splash stays visible until BOTH the bootstrap AND the minimum
-  /// display time have elapsed — whichever takes longer.
   Future<void> _bootstrap() async {
     final minDisplay =
         Future<void>.delayed(const Duration(milliseconds: _minDisplayMs));
@@ -118,7 +136,6 @@ class _SplashScreenState extends State<SplashScreen>
       popupProvider: context.read<PopupProvider>(),
     );
 
-    // Run bootstrap and minimum timer concurrently.
     await Future.wait<void>([
       bootstrap.run(),
       minDisplay,
@@ -150,182 +167,208 @@ class _SplashScreenState extends State<SplashScreen>
     if (_listenerAdded && _authProvider != null) {
       _authProvider!.removeListener(_onAuthChanged);
     }
-    _controller.dispose();
+    _glowCtrl.dispose();
+    _markCtrl.dispose();
+    _textCtrl.dispose();
+    _hintCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final wordmark = (_gymName != null && _gymName!.isNotEmpty) ? _gymName! : 'CLBY';
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.splashBgTop, AppColors.splashBgBottom],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Concentric ring decorations
-            const Positioned.fill(child: _ConcentricRings()),
-
-            // Main content
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) => Opacity(
-                opacity: _fadeAnimation.value,
-                child: Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: child,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Logo at exact screen center — same origin as the rings
-                  Center(
-                    child: _logoUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: CachedNetworkImage(
-                              imageUrl: _logoUrl!,
-                              width: 120,
-                              height: 120,
-                              fit: BoxFit.cover,
-                              // Transparent while loading — avoids the
-                              // default-logo flash when a gym logo is set.
-                              placeholder: (context, url) =>
-                                  const SizedBox(width: 120, height: 120),
-                              errorWidget: (context, url, error) =>
-                                  const _DefaultLogoBox(),
+      backgroundColor: _kBg,
+      body: Stack(
+        children: [
+          // Peach radial glow — full-screen layer with the glow itself
+          // centered. Sized to the Stack so the alignment is unambiguous.
+          Positioned.fill(
+            child: Center(
+              child: AnimatedBuilder(
+                animation: _glowCtrl,
+                builder: (_, __) {
+                  final t = Curves.easeOut.transform(_glowCtrl.value);
+                  return IgnorePointer(
+                    child: Opacity(
+                      opacity: 0.7 * t,
+                      child: Transform.scale(
+                        scale: 0.4 + 0.6 * t,
+                        child: Container(
+                          width: 380, height: 380,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [_kPeach, Color(0x00F4DCC1)],
+                              stops: [0, 0.65],
                             ),
-                          )
-                        : const _DefaultLogoBox(),
-                  ),
-
-                  // Gym name sits below the logo without pushing it off-center
-                  Center(
-                    child: Transform.translate(
-                      // 60 = half logo height (120/2); 24 = gap between logo and name
-                      offset: const Offset(0, 84),
-                      child: Text(
-                        _gymName ?? 'GymApp',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.white,
-                          letterSpacing: -0.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  );
+                },
+              ),
+            ),
+          ),
 
-                  // Bottom: dots + "Powered by CLBY"
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: MediaQuery.of(context).padding.bottom + 32,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Loading dots
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(3, (i) {
-                            return Container(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 3),
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: i == 0
-                                    ? AppColors.white
-                                    : AppColors.white.withValues(alpha: 0.3),
-                                shape: BoxShape.circle,
-                              ),
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Powered by CLBY',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.white.withValues(alpha: 0.45),
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ],
+          // Mark + wordmark + tagline — Center wrapper guarantees vertical +
+          // horizontal centering regardless of Stack fit semantics.
+          Positioned.fill(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ScaleTransition(
+                    scale: CurvedAnimation(
+                      parent: _markCtrl,
+                      curve: Curves.easeOutBack,
+                    ).drive(Tween(begin: 0.6, end: 1.0)),
+                    child: FadeTransition(
+                      opacity: _markCtrl,
+                      child: _BrandMark(logoUrl: _logoUrl, size: 88),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FadeTransition(
+                    opacity: _textCtrl,
+                    child: Text(
+                      wordmark.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: _kInk,
+                        letterSpacing: 6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FadeTransition(
+                    opacity: _textCtrl,
+                    child: const Text(
+                      'TRAIN · TRACK · SHARE',
+                      style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w500,
+                        color: _kInk2, letterSpacing: 1.5,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Footer hint — anchored to bottom regardless of layout.
+          Positioned(
+            left: 0, right: 0,
+            bottom: 64 + MediaQuery.of(context).padding.bottom,
+            child: Center(
+              child: FadeTransition(
+                opacity: _hintCtrl,
+                child: const Text(
+                  'Loading your gym…',
+                  style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w500,
+                    color: _kInk3, letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── Concentric rings background ──────────────────────────────────────────────
-
-class _ConcentricRings extends StatelessWidget {
-  const _ConcentricRings();
+// Dark rounded square with the dumbbell mark, or the gym's logo when cached.
+class _BrandMark extends StatelessWidget {
+  final String? logoUrl;
+  final double size;
+  const _BrandMark({required this.logoUrl, required this.size});
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _RingsPainter());
-  }
-}
-
-class _RingsPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-
-    for (final radius in [90.0, 150.0, 215.0, 285.0]) {
-      canvas.drawCircle(center, radius, paint);
+    final radius = size * 0.28;
+    final shadow = BoxShadow(
+      color: const Color(0x2D1F1A14),
+      blurRadius: size * 0.32,
+      offset: Offset(0, size * 0.12),
+    );
+    if (logoUrl != null && logoUrl!.isNotEmpty) {
+      return Container(
+        width: size, height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: [shadow],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: CachedNetworkImage(
+            imageUrl: logoUrl!,
+            width: size, height: size,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => _DefaultMark(size: size),
+            errorWidget: (_, __, ___) => _DefaultMark(size: size),
+          ),
+        ),
+      );
     }
+    return _DefaultMark(size: size);
   }
-
-  @override
-  bool shouldRepaint(_RingsPainter old) => false;
 }
 
-// ─── Default logo box ─────────────────────────────────────────────────────────
-
-class _DefaultLogoBox extends StatelessWidget {
-  const _DefaultLogoBox();
+class _DefaultMark extends StatelessWidget {
+  final double size;
+  const _DefaultMark({required this.size});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 120,
-      height: 120,
+      width: size, height: size,
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(28),
+        color: _kInk,
+        borderRadius: BorderRadius.circular(size * 0.28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
+            color: const Color(0x2D1F1A14),
+            blurRadius: size * 0.32,
+            offset: Offset(0, size * 0.12),
           ),
         ],
       ),
-      child: const Icon(
-        Icons.fitness_center_rounded,
-        color: AppColors.white,
-        size: 52,
-      ),
+      child: CustomPaint(painter: _DumbbellPainter(size: size * 0.6)),
     );
   }
+}
+
+// Mini dumbbell glyph: orange caps, white bar — matches the brand mark in
+// the design (peach caps in the JSX, but orange reads better at scale).
+class _DumbbellPainter extends CustomPainter {
+  final double size;
+  const _DumbbellPainter({required this.size});
+
+  @override
+  void paint(Canvas canvas, Size canvasSize) {
+    final scale = size / 24.0;
+    final dx = (canvasSize.width - size) / 2;
+    final dy = (canvasSize.height - size) / 2;
+    final orange = Paint()..color = _kPrimary;
+    final white = Paint()..color = Colors.white;
+    void rect(double x, double y, double w, double h, double r, Paint p) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(dx + x * scale, dy + y * scale, w * scale, h * scale),
+          Radius.circular(r * scale),
+        ),
+        p,
+      );
+    }
+    rect(2, 9, 3, 6, 1, orange);
+    rect(19, 9, 3, 6, 1, orange);
+    rect(7, 11, 10, 2, 1, white);
+  }
+
+  @override
+  bool shouldRepaint(_DumbbellPainter old) => false;
 }

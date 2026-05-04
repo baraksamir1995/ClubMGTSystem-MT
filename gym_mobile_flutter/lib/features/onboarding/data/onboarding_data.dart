@@ -1,42 +1,52 @@
 import 'package:flutter/material.dart';
 
+/// One slide in the onboarding flow.
+///
+/// `kind` selects the bespoke illustration when no `imageUrl` is provided.
+/// White-label gyms can override slides remotely with their own images.
+enum OnboardingKind { attend, share, manage }
+
 class OnboardingItem {
   final String title;
   final String description;
+  final OnboardingKind kind;
   final IconData icon;
-  final String? imageUrl; // Remote image from gym dashboard (overrides icon)
+  final String? imageUrl; // remote override from gym dashboard
   final int sortOrder;
 
   const OnboardingItem({
     required this.title,
     required this.description,
     required this.icon,
+    this.kind = OnboardingKind.attend,
     this.imageUrl,
     this.sortOrder = 0,
   });
 }
 
-/// Default onboarding slides — used when the gym hasn't configured custom ones.
 const List<OnboardingItem> defaultOnboardingItems = [
   OnboardingItem(
-    title: 'Access Your Gym,\nYour Way',
+    title: 'Skip the front desk',
     description:
-        'View your membership, check attendance, and stay on top of your fitness journey.',
-    icon: Icons.fitness_center_rounded,
+        'Scan one QR code at the entrance and your check-in is logged automatically — every visit, every class.',
+    kind: OnboardingKind.attend,
+    icon: Icons.qr_code_scanner_rounded,
     sortOrder: 0,
   ),
   OnboardingItem(
-    title: 'Book Classes\nin Seconds',
+    title: 'Share sessions with friends',
     description:
-        'Reserve your spot in classes, sessions, and activities anytime, anywhere.',
-    icon: Icons.calendar_month_rounded,
+        'Got a guest pass or extra sessions? Send them to anyone in seconds. They show up in their balance instantly.',
+    kind: OnboardingKind.share,
+    icon: Icons.swap_horiz_rounded,
     sortOrder: 1,
   ),
   OnboardingItem(
-    title: 'Track Your\nProgress',
+    title: 'Your membership, in your pocket',
     description:
-        'Monitor your activity, attendance, and performance to stay motivated.',
-    icon: Icons.trending_up_rounded,
+        'See your plan, member number, renewal date and remaining sessions at a glance. No more lost membership cards.',
+    kind: OnboardingKind.manage,
+    icon: Icons.badge_outlined,
     sortOrder: 2,
   ),
 ];

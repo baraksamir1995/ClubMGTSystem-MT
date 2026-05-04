@@ -22,6 +22,7 @@ import 'screens/guest/guest_schedule_screen.dart';
 // import 'screens/guest/guest_plans_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/onboarding/welcome_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/banners/screens/banner_details_screen.dart';
 import 'features/billing/billing_screen.dart';
@@ -44,7 +45,7 @@ import 'models/banner_model.dart';
 import 'models/checkout_item.dart';
 import 'models/service_model.dart';
 
-const _publicRoutes = {'/splash', '/onboarding', '/login', '/register', '/forgot-password', '/reset-password'};
+const _publicRoutes = {'/splash', '/onboarding', '/welcome', '/login', '/register', '/forgot-password', '/reset-password'};
 
 GoRouter buildRouter(BuildContext context) {
   final authProvider = context.read<AuthProvider>();
@@ -82,6 +83,16 @@ GoRouter buildRouter(BuildContext context) {
           transitionsBuilder: (context, animation, _, child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: const Duration(milliseconds: 400),
+        ),
+      ),
+      GoRoute(
+        path: '/welcome',
+        name: 'welcome',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          child: const WelcomeScreen(),
+          transitionsBuilder: (context, animation, _, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 350),
         ),
       ),
       GoRoute(

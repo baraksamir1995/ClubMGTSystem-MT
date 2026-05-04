@@ -9,6 +9,7 @@ import 'features/popups/popup_provider.dart';
 import 'features/rating/rating_reminder_provider.dart';
 import 'services/api_service.dart';
 import 'services/deep_link_service.dart';
+import 'services/fresh_install_guard.dart';
 import 'services/notification_service.dart';
 import 'router.dart';
 import 'utils/env.dart';
@@ -20,6 +21,11 @@ Future<void> main() async {
 
   // Crash loudly in debug builds if required build-time config is missing.
   Env.validate();
+
+  // iOS Keychain entries survive app uninstall — wipe them on first
+  // launch so a reinstall behaves like a clean slate (auth token,
+  // onboarding flag, cached gym branding).
+  await FreshInstallGuard.runOnFirstInstall();
 
   await NotificationService().initFirebase();
   await NotificationService().init();

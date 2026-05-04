@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'data/onboarding_data.dart';
 import 'widgets/onboarding_page_widget.dart';
 import 'widgets/page_indicator.dart';
 import '../../utils/env.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+
+const _kBg          = Color(0xFFF7F6F2);
+const _kInk         = Color(0xFF1F1A14);
+const _kInk2        = Color(0x9E1F1A14);
+const _kPrimary     = Color(0xFFE07A3B);
+const _kInkSubtle   = Color(0x0D1F1A14);
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -23,7 +27,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int _currentPage = 0;
   double _pageOffset = 0.0;
-  bool _isGuestLoading = false;
   List<OnboardingItem>? _remoteItems;
 
   List<OnboardingItem> get _items => _remoteItems ?? defaultOnboardingItems;
@@ -52,7 +55,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         });
       }
     } catch (_) {
-      // Fall back to defaults silently
+      // Fall back to defaults silently.
     }
   }
 
@@ -67,7 +70,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await _finishOnboarding();
     } else {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  void _back() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOutCubic,
       );
     }
@@ -76,17 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finishOnboarding() async {
     await _storage.write(key: _onboardingKey, value: 'true');
     if (!mounted) return;
-    context.go('/login');
-  }
-
-  Future<void> _continueAsGuest() async {
-    await _storage.write(key: _onboardingKey, value: 'true');
-    if (!mounted) return;
-    setState(() => _isGuestLoading = true);
-    await context.read<AuthProvider>().continueAsGuest();
-    if (!mounted) return;
-    setState(() => _isGuestLoading = false);
-    context.go('/guest/home');
+    context.go('/welcome');
   }
 
   @override
@@ -100,191 +102,151 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final item = _items[_currentPage];
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // ── Top section: purple gradient background + illustration ──
-          Positioned.fill(
-            bottom: 280 + bottomPadding,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF9333EA), // purple-600
-                    Color(0xFF7C3AED), // purple-500
-                    Color(0xFF6D28D9), // purple-700
-                  ],
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Stack(
-                  children: [
-                    // Skip button
-                    if (!_isLastPage)
-                      Positioned(
-                        top: 8,
-                        right: 16,
-                        child: TextButton(
-                          onPressed: _finishOnboarding,
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white.withValues(alpha: 0.9),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                          ),
-                          child: const Text(
-                            'Skip',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    // Page view with illustrations
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: _items.length,
-                      onPageChanged: (i) => setState(() => _currentPage = i),
-                      itemBuilder: (context, index) {
-                        final offset = _pageOffset - index;
-                        return OnboardingPageWidget(
-                          item: _items[index],
-                          pageOffset: offset,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Bottom card: content + controls ──
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(28, 28, 28, 24 + bottomPadding),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A1025), // dark purple-black
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      backgroundColor: _kBg,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            SizedBox(height: topPadding + 16),
+            // Top bar — back (slides 2-3) + Skip
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
+              child: Row(
                 children: [
-                  // Dot indicator
-                  PageIndicator(
-                    count: _items.length,
-                    current: _currentPage,
-                    activeColor: Colors.white,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Title
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      item.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
-                      ),
+                  if (_currentPage > 0)
+                    _RoundIconButton(icon: Icons.arrow_back_ios_new_rounded, onTap: _back)
+                  else
+                    const SizedBox(width: 38, height: 38),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _finishOnboarding,
+                    style: TextButton.styleFrom(
+                      foregroundColor: _kInk2,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Description
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      item.description,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 15,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // CTA button — white pill
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _onNext,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _isLastPage ? 'Get Started' : 'Next',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_rounded, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // "Continue as Guest" — only on last page, only for white-label builds
-                  if (_isLastPage && Env.isWhiteLabel) ...[
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _isGuestLoading ? null : _continueAsGuest,
-                      child: _isGuestLoading
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white54,
-                              ),
-                            )
-                          : Text(
-                              'Continue as Guest',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                    ),
-                  ] else ...[
-                    // Down arrow hint
-                    const SizedBox(height: 8),
-                    Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white.withValues(alpha: 0.3),
-                      size: 28,
-                    ),
-                  ],
                 ],
               ),
             ),
-          ),
-        ],
+
+            // Hero illustration
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _items.length,
+                onPageChanged: (i) => setState(() => _currentPage = i),
+                itemBuilder: (context, index) {
+                  final offset = _pageOffset - index;
+                  return OnboardingPageWidget(
+                    item: _items[index],
+                    pageOffset: offset,
+                  );
+                },
+              ),
+            ),
+
+            // Title + body
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 0, 28, 12),
+              child: Column(
+                children: [
+                  Text(
+                    item.title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: _kInk,
+                      letterSpacing: -0.6,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Text(
+                      item.description,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15, color: _kInk2, height: 1.55,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Dot indicator
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: PageIndicator(count: _items.length, current: _currentPage),
+            ),
+
+            // Continue / Get started CTA
+            Padding(
+              padding: EdgeInsets.fromLTRB(22, 4, 22, 22 + bottomPadding),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _onNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kPrimary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shadowColor: const Color(0x57E07A3B),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ).copyWith(
+                    elevation: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.disabled)) return 0;
+                      return 10;
+                    }),
+                  ),
+                  child: Text(
+                    _isLastPage ? 'Get started' : 'Continue',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _RoundIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 38, height: 38,
+        decoration: const BoxDecoration(
+          color: _kInkSubtle,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, size: 16, color: _kInk),
       ),
     );
   }

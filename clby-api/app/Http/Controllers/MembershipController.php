@@ -12,6 +12,199 @@ use \App\Traits\LogsActivity;
 class MembershipController extends Controller
 {
     use LogsActivity;
+
+    /**
+     * Aggregated list of all member memberships for the admin's gym.
+     * Powers the "Memberships" sub-tab under Members → operational view
+     * for follow-ups, retention, and renewals.
+     *
+     * Filters (all optional):
+     *   search          — member name or member_number
+     *   status          — active | expired | expiring_soon (derived)
+     *   plan_type       — sessions | duration | duration_session
+     *   start_from / start_to — start_date range (yyyy-mm-dd)
+     *   end_from / end_to     — end_date range (yyyy-mm-dd)
+     *   expiring_days   — threshold for "expiring soon" (default 7)
+     *   page, limit     — pagination
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:120',
+            'status' => 'nullable|string|in:all,active,expired,expiring_soon',
+            'plan_type' => 'nullable|string|max:30',
+            'source_type' => 'nullable|string|in:all,subscription,transfer',
+            'start_from' => 'nullable|date',
+            'start_to' => 'nullable|date',
+            'end_from' => 'nullable|date',
+            'end_to' => 'nullable|date',
+            'expiring_days' => 'nullable|integer|min:1|max:90',
+            'page' => 'nullable|integer|min:1',
+            'limit' => 'nullable|integer|min:1|max:200',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+        if (! $gymId) {
+            return response()->json(['data' => [], 'pagination' => ['page' => 1, 'pages' => 1, 'total' => 0, 'limit' => 0], 'summary' => ['active' => 0, 'expiring_soon' => 0, 'expired' => 0]]);
+        }
+
+        $threshold = $validated['expiring_days'] ?? 7;
+        $page  = $validated['page'] ?? 1;
+        $limit = $validated['limit'] ?? 25;
+
+        // Derived display status — the rule depends on the plan_type so a
+        // sessions-only plan doesn't get marked expired just because its
+        // end_date drifted past, and a duration plan doesn't get marked
+        // expired just because the (irrelevant) sessions counter is zero.
+        //   • sessions (finite count)  → expired when sessions_remaining = 0
+        //   • duration / duration_session → expired when end_date < now()
+        //   • unlimited sessions (sessions_total IS NULL) → expired on end_date
+        // The end_date column is independent — it can be stored alongside
+        // any plan but only drives the rule for time-bound plan types.
+        $displayStatusSql = "CASE
+            WHEN mm.status <> 'active' OR mm.payment_status <> 'paid' THEN 'expired'
+            WHEN COALESCE(mp.plan_type, 'duration') = 'sessions'
+              AND mm.sessions_total IS NOT NULL THEN
+              -- Finite session bucket (including 0). NULL means unlimited
+              -- and falls through to the time-based branch below.
+              CASE
+                WHEN COALESCE(mm.sessions_remaining, mm.sessions_total - mm.sessions_used) <= 0 THEN 'expired'
+                ELSE 'active'
+              END
+            WHEN mm.end_date IS NULL THEN 'active'
+            WHEN mm.end_date < NOW() THEN 'expired'
+            WHEN mm.end_date <= NOW() + (? || ' days')::interval THEN 'expiring_soon'
+            ELSE 'active'
+          END";
+
+        $base = DB::table('member_memberships as mm')
+            ->join('gym_members as gm', 'gm.id', '=', 'mm.gym_member_id')
+            ->join('profiles as p', 'p.id', '=', 'gm.user_id')
+            ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
+            ->where('mm.gym_id', $gymId)
+            ->whereNull('gm.deleted_at');
+
+        if ($search = trim($validated['search'] ?? '')) {
+            $like = "%{$search}%";
+            $base->where(function ($q) use ($like) {
+                $q->where('p.full_name', 'ilike', $like)
+                  ->orWhere('gm.member_number', 'ilike', $like)
+                  ->orWhere('p.email', 'ilike', $like);
+            });
+        }
+
+        if (($pt = $validated['plan_type'] ?? null) && $pt !== 'all') {
+            $base->where('mp.plan_type', $pt);
+        }
+
+        if (($src = $validated['source_type'] ?? null) && $src !== 'all') {
+            $base->where('mm.source_type', $src);
+        }
+
+        if ($validated['start_from'] ?? null) $base->where('mm.start_date', '>=', $validated['start_from']);
+        if ($validated['start_to']   ?? null) $base->where('mm.start_date', '<=', $validated['start_to'] . ' 23:59:59');
+        if ($validated['end_from']   ?? null) $base->where('mm.end_date',   '>=', $validated['end_from']);
+        if ($validated['end_to']     ?? null) $base->where('mm.end_date',   '<=', $validated['end_to']   . ' 23:59:59');
+
+        // Apply derived-status filter via a HAVING-equivalent: wrap in a CTE
+        // would be ideal, but the simpler approach is to filter on the raw
+        // conditions inline.
+        $statusFilter = $validated['status'] ?? 'all';
+        if ($statusFilter !== 'all') {
+            $base->whereRaw("$displayStatusSql = ?", [$threshold, $statusFilter]);
+        }
+
+        $countQuery = (clone $base);
+        $total = $countQuery->count();
+
+        $rows = (clone $base)
+            ->select([
+                'mm.id',
+                'mm.gym_member_id',
+                'gm.member_number',
+                'p.full_name as member_name',
+                'p.email as member_email',
+                'p.photo_url as member_photo_url',
+                'mm.plan_id',
+                DB::raw('COALESCE(mp.name, mm.notes) as plan_name'),
+                'mp.plan_type',
+                'mm.status',
+                'mm.payment_status',
+                'mm.source_type',
+                'mm.start_date',
+                'mm.end_date',
+                'mm.sessions_total',
+                'mm.sessions_used',
+                'mm.sessions_remaining',
+                DB::raw("EXTRACT(DAY FROM (mm.end_date - NOW()))::int as days_remaining"),
+                DB::raw("$displayStatusSql as display_status"),
+                DB::raw("(SELECT MAX(al.check_in_at) FROM attendance_logs al WHERE al.gym_member_id = mm.gym_member_id) as last_check_in_at"),
+            ])
+            ->addBinding($threshold, 'select')        // for the display_status CASE
+            ->orderByRaw("CASE
+                WHEN mm.end_date IS NULL THEN 1
+                ELSE 0
+              END")
+            ->orderBy('mm.end_date', 'asc')
+            ->orderBy('mm.start_date', 'desc')
+            ->offset(($page - 1) * $limit)
+            ->limit($limit)
+            ->get();
+
+        // Summary counts across the whole filtered set (ignoring pagination
+        // and the status filter so the cards reflect the full picture).
+        $summaryBase = DB::table('member_memberships as mm')
+            ->join('gym_members as gm', 'gm.id', '=', 'mm.gym_member_id')
+            ->join('profiles as p', 'p.id', '=', 'gm.user_id')
+            ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
+            ->where('mm.gym_id', $gymId)
+            ->whereNull('gm.deleted_at');
+        if ($search = trim($validated['search'] ?? '')) {
+            $like = "%{$search}%";
+            $summaryBase->where(function ($q) use ($like) {
+                $q->where('p.full_name', 'ilike', $like)
+                  ->orWhere('gm.member_number', 'ilike', $like)
+                  ->orWhere('p.email', 'ilike', $like);
+            });
+        }
+        if (($pt = $validated['plan_type'] ?? null) && $pt !== 'all') {
+            $summaryBase->where('mp.plan_type', $pt);
+        }
+        if (($src = $validated['source_type'] ?? null) && $src !== 'all') {
+            $summaryBase->where('mm.source_type', $src);
+        }
+        if ($validated['start_from'] ?? null) $summaryBase->where('mm.start_date', '>=', $validated['start_from']);
+        if ($validated['start_to']   ?? null) $summaryBase->where('mm.start_date', '<=', $validated['start_to'] . ' 23:59:59');
+        if ($validated['end_from']   ?? null) $summaryBase->where('mm.end_date',   '>=', $validated['end_from']);
+        if ($validated['end_to']     ?? null) $summaryBase->where('mm.end_date',   '<=', $validated['end_to']   . ' 23:59:59');
+
+        $summary = $summaryBase
+            ->select([
+                DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'active') as active"),
+                DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'expiring_soon') as expiring_soon"),
+                DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'expired') as expired"),
+            ])
+            ->addBinding($threshold, 'select')
+            ->addBinding($threshold, 'select')
+            ->addBinding($threshold, 'select')
+            ->first();
+
+        return response()->json([
+            'data' => $rows,
+            'pagination' => [
+                'page' => (int) $page,
+                'pages' => max(1, (int) ceil($total / $limit)),
+                'total' => $total,
+                'limit' => (int) $limit,
+            ],
+            'summary' => [
+                'active' => (int) ($summary->active ?? 0),
+                'expiring_soon' => (int) ($summary->expiring_soon ?? 0),
+                'expired' => (int) ($summary->expired ?? 0),
+            ],
+        ]);
+    }
+
     public function extend(Request $request): JsonResponse
     {
         $validated = $request->validate([

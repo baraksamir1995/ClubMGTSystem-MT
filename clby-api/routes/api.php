@@ -185,6 +185,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::post('/members/register', [MemberController::class, 'register'])->middleware('permission:members,create');
     Route::post('/members/{id}/verify-email', [MemberController::class, 'verifyEmail'])->middleware('permission:members,edit');
 
+    // Aggregated memberships list — powers the Memberships sub-tab.
+    Route::get('/memberships', [MembershipController::class, 'index']);
+
     // Membership management (admin)
     Route::post('/memberships/assign', [MembershipController::class, 'assign'])->middleware('permission:members,create');
     Route::post('/memberships/extend', [MembershipController::class, 'extend'])->middleware('permission:members,edit');

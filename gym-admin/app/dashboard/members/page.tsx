@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import MembersTable from '@/components/members/members-table';
+import MembershipsTable from '@/components/members/memberships-table';
+import MembersModuleTabs from '@/components/members/members-module-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,7 @@ async function fetchApi(path: string, token: string) {
     return null;
   }
 }
+
 export interface MemberWithProfile {
   id: string;
   member_number: string;
@@ -36,20 +39,32 @@ export interface MemberWithProfile {
   } | null;
 }
 
-export default async function MembersPage() {
+interface PageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function MembersPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
   if (!token) redirect('/login');
 
-  const { getMe } = await import('@/lib/get-permissions');
-  const me = await getMe(token);
-  
+  const sp = await searchParams;
+  const view = sp.view === 'memberships' ? 'memberships' : 'members';
 
-  // Fetch permissions
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
 
-  // Load members via Laravel API
+  // Memberships sub-tab fetches its own data client-side; the directory
+  // tab still SSRs the first page so the initial paint is fast.
+  if (view === 'memberships') {
+    return (
+      <div className="space-y-5">
+        <MembersModuleTabs />
+        <MembershipsTable />
+      </div>
+    );
+  }
+
   const membersData = await fetchApi('/members?page=1&limit=20', token);
 
   const members: MemberWithProfile[] = (membersData?.data ?? []).map((m: any) => ({
@@ -77,5 +92,10 @@ export default async function MembersPage() {
 
   const pagination = membersData?.pagination ?? membersData?.meta ?? { page: 1, limit: 20, total: members.length, pages: 1 };
 
-  return <MembersTable members={members} initialPagination={pagination} permissions={permissions} />;
+  return (
+    <div className="space-y-5">
+      <MembersModuleTabs />
+      <MembersTable members={members} initialPagination={pagination} permissions={permissions} />
+    </div>
+  );
 }

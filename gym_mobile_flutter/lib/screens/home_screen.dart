@@ -314,6 +314,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 24),
 
+              // ── Quick access ─────────────────────────────────────────
+              const _SectionHeader(
+                title: 'Quick access',
+                subtitle: 'Jump straight where you need',
+              ),
+              const SizedBox(height: 12),
+              const _QuickAccessGrid(),
+              const SizedBox(height: 24),
+
               // ── Our locations ────────────────────────────────────────
               if (branchProvider.branches.length >= 2) ...[
                 _SectionHeader(
@@ -331,12 +340,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 24),
               ],
 
-              // ── Quick access ─────────────────────────────────────────
-              const _SectionHeader(title: 'Quick access'),
-              const SizedBox(height: 12),
-              _QuickAccessGrid(primary: primary),
-              const SizedBox(height: 24),
-
             ],
           ),
         ),
@@ -349,12 +352,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
   final Color? actionColor;
 
   const _SectionHeader({
     required this.title,
+    this.subtitle,
     this.actionLabel,
     this.onAction,
     this.actionColor,
@@ -365,21 +370,41 @@ class _SectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.3),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
         ),
         if (actionLabel != null && onAction != null)
           GestureDetector(
             onTap: onAction,
-            child: Text(
-              actionLabel!,
-              style: TextStyle(
-                color: actionColor ?? theme.colorScheme.primary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                actionLabel!,
+                style: TextStyle(
+                  color: actionColor ?? theme.colorScheme.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -1058,89 +1083,81 @@ class _GymCapacityCard extends StatelessWidget {
 
 // ─── Quick access 2×3 grid ────────────────────────────────────────────────────
 
+/// Horizontal Quick-Access carousel matching the warm design system.
+///
+/// Six tiles arranged in a horizontal scroll; each tile is a small white
+/// card with a tinted 44×44 icon container and a label. Tints rotate
+/// peach → orange → ink → green so consecutive tiles feel distinct
+/// without going rainbow.
 class _QuickAccessGrid extends StatelessWidget {
-  final Color primary;
-  const _QuickAccessGrid({required this.primary});
+  const _QuickAccessGrid();
 
   @override
   Widget build(BuildContext context) {
-    final items = [
+    final items = <_QuickItem>[
       _QuickItem(
         icon: Icons.calendar_month_outlined,
         label: 'Classes',
-        iconColor: const Color(0xFF6366F1),
-        bgColor: const Color(0xFFEEF0FF),
+        tint: _QATint.peach,
         onTap: () => context.push('/schedule'),
       ),
       _QuickItem(
         icon: Icons.person_outline_rounded,
         label: 'Trainers',
-        iconColor: const Color(0xFF10B981),
-        bgColor: const Color(0xFFE6F9F4),
+        tint: _QATint.orange,
         onTap: () => context.push('/explore/trainers'),
       ),
       _QuickItem(
         icon: Icons.bookmark_border_rounded,
         label: 'Bookings',
-        iconColor: const Color(0xFFF59E0B),
-        bgColor: const Color(0xFFFFF5E6),
+        tint: _QATint.ink,
         onTap: () => context.push('/my-bookings'),
       ),
       _QuickItem(
         icon: Icons.receipt_long_outlined,
         label: 'Payments',
-        iconColor: const Color(0xFFEF4444),
-        bgColor: const Color(0xFFFFF0F0),
+        tint: _QATint.green,
         onTap: () => context.push('/billing'),
       ),
       _QuickItem(
         icon: Icons.qr_code_scanner_rounded,
         label: 'Attendance',
-        iconColor: const Color(0xFF0EA5E9),
-        bgColor: const Color(0xFFEFF9FF),
+        tint: _QATint.peach,
         onTap: () => context.push('/checkin'),
       ),
       _QuickItem(
         icon: Icons.local_offer_outlined,
         label: 'Offers',
-        iconColor: const Color(0xFFA855F7),
-        bgColor: const Color(0xFFFDF4FF),
+        tint: _QATint.orange,
         onTap: () => context.push('/explore/offers'),
       ),
     ];
 
-    return Column(
-      children: [
-        Row(
-          children: items
-              .take(3)
-              .map((item) => Expanded(child: _QuickAccessTile(item: item)))
-              .toList(),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: items
-              .skip(3)
-              .map((item) => Expanded(child: _QuickAccessTile(item: item)))
-              .toList(),
-        ),
-      ],
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) => _QuickAccessTile(item: items[i]),
+      ),
     );
   }
 }
 
+enum _QATint { peach, orange, ink, green }
+
 class _QuickItem {
   final IconData icon;
   final String label;
-  final Color iconColor;
-  final Color bgColor;
+  final _QATint tint;
   final VoidCallback onTap;
 
   _QuickItem({
     required this.icon,
     required this.label,
-    required this.iconColor,
-    required this.bgColor,
+    required this.tint,
     required this.onTap,
   });
 }
@@ -1149,31 +1166,65 @@ class _QuickAccessTile extends StatelessWidget {
   final _QuickItem item;
   const _QuickAccessTile({required this.item});
 
+  static const _kInk     = Color(0xFF1F1A14);
+  static const _kPeach   = Color(0xFFF4DCC1);
+  static const _kPrimary = Color(0xFFE07A3B);
+  static const _kSuccess = Color(0xFF3F8B5C);
+
+  ({Color bg, Color fg}) _tintColors() {
+    switch (item.tint) {
+      case _QATint.peach:  return (bg: _kPeach,                                       fg: _kInk);
+      case _QATint.orange: return (bg: _kPrimary.withValues(alpha: 0.14),             fg: _kPrimary);
+      case _QATint.ink:    return (bg: _kInk.withValues(alpha: 0.08),                 fg: _kInk);
+      case _QATint.green:  return (bg: _kSuccess.withValues(alpha: 0.14),             fg: _kSuccess);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = _tintColors();
     return GestureDetector(
       onTap: item.onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: item.bgColor,
-              borderRadius: BorderRadius.circular(16),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 86,
+        padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A1F1A14),
+              blurRadius: 4,
+              offset: Offset(0, 1),
             ),
-            child: Icon(item.icon, color: item.iconColor, size: 24),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            item.label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: t.bg,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: Icon(item.icon, color: t.fg, size: 22),
             ),
-          ),
-        ],
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _kInk,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

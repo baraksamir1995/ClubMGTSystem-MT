@@ -27,7 +27,13 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Timer? _autoScrollTimer;
   Timer? _resumeTimer;
 
-  static const double _carouselHeight = 165;
+  // Slightly taller than before so the bigger headline + CTA pill have
+  // breathing room and the peach radial glow reads.
+  static const double _carouselHeight = 178;
+
+  // Design tokens (shared with auth/onboarding).
+  static const _kInk     = Color(0xFF1F1A14);
+  static const _kPrimary = Color(0xFFE07A3B);
 
   @override
   void initState() {
@@ -76,7 +82,6 @@ class _BannerCarouselState extends State<BannerCarousel> {
   void _onSwipeEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     if (velocity < -300) {
-      // swipe left → next banner
       _stopAutoScroll();
       _resumeTimer?.cancel();
       _advance(1);
@@ -84,7 +89,6 @@ class _BannerCarouselState extends State<BannerCarousel> {
         if (mounted) _startAutoScroll();
       });
     } else if (velocity > 300) {
-      // swipe right → previous banner
       _stopAutoScroll();
       _resumeTimer?.cancel();
       _advance(-1);
@@ -111,19 +115,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
     if (widget.isLoading) return _buildShimmer();
     if (widget.banners.isEmpty) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: _carouselHeight,
-      child: Stack(
-        children: [
-          _buildCarousel(),
-          if (widget.banners.length > 1)
-            Positioned(
-              right: 10,
-              bottom: 10,
-              child: _buildDots(),
-            ),
+    return Column(
+      children: [
+        SizedBox(height: _carouselHeight, child: _buildCarousel()),
+        if (widget.banners.length > 1) ...[
+          const SizedBox(height: 10),
+          _buildDots(),
         ],
-      ),
+      ],
     );
   }
 
@@ -131,7 +130,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
     if (widget.banners.length == 1) {
       return GestureDetector(
         onTap: () => _onBannerTap(widget.banners[0]),
-        child: BannerCard(banner: widget.banners[0], useHero: false),
+        child: BannerCard(
+          banner: widget.banners[0],
+          useHero: false,
+          paletteIndex: 0,
+        ),
       );
     }
 
@@ -145,31 +148,34 @@ class _BannerCarouselState extends State<BannerCarousel> {
         transitionBuilder: (child, animation) =>
             FadeTransition(opacity: animation, child: child),
         child: BannerCard(
-          // Key forces AnimatedSwitcher to treat each banner as a new widget
+          // Key forces AnimatedSwitcher to treat each banner as a new widget.
           key: ValueKey(_currentPage),
           banner: widget.banners[_currentPage],
           useHero: false,
+          // Cycle through the three palette variants per slide so a stack of
+          // image-free banners doesn't all look identical.
+          paletteIndex: _currentPage,
         ),
       ),
     );
   }
 
+  /// Dot indicator — active dot stretches into a peach pill, matching the
+  /// onboarding indicator and the auth flow's StepDots.
   Widget _buildDots() {
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(widget.banners.length, (index) {
-        final isActive = index == _currentPage;
+        final active = index == _currentPage;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          margin: const EdgeInsets.only(left: 4),
-          width: isActive ? 14 : 5,
-          height: 5,
+          margin: const EdgeInsets.symmetric(horizontal: 3.5),
+          width: active ? 22 : 7,
+          height: 7,
           decoration: BoxDecoration(
-            color: isActive
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(3),
+            color: active ? _kPrimary : _kInk.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(999),
           ),
         );
       }),
@@ -178,13 +184,13 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   Widget _buildShimmer() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: const Color(0xFFE9E5DD),
+      highlightColor: const Color(0xFFF7F6F2),
       child: Container(
         height: _carouselHeight,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(22),
         ),
       ),
     );

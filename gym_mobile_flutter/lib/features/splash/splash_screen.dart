@@ -16,7 +16,6 @@ const _kInk     = Color(0xFF1F1A14);
 const _kInk2    = Color(0x9E1F1A14);
 const _kInk3    = Color(0x6B1F1A14);
 const _kPeach   = Color(0xFFF4DCC1);
-const _kPrimary = Color(0xFFE07A3B);
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -318,17 +317,19 @@ class _BrandMark extends StatelessWidget {
   }
 }
 
+// Default mark: the CLBY app icon. When a gym uploads its own logo,
+// _BrandMark renders that instead via CachedNetworkImage.
 class _DefaultMark extends StatelessWidget {
   final double size;
   const _DefaultMark({required this.size});
 
   @override
   Widget build(BuildContext context) {
+    final radius = size * 0.28;
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(
-        color: _kInk,
-        borderRadius: BorderRadius.circular(size * 0.28),
+        borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
             color: const Color(0x2D1F1A14),
@@ -337,38 +338,14 @@ class _DefaultMark extends StatelessWidget {
           ),
         ],
       ),
-      child: CustomPaint(painter: _DumbbellPainter(size: size * 0.6)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Image.asset(
+          'assets/clby_logo.png',
+          width: size, height: size,
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
-}
-
-// Mini dumbbell glyph: orange caps, white bar — matches the brand mark in
-// the design (peach caps in the JSX, but orange reads better at scale).
-class _DumbbellPainter extends CustomPainter {
-  final double size;
-  const _DumbbellPainter({required this.size});
-
-  @override
-  void paint(Canvas canvas, Size canvasSize) {
-    final scale = size / 24.0;
-    final dx = (canvasSize.width - size) / 2;
-    final dy = (canvasSize.height - size) / 2;
-    final orange = Paint()..color = _kPrimary;
-    final white = Paint()..color = Colors.white;
-    void rect(double x, double y, double w, double h, double r, Paint p) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(dx + x * scale, dy + y * scale, w * scale, h * scale),
-          Radius.circular(r * scale),
-        ),
-        p,
-      );
-    }
-    rect(2, 9, 3, 6, 1, orange);
-    rect(19, 9, 3, 6, 1, orange);
-    rect(7, 11, 10, 2, 1, white);
-  }
-
-  @override
-  bool shouldRepaint(_DumbbellPainter old) => false;
 }

@@ -13,34 +13,51 @@ class ServicesSection extends StatelessWidget {
   /// Whether to show the loading skeleton instead of real cards.
   final bool loading;
 
+  /// Map of `trainer_type` → number of service packages for that type.
+  /// When provided, services with zero packages are hidden, and the whole
+  /// section disappears if no service has any.
+  final Map<String, int>? packageCounts;
+
   const ServicesSection({
     super.key,
     this.loading = false,
+    this.packageCounts,
   });
+
+  List<ServiceModel> get _visibleServices {
+    final counts = packageCounts;
+    if (counts == null || counts.isEmpty) return kServices;
+    return kServices
+        .where((s) => (counts[s.trainerType] ?? 0) > 0)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final visible = _visibleServices;
+    if (!loading && visible.isEmpty) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(count: kServices.length),
+          _SectionHeader(count: visible.length),
           const SizedBox(height: 12),
-          loading ? _buildSkeleton() : _buildCards(context),
+          loading ? _buildSkeleton() : _buildCards(context, visible),
         ],
       ),
     );
   }
 
-  Widget _buildCards(BuildContext context) {
-    final count = kServices.length;
+  Widget _buildCards(BuildContext context, List<ServiceModel> services) {
+    final count = services.length;
 
     if (count == 1) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: _ServiceCard(
-          service: kServices[0],
+          service: services[0],
           width: double.infinity,
         ),
       );
@@ -53,14 +70,14 @@ class ServicesSection extends StatelessWidget {
           children: [
             Expanded(
               child: _ServiceCard(
-                service: kServices[0],
+                service: services[0],
                 width: double.infinity,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _ServiceCard(
-                service: kServices[1],
+                service: services[1],
                 width: double.infinity,
               ),
             ),
@@ -75,11 +92,11 @@ class ServicesSection extends StatelessWidget {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: kServices.length,
+        itemCount: services.length,
         itemBuilder: (_, i) => Padding(
-          padding: EdgeInsets.only(right: i < kServices.length - 1 ? 12 : 0),
+          padding: EdgeInsets.only(right: i < services.length - 1 ? 12 : 0),
           child: _ServiceCard(
-            service: kServices[i],
+            service: services[i],
             width: 148,
           ),
         ),

@@ -61,7 +61,7 @@ class _TrainerDetailScreenState extends State<TrainerDetailScreen> {
         ApiService().getTrainerUpcomingSessions(
             widget.trainer.id, widget.trainer.name, gymId),
       // Also load full profile (enriches avg rating)
-      ApiService().getTrainerFullProfile(widget.trainer.name, gymId),
+      ApiService().getTrainerFullProfile(widget.trainer.id, gymId),
     ]);
 
     if (!mounted) return;

@@ -1115,9 +1115,9 @@ class ApiService {
   }
 
   Future<TrainerProfile?> getTrainerFullProfile(
-      String name, String gymId) async {
+      String trainerId, String gymId) async {
     try {
-      final data = await _get('/api/trainers', queryParams: {'name': name});
+      final data = await _get('/api/trainers');
       List list;
       if (data is List) {
         list = data;
@@ -1126,8 +1126,14 @@ class ApiService {
       } else {
         return null;
       }
-      if (list.isEmpty) return null;
-      final r = list.first as Map<String, dynamic>;
+      Map<String, dynamic>? r;
+      for (final item in list) {
+        if (item is Map<String, dynamic> && item['id'] == trainerId) {
+          r = item;
+          break;
+        }
+      }
+      if (r == null) return null;
       final avgRating = (r['avg_rating'] as num?)?.toDouble();
       return TrainerProfile.fromJson(r, avgRating: avgRating);
     } catch (e) {

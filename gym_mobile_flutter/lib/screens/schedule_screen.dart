@@ -324,19 +324,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onTap: () => _openFilterSheet(
                 context, memberProvider.sessions, primaryColor),
           ),
-          const SizedBox(width: 6),
-          _AppBarIconButton(
-            icon: _searchVisible ? Icons.close : Icons.search,
-            onTap: () {
-              setState(() {
-                _searchVisible = !_searchVisible;
-                if (!_searchVisible) {
-                  _searchController.clear();
-                  _searchQuery = '';
-                }
-              });
-            },
-          ),
         ],
       ),
       body: ScreenRefreshIndicator(
@@ -678,34 +665,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   // ─── Empty / Error states ──────────────────────────────────────────────────
 
-  static const _scienceTips = [
-    'Muscles grow during rest, not during the workout. You\'re technically training right now.',
-    'Recovery reduces cortisol levels. Doing nothing is peak performance.',
-    'Sleep is the most anabolic thing you can do. Sweet dreams count as gains.',
-    'Overtraining is real. Rest days are how champions are built.',
-    'Your nervous system recovers slower than your muscles. Today it thanks you.',
-    'Active recovery beats passive laziness. You chose passive. Bold move. Respect.',
-  ];
-
   Widget _buildEmpty(
       BuildContext context, bool noClassesOnDay, Color primaryColor) {
     final theme = Theme.of(context);
 
     if (noClassesOnDay && !_hasActiveFilters) {
-      // Pick a rotating science tip based on the selected day
-      final tip = _scienceTips[_selectedDate.weekday % _scienceTips.length];
-
-      // "Tomorrow" within our date range
-      final tomorrowDate = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day + 1,
-      );
-      final tomorrowInRange = _dateRange.any((d) =>
-          d.year == tomorrowDate.year &&
-          d.month == tomorrowDate.month &&
-          d.day == tomorrowDate.day);
-
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
@@ -744,57 +708,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           const SizedBox(height: 14),
 
-          // ── Science Says card ─────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEEBF8),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('🧪', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    tip,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF2D2566),
-                      fontWeight: FontWeight.w500,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
           // ── CTA rows ─────────────────────────────────────────────────────
-          if (tomorrowInRange)
-            _EmptyCta(
-              iconWidget: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F6F4),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: const Icon(
-                  Icons.schedule_outlined,
-                  size: 18,
-                  color: Color(0xFF1A9D8A),
-                ),
-              ),
-              title: 'Browse tomorrow\'s classes',
-              subtitle: 'Monday is a fresh start anyway',
-              onTap: () => setState(() => _selectedDate = tomorrowDate),
-            ),
-
-          if (tomorrowInRange) const SizedBox(height: 8),
-
           _EmptyCta(
             iconWidget: Container(
               width: 36,

@@ -163,15 +163,22 @@ class BookingController extends Controller
     /**
      * Recalculate booked_count = total non-cancelled bookings.
      * This counts booked + attended + absent — all count as "booked".
+     *
+     * Single atomic statement: the read and write happen in one query so
+     * two parallel bookings can't both observe the same stale count and
+     * race the write. (The previous read-then-write version could
+     * underflow at peak booking concurrency.)
      */
     private function recalculateBookedCount(string $sessionId): void
     {
-        $count = SessionBooking::where('session_id', $sessionId)
-            ->where('status', '!=', 'cancelled')
-            ->count();
-
-        DB::table('class_sessions')
-            ->where('id', $sessionId)
-            ->update(['booked_count' => $count]);
+        DB::statement(
+            'UPDATE class_sessions
+             SET booked_count = (
+               SELECT COUNT(*) FROM session_bookings
+               WHERE session_id = ? AND status <> ?
+             )
+             WHERE id = ?',
+            [$sessionId, 'cancelled', $sessionId]
+        );
     }
 }

@@ -53,6 +53,11 @@ class AttendanceController extends Controller
         $perPage = $validated['limit'] ?? 25;
         $page = $validated['page'] ?? 1;
 
+        // The member's current active subscription is fetched via a single
+        // LATERAL join (one lookup per attendance row) instead of two
+        // correlated subqueries (two lookups per row). At 50 rows/page that
+        // halves DB round-trips and is index-friendly via the existing
+        // partial index `idx_member_memberships_active`.
         $query = DB::table('attendance_logs as al')
             ->join('gym_members as gm', 'gm.id', '=', 'al.gym_member_id')
             ->join('profiles as p', 'p.id', '=', 'gm.user_id')
@@ -60,6 +65,21 @@ class AttendanceController extends Controller
             ->leftJoin('class_sessions as cs', 'cs.id', '=', 'al.class_session_id')
             ->leftJoin('classes as c', 'c.id', '=', 'cs.class_id')
             ->leftJoin('studios as st', 'st.id', '=', 'al.studio_id')
+            ->leftJoin(
+                DB::raw(<<<'SQL'
+                    LATERAL (
+                        SELECT mp.name AS plan_name, mp.plan_type
+                        FROM member_memberships mm
+                        JOIN membership_plans mp ON mp.id = mm.plan_id
+                        WHERE mm.gym_member_id = al.gym_member_id
+                          AND mm.status = 'active'
+                          AND mm.source_type = 'subscription'
+                        ORDER BY mm.start_date DESC
+                        LIMIT 1
+                    ) plan
+                SQL),
+                DB::raw('true'), '=', DB::raw('true')
+            )
             ->where('al.gym_id', $gymId)
             ->select([
                 'al.id', 'al.gym_member_id', 'gm.member_number',
@@ -69,26 +89,8 @@ class AttendanceController extends Controller
                 'cs.session_date', DB::raw('cs.start_time::text as session_time'),
                 DB::raw('COALESCE(cs.instructor, c.instructor) as instructor_name'),
                 'st.name as studio_name',
-                // Member's current active subscription (the plan they're on
-                // *now*, not necessarily the plan that was active at scan
-                // time — fine for the live feed which surfaces context for
-                // the most recent check-ins).
-                DB::raw("(
-                    SELECT mp.name FROM member_memberships mm
-                    JOIN membership_plans mp ON mp.id = mm.plan_id
-                    WHERE mm.gym_member_id = al.gym_member_id
-                      AND mm.status = 'active'
-                      AND mm.source_type = 'subscription'
-                    ORDER BY mm.start_date DESC LIMIT 1
-                ) as plan_name"),
-                DB::raw("(
-                    SELECT mp.plan_type FROM member_memberships mm
-                    JOIN membership_plans mp ON mp.id = mm.plan_id
-                    WHERE mm.gym_member_id = al.gym_member_id
-                      AND mm.status = 'active'
-                      AND mm.source_type = 'subscription'
-                    ORDER BY mm.start_date DESC LIMIT 1
-                ) as plan_type"),
+                'plan.plan_name',
+                'plan.plan_type',
             ]);
 
         if ($fromDate) $query->where('al.check_in_at', '>=', $fromDate);

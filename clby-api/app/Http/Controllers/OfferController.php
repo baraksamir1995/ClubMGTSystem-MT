@@ -12,12 +12,37 @@ class OfferController extends Controller
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
-        $offers = DB::table('gym_offers')->where('gym_id', $gymId)->orderBy('created_at', 'desc')->get();
 
-        // Decode jsonb columns
-        $offers = $offers->map(fn ($o) => $this->decodeJsonb((array) $o));
+        $query = DB::table('gym_offers')
+            ->where('gym_id', $gymId)
+            ->orderBy('created_at', 'desc');
 
-        return response()->json(['data' => $offers]);
+        // Mobile callers pass ?active=true to scope to currently-running offers.
+        if ($request->query('active') === 'true') {
+            $query->where('status', 'active');
+        }
+
+        // Mobile callers (explore feed) pass ?limit=N for a small slice;
+        // admin callers paginate. Honour `limit` if present, else paginate.
+        if ($limit = $request->query('limit')) {
+            $rows = $query->limit(min(100, max(1, (int) $limit)))->get();
+            return response()->json([
+                'data' => $rows->map(fn ($o) => $this->decodeJsonb((array) $o)),
+            ]);
+        }
+
+        $perPage = min(100, max(1, (int) $request->query('per_page', 50)));
+        $paginator = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => collect($paginator->items())->map(fn ($o) => $this->decodeJsonb((array) $o)),
+            'pagination' => [
+                'page'  => $paginator->currentPage(),
+                'pages' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'limit' => $paginator->perPage(),
+            ],
+        ]);
     }
 
     public function show(Request $request, string $id): JsonResponse

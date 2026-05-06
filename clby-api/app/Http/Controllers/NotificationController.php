@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\PushService;
+use App\Jobs\SendGymAnnouncementPush;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -10,16 +10,28 @@ use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
-    public function __construct(private PushService $push) {}
+    /** Recipients per queued job — keeps each job small enough to retry cheaply. */
+    private const PUSH_CHUNK_SIZE = 50;
 
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
-        $notifs = DB::table('gym_notifications')
+        $perPage = min(100, max(1, (int) $request->query('per_page', 50)));
+
+        $paginator = DB::table('gym_notifications')
             ->where('gym_id', $gymId)
             ->orderBy('created_at', 'desc')
-            ->get();
-        return response()->json(['data' => $notifs]);
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'pagination' => [
+                'page'  => $paginator->currentPage(),
+                'pages' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'limit' => $paginator->perPage(),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -39,24 +51,32 @@ class NotificationController extends Controller
 
         DB::table('gym_notifications')->insert($data);
 
-        // Fan out push to all gym members with a registered FCM token.
-        // Best-effort: if push isn't configured the service no-ops.
-        $recipients = DB::table('profiles')
+        // Fan out the push asynchronously — at 1k+ members the synchronous
+        // FCM loop would block PHP-FPM workers for minutes. Each job
+        // handles a chunk of recipients so a single Firebase blip only
+        // costs us one chunk, not the whole announcement.
+        $payload = [
+            'type'            => 'gym_announcement',
+            'gym_id'          => $gymId,
+            'notification_id' => $data['id'],
+        ];
+
+        DB::table('profiles')
             ->where('gym_id', $gymId)
             ->where('role', 'member')
             ->whereNotNull('fcm_token')
             ->whereNull('deleted_at')
             ->where('is_active', true)
-            ->pluck('id');
-
-        if ($recipients->isNotEmpty()) {
-            $this->push->sendToUsers(
-                $recipients,
-                $validated['title'],
-                $validated['body'],
-                ['type' => 'gym_announcement', 'gym_id' => $gymId, 'notification_id' => $data['id']],
-            );
-        }
+            ->orderBy('id')
+            ->select('id')
+            ->chunkById(self::PUSH_CHUNK_SIZE, function ($rows) use ($validated, $payload) {
+                SendGymAnnouncementPush::dispatch(
+                    $rows->pluck('id')->all(),
+                    $validated['title'],
+                    $validated['body'],
+                    $payload,
+                );
+            });
 
         // Return the full row (includes DB defaults like status)
         $row = DB::table('gym_notifications')->where('id', $data['id'])->first();

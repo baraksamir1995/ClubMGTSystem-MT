@@ -77,9 +77,29 @@ class ContentController extends Controller
         if (! $table) return response()->json(['error' => 'Invalid content type'], 400);
 
         $gymId = $request->user()->gym_id;
-        $items = DB::table($table)->where('gym_id', $gymId)->orderBy('created_at', 'desc')->get();
 
-        return response()->json(['data' => $items]);
+        $query = DB::table($table)
+            ->where('gym_id', $gymId)
+            ->orderBy('created_at', 'desc');
+
+        // Honour ?limit=N for slim mobile callers; admin/dashboard paginate.
+        if ($limit = $request->query('limit')) {
+            $items = $query->limit(min(100, max(1, (int) $limit)))->get();
+            return response()->json(['data' => $items]);
+        }
+
+        $perPage = min(100, max(1, (int) $request->query('per_page', 50)));
+        $paginator = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'pagination' => [
+                'page'  => $paginator->currentPage(),
+                'pages' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'limit' => $paginator->perPage(),
+            ],
+        ]);
     }
 
     public function store(Request $request, string $type): JsonResponse

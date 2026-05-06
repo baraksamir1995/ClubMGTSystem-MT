@@ -117,7 +117,22 @@ class MembershipController extends Controller
         $countQuery = (clone $base);
         $total = $countQuery->count();
 
+        // last_check_in_at via LATERAL with LIMIT 1 over the (gym_member_id,
+        // check_in_at DESC) index. Avoids a per-row correlated subquery
+        // that would re-scan attendance_logs for every membership row.
         $rows = (clone $base)
+            ->leftJoin(
+                DB::raw(<<<'SQL'
+                    LATERAL (
+                        SELECT al.check_in_at
+                        FROM attendance_logs al
+                        WHERE al.gym_member_id = mm.gym_member_id
+                        ORDER BY al.check_in_at DESC
+                        LIMIT 1
+                    ) last_attend
+                SQL),
+                DB::raw('true'), '=', DB::raw('true')
+            )
             ->select([
                 'mm.id',
                 'mm.gym_member_id',
@@ -138,7 +153,7 @@ class MembershipController extends Controller
                 'mm.sessions_remaining',
                 DB::raw("EXTRACT(DAY FROM (mm.end_date - NOW()))::int as days_remaining"),
                 DB::raw("$displayStatusSql as display_status"),
-                DB::raw("(SELECT MAX(al.check_in_at) FROM attendance_logs al WHERE al.gym_member_id = mm.gym_member_id) as last_check_in_at"),
+                DB::raw('last_attend.check_in_at as last_check_in_at'),
             ])
             ->addBinding($threshold, 'select')        // for the display_status CASE
             ->orderByRaw("CASE

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GymMember;
 use App\Models\SessionRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class ReviewController extends Controller
         ]);
 
         // Verify the gym_member belongs to the authenticated user
-        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        $gymMember = GymMember::find($validated['gym_member_id']);
         if (! $gymMember || $gymMember->user_id !== $request->user()->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }

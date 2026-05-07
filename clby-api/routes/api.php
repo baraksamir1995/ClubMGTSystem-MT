@@ -106,11 +106,13 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
 
-    // Memberships (own purchase)
-    Route::post('/memberships/purchase', [MembershipController::class, 'purchase']);
-    Route::post('/memberships/purchase-package', [MembershipController::class, 'purchaseServicePackage']);
-    Route::post('/memberships/{id}/freeze', [MembershipController::class, 'freeze']);
-    Route::post('/memberships/{id}/unfreeze', [MembershipController::class, 'unfreeze']);
+    // Memberships (own purchase) — money-moving + entitlement-touching
+    // endpoints require a verified member email so a freshly registered
+    // (unverified) user can't act before confirming.
+    Route::post('/memberships/purchase', [MembershipController::class, 'purchase'])->middleware('verified_member');
+    Route::post('/memberships/purchase-package', [MembershipController::class, 'purchaseServicePackage'])->middleware('verified_member');
+    Route::post('/memberships/{id}/freeze', [MembershipController::class, 'freeze'])->middleware('verified_member');
+    Route::post('/memberships/{id}/unfreeze', [MembershipController::class, 'unfreeze'])->middleware('verified_member');
     Route::get('/memberships/{id}/freeze-logs', [MembershipController::class, 'freezeLogs']);
 
     // Read-only data (browse gym content)
@@ -134,16 +136,17 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/reviews', [ReviewController::class, 'index']);
     Route::post('/ratings', [ReviewController::class, 'store']);
 
-    // QR / Access
+    // QR / Access — entrance check-in requires verified email so an
+    // unverified registration can't walk into the gym.
     Route::post('/qr-token/generate', [QrTokenController::class, 'generate']);
     Route::post('/qr-token/verify', [QrTokenController::class, 'verify']);
     Route::post('/access/qr/validate', [AccessController::class, 'validateQr']);
-    Route::post('/access/branch', [AccessController::class, 'validateBranch']);
-    Route::post('/access/studio', [AccessController::class, 'validateStudio']);
-    Route::post('/attendance/qr', [AttendanceController::class, 'logByQr']);
+    Route::post('/access/branch', [AccessController::class, 'validateBranch'])->middleware('verified_member');
+    Route::post('/access/studio', [AccessController::class, 'validateStudio'])->middleware('verified_member');
+    Route::post('/attendance/qr', [AttendanceController::class, 'logByQr'])->middleware('verified_member');
 
     // Paymob (mobile payment flow)
-    Route::post('/paymob/intention', [PaymobController::class, 'intention']);
+    Route::post('/paymob/intention', [PaymobController::class, 'intention'])->middleware('verified_member');
 
     // Member details (own — scoped by gym_member_id in query)
     Route::get('/members', [MemberController::class, 'index']);
@@ -153,7 +156,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Lookup is hit by the live-search input as the user types — keep it
     // generous so debounced typing doesn't trip the limit.
     Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:120,1');
-    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:60,1');
+    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware(['throttle:60,1', 'verified_member']);
     Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
 
     Route::get('/members/{id}', [MemberController::class, 'show']);

@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'verified_member' => \App\Http\Middleware\RequireVerifiedEmail::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

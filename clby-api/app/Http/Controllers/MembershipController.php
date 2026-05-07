@@ -693,17 +693,38 @@ class MembershipController extends Controller
             }
         }
 
+        // Idempotency: if PaymobController::intention() just created a
+        // pending payment + membership for this same plan in the last
+        // hour, return those IDs instead of creating a duplicate. Old
+        // mobile builds (1.0.x) call /paymob/intention then call this
+        // endpoint after Paymob succeeds — the second call would
+        // otherwise leave an orphan pending row that the webhook never
+        // activates.
+        $recent = DB::table('payments as p')
+            ->join('member_memberships as mm', 'mm.id', '=', 'p.membership_id')
+            ->where('p.gym_member_id', $gymMember->id)
+            ->where('p.gym_id', $gymId)
+            ->where('p.source', 'mobile_app')
+            ->where('p.status', 'pending')
+            ->where('mm.plan_id', $validated['plan_id'])
+            ->where('mm.status', 'pending')
+            ->where('p.created_at', '>', now()->subHour())
+            ->orderByDesc('p.created_at')
+            ->select('p.id as payment_id', 'p.membership_id')
+            ->first();
+        if ($recent) {
+            return response()->json([
+                'id' => $recent->payment_id,
+                'membership_id' => $recent->membership_id,
+            ], 200);
+        }
+
         return DB::transaction(function () use ($validated, $gymId, $gymMember, $plan, $startDate, $endDate, $amount, $originalAmount) {
-            // Self-purchase creates a *pending* membership. The Paymob
-            // webhook flips it to 'active' on payment confirmation. Until
-            // now this row was created as 'active' immediately, which let
-            // a hostile client call this endpoint and walk straight into
-            // the gym without paying.
-            //
-            // Existing active subscriptions are NOT yet expired here —
-            // we only displace them when the new purchase is confirmed
-            // paid (in the webhook). This avoids cancelling a paid
-            // membership for a payment that never completes.
+            // No recent intention — this is the cash / non-Paymob path.
+            // Self-purchase creates a *pending* membership. The webhook
+            // flips it to 'active' on payment confirmation; until then
+            // the access gates check status='active' and won't grant
+            // entry.
             $membershipId = \Illuminate\Support\Str::uuid()->toString();
 
             DB::table('member_memberships')->insert([
@@ -820,11 +841,42 @@ class MembershipController extends Controller
             }
         }
 
+        // Idempotency check: see purchase() for context. If intention()
+        // just minted a pending assignment for this same package in the
+        // last hour, return its IDs.
+        $recent = DB::table('payments as p')
+            ->join('member_service_assignments as msa', 'msa.id', '=', 'p.service_assignment_id')
+            ->where('p.gym_member_id', $gymMember->id)
+            ->where('p.gym_id', $gymId)
+            ->where('p.source', 'mobile_app')
+            ->where('p.status', 'pending')
+            ->where('msa.service_package_id', $package->id)
+            ->where('msa.status', 'pending')
+            ->where('p.created_at', '>', now()->subHour())
+            ->orderByDesc('p.created_at')
+            ->select('p.id as payment_id', 'p.service_assignment_id')
+            ->first();
+        if ($recent) {
+            // If the mobile is now sending a trainer_id that intention()
+            // didn't have, fold it into the existing pending assignment.
+            if (! empty($validated['trainer_id']) || $trainerName) {
+                DB::table('member_service_assignments')
+                    ->where('id', $recent->service_assignment_id)
+                    ->update([
+                        'trainer_id'   => $validated['trainer_id'] ?? null,
+                        'trainer_name' => $trainerName,
+                    ]);
+            }
+            return response()->json([
+                'id' => $recent->payment_id,
+                'assignment_id' => $recent->service_assignment_id,
+            ], 200);
+        }
+
         return DB::transaction(function () use ($validated, $gymId, $gymMember, $package, $amount, $originalAmount, $trainerName) {
-            // Create the assignment as 'pending' so the member doesn't
-            // get free PT/Physio/Nutrition sessions before Paymob confirms.
-            // The assignment_id is stashed on the payment so the webhook
-            // can flip it to 'active' atomically with marking paid.
+            // No recent intention — cash / non-Paymob path. Assignment is
+            // 'pending' until something else flips it to 'active' (a
+            // future cash-payment webhook or the offline assign flow).
             $assignmentId = \Illuminate\Support\Str::uuid()->toString();
             DB::table('member_service_assignments')->insert([
                 'id' => $assignmentId,

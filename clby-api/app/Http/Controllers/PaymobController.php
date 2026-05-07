@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PaymobController extends Controller
 {
@@ -147,22 +148,95 @@ class PaymobController extends Controller
         $validated['user_phone'] = $validated['user_phone'] ?? $profile->phone ?? null;
         $validated['user_name'] = $validated['user_name'] ?? $profile->full_name ?? null;
 
-        // Pre-create pending payment record.
-        // `amount` is stored as decimal EGP; format to 2dp via string to avoid float drift.
-        $payment = Payment::create([
-            'gym_id' => $gymId,
-            'gym_member_id' => $validated['member_id'],
-            'amount' => number_format($amountCents / 100, 2, '.', ''),
-            'currency' => $validated['currency'] ?? 'EGP',
-            'payment_method' => ($validated['payment_method'] ?? 'card') === 'valu' ? 'valu' : 'card',
-            'status' => 'pending',
-            'source' => 'mobile_app',
-            'service_type' => $validated['item_type'] ?? $catalog['type'],
-            'service_name' => $validated['item_name'] ?? $catalog['name'],
-            'specialist_name' => $validated['specialist_name'] ?? null,
-        ]);
-
+        // Create the pending entitlement *and* the linked payment row in
+        // one transaction. Until now intention() created only a payment
+        // row with no membership_id / service_assignment_id, so the
+        // webhook had nothing to activate even after marking the payment
+        // paid. Mobile then made a separate purchase() call which created
+        // a second (orphan) entitlement; that flow is now obsolete (see
+        // MembershipController::purchase / purchaseServicePackage —
+        // both detect the intention's pending row and return its IDs
+        // instead of creating duplicates).
         try {
+            [$payment, $entitlementId] = DB::transaction(function () use (
+                $validated, $gymId, $catalog, $amountCents
+            ) {
+                $catRow            = $catalog['row'];
+                $membershipId      = null;
+                $serviceAssignment = null;
+                $entitlementId     = null;
+
+                if ($catalog['type'] === 'membership') {
+                    $startDate = now()->toDateString();
+                    $expiryDays = $catRow->duration_days ?? $catRow->session_expiry_days ?? null;
+                    $endDate = $expiryDays
+                        ? date('Y-m-d', strtotime($startDate . " + {$expiryDays} days"))
+                        : null;
+
+                    $membershipId = Str::uuid()->toString();
+                    $entitlementId = $membershipId;
+                    DB::table('member_memberships')->insert([
+                        'id' => $membershipId,
+                        'gym_member_id' => $validated['member_id'],
+                        'plan_id' => $catRow->id,
+                        'gym_id' => $gymId,
+                        'status' => 'pending',
+                        'payment_status' => 'pending',
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                        'sessions_total' => $catRow->session_count,
+                        'sessions_used' => 0,
+                        'sessions_remaining' => $catRow->session_count,
+                        'original_price' => $amountCents / 100,
+                        'discount_amount' => 0,
+                        'final_price' => $amountCents / 100,
+                        'invitations_remaining' => $catRow->invitations_enabled
+                            ? ($catRow->invitations_per_cycle ?? 0)
+                            : 0,
+                        'source_type' => 'subscription',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } elseif ($catalog['type'] === 'service_package') {
+                    $serviceAssignment = Str::uuid()->toString();
+                    $entitlementId = $serviceAssignment;
+                    DB::table('member_service_assignments')->insert([
+                        'id' => $serviceAssignment,
+                        'gym_id' => $gymId,
+                        'gym_member_id' => $validated['member_id'],
+                        'service_package_id' => $catRow->id,
+                        'trainer_id' => null,
+                        'trainer_name' => $validated['specialist_name'] ?? null,
+                        'package_name' => $catRow->name,
+                        'service_type' => $catRow->trainer_type,
+                        'sessions_total' => $catRow->session_count,
+                        'sessions_used' => 0,
+                        'status' => 'pending',
+                        'notes' => null,
+                        'assigned_at' => now(),
+                        'created_at' => now(),
+                    ]);
+                }
+
+                $payment = Payment::create([
+                    'gym_id' => $gymId,
+                    'gym_member_id' => $validated['member_id'],
+                    'membership_id' => $membershipId,
+                    'service_assignment_id' => $serviceAssignment,
+                    'amount' => number_format($amountCents / 100, 2, '.', ''),
+                    'original_amount' => number_format($amountCents / 100, 2, '.', ''),
+                    'currency' => $validated['currency'] ?? 'EGP',
+                    'payment_method' => ($validated['payment_method'] ?? 'card') === 'valu' ? 'valu' : 'card',
+                    'status' => 'pending',
+                    'source' => 'mobile_app',
+                    'service_type' => $catalog['type'],
+                    'service_name' => $catalog['name'],
+                    'specialist_name' => $validated['specialist_name'] ?? null,
+                ]);
+
+                return [$payment, $entitlementId];
+            });
+
             $result = $this->paymob->createIntention($creds, [
                 ...$validated,
                 'amount_cents' => $amountCents,
@@ -172,15 +246,20 @@ class PaymobController extends Controller
 
             return response()->json([
                 'data' => [
-                    'payment_token' => $result['client_secret'],
-                    'checkout_url' => $result['checkout_url'],
-                    'public_key' => $result['public_key'],
-                    'client_secret' => $result['client_secret'],
-                    'payment_id' => $payment->id,
+                    'payment_token'  => $result['client_secret'],
+                    'checkout_url'   => $result['checkout_url'],
+                    'public_key'     => $result['public_key'],
+                    'client_secret'  => $result['client_secret'],
+                    'payment_id'     => $payment->id,
+                    'entitlement_id' => $entitlementId,
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::error('Paymob intention failed', ['error' => $e->getMessage(), 'payment_id' => $payment->id]);
+            Log::error('Paymob intention failed', [
+                'error' => $e->getMessage(),
+                'gym_id' => $gymId,
+                'plan_id' => $validated['plan_id'],
+            ]);
             return response()->json(['error' => 'Failed to create payment intention'], 502);
         }
     }

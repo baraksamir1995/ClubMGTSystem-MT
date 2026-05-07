@@ -34,16 +34,25 @@ class NotificationController extends Controller
         ]);
     }
 
+    /**
+     * Allowed values for `target_audience`. Anything else is rejected
+     * loudly so admins don't think they're segmenting when they aren't.
+     */
+    private const AUDIENCES = ['all', 'active_members', 'expired_members'];
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'body' => 'required|string',
-            'target_audience' => 'nullable|string',
+            'target_audience' => 'nullable|string|in:' . implode(',', self::AUDIENCES),
         ]);
+
+        $audience = $validated['target_audience'] ?? 'all';
 
         $gymId = $request->user()->gym_id;
         $data = $validated;
+        $data['target_audience'] = $audience;
         $data['id'] = Str::uuid()->toString();
         $data['gym_id'] = $gymId;
         $data['created_at'] = now();
@@ -59,16 +68,47 @@ class NotificationController extends Controller
             'type'            => 'gym_announcement',
             'gym_id'          => $gymId,
             'notification_id' => $data['id'],
+            'audience'        => $audience,
         ];
 
-        DB::table('profiles')
-            ->where('gym_id', $gymId)
-            ->where('role', 'member')
-            ->whereNotNull('fcm_token')
-            ->whereNull('deleted_at')
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->select('id')
+        $recipients = DB::table('profiles')
+            ->where('profiles.gym_id', $gymId)
+            ->where('profiles.role', 'member')
+            ->whereNotNull('profiles.fcm_token')
+            ->whereNull('profiles.deleted_at')
+            ->where('profiles.is_active', true);
+
+        if ($audience === 'active_members') {
+            $recipients->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('gym_members as gm')
+                    ->join('member_memberships as mm', 'mm.gym_member_id', '=', 'gm.id')
+                    ->whereColumn('gm.user_id', '=', 'profiles.id')
+                    ->whereColumn('gm.gym_id', '=', 'profiles.gym_id')
+                    ->where('mm.status', 'active')
+                    ->where('mm.payment_status', 'paid');
+            });
+        } elseif ($audience === 'expired_members') {
+            $recipients->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('gym_members as gm')
+                    ->whereColumn('gm.user_id', '=', 'profiles.id')
+                    ->whereColumn('gm.gym_id', '=', 'profiles.gym_id')
+                    ->whereNull('gm.deleted_at');
+            })->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('gym_members as gm')
+                    ->join('member_memberships as mm', 'mm.gym_member_id', '=', 'gm.id')
+                    ->whereColumn('gm.user_id', '=', 'profiles.id')
+                    ->whereColumn('gm.gym_id', '=', 'profiles.gym_id')
+                    ->where('mm.status', 'active')
+                    ->where('mm.payment_status', 'paid');
+            });
+        }
+
+        $recipients
+            ->orderBy('profiles.id')
+            ->select('profiles.id')
             ->chunkById(self::PUSH_CHUNK_SIZE, function ($rows) use ($validated, $payload) {
                 SendGymAnnouncementPush::dispatch(
                     $rows->pluck('id')->all(),
@@ -76,7 +116,7 @@ class NotificationController extends Controller
                     $validated['body'],
                     $payload,
                 );
-            });
+            }, 'profiles.id', 'id');
 
         // Return the full row (includes DB defaults like status)
         $row = DB::table('gym_notifications')->where('id', $data['id'])->first();

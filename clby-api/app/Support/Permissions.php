@@ -21,14 +21,14 @@ class Permissions
 {
     /** @var array<string, list<string>> */
     public const ALLOWLIST = [
-        'attendance'  => ['create'],
-        'classes'     => ['create', 'edit', 'delete'],
-        'content'     => ['create', 'edit', 'delete'],
-        'invitations' => ['edit'],
+        'attendance'  => ['view', 'create'],
+        'classes'     => ['view', 'create', 'edit', 'delete'],
+        'content'     => ['view', 'create', 'edit', 'delete'],
+        'invitations' => ['view', 'edit'],
         'members'     => ['view', 'create', 'edit', 'delete'],
-        'payments'    => ['create', 'edit', 'delete'],
-        'plans'       => ['create', 'edit', 'delete'],
-        'promotions'  => ['create', 'edit', 'delete'],
+        'payments'    => ['view', 'create', 'edit', 'delete'],
+        'plans'       => ['view', 'create', 'edit', 'delete'],
+        'promotions'  => ['view', 'create', 'edit', 'delete'],
         'settings'    => ['view', 'create', 'edit', 'delete'],
         'staff'       => ['view', 'create', 'edit', 'delete'],
     ];

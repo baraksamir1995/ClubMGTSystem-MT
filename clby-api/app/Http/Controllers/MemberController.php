@@ -447,8 +447,46 @@ class MemberController extends Controller
             return response()->json(['message' => 'No gym association found.'], 403);
         }
 
-        GymMember::where('gym_id', $gymId)->where('id', $id)
-            ->update(['deleted_at' => now(), 'status' => 'inactive']);
+        $member = DB::table('gym_members')
+            ->where('gym_id', $gymId)
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+        if (! $member) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        DB::transaction(function () use ($member, $gymId, $id) {
+            DB::table('gym_members')
+                ->where('gym_id', $gymId)
+                ->where('id', $id)
+                ->update(['deleted_at' => now(), 'status' => 'inactive', 'updated_at' => now()]);
+
+            // Lock the linked profile out of the API too — until now,
+            // soft-deleting a gym_member left the profile and its
+            // Sanctum tokens fully active. The deleted member could
+            // keep using their bearer token.
+            //
+            // Only lock the profile if THIS gym was their only
+            // affiliation. Members who belong to multiple gyms (rare
+            // but possible) should retain access to the others.
+            if ($member->user_id) {
+                $stillActiveElsewhere = DB::table('gym_members')
+                    ->where('user_id', $member->user_id)
+                    ->where('id', '!=', $id)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if (! $stillActiveElsewhere) {
+                    DB::table('profiles')
+                        ->where('id', $member->user_id)
+                        ->update(['is_active' => false, 'updated_at' => now()]);
+                    DB::table('personal_access_tokens')
+                        ->where('tokenable_type', \App\Models\User::class)
+                        ->where('tokenable_id', $member->user_id)
+                        ->delete();
+                }
+            }
+        });
 
         return response()->json(['message' => 'Member deleted']);
     }

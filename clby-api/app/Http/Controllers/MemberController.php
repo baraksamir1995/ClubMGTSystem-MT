@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesMemberScope;
 use App\Models\GymMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ use \App\Traits\LogsActivity;
 class MemberController extends Controller
 {
     use LogsActivity;
+    use ResolvesMemberScope;
+
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
@@ -25,6 +28,17 @@ class MemberController extends Controller
         $query = GymMember::where('gym_id', $gymId)
             ->with(['user:id,full_name,email,phone,photo_url,date_of_birth,gender,email_verified', 'memberships.plan:id,name,plan_type'])
             ->whereNull('deleted_at');
+
+        // Non-admin callers can only ever see themselves. Admins and
+        // staff (with members,view permission upstream — see route group)
+        // get the full gym list.
+        if (! $this->callerIsAdmin($request)) {
+            $ownMemberId = $this->callerOwnMemberId($request);
+            if (! $ownMemberId) {
+                return response()->json(['data' => [], 'pagination' => null]);
+            }
+            $query->where('id', $ownMemberId);
+        }
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -41,7 +55,9 @@ class MemberController extends Controller
             $query->where('status', $status);
         }
 
-        // Filter by user_id — 'self' resolves to the authenticated user
+        // user_id filter still honoured for admin convenience; non-admins
+        // are already scoped to themselves above so this can't be used to
+        // pivot to another user.
         if ($userId = $request->query('user_id')) {
             $resolvedUserId = $userId === 'self' ? $request->user()->id : $userId;
             $query->where('user_id', $resolvedUserId);
@@ -69,6 +85,14 @@ class MemberController extends Controller
 
         if (!$gymId) {
             return response()->json(['data' => null]);
+        }
+
+        // Non-admin callers may only fetch their own profile. Without this
+        // any logged-in member could read another member's profile,
+        // payments, and last 20 check-ins.
+        $scopedId = $this->scopedMemberId($request, $id);
+        if (! $scopedId || $scopedId !== $id) {
+            return response()->json(['error' => 'Forbidden'], 403);
         }
 
         $member = GymMember::where('gym_id', $gymId)
@@ -262,6 +286,12 @@ class MemberController extends Controller
 
         if (! $gymId) {
             return response()->json(['data' => []]);
+        }
+
+        // Non-admin callers may only read their own service assignments.
+        $scopedId = $this->scopedMemberId($request, $id);
+        if (! $scopedId || $scopedId !== $id) {
+            return response()->json(['error' => 'Forbidden'], 403);
         }
 
         $member = GymMember::where('gym_id', $gymId)

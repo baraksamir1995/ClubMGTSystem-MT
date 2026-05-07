@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesMemberScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,7 @@ use \App\Traits\LogsActivity;
 class MembershipController extends Controller
 {
     use LogsActivity;
+    use ResolvesMemberScope;
 
     /**
      * Aggregated list of all member memberships for the admin's gym.
@@ -420,6 +422,16 @@ class MembershipController extends Controller
             return response()->json(['error' => 'Membership not found'], 404);
         }
 
+        // Non-admin callers can only freeze/unfreeze their own membership.
+        // Without this any logged-in member could freeze someone else's
+        // entitlement by guessing the membership UUID.
+        if (! $this->callerIsAdmin($request)) {
+            $ownMemberId = $this->callerOwnMemberId($request);
+            if (! $ownMemberId || $membership->gym_member_id !== $ownMemberId) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
+
         if ($validated['action'] === 'freeze') {
             $days = $validated['days'] ?? 7;
             $now = now();
@@ -490,6 +502,22 @@ class MembershipController extends Controller
     public function freezeLogs(Request $request, string $id): JsonResponse
     {
         $gymId = $request->user()->gym_id;
+
+        $membership = DB::table('member_memberships')
+            ->where('id', $id)
+            ->where('gym_id', $gymId)
+            ->first();
+        if (! $membership) {
+            return response()->json(['error' => 'Membership not found'], 404);
+        }
+
+        // Non-admin callers can only read their own freeze history.
+        if (! $this->callerIsAdmin($request)) {
+            $ownMemberId = $this->callerOwnMemberId($request);
+            if (! $ownMemberId || $membership->gym_member_id !== $ownMemberId) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
 
         $logs = DB::table('membership_freeze_logs')
             ->where('membership_id', $id)

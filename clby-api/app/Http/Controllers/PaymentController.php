@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesMemberScope;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,8 @@ use \App\Traits\LogsActivity;
 class PaymentController extends Controller
 {
     use LogsActivity;
+    use ResolvesMemberScope;
+
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
@@ -20,9 +23,31 @@ class PaymentController extends Controller
             return response()->json(['data' => []]);
         }
 
+        $isAdmin = $this->callerIsAdmin($request);
         $memberId = $request->query('gym_member_id');
 
-        // If filtering by member, use direct query instead of PG function
+        // Non-admin callers can only ever see their own payments. The
+        // client-supplied gym_member_id is ignored.
+        if (! $isAdmin) {
+            $memberId = $this->callerOwnMemberId($request);
+            if (! $memberId) {
+                return response()->json(['data' => []]);
+            }
+        } elseif ($memberId) {
+            // Admin filtering by a specific member — verify they're in the gym.
+            $exists = DB::table('gym_members')
+                ->where('id', $memberId)
+                ->where('gym_id', $gymId)
+                ->whereNull('deleted_at')
+                ->exists();
+            if (! $exists) {
+                return response()->json(['data' => []]);
+            }
+        }
+
+        // If we have a memberId (member-self or admin-filtered), use the
+        // direct query. Otherwise (admin viewing all gym payments) use the
+        // PG function which has additional aggregation.
         if ($memberId) {
             $results = DB::table('payments')
                 ->where('gym_id', $gymId)
@@ -62,6 +87,14 @@ class PaymentController extends Controller
 
         $payment = Payment::where('id', $id)->where('gym_id', $gymId)->first();
         if (! $payment) return response()->json(['error' => 'Payment not found'], 404);
+
+        // Non-admin callers may only view their own payments.
+        if (! $this->callerIsAdmin($request)) {
+            $ownMemberId = $this->callerOwnMemberId($request);
+            if (! $ownMemberId || $payment->gym_member_id !== $ownMemberId) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
 
         // Include member info
         $member = null;

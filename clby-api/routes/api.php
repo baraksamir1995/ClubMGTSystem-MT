@@ -154,8 +154,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Session transfers (member-initiated share) — MUST be above /members/{id}
     // Lookup is hit by the live-search input as the user types — keep it
-    // generous so debounced typing doesn't trip the limit.
-    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:120,1');
+    // generous so debounced typing doesn't trip the limit. Returns
+    // same-gym member info by phone, so it must require a verified
+    // member; otherwise an unverified registration could enumerate the
+    // gym's directory by partial phone match.
+    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware(['throttle:120,1', 'verified_member']);
     Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware(['throttle:60,1', 'verified_member']);
     Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
 

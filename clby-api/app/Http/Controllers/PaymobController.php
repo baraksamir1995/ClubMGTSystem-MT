@@ -388,33 +388,74 @@ class PaymobController extends Controller
             return response()->json(['error' => 'Currency mismatch'], 422);
         }
 
-        // Atomically mark paid, assign member_number, and flip linked membership payment_status.
+        // Atomically mark paid + activate the linked entitlement
+        // (membership and/or service assignment).
         DB::transaction(function () use ($target, $transactionId, $gymId) {
             $updates = ['paymob_transaction_id' => $transactionId];
+            $becameP = false;
             if ($target->status === 'pending') {
                 $updates['status'] = 'paid';
                 $updates['paid_at'] = now();
+                $becameP = true;
             }
             $target->update($updates);
 
-            if (($updates['status'] ?? '') === 'paid' && $target->gym_member_id) {
-                $gymMember = DB::table('gym_members')->where('id', $target->gym_member_id)->lockForUpdate()->first();
-                if ($gymMember && $gymMember->member_number === null) {
-                    DB::select('SELECT pg_advisory_xact_lock(?)', [crc32((string) $gymId)]);
-                    $maxNumber = DB::table('gym_members')
-                        ->where('gym_id', $gymId)
-                        ->whereNotNull('member_number')
-                        ->max('member_number') ?? 0;
-                    DB::table('gym_members')
-                        ->where('id', $target->gym_member_id)
-                        ->update(['member_number' => $maxNumber + 1]);
-                }
-                if ($target->membership_id) {
+            if (! $becameP || ! $target->gym_member_id) return;
+
+            // Assign next member_number on first paid purchase.
+            $gymMember = DB::table('gym_members')->where('id', $target->gym_member_id)->lockForUpdate()->first();
+            if ($gymMember && $gymMember->member_number === null) {
+                DB::select('SELECT pg_advisory_xact_lock(?)', [crc32((string) $gymId)]);
+                $maxNumber = DB::table('gym_members')
+                    ->where('gym_id', $gymId)
+                    ->whereNotNull('member_number')
+                    ->max('member_number') ?? 0;
+                DB::table('gym_members')
+                    ->where('id', $target->gym_member_id)
+                    ->update(['member_number' => $maxNumber + 1]);
+            }
+
+            // Activate the membership entitlement (if any).
+            if ($target->membership_id) {
+                $newMembership = DB::table('member_memberships')
+                    ->where('id', $target->membership_id)
+                    ->first();
+
+                if ($newMembership) {
+                    // Displace any other active subscription for this
+                    // member — but only at activation time, not at
+                    // intent. This prevents an unconfirmed pending
+                    // purchase from cancelling a paid membership.
+                    DB::table('member_memberships')
+                        ->where('gym_member_id', $newMembership->gym_member_id)
+                        ->where('status', 'active')
+                        ->where('source_type', 'subscription')
+                        ->where('id', '!=', $newMembership->id)
+                        ->update(['status' => 'expired', 'updated_at' => now()]);
+
                     DB::table('member_memberships')
                         ->where('id', $target->membership_id)
-                        ->where('payment_status', 'pending')
-                        ->update(['payment_status' => 'paid']);
+                        ->update([
+                            'status' => 'active',
+                            'payment_status' => 'paid',
+                            'updated_at' => now(),
+                        ]);
+
+                    DB::table('gym_members')
+                        ->where('id', $target->gym_member_id)
+                        ->where('status', '!=', 'active')
+                        ->update(['status' => 'active', 'updated_at' => now()]);
                 }
+            }
+
+            // Activate the service-package assignment (if any).
+            if ($target->service_assignment_id) {
+                DB::table('member_service_assignments')
+                    ->where('id', $target->service_assignment_id)
+                    ->where('status', 'pending')
+                    ->update([
+                        'status' => 'active',
+                    ]);
             }
         });
 

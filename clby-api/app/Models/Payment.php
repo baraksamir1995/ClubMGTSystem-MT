@@ -15,7 +15,7 @@ class Payment extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'membership_id', 'member_id', 'gym_id', 'gym_member_id',
+        'membership_id', 'service_assignment_id', 'member_id', 'gym_id', 'gym_member_id',
         'amount', 'currency', 'method', 'payment_method', 'status',
         'invoice_number', 'notes',
         'refund_reason',

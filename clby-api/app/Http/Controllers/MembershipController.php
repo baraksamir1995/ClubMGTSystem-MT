@@ -296,10 +296,28 @@ class MembershipController extends Controller
             return response()->json(['message' => 'No gym association found.'], 403);
         }
 
-        // Fetch plan details
-        $plan = DB::table('membership_plans')->where('id', $validated['plan_id'])->first();
+        // Plan must be in caller's gym, active, and not soft-deleted.
+        // Without these filters an admin could assign a foreign tenant's
+        // plan, an archived plan, or a deleted plan — all of which would
+        // fail the catalog rules but write a real entitlement row.
+        $plan = DB::table('membership_plans')
+            ->where('id', $validated['plan_id'])
+            ->where('gym_id', $gymId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->first();
         if (! $plan) {
-            return response()->json(['error' => 'Plan not found'], 404);
+            return response()->json(['error' => 'Plan not available'], 404);
+        }
+
+        // Target member must be in caller's gym and not soft-deleted.
+        $memberInGym = DB::table('gym_members')
+            ->where('id', $validated['gym_member_id'])
+            ->where('gym_id', $gymId)
+            ->whereNull('deleted_at')
+            ->exists();
+        if (! $memberInGym) {
+            return response()->json(['error' => 'Member not in this gym'], 404);
         }
 
         $startDate = $validated['start_date'] ?? now()->toDateString();
@@ -676,15 +694,16 @@ class MembershipController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $gymId, $gymMember, $plan, $startDate, $endDate, $amount, $originalAmount) {
-            // Deactivate previous active SUBSCRIPTION memberships only —
-            // transferred buckets are independent entitlements and must
-            // survive a new purchase.
-            DB::table('member_memberships')
-                ->where('gym_member_id', $gymMember->id)
-                ->where('status', 'active')
-                ->where('source_type', 'subscription')
-                ->update(['status' => 'expired', 'updated_at' => now()]);
-
+            // Self-purchase creates a *pending* membership. The Paymob
+            // webhook flips it to 'active' on payment confirmation. Until
+            // now this row was created as 'active' immediately, which let
+            // a hostile client call this endpoint and walk straight into
+            // the gym without paying.
+            //
+            // Existing active subscriptions are NOT yet expired here —
+            // we only displace them when the new purchase is confirmed
+            // paid (in the webhook). This avoids cancelling a paid
+            // membership for a payment that never completes.
             $membershipId = \Illuminate\Support\Str::uuid()->toString();
 
             DB::table('member_memberships')->insert([
@@ -692,7 +711,7 @@ class MembershipController extends Controller
                 'gym_member_id' => $gymMember->id,
                 'plan_id' => $validated['plan_id'],
                 'gym_id' => $gymId,
-                'status' => 'active',
+                'status' => 'pending',
                 'payment_status' => 'pending',
                 'start_date' => $startDate,
                 'end_date' => $endDate,
@@ -704,6 +723,7 @@ class MembershipController extends Controller
                 'final_price' => $amount,
                 'promo_code_id' => $validated['promo_code_id'] ?? null,
                 'invitations_remaining' => $plan->invitations_enabled ? ($plan->invitations_per_cycle ?? 0) : 0,
+                'source_type' => 'subscription',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -801,27 +821,10 @@ class MembershipController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $gymId, $gymMember, $package, $amount, $originalAmount, $trainerName) {
-            $paymentId = \Illuminate\Support\Str::uuid()->toString();
-            DB::table('payments')->insert([
-                'id' => $paymentId,
-                'gym_id' => $gymId,
-                'gym_member_id' => $gymMember->id,
-                'amount' => $amount,
-                'original_amount' => $originalAmount,
-                'currency' => $validated['currency'] ?? 'EGP',
-                'payment_method' => $validated['payment_method'] ?? 'card',
-                'status' => 'pending',
-                'source' => 'mobile_app',
-                'service_type' => 'service_package',
-                'service_name' => $package->name,
-                'specialist_name' => $trainerName,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // Mirror the purchase as a service assignment so the member's
-            // profile and the admin's Active Services panel show it right
-            // away. Payment stays pending until reconciled.
+            // Create the assignment as 'pending' so the member doesn't
+            // get free PT/Physio/Nutrition sessions before Paymob confirms.
+            // The assignment_id is stashed on the payment so the webhook
+            // can flip it to 'active' atomically with marking paid.
             $assignmentId = \Illuminate\Support\Str::uuid()->toString();
             DB::table('member_service_assignments')->insert([
                 'id' => $assignmentId,
@@ -834,10 +837,29 @@ class MembershipController extends Controller
                 'service_type' => $package->trainer_type,
                 'sessions_total' => $package->session_count,
                 'sessions_used' => 0,
-                'status' => 'active',
+                'status' => 'pending',
                 'notes' => null,
                 'assigned_at' => now(),
                 'created_at' => now(),
+            ]);
+
+            $paymentId = \Illuminate\Support\Str::uuid()->toString();
+            DB::table('payments')->insert([
+                'id' => $paymentId,
+                'gym_id' => $gymId,
+                'gym_member_id' => $gymMember->id,
+                'service_assignment_id' => $assignmentId,
+                'amount' => $amount,
+                'original_amount' => $originalAmount,
+                'currency' => $validated['currency'] ?? 'EGP',
+                'payment_method' => $validated['payment_method'] ?? 'card',
+                'status' => 'pending',
+                'source' => 'mobile_app',
+                'service_type' => 'service_package',
+                'service_name' => $package->name,
+                'specialist_name' => $trainerName,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             return response()->json([

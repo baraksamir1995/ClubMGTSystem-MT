@@ -141,6 +141,23 @@ class StaffController extends Controller
         if (isset($validated['status'])) {
             DB::table('staff_members')->where('id', $id)
                 ->update(['status' => $validated['status'], 'updated_at' => now()]);
+
+            // Deactivating staff must revoke any active sessions —
+            // otherwise their bearer token continues to grant admin access
+            // until it ages out (which Sanctum tokens never do by default).
+            if ($validated['status'] === 'inactive' && $staff->user_id) {
+                DB::table('profiles')
+                    ->where('id', $staff->user_id)
+                    ->update(['is_active' => false, 'updated_at' => now()]);
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_type', \App\Models\User::class)
+                    ->where('tokenable_id', $staff->user_id)
+                    ->delete();
+            } elseif ($validated['status'] === 'active' && $staff->user_id) {
+                DB::table('profiles')
+                    ->where('id', $staff->user_id)
+                    ->update(['is_active' => true, 'updated_at' => now()]);
+            }
         }
 
         // Update profile fields
@@ -166,9 +183,26 @@ class StaffController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         $gymId = $request->user()->gym_id;
+        $staff = DB::table('staff_members')
+            ->where('id', $id)->where('gym_id', $gymId)->first();
+        if (! $staff) return response()->json(['error' => 'Staff not found'], 404);
+
         DB::table('staff_members')
             ->where('id', $id)->where('gym_id', $gymId)
             ->update(['deleted_at' => now(), 'status' => 'inactive']);
+
+        // Soft-deleting a staff record must also lock them out of the API
+        // — flip the linked profile inactive and shred their tokens.
+        if ($staff->user_id) {
+            DB::table('profiles')
+                ->where('id', $staff->user_id)
+                ->update(['is_active' => false, 'updated_at' => now()]);
+            DB::table('personal_access_tokens')
+                ->where('tokenable_type', \App\Models\User::class)
+                ->where('tokenable_id', $staff->user_id)
+                ->delete();
+        }
+
         return response()->json(['message' => 'Staff deactivated']);
     }
 

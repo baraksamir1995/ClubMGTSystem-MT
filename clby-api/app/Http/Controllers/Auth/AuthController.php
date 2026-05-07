@@ -325,6 +325,11 @@ class AuthController extends Controller
 
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
 
+        // Invalidate every existing session for this user. If a stolen
+        // token is what triggered the reset, leaving it valid would
+        // defeat the entire flow.
+        $user->tokens()->delete();
+
         return response()->json(['message' => 'Password reset successfully.']);
     }
 
@@ -353,6 +358,14 @@ class AuthController extends Controller
         DB::table('auth.users')
             ->where('id', $user->id)
             ->update(['encrypted_password' => Hash::make($validated['password'])]);
+
+        // Revoke every other active session — keep the current token so
+        // the user stays logged in on this device. If their account had
+        // been compromised on another device, that session is now dead.
+        $currentTokenId = $request->user()->currentAccessToken()?->id;
+        $user->tokens()
+            ->when($currentTokenId, fn ($q) => $q->where('id', '!=', $currentTokenId))
+            ->delete();
 
         return response()->json(['message' => 'Password changed successfully.']);
     }

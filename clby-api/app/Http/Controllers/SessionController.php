@@ -167,11 +167,29 @@ class SessionController extends Controller
             'gym_member_id' => 'required|uuid',
         ]);
 
-        // Verify the gym_member belongs to the authenticated user or user is admin
-        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        // Verify the gym_member belongs to the authenticated user (member)
+        // OR exists in the caller's gym (admin/staff/super_admin). The
+        // previous check let any admin from gym A act on a member of gym B.
         $user = $request->user();
-        if (! $gymMember || ($gymMember->user_id !== $user->id && ! in_array($user->role, ['gym_admin', 'super_admin', 'staff']))) {
+        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        $isAdmin = in_array($user->role, ['gym_admin', 'super_admin', 'staff'], true);
+        if (! $gymMember) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+        if (! $isAdmin && $gymMember->user_id !== $user->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        if ($isAdmin && $gymMember->gym_id !== $user->gym_id) {
+            return response()->json(['error' => 'Member not in this gym'], 403);
+        }
+
+        // Class must also be in the caller's gym.
+        $classInGym = DB::table('classes')
+            ->where('id', $validated['class_id'])
+            ->where('gym_id', $user->gym_id)
+            ->exists();
+        if (! $classInGym) {
+            return response()->json(['error' => 'Class not found'], 404);
         }
 
         // Find the current/next session for this class
@@ -222,11 +240,20 @@ class SessionController extends Controller
             'gym_member_id' => 'required|uuid',
         ]);
 
-        // Verify the gym_member belongs to the authenticated user or user is admin
-        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        // Same scoping as checkinGeneric: members can only consume their
+        // own sessions; admins can consume on behalf of any member but
+        // must be in the same gym as the target.
         $user = $request->user();
-        if (! $gymMember || ($gymMember->user_id !== $user->id && ! in_array($user->role, ['gym_admin', 'super_admin', 'staff']))) {
+        $gymMember = DB::table('gym_members')->where('id', $validated['gym_member_id'])->first();
+        $isAdmin = in_array($user->role, ['gym_admin', 'super_admin', 'staff'], true);
+        if (! $gymMember) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+        if (! $isAdmin && $gymMember->user_id !== $user->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        if ($isAdmin && $gymMember->gym_id !== $user->gym_id) {
+            return response()->json(['error' => 'Member not in this gym'], 403);
         }
 
         $result = DB::select('SELECT consume_class_session(?) AS data', [

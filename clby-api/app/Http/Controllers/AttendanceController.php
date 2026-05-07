@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesMemberScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,7 @@ use \App\Traits\LogsActivity;
 class AttendanceController extends Controller
 {
     use LogsActivity;
+    use ResolvesMemberScope;
 
     public function index(Request $request): JsonResponse
     {
@@ -289,8 +291,16 @@ class AttendanceController extends Controller
             'token' => 'required|uuid',
         ]);
 
+        // Members must scan as themselves — they don't get to pick whose
+        // attendance is being logged. Admins/staff/trainers can submit
+        // any member id, but it must belong to their gym.
+        $resolved = $this->scopedMemberId($request, $validated['gym_member_id']);
+        if (! $resolved) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $result = DB::select('SELECT log_gym_attendance_by_token(?, ?) AS data', [
-            $validated['gym_member_id'],
+            $resolved,
             $validated['token'],
         ]);
 

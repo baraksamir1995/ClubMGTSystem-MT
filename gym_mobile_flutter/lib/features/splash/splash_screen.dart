@@ -265,9 +265,9 @@ class _SplashScreenState extends State<SplashScreen>
             child: Center(
               child: FadeTransition(
                 opacity: _hintCtrl,
-                child: const Text(
-                  'Loading your gym…',
-                  style: TextStyle(
+                child: Text(
+                  Env.isWhiteLabel ? 'Powered by CLBY' : 'Loading your gym…',
+                  style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w500,
                     color: _kInk3, letterSpacing: 0.5,
                   ),

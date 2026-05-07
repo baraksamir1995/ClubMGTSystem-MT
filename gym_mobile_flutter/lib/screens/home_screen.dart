@@ -200,16 +200,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    // Fallback path: bootstrap didn't run (e.g., deep-link bypass or error).
-    final bannerProvider = context.read<BannerProvider>();
+    // Fallback path — bootstrap didn't run (most commonly: the user just
+    // signed in, so splash bootstrap returned early on no-auth and never
+    // marked bootstrapped). Mirror _refreshData so the post-login load
+    // behaves the same as a manual pull-to-refresh: force-reload member
+    // data (don't trust ensureMemberLoaded short-circuiting) and force the
+    // banner/branch caches so a stale gymId doesn't suppress the fetch.
     if (gymId != null) {
+      final bannerProvider = context.read<BannerProvider>();
       final branchProvider = context.read<BranchProvider>();
       await Future.wait([
-        memberProvider.ensureMemberLoaded(gymId),
-        bannerProvider.loadBanners(gymId),
-        branchProvider.loadBranches(gymId),
+        memberProvider.loadMemberData(gymId),
+        bannerProvider.loadBanners(gymId, force: true),
+        branchProvider.loadBranches(gymId, force: true),
       ]);
-      await memberProvider.refreshMembership();
       await memberProvider.loadSessions(gymId);
     }
   }

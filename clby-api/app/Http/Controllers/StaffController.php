@@ -61,14 +61,43 @@ class StaffController extends Controller
 
         $gymId = $request->user()->gym_id;
 
+        // Reject if the email already maps to any profile. Without this,
+        // updateOrInsert below would overwrite a foreign profile's gym_id,
+        // role, and password — a path to taking over an existing account
+        // (member or admin) by knowing the email.
+        $existing = DB::table('profiles')->where('email', $validated['email'])->first();
+        if ($existing) {
+            return response()->json([
+                'error' => 'A user with this email already exists. Use the existing-user attach flow instead.',
+                'code' => 'email_taken',
+            ], 422);
+        }
+
+        // Validate every role_id belongs to the caller's gym. Without this
+        // a tampered request could attach roles defined in another tenant
+        // and inherit those permissions.
+        $roleIds = $validated['role_ids'] ?? [];
+        if (! empty($roleIds)) {
+            $validCount = DB::table('staff_roles')
+                ->whereIn('id', $roleIds)
+                ->where('gym_id', $gymId)
+                ->count();
+            if ($validCount !== count($roleIds)) {
+                return response()->json([
+                    'error' => 'One or more role IDs do not belong to this gym.',
+                    'code' => 'invalid_role_ids',
+                ], 422);
+            }
+        }
+
         // Generate temp password
         $tempPassword = Str::random(10);
 
-        return DB::transaction(function () use ($validated, $gymId, $tempPassword) {
+        return DB::transaction(function () use ($validated, $gymId, $tempPassword, $roleIds) {
             $profileId = Str::uuid()->toString();
 
             // Create auth.users stub for FK
-            DB::table('auth.users')->insertOrIgnore([
+            DB::table('auth.users')->insert([
                 'id' => $profileId,
                 'email' => $validated['email'],
                 'encrypted_password' => Hash::make($tempPassword),
@@ -76,28 +105,25 @@ class StaffController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Create or update profile
-            DB::table('profiles')->updateOrInsert(
-                ['email' => $validated['email']],
-                [
-                    'id' => $profileId,
-                    'full_name' => $validated['full_name'],
-                    'phone' => $validated['phone'] ?? null,
-                    'password' => Hash::make($tempPassword),
-                    'gym_id' => $gymId,
-                    'role' => 'staff',
-                    'must_reset_password' => true,
-                    'updated_at' => now(),
-                ],
-            );
-
-            $profile = DB::table('profiles')->where('email', $validated['email'])->first();
+            DB::table('profiles')->insert([
+                'id' => $profileId,
+                'email' => $validated['email'],
+                'full_name' => $validated['full_name'],
+                'phone' => $validated['phone'] ?? null,
+                'password' => Hash::make($tempPassword),
+                'gym_id' => $gymId,
+                'role' => 'staff',
+                'is_active' => true,
+                'must_reset_password' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             $staffId = Str::uuid()->toString();
             DB::table('staff_members')->insert([
                 'id' => $staffId,
                 'gym_id' => $gymId,
-                'user_id' => $profile->id,
+                'user_id' => $profileId,
                 'full_name' => $validated['full_name'],
                 'email' => $validated['email'],
                 'status' => 'active',
@@ -105,8 +131,7 @@ class StaffController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Assign roles
-            foreach ($validated['role_ids'] ?? [] as $roleId) {
+            foreach ($roleIds as $roleId) {
                 DB::table('staff_member_roles')->insert([
                     'staff_id' => $staffId,
                     'role_id' => $roleId,
@@ -166,10 +191,23 @@ class StaffController extends Controller
             DB::table('profiles')->where('id', $staff->user_id)->update($profileFields);
         }
 
-        // Update roles
+        // Update roles — same gym-scoping check as create.
         if (array_key_exists('role_ids', $validated)) {
+            $roleIds = $validated['role_ids'] ?? [];
+            if (! empty($roleIds)) {
+                $validCount = DB::table('staff_roles')
+                    ->whereIn('id', $roleIds)
+                    ->where('gym_id', $gymId)
+                    ->count();
+                if ($validCount !== count($roleIds)) {
+                    return response()->json([
+                        'error' => 'One or more role IDs do not belong to this gym.',
+                        'code' => 'invalid_role_ids',
+                    ], 422);
+                }
+            }
             DB::table('staff_member_roles')->where('staff_id', $id)->delete();
-            foreach ($validated['role_ids'] ?? [] as $roleId) {
+            foreach ($roleIds as $roleId) {
                 DB::table('staff_member_roles')->insert([
                     'staff_id' => $id,
                     'role_id' => $roleId,
@@ -321,8 +359,31 @@ class StaffController extends Controller
         return response()->json(['data' => $roles]);
     }
 
+    /**
+     * Reject (module, action) pairs not in the server-side allowlist.
+     * Returns the offending tuple, or null if everything checks out.
+     */
+    private function findInvalidPermission(array $permissions): ?string
+    {
+        foreach ($permissions as $p) {
+            $module = (string) ($p['module'] ?? '');
+            $action = (string) ($p['action'] ?? '');
+            if (! \App\Support\Permissions::isValid($module, $action)) {
+                return "{$module}:{$action}";
+            }
+        }
+        return null;
+    }
+
     public function storeRole(Request $request): JsonResponse
     {
+        // Only gym_admin can mint or modify roles. Without this, any staff
+        // with permission:staff,create could create a role that grants them
+        // payments:delete or members:edit and assign it to themselves.
+        if ($request->user()->role !== 'gym_admin') {
+            return response()->json(['error' => 'Only gym admins can manage roles.'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
@@ -330,6 +391,14 @@ class StaffController extends Controller
             'permissions.*.module' => 'required|string',
             'permissions.*.action' => 'required|string',
         ]);
+
+        $perms = $validated['permissions'] ?? [];
+        if ($invalid = $this->findInvalidPermission($perms)) {
+            return response()->json([
+                'error' => "Unknown permission: {$invalid}",
+                'code' => 'invalid_permission',
+            ], 422);
+        }
 
         $gymId = $request->user()->gym_id;
         $roleId = Str::uuid()->toString();
@@ -341,14 +410,14 @@ class StaffController extends Controller
             'created_at' => now(),
         ]);
 
-        if (! empty($validated['permissions'])) {
-            $perms = array_map(fn ($p) => [
+        if (! empty($perms)) {
+            $rows = array_map(fn ($p) => [
                 'id' => Str::uuid()->toString(),
                 'role_id' => $roleId,
                 'module' => $p['module'],
                 'action' => $p['action'],
-            ], $validated['permissions']);
-            DB::table('staff_role_permissions')->insert($perms);
+            ], $perms);
+            DB::table('staff_role_permissions')->insert($rows);
         }
 
         return response()->json(['data' => ['id' => $roleId]], 201);
@@ -356,6 +425,10 @@ class StaffController extends Controller
 
     public function updateRole(Request $request, string $id): JsonResponse
     {
+        if ($request->user()->role !== 'gym_admin') {
+            return response()->json(['error' => 'Only gym admins can manage roles.'], 403);
+        }
+
         $gymId = $request->user()->gym_id;
 
         // Verify role belongs to this gym
@@ -370,6 +443,15 @@ class StaffController extends Controller
             'permissions.*.action' => 'required|string',
         ]);
 
+        if (array_key_exists('permissions', $validated)) {
+            if ($invalid = $this->findInvalidPermission($validated['permissions'] ?? [])) {
+                return response()->json([
+                    'error' => "Unknown permission: {$invalid}",
+                    'code' => 'invalid_permission',
+                ], 422);
+            }
+        }
+
         if (isset($validated['name'])) {
             DB::table('staff_roles')->where('id', $id)->where('gym_id', $gymId)->update(['name' => $validated['name']]);
         }
@@ -377,14 +459,14 @@ class StaffController extends Controller
         if (array_key_exists('permissions', $validated)) {
             DB::table('staff_role_permissions')->where('role_id', $id)->delete();
             if (! empty($validated['permissions'])) {
-                $perms = array_map(fn ($p) => [
+                $rows = array_map(fn ($p) => [
                     'id' => Str::uuid()->toString(),
                     'role_id' => $id,
                     'module' => $p['module'],
                     'action' => $p['action'],
                     'created_at' => now(),
                 ], $validated['permissions']);
-                DB::table('staff_role_permissions')->insert($perms);
+                DB::table('staff_role_permissions')->insert($rows);
             }
         }
 

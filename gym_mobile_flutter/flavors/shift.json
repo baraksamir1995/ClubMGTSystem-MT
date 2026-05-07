@@ -1,0 +1,8 @@
+{
+  "API_URL": "https://api.clbyapp.com",
+  "GYM_ID": "71a89809-3b70-4882-9af7-944c6a26de69",
+  "IS_STAGING": "false",
+  "BRAND_NAME": "Shift",
+  "BRAND_PRIMARY": "#E07A3B",
+  "BRAND_LOGO_ASSET": "assets/shift_logo.png"
+}

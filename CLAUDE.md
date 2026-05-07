@@ -22,11 +22,11 @@ cd clby-api && php artisan serve --host=0.0.0.0 --port=8081
 # Admin (Next.js)
 cd gym-admin && npm run dev    # http://localhost:3001
 
-# Mobile (Flutter) — point at API_URL in dart_defines.local.json
-cd gym_mobile_flutter && flutter run --dart-define-from-file=dart_defines.local.json
+# Mobile (Flutter) — point at API_URL in flavors/clby.local.json
+cd gym_mobile_flutter && flutter run --flavor clby --dart-define-from-file=flavors/clby.local.json
 ```
 
-`dart_defines.local.json` contains `API_URL=http://<MAC_LAN_IP>:8081`. Keep in sync with `ipconfig getifaddr en0`. Physical-device runs need the LAN IP, not `localhost`.
+`flavors/clby.local.json` contains `API_URL=http://<MAC_LAN_IP>:8081`. Keep in sync with `ipconfig getifaddr en0`. Physical-device runs need the LAN IP, not `localhost`. Per-brand flavors live alongside as `flavors/<name>.json` (see "White-label / flavors" below).
 
 ## Production
 
@@ -38,7 +38,7 @@ cd gym_mobile_flutter && flutter run --dart-define-from-file=dart_defines.local.
 
 ```bash
 cd gym_mobile_flutter
-flutter build ipa --release --dart-define-from-file=dart_defines.json    # prod API
+flutter build ipa --release --flavor clby --dart-define-from-file=flavors/clby.json    # prod API, multi-tenant clby
 # Then upload build/ios/ipa/CLBY.ipa via Transporter.app
 ```
 

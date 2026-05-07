@@ -9,6 +9,7 @@ import '../../features/popups/popup_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/member_provider.dart';
 import '../../services/app_bootstrap.dart';
+import '../../utils/env.dart';
 
 // ── Design tokens (warm cream + peach + orange) ─────────────────────────────
 const _kBg      = Color(0xFFF7F6F2);
@@ -175,7 +176,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final wordmark = (_gymName != null && _gymName!.isNotEmpty) ? _gymName! : 'CLBY';
+    final wordmark = (_gymName != null && _gymName!.isNotEmpty) ? _gymName! : Env.brandName;
     return Scaffold(
       backgroundColor: _kBg,
       body: Stack(
@@ -294,6 +295,10 @@ class _BrandMark extends StatelessWidget {
       blurRadius: size * 0.32,
       offset: Offset(0, size * 0.12),
     );
+    // White-label: brand asset wins, no need to wait on the network.
+    if (Env.isWhiteLabel) {
+      return _DefaultMark(size: size);
+    }
     if (logoUrl != null && logoUrl!.isNotEmpty) {
       return Container(
         width: size, height: size,
@@ -306,7 +311,7 @@ class _BrandMark extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: logoUrl!,
             width: size, height: size,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             placeholder: (_, __) => _DefaultMark(size: size),
             errorWidget: (_, __, ___) => _DefaultMark(size: size),
           ),
@@ -317,7 +322,7 @@ class _BrandMark extends StatelessWidget {
   }
 }
 
-// Default mark: the CLBY app icon. When a gym uploads its own logo,
+// Default mark: the active flavor's app icon. When a gym uploads its own logo,
 // _BrandMark renders that instead via CachedNetworkImage.
 class _DefaultMark extends StatelessWidget {
   final double size;
@@ -341,9 +346,9 @@ class _DefaultMark extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: Image.asset(
-          'assets/clby_logo.png',
+          Env.brandLogoAsset,
           width: size, height: size,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
         ),
       ),
     );

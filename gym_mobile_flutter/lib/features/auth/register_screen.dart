@@ -48,6 +48,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'July','August','September','October','November','December',
   ];
 
+  // White-label builds (GYM_ID baked at compile time) don't render the club
+  // picker — the gym is fixed, so we skip step 2 entirely and submit from
+  // step 1. Synthesize the Gym up-front so _register() has the data it needs.
+  bool get _skipClubStep => Env.isWhiteLabel;
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +63,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _yearCtrl.addListener(_rebuild);
     _phoneCtrl.addListener(_rebuild);
     _gymSearchCtrl.addListener(_rebuild);
-    _loadGyms();
+    if (_skipClubStep) {
+      _selectedGym = Gym(id: Env.gymId, name: Env.brandName);
+      _gymsLoading = false;
+    } else {
+      _loadGyms();
+    }
   }
 
   Future<void> _loadGyms() async {
@@ -68,11 +78,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _gyms = gyms;
         _gymsLoading = false;
-        // Auto-select gym from build-time GYM_ID if set.
-        if (Env.gymId.isNotEmpty) {
-          final match = gyms.where((g) => g.id == Env.gymId);
-          if (match.isNotEmpty) _selectedGym = match.first;
-        }
       });
     } catch (_) {
       if (mounted) setState(() => _gymsLoading = false);
@@ -297,7 +302,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            AuthStepBar(step: _step),
+            AuthStepBar(
+              step: _step,
+              labels: _skipClubStep
+                  ? const ['Account', 'You']
+                  : const ['Account', 'You', 'Club'],
+            ),
             const SizedBox(height: 4),
             Expanded(
               child: PageView(
@@ -306,7 +316,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   _accountStep(),
                   _personalStep(),
-                  _clubStep(),
+                  if (!_skipClubStep) _clubStep(),
                 ],
               ),
             ),
@@ -564,10 +574,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       const SizedBox(height: 28),
       AuthButton(
-        label: 'Continue',
+        label: _skipClubStep ? 'Create account' : 'Continue',
+        isLoading: _skipClubStep && _isLoading,
         enabled: _step1Valid,
-        onTap: () => _goTo(2),
+        onTap: _skipClubStep ? _register : () => _goTo(2),
       ),
+      if (_skipClubStep) ...[
+        const SizedBox(height: 12),
+        const LegalConsentLine(
+          prefix: 'By creating an account you agree to our ',
+        ),
+      ],
         ],
       ),
     );

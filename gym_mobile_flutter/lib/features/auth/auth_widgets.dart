@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../services/api_service.dart';
+import '../../utils/env.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 // Warm cream + peach + orange system shared with the transfer + profile flows.
@@ -73,6 +74,21 @@ class _AuthMarkState extends State<AuthMark> {
   Widget build(BuildContext context) {
     final size = widget.size;
     final radius = size * 0.30;
+
+    // White-label: the gym is fixed at compile time, so render the bundled
+    // brand asset directly — no API/cache roundtrip, no flash of fallback.
+    if (Env.isWhiteLabel) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Image.asset(
+          Env.brandLogoAsset,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+
     if (_logoUrl != null) {
       return Container(
         width: size,
@@ -89,7 +105,7 @@ class _AuthMarkState extends State<AuthMark> {
             imageUrl: _logoUrl!,
             width: size,
             height: size,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             placeholder: (_, __) => _MarkFallback(size: size),
             errorWidget: (_, __, ___) => _MarkFallback(size: size),
           ),

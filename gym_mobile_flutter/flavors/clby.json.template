@@ -1,0 +1,8 @@
+{
+  "API_URL": "https://api.example.com",
+  "GYM_ID": "",
+  "IS_STAGING": "false",
+  "BRAND_NAME": "Your Brand",
+  "BRAND_PRIMARY": "#E07A3B",
+  "BRAND_LOGO_ASSET": "assets/your_logo.png"
+}

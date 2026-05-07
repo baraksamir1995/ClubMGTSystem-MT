@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import '../models/membership_summary_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
+import '../utils/env.dart';
+import '../widgets/gym_app_bar.dart';
 import '../widgets/legal_links.dart';
 import '../widgets/screen_refresh_indicator.dart';
 
@@ -95,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(logoUrl: gym?.logoUrl, primary: primary),
+            _buildHeader(primary: primary),
             Expanded(
               child: ScreenRefreshIndicator(
                 onRefresh: _loadData,
@@ -272,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.only(top: 18),
                     child: Center(
                       child: Text(
-                        '${gym?.name ?? "CLBY"} · v1.0',
+                        '${gym?.name ?? Env.brandName} · v1.0',
                         style: const TextStyle(fontSize: 11, color: _kInk3, fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -291,25 +293,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Matches the rest of the app's screen titles (e.g. GymAppBar's
   // greeting): logo left, title left-aligned next to it at fontSize 20 /
   // weight 800, edit button on the far right.
-  Widget _buildHeader({String? logoUrl, required Color primary}) {
+  Widget _buildHeader({required Color primary}) {
+    final gym = context.watch<AuthProvider>().gym;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: SizedBox(
         height: 56,
         child: Row(
           children: [
-            // Gym logo pinned to the leading edge
-            (logoUrl != null && logoUrl.isNotEmpty)
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: logoUrl,
-                      width: 32, height: 32, fit: BoxFit.cover,
-                      placeholder: (_, __) => _brandFallback(),
-                      errorWidget: (_, __, ___) => _brandFallback(),
-                    ),
-                  )
-                : _brandFallback(),
+            GymLogoMark(gym: gym, fallbackTitle: Env.brandName, size: 32, radius: 8),
             const SizedBox(width: 10),
             // "Profile" title — same scale + weight as GymAppBar greetings
             const Text(
@@ -337,18 +329,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _brandFallback() {
-    return Container(
-      width: 28, height: 28,
-      decoration: BoxDecoration(
-        color: _kInk,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      alignment: Alignment.center,
-      child: const Icon(Icons.fitness_center_rounded, size: 16, color: Colors.white),
     );
   }
 

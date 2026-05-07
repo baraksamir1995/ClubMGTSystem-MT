@@ -29,11 +29,28 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
     defaultConfig {
-        applicationId = "com.clubmgt.gym_mobile_flutter"
+        // applicationId moved into the clby flavor — every brand has its own.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+    // Per-brand white-label dimension. Each flavor owns its applicationId,
+    // user-visible app name, and (via src/<flavor>/res/) its launcher icon
+    // and Firebase config. Build with:
+    //   flutter build apk --flavor clby --dart-define-from-file=flavors/clby.json
+    flavorDimensions += "brand"
+    productFlavors {
+        create("clby") {
+            dimension = "brand"
+            applicationId = "com.clubmgt.gym_mobile_flutter"
+            resValue("string", "app_name", "CLBY")
+        }
+        create("shift") {
+            dimension = "brand"
+            applicationId = "com.clbyapp.shift"
+            resValue("string", "app_name", "Shift")
+        }
     }
     signingConfigs {
         create("release") {

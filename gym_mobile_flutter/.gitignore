@@ -23,9 +23,10 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Local dart-define overrides — copy dart_defines.json.template → dart_defines.json
-# and set BACKEND_URL to your machine's LAN IP. Never commit the filled-in copy.
-dart_defines.json
+# Per-developer overrides for any flavor. The committed flavors/<name>.json is
+# the prod/staging source of truth; flavors/<name>.local.json holds your LAN IP
+# for `flutter run` and never gets committed.
+flavors/*.local.json
 
 # Flutter/Dart/Pub related
 **/doc/api/

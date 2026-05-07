@@ -41,7 +41,7 @@ class GymAppBar extends StatelessWidget implements PreferredSizeWidget {
       const SizedBox(width: 12),
     ];
 
-    final logoMark = _GymLogoMark(gym: gym, fallbackTitle: fallbackTitle);
+    final logoMark = GymLogoMark(gym: gym, fallbackTitle: fallbackTitle);
 
     // US-01-02: logo + greeting as a left-aligned row in the title slot
     final Widget titleWidget = greeting != null
@@ -86,17 +86,24 @@ class GymAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-// US-01-01 — 26×26px logo mark, border-radius 7px, dark background #1D1D1B
-// Non-tappable. Fallback: first letter of gym name.
-class _GymLogoMark extends StatelessWidget {
+// US-01-01 — logo mark on a dark rounded square. Non-tappable.
+// Fallback: first letter of gym name. Size + radius default to the home
+// app-bar dimensions; profile reuses with a larger size.
+class GymLogoMark extends StatelessWidget {
   final Gym? gym;
   final String fallbackTitle;
+  final double size;
+  final double radius;
 
-  const _GymLogoMark({required this.gym, required this.fallbackTitle});
+  const GymLogoMark({
+    super.key,
+    required this.gym,
+    required this.fallbackTitle,
+    this.size = 26.0,
+    this.radius = 7.0,
+  });
 
   static const _bg = Color(0xFF1D1D1B);
-  static const _size = 26.0;
-  static const _radius = 7.0;
 
   String get _initial {
     final name = gym?.name ?? fallbackTitle;
@@ -109,18 +116,18 @@ class _GymLogoMark extends StatelessWidget {
     final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
 
     return Container(
-      width: _size,
-      height: _size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: hasLogo ? Colors.transparent : _bg,
-        borderRadius: BorderRadius.circular(_radius),
+        borderRadius: BorderRadius.circular(radius),
       ),
       clipBehavior: Clip.antiAlias,
       child: hasLogo
           ? CachedNetworkImage(
               imageUrl: logoUrl,
-              width: _size,
-              height: _size,
+              width: size,
+              height: size,
               fit: BoxFit.contain,
               placeholder: (ctx, url) => _buildInitial(),
               errorWidget: (ctx, url, err) => _buildInitial(),
@@ -133,9 +140,9 @@ class _GymLogoMark extends StatelessWidget {
     return Center(
       child: Text(
         _initial,
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 13,
+          fontSize: size * 0.5,
           fontWeight: FontWeight.w700,
           height: 1,
         ),

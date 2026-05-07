@@ -119,7 +119,15 @@ class _AppRootState extends State<_AppRoot> {
 
     Color primaryColor = AppTheme.defaultPrimary;
     Color? secondaryColor;
-    if (gym?.primaryColor != null && gym!.primaryColor!.isNotEmpty) {
+    // White-label builds bake the brand color into the binary, so it wins over
+    // whatever the gym row in the API has — guarantees no flicker between
+    // launch and first /me response, and keeps the app on-brand even if an
+    // admin clears the gym's primary_color in the dashboard.
+    if (Env.isWhiteLabel && Env.brandPrimaryHex.isNotEmpty) {
+      try {
+        primaryColor = AppTheme.colorFromHex(Env.brandPrimaryHex);
+      } catch (_) {}
+    } else if (gym?.primaryColor != null && gym!.primaryColor!.isNotEmpty) {
       try {
         primaryColor = AppTheme.colorFromHex(gym.primaryColor!);
       } catch (_) {}
@@ -132,7 +140,7 @@ class _AppRootState extends State<_AppRoot> {
 
     return StagingBanner(
       child: MaterialApp.router(
-        title: gym?.name ?? 'Gym App',
+        title: gym?.name ?? Env.brandName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.buildTheme(primaryColor, secondary: secondaryColor),
         routerConfig: _router,

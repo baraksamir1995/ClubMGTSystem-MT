@@ -185,26 +185,42 @@ class _WelcomeTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return RichText(
       textAlign: TextAlign.center,
-      text: const TextSpan(
-        style: TextStyle(
+      text: TextSpan(
+        style: const TextStyle(
           fontSize: 32, fontWeight: FontWeight.w700,
           color: _kInk, letterSpacing: -0.8, height: 1.15,
         ),
         children: [
-          TextSpan(text: 'Welcome to '),
-          TextSpan(text: 'CLBY', style: TextStyle(color: _kPrimary)),
+          const TextSpan(text: 'Welcome to '),
+          TextSpan(text: Env.brandName, style: const TextStyle(color: _kPrimary)),
         ],
       ),
     );
   }
 }
 
+// Welcome-screen brand mark.
+// clby (marketplace): keeps the painted dumbbell on a dark rounded square —
+// the generic CLBY mark since no specific gym is selected yet.
+// White-label flavors: render the brand logo asset directly so the gym's
+// own identity shows through pre-login.
 class _BrandMark extends StatelessWidget {
   final double size;
   const _BrandMark({required this.size});
 
   @override
   Widget build(BuildContext context) {
+    if (Env.isWhiteLabel) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.28),
+        child: Image.asset(
+          Env.brandLogoAsset,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(

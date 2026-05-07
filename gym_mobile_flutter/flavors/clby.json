@@ -1,0 +1,8 @@
+{
+  "API_URL": "https://api.clbyapp.com",
+  "GYM_ID": "",
+  "IS_STAGING": "false",
+  "BRAND_NAME": "CLBY",
+  "BRAND_PRIMARY": "",
+  "BRAND_LOGO_ASSET": "assets/clby_logo.png"
+}

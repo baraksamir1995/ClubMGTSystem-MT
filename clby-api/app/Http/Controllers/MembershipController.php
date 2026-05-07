@@ -580,16 +580,18 @@ class MembershipController extends Controller
 
     /**
      * Mobile self-purchase — user buys a membership for themselves.
+     *
+     * Price is *always* derived from the plan row in the caller's gym;
+     * client-supplied `amount` is no longer trusted. The plan must be
+     * active, not soft-deleted, and belong to the caller's gym.
      */
     public function purchase(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'plan_id' => 'required|uuid',
-            'amount' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|max:5',
             'payment_method' => 'nullable|string|max:50',
             'start_date' => 'nullable|date',
-            'original_amount' => 'nullable|numeric|min:0',
             'promo_code_id' => 'nullable|uuid',
         ]);
 
@@ -611,17 +613,39 @@ class MembershipController extends Controller
             return response()->json(['error' => 'Not a gym member'], 404);
         }
 
-        $plan = DB::table('membership_plans')->where('id', $validated['plan_id'])->first();
+        $plan = DB::table('membership_plans')
+            ->where('id', $validated['plan_id'])
+            ->where('gym_id', $gymId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->first();
         if (! $plan) {
-            return response()->json(['error' => 'Plan not found'], 404);
+            return response()->json(['error' => 'Plan not available for purchase'], 404);
         }
 
         $startDate = $validated['start_date'] ?? now()->toDateString();
         $expiryDays = $plan->duration_days ?? $plan->session_expiry_days ?? null;
         $endDate = $expiryDays ? date('Y-m-d', strtotime($startDate . " + {$expiryDays} days")) : null;
 
-        $amount = $validated['amount'] ?? $plan->price ?? 0;
-        $originalAmount = $validated['original_amount'] ?? $amount;
+        // Server-derived price. Promo discounts are validated against the
+        // promo_codes table and applied here, not by the client.
+        $originalAmount = (float) ($plan->price ?? 0);
+        $amount = $originalAmount;
+        if (! empty($validated['promo_code_id'])) {
+            $promo = DB::table('promo_codes')
+                ->where('id', $validated['promo_code_id'])
+                ->where('gym_id', $gymId)
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->first();
+            if ($promo) {
+                if ($promo->discount_type === 'percent') {
+                    $amount = round($originalAmount * (1 - ((float) $promo->discount_value / 100)), 2);
+                } elseif ($promo->discount_type === 'fixed') {
+                    $amount = max(0, round($originalAmount - (float) $promo->discount_value, 2));
+                }
+            }
+        }
 
         return DB::transaction(function () use ($validated, $gymId, $gymMember, $plan, $startDate, $endDate, $amount, $originalAmount) {
             // Deactivate previous active SUBSCRIPTION memberships only —
@@ -683,12 +707,10 @@ class MembershipController extends Controller
     {
         $validated = $request->validate([
             'package_id' => 'required|uuid',
-            'amount' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|max:5',
             'payment_method' => 'nullable|string|max:50',
             'specialist_name' => 'nullable|string|max:255',
             'trainer_id' => 'nullable|uuid',
-            'original_amount' => 'nullable|numeric|min:0',
             'promo_code_id' => 'nullable|uuid',
         ]);
 
@@ -712,10 +734,11 @@ class MembershipController extends Controller
         $package = DB::table('service_session_packages')
             ->where('id', $validated['package_id'])
             ->where('gym_id', $gymId)
+            ->where('is_active', true)
             ->whereNull('deleted_at')
             ->first();
-        if (! $package) {
-            return response()->json(['error' => 'Package not found'], 404);
+        if (! $package || $package->price === null) {
+            return response()->json(['error' => 'Package not available for purchase'], 404);
         }
 
         $trainerName = $validated['specialist_name'] ?? null;
@@ -730,16 +753,33 @@ class MembershipController extends Controller
             $trainerName = $trainer->name ?? $trainerName;
         }
 
-        $amount = $validated['amount'] ?? $package->price ?? 0;
+        // Server-derived price.
+        $originalAmount = (float) $package->price;
+        $amount = $originalAmount;
+        if (! empty($validated['promo_code_id'])) {
+            $promo = DB::table('promo_codes')
+                ->where('id', $validated['promo_code_id'])
+                ->where('gym_id', $gymId)
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->first();
+            if ($promo) {
+                if ($promo->discount_type === 'percent') {
+                    $amount = round($originalAmount * (1 - ((float) $promo->discount_value / 100)), 2);
+                } elseif ($promo->discount_type === 'fixed') {
+                    $amount = max(0, round($originalAmount - (float) $promo->discount_value, 2));
+                }
+            }
+        }
 
-        return DB::transaction(function () use ($validated, $gymId, $gymMember, $package, $amount, $trainerName) {
+        return DB::transaction(function () use ($validated, $gymId, $gymMember, $package, $amount, $originalAmount, $trainerName) {
             $paymentId = \Illuminate\Support\Str::uuid()->toString();
             DB::table('payments')->insert([
                 'id' => $paymentId,
                 'gym_id' => $gymId,
                 'gym_member_id' => $gymMember->id,
                 'amount' => $amount,
-                'original_amount' => $validated['original_amount'] ?? $amount,
+                'original_amount' => $originalAmount,
                 'currency' => $validated['currency'] ?? 'EGP',
                 'payment_method' => $validated['payment_method'] ?? 'card',
                 'status' => 'pending',

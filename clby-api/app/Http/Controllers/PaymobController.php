@@ -16,12 +16,60 @@ class PaymobController extends Controller
     ) {}
 
     /**
+     * Resolve the *true* price (in cents) of a purchasable item from the
+     * gym's catalog. Returns null if the item doesn't exist, is deleted,
+     * is inactive, or belongs to a different gym.
+     *
+     * The single defence against a hostile client trying to buy a 1000 EGP
+     * plan for 1 EGP — never trust client `amount_cents`.
+     *
+     * @return array{type: string, name: string, price_cents: int, row: object}|null
+     */
+    private function resolveCatalogPrice(string $gymId, string $itemId): ?array
+    {
+        $plan = DB::table('membership_plans')
+            ->where('id', $itemId)
+            ->where('gym_id', $gymId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->first();
+        if ($plan) {
+            return [
+                'type' => 'membership',
+                'name' => $plan->name,
+                'price_cents' => (int) round((float) $plan->price * 100),
+                'row' => $plan,
+            ];
+        }
+
+        $pkg = DB::table('service_session_packages')
+            ->where('id', $itemId)
+            ->where('gym_id', $gymId)
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->first();
+        if ($pkg && $pkg->price !== null) {
+            return [
+                'type' => 'service_package',
+                'name' => $pkg->name,
+                'price_cents' => (int) round((float) $pkg->price * 100),
+                'row' => $pkg,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * Create a payment intention (mobile app initiates payment).
      */
     public function intention(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'amount_cents' => 'required|integer|min:100',
+            // amount_cents is no longer trusted — accepted for backward compat
+            // (older mobile builds still send it) but the server derives the
+            // real price from plan_id and rejects mismatches.
+            'amount_cents' => 'nullable|integer|min:100',
             'currency' => 'nullable|string|max:5',
             'plan_id' => 'required|uuid',
             'member_id' => 'required|uuid',
@@ -57,6 +105,37 @@ class PaymobController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
+        // Server-derived price. The client never sets the amount.
+        $catalog = $this->resolveCatalogPrice($gymId, $validated['plan_id']);
+        if (! $catalog) {
+            Log::warning('Paymob intention: plan/package not found in caller gym', [
+                'gym_id' => $gymId,
+                'plan_id' => $validated['plan_id'],
+                'actor' => $user->id,
+            ]);
+            return response()->json(['error' => 'Item not available for purchase'], 404);
+        }
+        $amountCents = $catalog['price_cents'];
+        if ($amountCents < 100) {
+            return response()->json(['error' => 'Item price is below the minimum chargeable amount'], 422);
+        }
+
+        // If the client sent an amount, require it to match (rounding accepted).
+        // Tampering or stale price → reject so the client refreshes its catalog.
+        if (isset($validated['amount_cents']) && (int) $validated['amount_cents'] !== $amountCents) {
+            Log::warning('Paymob intention: client amount mismatch', [
+                'gym_id' => $gymId,
+                'plan_id' => $validated['plan_id'],
+                'client_cents' => (int) $validated['amount_cents'],
+                'server_cents' => $amountCents,
+                'actor' => $user->id,
+            ]);
+            return response()->json([
+                'error' => 'Price has changed. Please refresh and try again.',
+                'code' => 'price_mismatch',
+            ], 409);
+        }
+
         $creds = $this->paymob->resolveCredentials($gymId);
         if (empty($creds['secret_key'])) {
             return response()->json(['error' => 'Payment gateway not configured for this gym'], 500);
@@ -68,8 +147,6 @@ class PaymobController extends Controller
         $validated['user_phone'] = $validated['user_phone'] ?? $profile->phone ?? null;
         $validated['user_name'] = $validated['user_name'] ?? $profile->full_name ?? null;
 
-        $amountCents = (int) $validated['amount_cents'];
-
         // Pre-create pending payment record.
         // `amount` is stored as decimal EGP; format to 2dp via string to avoid float drift.
         $payment = Payment::create([
@@ -80,8 +157,8 @@ class PaymobController extends Controller
             'payment_method' => ($validated['payment_method'] ?? 'card') === 'valu' ? 'valu' : 'card',
             'status' => 'pending',
             'source' => 'mobile_app',
-            'service_type' => $validated['item_type'] ?? null,
-            'service_name' => $validated['item_name'] ?? null,
+            'service_type' => $validated['item_type'] ?? $catalog['type'],
+            'service_name' => $validated['item_name'] ?? $catalog['name'],
             'specialist_name' => $validated['specialist_name'] ?? null,
         ]);
 

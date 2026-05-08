@@ -39,6 +39,7 @@ cd "$ROOT"
 
 DEFINES="flavors/${FLAVOR}.json"
 ICONS_YAML="flutter_launcher_icons-${FLAVOR}.yaml"
+SPLASH_YAML="flutter_native_splash-${FLAVOR}.yaml"
 
 if [[ ! -f "$DEFINES" ]]; then
   echo "error: $DEFINES does not exist." >&2
@@ -58,6 +59,14 @@ esac
 if [[ "$FLAVOR" != "clby" && -f "$ICONS_YAML" ]]; then
   echo "==> Regenerating launcher icons for $FLAVOR"
   dart run flutter_launcher_icons -f "$ICONS_YAML"
+fi
+
+# Native splash assets are shared on disk, so regenerate per-flavor on every
+# build to keep iOS LaunchScreen.storyboard / Android launch_background.xml
+# matched to the flavor being built.
+if [[ -f "$SPLASH_YAML" ]]; then
+  echo "==> Regenerating native splash for $FLAVOR"
+  dart run flutter_native_splash:create --path="$SPLASH_YAML"
 fi
 
 echo "==> flutter build $KIND --flavor $FLAVOR --dart-define-from-file=$DEFINES"

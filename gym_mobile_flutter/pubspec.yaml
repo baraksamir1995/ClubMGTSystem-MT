@@ -60,10 +60,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.3
 
-# Launcher icons are configured per-flavor — see flutter_launcher_icons-<flavor>.yaml.
-# clby's icons are committed (Android: android/app/src/clby/res/mipmap-*; iOS:
-# ios/Runner/Assets.xcassets/AppIcon.appiconset) and don't need regeneration.
+# Launcher icons + native splash are configured per-flavor — see
+# flutter_launcher_icons-<flavor>.yaml and flutter_native_splash-<flavor>.yaml.
+# clby's app-icon assets are committed (Android: android/app/src/clby/res/mipmap-*;
+# iOS: ios/Runner/Assets.xcassets/AppIcon.appiconset) and don't need regeneration.
 
 flutter:
   uses-material-design: true

@@ -12,6 +12,7 @@ class BranchProvider extends ChangeNotifier {
   List<BranchModel> _branches = [];
   bool _isLoading = false;
   String? _loadedGymId;
+  Future<void>? _inFlight;
 
   List<BranchModel> get branches => _branches;
   bool get isLoading => _isLoading;
@@ -21,9 +22,18 @@ class BranchProvider extends ChangeNotifier {
   BranchModel? branchById(String id) =>
       _branches.where((b) => b.id == id).firstOrNull;
 
-  Future<void> loadBranches(String gymId, {bool force = false}) async {
-    if (_loadedGymId == gymId && _branches.isNotEmpty && !force) return;
+  Future<void> loadBranches(String gymId, {bool force = false}) {
+    if (_loadedGymId == gymId && _branches.isNotEmpty && !force) return Future.value();
 
+    final existing = _inFlight;
+    if (existing != null) return existing;
+
+    final future = _doLoad(gymId).whenComplete(() => _inFlight = null);
+    _inFlight = future;
+    return future;
+  }
+
+  Future<void> _doLoad(String gymId) async {
     _isLoading = true;
     notifyListeners();
 
@@ -43,6 +53,7 @@ class BranchProvider extends ChangeNotifier {
     _branches = [];
     _loadedGymId = null;
     _isLoading = false;
+    _inFlight = null;
     notifyListeners();
   }
 }

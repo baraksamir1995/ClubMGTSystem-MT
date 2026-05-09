@@ -445,12 +445,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       builder: (ctx) => _FrozenSheet(
         frozenUntil: memberProvider.currentMembership?.frozenUntil,
         onUnfreeze: () async {
+          // Just pop the sheet + unfreeze. The sheet's .then below restarts
+          // the controller — no need to also do it here, which would
+          // double-start (race with the .then callback that fires the
+          // moment Navigator.pop dismisses the route).
           Navigator.pop(ctx);
           await memberProvider.unfreezePlan();
-          if (mounted) {
-            setState(() => _processing = false);
-            _controller.start();
-          }
         },
         onDismiss: () {
           Navigator.pop(ctx);
@@ -458,6 +458,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         },
       ),
     ).then((_) {
+      // Reached either when the user taps outside (isDismissible) or after
+      // any of the buttons pop the sheet. mounted check covers the
+      // onDismiss path that also pops the scanner screen.
       if (mounted) {
         setState(() => _processing = false);
         _controller.start();

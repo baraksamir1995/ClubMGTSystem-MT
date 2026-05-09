@@ -150,6 +150,23 @@ class MemberProvider extends ChangeNotifier {
     return _memberLoadFuture!;
   }
 
+  /// In-flight registry for `_runOnce`. Each key represents one
+  /// loadX(args) signature; concurrent callers with the same key share
+  /// the same Future so a slow first response can't land after a faster
+  /// second one and clobber the field with stale data. Cleared in clear().
+  final Map<String, Future<void>> _inFlight = {};
+
+  /// Run [fn] under [key]. If a Future for [key] is already pending,
+  /// return that Future; otherwise start one and cache it until it
+  /// completes. Errors propagate so callers' try/catch still works.
+  Future<void> _runOnce(String key, Future<void> Function() fn) {
+    final existing = _inFlight[key];
+    if (existing != null) return existing;
+    final f = fn().whenComplete(() => _inFlight.remove(key));
+    _inFlight[key] = f;
+    return f;
+  }
+
   Future<void> loadMemberData(String gymId) async {
     _isLoadingMember = true;
     _memberError = null;
@@ -177,8 +194,7 @@ class MemberProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadCapacity(String gymId) async {
-    if (_isLoadingCapacity) return;
+  Future<void> loadCapacity(String gymId) => _runOnce('capacity:$gymId', () async {
     _isLoadingCapacity = true;
     // No notifyListeners here — avoid rebuilding the whole screen just for a flag
     try {
@@ -189,9 +205,11 @@ class MemberProvider extends ChangeNotifier {
       _isLoadingCapacity = false;
       notifyListeners();
     }
-  }
+  });
 
-  Future<void> loadSessions(String gymId) async {
+  Future<void> loadSessions(String gymId) => _runOnce('sessions:$gymId', () => _doLoadSessions(gymId));
+
+  Future<void> _doLoadSessions(String gymId) async {
     _isLoadingSessions = true;
     _sessionsError = null;
     notifyListeners();
@@ -230,19 +248,21 @@ class MemberProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadMyBookings() async {
-    if (_member == null) return;
-    _isLoadingMyBookings = true;
-    _myBookingsError = null;
-    notifyListeners();
-    try {
-      _myBookings = await _service.getMyBookings(_member!.id);
-    } catch (e) {
-      _myBookingsError = friendlyError(e);
-    } finally {
-      _isLoadingMyBookings = false;
+  Future<void> loadMyBookings() {
+    if (_member == null) return Future.value();
+    return _runOnce('myBookings:${_member!.id}', () async {
+      _isLoadingMyBookings = true;
+      _myBookingsError = null;
       notifyListeners();
-    }
+      try {
+        _myBookings = await _service.getMyBookings(_member!.id);
+      } catch (e) {
+        _myBookingsError = friendlyError(e);
+      } finally {
+        _isLoadingMyBookings = false;
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> bookSession(String sessionId) async {
@@ -317,29 +337,28 @@ class MemberProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<void> loadAttendance() async {
-    if (_member == null) return;
-    _isLoadingAttendance = true;
-    _attendanceError = null;
-    notifyListeners();
-
-    try {
-      _attendance = await _service.getAttendanceHistory(_member!.id, limit: 10);
-      _monthlyCheckIns =
-          await _service.getMonthlyCheckInCount(_member!.id);
-    } catch (e) {
-      _attendanceError = friendlyError(e);
-    } finally {
-      _isLoadingAttendance = false;
+  Future<void> loadAttendance() {
+    if (_member == null) return Future.value();
+    return _runOnce('attendance:${_member!.id}', () async {
+      _isLoadingAttendance = true;
+      _attendanceError = null;
       notifyListeners();
-    }
+      try {
+        _attendance = await _service.getAttendanceHistory(_member!.id, limit: 10);
+        _monthlyCheckIns = await _service.getMonthlyCheckInCount(_member!.id);
+      } catch (e) {
+        _attendanceError = friendlyError(e);
+      } finally {
+        _isLoadingAttendance = false;
+        notifyListeners();
+      }
+    });
   }
 
-  Future<void> loadNotifications(String gymId) async {
+  Future<void> loadNotifications(String gymId) => _runOnce('notifications:$gymId', () async {
     _isLoadingNotifications = true;
     _notificationsError = null;
     notifyListeners();
-
     try {
       _notifications = await _service.getNotifications(gymId);
     } catch (e) {
@@ -348,22 +367,23 @@ class MemberProvider extends ChangeNotifier {
       _isLoadingNotifications = false;
       notifyListeners();
     }
-  }
+  });
 
-  Future<void> loadPayments() async {
-    if (_member == null) return;
-    _isLoadingPayments = true;
-    _paymentsError = null;
-    notifyListeners();
-
-    try {
-      _payments = await _service.getPaymentHistory(_member!.id);
-    } catch (e) {
-      _paymentsError = friendlyError(e);
-    } finally {
-      _isLoadingPayments = false;
+  Future<void> loadPayments() {
+    if (_member == null) return Future.value();
+    return _runOnce('payments:${_member!.id}', () async {
+      _isLoadingPayments = true;
+      _paymentsError = null;
       notifyListeners();
-    }
+      try {
+        _payments = await _service.getPaymentHistory(_member!.id);
+      } catch (e) {
+        _paymentsError = friendlyError(e);
+      } finally {
+        _isLoadingPayments = false;
+        notifyListeners();
+      }
+    });
   }
 
   bool _isFreezingPlan = false;
@@ -402,16 +422,18 @@ class MemberProvider extends ChangeNotifier {
   /// Re-fetches the current membership and summary from the server.
   /// Use this to pick up plan assignments made by the admin without
   /// triggering a full member reload.
-  Future<void> refreshMembership() async {
+  Future<void> refreshMembership() {
     final m = _member;
-    if (m == null) return;
-    try {
-      final ms = await _service.getCurrentMembership(m.id);
-      final summary = await _service.getMembershipSummary(gymId: m.gymId);
-      _currentMembership = ms;
-      _membershipSummary = summary;
-      notifyListeners();
-    } catch (_) {}
+    if (m == null) return Future.value();
+    return _runOnce('refreshMembership:${m.id}', () async {
+      try {
+        final ms = await _service.getCurrentMembership(m.id);
+        final summary = await _service.getMembershipSummary(gymId: m.gymId);
+        _currentMembership = ms;
+        _membershipSummary = summary;
+        notifyListeners();
+      } catch (_) {}
+    });
   }
 
   /// Force-refreshes the GymMember record from the server (including member_number).
@@ -424,39 +446,43 @@ class MemberProvider extends ChangeNotifier {
   }
 
   /// Loads active service assignments (PT, Nutrition, Physio) for this member.
-  Future<void> loadServiceAssignments() async {
+  Future<void> loadServiceAssignments() {
     final m = _member;
-    if (m == null) return;
-    _isLoadingServices = true;
-    notifyListeners();
-    try {
-      _serviceAssignments = await _service.getServiceAssignments(m.id);
-    } catch (_) {
-      _serviceAssignments = [];
-    } finally {
-      _isLoadingServices = false;
+    if (m == null) return Future.value();
+    return _runOnce('serviceAssignments:${m.id}', () async {
+      _isLoadingServices = true;
       notifyListeners();
-    }
+      try {
+        _serviceAssignments = await _service.getServiceAssignments(m.id);
+      } catch (_) {
+        _serviceAssignments = [];
+      } finally {
+        _isLoadingServices = false;
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> loadAllMemberships() async {
     // kept for future use
   }
 
-  Future<void> loadInvitations() async {
+  Future<void> loadInvitations() {
     final m = _member;
-    if (m == null) return;
-    _isLoadingInvitations = true;
-    _invitationsError = null;
-    notifyListeners();
-    try {
-      _invitations = await _service.getMyInvitations(m.id);
-    } catch (e) {
-      _invitationsError = friendlyError(e);
-    } finally {
-      _isLoadingInvitations = false;
+    if (m == null) return Future.value();
+    return _runOnce('invitations:${m.id}', () async {
+      _isLoadingInvitations = true;
+      _invitationsError = null;
       notifyListeners();
-    }
+      try {
+        _invitations = await _service.getMyInvitations(m.id);
+      } catch (e) {
+        _invitationsError = friendlyError(e);
+      } finally {
+        _isLoadingInvitations = false;
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> sendInvitation({
@@ -503,15 +529,42 @@ class MemberProvider extends ChangeNotifier {
   void clear() {
     _member = null;
     _currentMembership = null;
+    _membershipSummary = null;
+    _capacity = null;
     _sessions = [];
     _myBookings = [];
     _attendance = [];
     _notifications = [];
     _payments = [];
     _invitations = [];
+    _serviceAssignments = [];
     _monthlyCheckIns = 0;
     _bootstrapped = false;
     _readNotificationIds.clear();
+    // Reset all loading flags too — otherwise a sign-out mid-fetch leaves
+    // them true and the next user (post sign-in) sees an infinite
+    // skeleton until they pull-to-refresh.
+    _isLoadingMember = false;
+    _isLoadingSessions = false;
+    _isLoadingMyBookings = false;
+    _isLoadingAttendance = false;
+    _isLoadingNotifications = false;
+    _isLoadingPayments = false;
+    _isLoadingCapacity = false;
+    _isLoadingServices = false;
+    _isLoadingInvitations = false;
+    _memberError = null;
+    _sessionsError = null;
+    _myBookingsError = null;
+    _attendanceError = null;
+    _notificationsError = null;
+    _paymentsError = null;
+    _invitationsError = null;
+    // Drop the in-flight registry so a slow load_xxx that returns AFTER
+    // sign-out can't dump fresh data into the cleared provider belonging
+    // to the next user.
+    _inFlight.clear();
+    _memberLoadFuture = null;
     notifyListeners();
   }
 }

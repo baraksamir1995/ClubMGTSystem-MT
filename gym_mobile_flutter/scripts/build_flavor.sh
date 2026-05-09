@@ -67,6 +67,32 @@ fi
 if [[ -f "$SPLASH_YAML" ]]; then
   echo "==> Regenerating native splash for $FLAVOR"
   dart run flutter_native_splash:create --path="$SPLASH_YAML"
+
+  # When the YAML omits `image:`, flutter_native_splash writes a 1×1 BLACK
+  # pixel to LaunchImage*.png. The storyboard renders that pixel at the old
+  # declared 168×185 size — a black rectangle in the middle of the launch
+  # screen. Repaint the LaunchImage pixels to match the YAML's `color:` so
+  # the launch surface stays uniform.
+  if ! grep -qE "^[[:space:]]*image:" "$SPLASH_YAML"; then
+    SPLASH_BG=$(grep -E "^[[:space:]]*color:" "$SPLASH_YAML" | head -1 \
+                | sed -E 's/.*color:[[:space:]]*"?#?([0-9A-Fa-f]+)"?.*/\1/')
+    if [[ -n "$SPLASH_BG" ]]; then
+      echo "==> Repainting LaunchImage*.png to #$SPLASH_BG"
+      python3 - "$SPLASH_BG" <<'PY'
+import sys
+from PIL import Image
+hex_color = sys.argv[1]
+r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+img = Image.new('RGB', (1, 1), (r, g, b))
+for p in [
+    'ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png',
+    'ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png',
+    'ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png',
+]:
+    img.save(p)
+PY
+    fi
+  fi
 fi
 
 echo "==> flutter build $KIND --flavor $FLAVOR --dart-define-from-file=$DEFINES"

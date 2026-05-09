@@ -88,6 +88,9 @@ class _AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<_AppRoot> {
   late final _router = buildRouter(context);
+  // Cached so we can deregister cleanly in dispose without context lookups.
+  AuthProvider? _auth;
+  VoidCallback? _signOutFanOut;
 
   @override
   void initState() {
@@ -103,11 +106,32 @@ class _AppRootState extends State<_AppRoot> {
           }
         }
       });
+
+      // Wire each non-auth provider's clear() so signOut() / deleteAccount()
+      // wipe their state too. Otherwise user-A's banners/sessions/popups/etc.
+      // survive a user-B login on the same device.
+      _auth = auth;
+      final member = context.read<MemberProvider>();
+      final banner = context.read<BannerProvider>();
+      final branch = context.read<BranchProvider>();
+      final popup  = context.read<PopupProvider>();
+      final rating = context.read<RatingReminderProvider>();
+      _signOutFanOut = () {
+        member.clear();
+        banner.clear();
+        branch.clear();
+        popup.clear();
+        rating.clear();
+      };
+      _auth!.addSignOutCallback(_signOutFanOut!);
     });
   }
 
   @override
   void dispose() {
+    if (_auth != null && _signOutFanOut != null) {
+      _auth!.removeSignOutCallback(_signOutFanOut!);
+    }
     DeepLinkService.instance.dispose();
     super.dispose();
   }

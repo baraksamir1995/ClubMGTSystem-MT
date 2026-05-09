@@ -63,7 +63,17 @@ class GymAppBar extends StatelessWidget implements PreferredSizeWidget {
             children: [
               logoMark,
               const SizedBox(width: 10),
-              Text(greeting!, style: resolvedStyle),
+              // Flexible + ellipsis so a long first name on a narrow device
+              // (iPhone SE 320pt) doesn't blow the title past the action area
+              // and trip a RenderFlex overflow.
+              Flexible(
+                child: Text(
+                  greeting!,
+                  style: resolvedStyle,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
               if (greetingEmoji != null && greetingEmoji!.isNotEmpty) ...[
                 const SizedBox(width: 4),
                 Text(

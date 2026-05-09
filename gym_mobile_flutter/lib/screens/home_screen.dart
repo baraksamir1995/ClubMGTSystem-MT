@@ -36,6 +36,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _loadingSessionId;
   Timer? _capacityTimer;
+  // Skip the very first AppLifecycleState.resumed event — bootstrap +
+  // initState already loaded all critical home data, so refreshing again
+  // here just doubles network on cold start. Subsequent resumes
+  // (background → foreground) still refresh.
+  bool _hasHandledFirstResume = false;
 
   Future<void> _book(String sessionId) async {
     final memberProvider = context.read<MemberProvider>();
@@ -124,27 +129,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // True once the gymId has shown up and we've kicked off the home loads.
+  // Prevents a re-fire if AuthProvider notifies again later.
+  bool _initialLoadFired = false;
+
+  Future<void> _kickOffInitialLoad() async {
+    if (_initialLoadFired || !mounted) return;
+    final gymId = context.read<AuthProvider>().profile?.gymId;
+    if (gymId == null) return; // wait for auth to populate profile.gymId
+    _initialLoadFired = true;
+
+    await _loadData();
+    if (!mounted) return;
+
+    _startCapacityTimer();
+
+    // Promotional popup first (awaited so rating reminder never overlaps)
+    await context.read<PopupProvider>().maybeShowPopup(context);
+
+    // Rating reminder — only if no popup was shown (or after it's dismissed)
+    if (!mounted) return;
+    final memberId = context.read<MemberProvider>().member?.id;
+    if (memberId != null) {
+      final reminderProvider = context.read<RatingReminderProvider>();
+      await reminderProvider.checkPendingRating(ApiService(), memberId);
+      if (mounted) await reminderProvider.maybeShowReminder(context);
+    }
+  }
+
+  void _onAuthChanged() => _kickOffInitialLoad();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _loadData();
-      if (!mounted) return;
-
-      _startCapacityTimer();
-
-      // Promotional popup first (awaited so rating reminder never overlaps)
-      await context.read<PopupProvider>().maybeShowPopup(context);
-
-      // Rating reminder — only if no popup was shown (or after it's dismissed)
-      if (!mounted) return;
-      final memberId = context.read<MemberProvider>().member?.id;
-      if (memberId != null) {
-        final reminderProvider = context.read<RatingReminderProvider>();
-        await reminderProvider.checkPendingRating(ApiService(), memberId);
-        if (mounted) await reminderProvider.maybeShowReminder(context);
-      }
+    // After login the router pushes /home as soon as AuthProvider sets
+    // _userId — but _profile (and therefore profile.gymId) may still be
+    // null while _loadProfileAndGym() finishes in the background. Retry
+    // until gymId is available.
+    final auth = context.read<AuthProvider>();
+    auth.addListener(_onAuthChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _kickOffInitialLoad();
     });
   }
 
@@ -163,25 +189,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     _capacityTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    // Best-effort cleanup of the auth listener; if AuthProvider was already
+    // disposed (app shutdown) the call is a no-op.
+    try {
+      context.read<AuthProvider>().removeListener(_onAuthChanged);
+    } catch (_) {}
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      // Refresh greeting immediately in case the time-of-day slot changed
-      // while the app was in the background (e.g. morning → afternoon).
-      if (mounted) setState(() {});
+    if (state != AppLifecycleState.resumed) return;
 
-      final gymId = context.read<AuthProvider>().profile?.gymId;
-      final memberProvider = context.read<MemberProvider>();
-      final bannerProvider = context.read<BannerProvider>();
-      if (gymId != null) {
-        memberProvider.loadNotifications(gymId);
-        memberProvider.refreshMembership();
-        memberProvider.loadCapacity(gymId);
-        bannerProvider.loadBanners(gymId, force: true);
-      }
+    // Refresh greeting immediately in case the time-of-day slot changed
+    // while the app was in the background (e.g. morning → afternoon).
+    if (mounted) setState(() {});
+
+    // The first resume fires right after splash → home navigation; bootstrap
+    // already loaded everything. Skip to avoid the double cold-start fetch.
+    if (!_hasHandledFirstResume) {
+      _hasHandledFirstResume = true;
+      return;
+    }
+
+    final gymId = context.read<AuthProvider>().profile?.gymId;
+    final memberProvider = context.read<MemberProvider>();
+    final bannerProvider = context.read<BannerProvider>();
+    if (gymId != null) {
+      memberProvider.loadNotifications(gymId);
+      memberProvider.refreshMembership();
+      memberProvider.loadCapacity(gymId);
+      bannerProvider.loadBanners(gymId, force: true);
     }
   }
 
@@ -238,8 +276,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final memberProvider = context.watch<MemberProvider>();
-    final bannerProvider = context.watch<BannerProvider>();
-    final branchProvider = context.watch<BranchProvider>();
+    // BannerProvider + BranchProvider are NOT watched here — their changes
+    // would otherwise rebuild the entire 1500-line tree. Their consumers
+    // are wrapped in scoped Consumer/Selector widgets below so only the
+    // banner carousel and the locations strip rebuild.
     final gym = authProvider.gym;
     final profile = authProvider.profile;
 
@@ -268,12 +308,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Banner carousel ──────────────────────────────────────
-              BannerCarousel(
-                banners: bannerProvider.banners,
-                isLoading: bannerProvider.isLoading,
+              Consumer<BannerProvider>(
+                builder: (_, bp, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BannerCarousel(banners: bp.banners, isLoading: bp.isLoading),
+                    if (bp.hasBanners || bp.isLoading) const SizedBox(height: 24),
+                  ],
+                ),
               ),
-              if (bannerProvider.hasBanners || bannerProvider.isLoading)
-                const SizedBox(height: 24),
 
               // ── Your membership ──────────────────────────────────────
               _SectionHeader(
@@ -332,21 +375,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 24),
 
               // ── Our locations ────────────────────────────────────────
-              if (branchProvider.branches.length >= 2) ...[
-                _SectionHeader(
-                  title: 'Our locations',
-                  actionLabel: 'See all',
-                  onAction: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LocationsScreen()),
-                  ),
-                  actionColor: primary,
-                ),
-                const SizedBox(height: 12),
-                _LocationsCarousel(
-                  branches: branchProvider.branches,
-                ),
-                const SizedBox(height: 24),
-              ],
+              Selector<BranchProvider, List<BranchModel>>(
+                selector: (_, bp) => bp.branches,
+                builder: (_, branches, _) {
+                  if (branches.length < 2) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SectionHeader(
+                        title: 'Our locations',
+                        actionLabel: 'See all',
+                        onAction: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const LocationsScreen()),
+                        ),
+                        actionColor: primary,
+                      ),
+                      const SizedBox(height: 12),
+                      _LocationsCarousel(branches: branches),
+                      const SizedBox(height: 24),
+                    ],
+                  );
+                },
+              ),
 
             ],
           ),

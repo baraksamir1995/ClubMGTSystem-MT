@@ -13,16 +13,29 @@ class BannerProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   String? _loadedGymId;
+  Future<void>? _inFlight;
 
   List<BannerModel> get banners => _banners;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasBanners => _banners.isNotEmpty;
 
-  Future<void> loadBanners(String gymId, {bool force = false}) async {
+  Future<void> loadBanners(String gymId, {bool force = false}) {
     // Avoid redundant fetches unless forced
-    if (_loadedGymId == gymId && _banners.isNotEmpty && !force) return;
+    if (_loadedGymId == gymId && _banners.isNotEmpty && !force) return Future.value();
 
+    // Concurrent callers (pull-to-refresh + lifecycle resume + post-login)
+    // share one in-flight Future so a slow first response can't overwrite a
+    // fresher one that landed in between.
+    final existing = _inFlight;
+    if (existing != null) return existing;
+
+    final future = _doLoad(gymId).whenComplete(() => _inFlight = null);
+    _inFlight = future;
+    return future;
+  }
+
+  Future<void> _doLoad(String gymId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -44,6 +57,7 @@ class BannerProvider extends ChangeNotifier {
     _loadedGymId = null;
     _error = null;
     _isLoading = false;
+    _inFlight = null;
     notifyListeners();
   }
 }

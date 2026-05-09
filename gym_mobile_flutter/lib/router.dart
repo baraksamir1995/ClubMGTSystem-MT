@@ -25,6 +25,7 @@ import 'features/onboarding/onboarding_screen.dart';
 import 'features/onboarding/welcome_screen.dart';
 import 'features/auth/register_screen.dart';
 import 'features/banners/screens/banner_details_screen.dart';
+import 'features/banners/screens/sponsor_banner_detail_screen.dart';
 import 'features/billing/billing_screen.dart';
 import 'screens/guest_invitations_screen.dart';
 import 'screens/offer_detail_screen.dart';
@@ -367,6 +368,35 @@ GoRouter buildRouter(BuildContext context) {
           }
           return CustomTransitionPage(
             child: BannerDetailsScreen(banner: banner),
+            transitionsBuilder: (context, animation, _, child) => SlideTransition(
+              position: Tween(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              )),
+              child: child,
+            ),
+            transitionDuration: const Duration(milliseconds: 300),
+          );
+        },
+      ),
+      // Sponsor banner detail — same slide-from-right transition as
+      // banner-details so route observers + system back behave the same.
+      GoRoute(
+        path: '/banner-sponsor',
+        name: 'banner-sponsor',
+        pageBuilder: (context, state) {
+          final banner = state.extra as BannerModel?;
+          if (banner == null) {
+            return CustomTransitionPage(
+              child: const Scaffold(body: Center(child: Text('Banner not found'))),
+              transitionsBuilder: (context, animation, _, child) => child,
+            );
+          }
+          return CustomTransitionPage(
+            child: SponsorBannerDetailScreen(banner: banner),
             transitionsBuilder: (context, animation, _, child) => SlideTransition(
               position: Tween(
                 begin: const Offset(1, 0),

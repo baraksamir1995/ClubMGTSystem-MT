@@ -6,7 +6,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../features/banners/banner_analytics.dart';
-import '../../features/banners/screens/sponsor_banner_detail_screen.dart';
 import '../../models/banner_model.dart';
 import 'banner_card.dart';
 
@@ -28,6 +27,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   int _currentPage = 0;
   Timer? _autoScrollTimer;
   Timer? _resumeTimer;
+  Timer? _viewLogTimer;
 
   // Slightly taller than before so the bigger headline + CTA pill have
   // breathing room and the peach radial glow reads.
@@ -56,18 +56,25 @@ class _BannerCarouselState extends State<BannerCarousel> {
     }
   }
 
-  /// Fire a banner_view event for the currently-visible banner.
-  /// Called on first build, on every page change, and on banner-list updates.
+  /// Fire a banner_view event for the currently-visible banner — but only
+  /// after the user dwells on it for ≥ 1.5 s. Auto-scroll happens every 4 s,
+  /// so a member who lets the carousel cycle still racks up one event per
+  /// banner; rapid swipes (< 1.5 s per banner) don't flood Firebase with
+  /// pass-through views.
   void _maybeLogView() {
     if (widget.banners.isEmpty) return;
+    _viewLogTimer?.cancel();
     final banner = widget.banners[_currentPage % widget.banners.length];
-    BannerAnalytics.logView(banner);
+    _viewLogTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) BannerAnalytics.logView(banner);
+    });
   }
 
   @override
   void dispose() {
     _stopAutoScroll();
     _resumeTimer?.cancel();
+    _viewLogTimer?.cancel();
     super.dispose();
   }
 
@@ -116,10 +123,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     BannerAnalytics.logTap(banner);
 
     if (banner.isSponsor) {
-      if (!mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => SponsorBannerDetailScreen(banner: banner),
-      ));
+      if (mounted) context.push('/banner-sponsor', extra: banner);
       return;
     }
 

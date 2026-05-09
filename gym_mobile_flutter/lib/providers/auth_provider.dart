@@ -26,6 +26,26 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   String? _recoveryToken;
   String? _error;
 
+  /// Callbacks fired before the local auth state is cleared on signOut() /
+  /// deleteAccount(). Used to fan out clear() to MemberProvider, BannerProvider,
+  /// BranchProvider, PopupProvider, RatingReminderProvider so user-A's data
+  /// doesn't survive a user-B sign-in on the same device.
+  final List<VoidCallback> _signOutCallbacks = [];
+
+  void addSignOutCallback(VoidCallback cb) {
+    if (!_signOutCallbacks.contains(cb)) _signOutCallbacks.add(cb);
+  }
+
+  void removeSignOutCallback(VoidCallback cb) {
+    _signOutCallbacks.remove(cb);
+  }
+
+  void _runSignOutCallbacks() {
+    for (final cb in List<VoidCallback>.from(_signOutCallbacks)) {
+      try { cb(); } catch (_) { /* one provider's failure shouldn't block others */ }
+    }
+  }
+
   AuthProvider(this._service) {
     WidgetsBinding.instance.addObserver(this);
     _init();
@@ -172,6 +192,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     await _service.signOut();
     AnalyticsService.instance.logEvent('logout');
     AnalyticsService.instance.setUserId(null);
+    _runSignOutCallbacks();
     _userId = null;
     _profile = null;
     _gym = null;
@@ -227,10 +248,13 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<String?> deleteAccount() async {
     try {
       await _service.deleteAccount();
+      _runSignOutCallbacks();
       _userId = null;
       _profile = null;
       _gym = null;
       _error = null;
+      _isGuest = false;
+      _isPasswordRecovery = false;
       notifyListeners();
       return null;
     } catch (e) {

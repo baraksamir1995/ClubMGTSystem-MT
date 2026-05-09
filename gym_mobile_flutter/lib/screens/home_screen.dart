@@ -251,7 +251,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final greeting = _timeGreeting(firstName);
 
     return Scaffold(
-      appBar: GymAppBar(gym: gym, greeting: greeting),
+      appBar: GymAppBar(
+        gym: gym,
+        greeting: greeting.text,
+        greetingEmoji: greeting.emoji,
+      ),
       body: ScreenRefreshIndicator(
         onRefresh: _refreshData,
         icon: Icons.sync_rounded,
@@ -1487,13 +1491,15 @@ class _RefreshLogoMark extends StatelessWidget {
 
 // ─── Time-based greeting helper ───────────────────────────────────────────────
 
-/// Returns a contextual greeting based on device local time.
+/// Returns a contextual greeting + matching time-of-day emoji as separate
+/// strings, so the app bar can render them in distinct Text widgets and
+/// avoid the iOS emoji-cascade tofu issue.
 ///
 /// Slots:
-///   Morning   05:00 – 11:59 → "Good morning, <name> ☀️"
-///   Afternoon 12:00 – 16:59 → "Good afternoon, <name> 🌤️"
-///   Evening   17:00 – 04:59 → "Good evening, <name> 🌙"
-String _timeGreeting(String? firstName) {
+///   Morning   05:00 – 11:59 → "Good morning, <name>" + ☀️
+///   Afternoon 12:00 – 16:59 → "Good afternoon, <name>" + 🌤️
+///   Evening   17:00 – 04:59 → "Good evening, <name>" + 🌙
+({String text, String emoji}) _timeGreeting(String? firstName) {
   final hour = DateTime.now().hour;
 
   final String salutation;
@@ -1510,9 +1516,9 @@ String _timeGreeting(String? firstName) {
     emoji = '🌙';
   }
 
-  if (firstName != null && firstName.isNotEmpty) {
-    return '$salutation, $firstName $emoji';
-  }
-  return '$salutation $emoji';
+  final text = (firstName != null && firstName.isNotEmpty)
+      ? '$salutation, $firstName'
+      : salutation;
+  return (text: text, emoji: emoji);
 }
 

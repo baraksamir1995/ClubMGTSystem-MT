@@ -14,6 +14,10 @@ class GymAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showGuestAvatar;
   /// US-01-02: when non-null, renders "Hi, [greeting]" inline right of logo.
   final String? greeting;
+  /// Optional emoji to render next to the greeting in a separate Text span
+  /// with the platform emoji font, so it doesn't fall back to tofu when the
+  /// greeting font lacks emoji glyphs (Flutter on iOS doesn't always cascade).
+  final String? greetingEmoji;
   final TextStyle? greetingStyle;
 
   const GymAppBar({
@@ -24,6 +28,7 @@ class GymAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showNotificationBell = true,
     this.showGuestAvatar = false,
     this.greeting,
+    this.greetingEmoji,
     this.greetingStyle,
   });
 
@@ -43,22 +48,38 @@ class GymAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     final logoMark = GymLogoMark(gym: gym, fallbackTitle: fallbackTitle);
 
-    // US-01-02: logo + greeting as a left-aligned row in the title slot
+    // US-01-02: logo + greeting as a left-aligned row in the title slot.
+    // The emoji rides in its OWN Text widget with the platform emoji font
+    // so it can't drag the greeting font into a tofu fallback.
+    final TextStyle resolvedStyle = greetingStyle ??
+        const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF1D1D1B),
+        );
     final Widget titleWidget = greeting != null
         ? Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               logoMark,
               const SizedBox(width: 10),
-              Text(
-                greeting!,
-                style: greetingStyle ??
-                    const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1D1D1B),
-                    ),
-              ),
+              Text(greeting!, style: resolvedStyle),
+              if (greetingEmoji != null && greetingEmoji!.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Text(
+                  greetingEmoji!,
+                  style: resolvedStyle.copyWith(
+                    // Pin to the platform emoji fonts so glyphs render in
+                    // color and don't fall through to a Latin-only system
+                    // font that would show tofu.
+                    fontFamily: 'Apple Color Emoji',
+                    fontFamilyFallback: const [
+                      'Noto Color Emoji',
+                      'Segoe UI Emoji',
+                    ],
+                  ),
+                ),
+              ],
             ],
           )
         : logoMark;

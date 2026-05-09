@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../features/banners/banner_analytics.dart';
+import '../../features/banners/screens/sponsor_banner_detail_screen.dart';
 import '../../models/banner_model.dart';
 import 'banner_card.dart';
 
@@ -39,6 +41,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   void initState() {
     super.initState();
     _startAutoScroll();
+    _maybeLogView();
   }
 
   @override
@@ -49,7 +52,16 @@ class _BannerCarouselState extends State<BannerCarousel> {
       _stopAutoScroll();
       _resumeTimer?.cancel();
       if (widget.banners.length > 1) _startAutoScroll();
+      _maybeLogView();
     }
+  }
+
+  /// Fire a banner_view event for the currently-visible banner.
+  /// Called on first build, on every page change, and on banner-list updates.
+  void _maybeLogView() {
+    if (widget.banners.isEmpty) return;
+    final banner = widget.banners[_currentPage % widget.banners.length];
+    BannerAnalytics.logView(banner);
   }
 
   @override
@@ -77,6 +89,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
       _currentPage =
           (_currentPage + delta + widget.banners.length) % widget.banners.length;
     });
+    _maybeLogView();
   }
 
   void _onSwipeEnd(DragEndDetails details) {
@@ -100,6 +113,16 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   Future<void> _onBannerTap(BannerModel banner) async {
     if (!banner.hasAction) return;
+    BannerAnalytics.logTap(banner);
+
+    if (banner.isSponsor) {
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => SponsorBannerDetailScreen(banner: banner),
+      ));
+      return;
+    }
+
     if (banner.isExternalLink) {
       final uri = Uri.tryParse(banner.actionValue!);
       if (uri != null && await canLaunchUrl(uri)) {

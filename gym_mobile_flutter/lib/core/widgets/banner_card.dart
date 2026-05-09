@@ -152,10 +152,6 @@ class BannerCard extends StatelessWidget {
               ),
             ),
           ],
-          if (banner.hasAction) ...[
-            const SizedBox(height: 12),
-            _buildCtaPill(hasImage),
-          ],
         ],
       ),
     );
@@ -187,37 +183,6 @@ class BannerCard extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
         ),
-      ),
-    );
-  }
-
-  Widget _buildCtaPill(bool hasImage) {
-    final p = _palette;
-    // CTA contrasts the card: white pill on dark/peach, ink pill on white,
-    // ink pill on orange to stand out without competing.
-    final pillBg = hasImage ? Colors.white : p.ctaBg;
-    final pillFg = hasImage ? _kInk : p.ctaFg;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: pillBg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Learn more',
-            style: TextStyle(
-              color: pillFg,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.1,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Icon(Icons.arrow_forward_rounded, size: 14, color: pillFg),
-        ],
       ),
     );
   }

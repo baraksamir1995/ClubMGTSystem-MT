@@ -449,14 +449,6 @@ class _MembershipsSection extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'Gym access + optional session bundles',
-                              style: TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12,
-                              ),
-                            ),
                           ],
                         ),
                       ),

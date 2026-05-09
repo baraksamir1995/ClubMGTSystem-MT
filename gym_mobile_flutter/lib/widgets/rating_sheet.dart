@@ -300,7 +300,18 @@ class _RatingSheetState extends State<_RatingSheet> {
                       child: Center(
                         child: Text(
                           _emojis[i],
-                          style: const TextStyle(fontSize: 24),
+                          // Force the platform emoji font as fallback —
+                          // Flutter on iOS occasionally fails to cascade
+                          // emoji glyphs from the inherited text style and
+                          // renders them as tofu boxes.
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontFamilyFallback: [
+                              'Apple Color Emoji',
+                              'Noto Color Emoji',
+                              'Segoe UI Emoji',
+                            ],
+                          ),
                         ),
                       ),
                     ),

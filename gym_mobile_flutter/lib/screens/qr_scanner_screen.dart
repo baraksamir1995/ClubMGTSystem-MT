@@ -21,6 +21,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _processing = false;
 
   @override
+  void initState() {
+    super.initState();
+    // mobile_scanner 7.x removed `autoStart` — controllers must be started
+    // explicitly. Fire-and-forget; errors surface via the controller's
+    // event stream and the on-screen camera-permission UI.
+    _controller.start();
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -516,6 +525,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Scan QR Code',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
         actions: [

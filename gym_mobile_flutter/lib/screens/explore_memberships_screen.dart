@@ -107,13 +107,6 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   children: [
-                    Text(
-                      "All plans include full gym access. Tap any plan to see what's included.",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
                     ...List.generate(_plans.length, (i) => _buildCard(theme, i)),
                   ],
                 ),
@@ -226,7 +219,7 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'From $price${cycle.isNotEmpty ? ' $cycle' : ''}',
+                              '$price${cycle.isNotEmpty ? ' $cycle' : ''}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),

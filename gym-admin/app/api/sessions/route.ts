@@ -38,8 +38,11 @@ export async function POST(req: NextRequest) {
     const json = await res.json();
     if (!res.ok) return NextResponse.json({ error: json.error ?? json.message }, { status: res.status });
 
-    // Fetch the generated sessions for this template
-    const sessionsRes = await laravelApi('/sessions', token);
+    // Fetch the generated sessions for this template. The default per_page=50
+    // ordered by session_date asc is "oldest first", so for any gym with a
+    // backlog of past sessions the new future-dated rows fall onto later pages
+    // and the filter would return empty. Pull a wider window.
+    const sessionsRes = await laravelApi('/sessions?per_page=999', token);
     const sessionsJson = await sessionsRes.json();
     const allSessions = sessionsJson?.data ?? sessionsJson ?? [];
     const templateId = json.data?.id;

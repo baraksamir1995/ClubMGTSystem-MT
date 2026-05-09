@@ -601,6 +601,23 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
           onClose={() => setSessionModal({ open: false })}
           onSaved={s => { setSessions(prev => sessionModal.existing ? prev.map(x => x.id === s.id ? s : x) : [s, ...prev]); refresh(); }}
           onSavedMultiple={newSessions => { setSessions(prev => [...prev, ...newSessions]); refresh(); }}
+          onSeriesUpdated={({ templateId, excludeId, fromDate, deltaDays, fields }) => {
+            setSessions(prev => prev.map(s => {
+              if (s.recurring_template_id !== templateId) return s;
+              if (s.id === excludeId) return s;
+              if (s.status !== 'scheduled') return s;
+              if (s.session_date < fromDate) return s;
+              const next: ClassSession = { ...s, ...fields };
+              if (deltaDays !== 0) {
+                // Stay in UTC end-to-end so admins east of UTC (e.g. Cairo)
+                // don't see siblings rendered one day off until SSR refresh.
+                const shifted = new Date(s.session_date + 'T00:00:00Z');
+                shifted.setUTCDate(shifted.getUTCDate() + deltaDays);
+                next.session_date = shifted.toISOString().slice(0, 10);
+              }
+              return next;
+            }));
+          }}
         />
       )}
       {cancelModal && (

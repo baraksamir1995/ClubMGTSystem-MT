@@ -5,15 +5,7 @@ import AttendanceTab from './attendance-tab';
 import PaymentHistoryTab from './payment-history-tab';
 import SessionTransfersList from './session-transfers-list';
 import type { MemberPayment } from './payment-history-tab';
-
-interface AttendanceLog {
-  id: string;
-  check_in_at: string;
-  method: string | null;
-  access_point: string | null;
-  branch_id: string | null;
-  branches: { name: string } | { name: string }[] | null;
-}
+import type { AttendanceLog } from '@/lib/types/attendance-log';
 
 interface Props {
   attendanceLogs: AttendanceLog[];

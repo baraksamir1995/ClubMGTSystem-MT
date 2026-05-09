@@ -85,7 +85,7 @@ export default async function ClassesPageRoute() {
 
   const [classesData, sessionsData, settingsData, branchesData, studiosData, membersData] = await Promise.all([
     fetchApi('/classes', token),
-    fetchApi('/sessions', token),
+    fetchApi('/sessions?per_page=999', token),
     fetchApi('/settings', token),
     fetchApi('/branches', token),
     fetchApi('/studios', token),

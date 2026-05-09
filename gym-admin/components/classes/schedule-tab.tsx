@@ -337,12 +337,11 @@ export default function ScheduleTab({
                         session={session}
                         permissions={permissions}
                         isUnpublished={
-                          settings
-                            ? !settings.is_published || (
-                                settings.published_at != null &&
-                                session.created_at > settings.published_at
-                              )
-                            : false
+                          // Schedule entirely unpublished, OR this row hasn't
+                          // been included in a publish run yet (publish() flips
+                          // is_published=true on every active row; new rows
+                          // default to false).
+                          settings ? (!settings.is_published || !session.is_published) : false
                         }
                         onEdit={() => onEditSession(session)}
                         onCancel={() => onCancelSession(session)}

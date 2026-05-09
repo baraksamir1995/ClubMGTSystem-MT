@@ -16,10 +16,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       capacity: body.capacity, instructor: body.instructor, session_type: body.sessionType,
       location: body.location, branch_id: body.branchId, studio_id: body.studioId,
       walk_in_allowed: body.walkInAllowed, is_published: body.isPublished,
+      apply_to_series: body.applyToSeries,
     }),
   });
 
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: json.error ?? json.message }, { status: res.status });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, updated_siblings: json.updated_siblings ?? 0 });
 }

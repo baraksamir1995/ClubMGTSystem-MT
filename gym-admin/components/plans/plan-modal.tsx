@@ -165,7 +165,8 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
     const isUnlimitedSessions = planType === 'sessions' && !sessionCount;
     if (planType !== 'sessions' && !resolvedDays) { toast.error('Please set a duration'); return; }
     if (isUnlimitedSessions && !resolvedDays) { toast.error('Set a duration for unlimited sessions'); return; }
-    if (planType === 'duration_session' && !sessionCount) { toast.error('Please set number of sessions'); return; }
+    // duration_session also supports unlimited (empty session_count = unlimited
+    // studio access during the duration window). No required check.
     const isDuration = planType !== 'sessions';
     if (isDuration && freezeEnabled) {
       if (!freezeMaxDays || parseInt(freezeMaxDays) < 1) { toast.error('Freeze max days must be a positive number'); return; }
@@ -265,7 +266,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">{currency}</span>
                   <input type="number" min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)}
-                    placeholder="0.00" className={`${inputCls} pl-12`} />
+                    placeholder="0.00" className={`${inputCls} pl-12 no-spinner`} />
                 </div>
                 <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputCls}>
                   {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}

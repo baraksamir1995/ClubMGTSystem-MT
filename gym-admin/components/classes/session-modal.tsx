@@ -19,6 +19,17 @@ interface Props {
   onClose: () => void;
   onSaved: (s: ClassSession) => void;
   onSavedMultiple?: (sessions: ClassSession[]) => void;
+  onSeriesUpdated?: (params: {
+    templateId: string;
+    excludeId: string;
+    fromDate: string;
+    deltaDays: number;
+    fields: Partial<Pick<
+      ClassSession,
+      'start_time' | 'end_time' | 'capacity' | 'instructor' | 'location' |
+      'branch_id' | 'studio_id' | 'walk_in_allowed'
+    >>;
+  }) => void;
 }
 
 const SESSION_TYPES: { value: SessionType; label: string; icon: LucideIcon; desc: string }[] = [
@@ -26,7 +37,7 @@ const SESSION_TYPES: { value: SessionType; label: string; icon: LucideIcon; desc
   { value: 'recurring', label: 'Recurring', icon: Repeat, desc: 'Repeating weekly class' },
 ];
 
-export default function SessionModal({ classes, branches, studios, existing, defaultClassId, defaultDate, defaultBranchId, onClose, onSaved, onSavedMultiple }: Props) {
+export default function SessionModal({ classes, branches, studios, existing, defaultClassId, defaultDate, defaultBranchId, onClose, onSaved, onSavedMultiple, onSeriesUpdated }: Props) {
   const todayLocal = new Date().toLocaleDateString('en-CA');
 
   const [branchId,    setBranchId]    = useState(existing?.branch_id ?? defaultBranchId ?? (branches.length === 1 ? branches[0].id : ''));
@@ -59,6 +70,11 @@ export default function SessionModal({ classes, branches, studios, existing, def
   const [showParallel,     setShowParallel]     = useState(false);
   const [parallelStudioId, setParallelStudioId] = useState('');
   const [parallelCapacity, setParallelCapacity] = useState('');
+
+  // When editing a recurring session in an existing series, default to
+  // applying changes across all upcoming siblings.
+  const isRecurringSeriesEdit = !!(existing && existing.session_type === 'recurring' && existing.recurring_template_id);
+  const [applyToSeries, setApplyToSeries] = useState(isRecurringSeriesEdit);
 
   const selectedClass = classes.find(c => c.id === classId);
 
@@ -114,6 +130,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
       studioId:      sid || null,
       walkInAllowed,
       branchId:      branchId || null,
+      applyToSeries: isRecurringSeriesEdit ? applyToSeries : false,
     };
   };
 
@@ -151,9 +168,11 @@ export default function SessionModal({ classes, branches, studios, existing, def
           instructor:            (s.instructor ?? instructor.trim()) || null,
           location:              resolvedLocation,
           color:                 cls.color,
-          session_date:          s.session_date,
-          start_time:            s.start_time,
-          end_time:              s.end_time,
+          // Laravel casts session_date to datetime ISO ("2026-05-12T00:00:00.000000Z");
+          // schedule grid matches against "YYYY-MM-DD" cell keys.
+          session_date:          (s.session_date ?? '').slice(0, 10),
+          start_time:            (s.start_time ?? '').slice(0, 5),
+          end_time:              (s.end_time ?? '').slice(0, 5),
           capacity:              s.capacity ?? (capacity ? parseInt(capacity) : null),
           booked_count:          0,
           status:                'scheduled' as const,
@@ -192,8 +211,38 @@ export default function SessionModal({ classes, branches, studios, existing, def
         walk_in_allowed: walkInAllowed,
       };
 
-      toast.success(existing ? 'Session updated' : 'Session scheduled');
+      const seriesUpdated = existing && isRecurringSeriesEdit && applyToSeries;
+      if (seriesUpdated && data.updated_siblings > 0) {
+        toast.success(`Session updated — ${data.updated_siblings} upcoming sibling${data.updated_siblings === 1 ? '' : 's'} also updated`);
+      } else {
+        toast.success(existing ? 'Session updated' : 'Session scheduled');
+      }
       onSaved(baseSession);
+
+      if (seriesUpdated && existing && onSeriesUpdated && existing.recurring_template_id) {
+        // Mirror the backend's propagation in local state so the schedule
+        // reflects sibling changes immediately, before router.refresh()
+        // re-runs the server fetch.
+        const deltaDays = Math.round(
+          (Date.parse(date) - Date.parse(existing.session_date)) / 86_400_000
+        );
+        onSeriesUpdated({
+          templateId: existing.recurring_template_id,
+          excludeId: existing.id,
+          fromDate: existing.session_date,
+          deltaDays,
+          fields: {
+            start_time: startTime,
+            end_time: endTime,
+            capacity: capacity ? parseInt(capacity) : null,
+            instructor: instructor.trim() || null,
+            location: resolvedLocation,
+            branch_id: branchId || null,
+            studio_id: studioId || null,
+            walk_in_allowed: walkInAllowed,
+          },
+        });
+      }
 
       // Create parallel session if requested
       if (!existing && showParallel && parallelStudioId) {
@@ -241,6 +290,31 @@ export default function SessionModal({ classes, branches, studios, existing, def
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {isRecurringSeriesEdit && (
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 space-y-2">
+              <p className="text-xs text-purple-300 font-medium uppercase tracking-wide flex items-center gap-1.5">
+                <Repeat className="w-3.5 h-3.5" />
+                Recurring Series
+              </p>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="radio" checked={applyToSeries} onChange={() => setApplyToSeries(true)}
+                  className="mt-0.5 accent-purple-500" />
+                <div>
+                  <p className="text-sm text-white">Apply to this and all upcoming sessions</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Date changes shift the whole series by the same number of days.</p>
+                </div>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="radio" checked={!applyToSeries} onChange={() => setApplyToSeries(false)}
+                  className="mt-0.5 accent-purple-500" />
+                <div>
+                  <p className="text-sm text-white">Apply to this session only</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Detaches this instance from the rest of the series.</p>
+                </div>
+              </label>
+            </div>
+          )}
+
           {/* Branch picker — first, filters classes below */}
           {branches.length > 1 && (
             <div>

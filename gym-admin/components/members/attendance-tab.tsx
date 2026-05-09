@@ -3,18 +3,9 @@
 import { useState, useMemo } from 'react';
 import { Clock, Filter, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { fmtTime12, parsePgTimestamp, fmtDateGym } from '@/lib/time';
+import type { AttendanceLog } from '@/lib/types/attendance-log';
 
 const PAGE_SIZE = 5;
-
-interface AttendanceLog {
-  id: string;
-  check_in_at: string;
-  method: string | null;
-  access_point: string | null;
-  branch_id: string | null;
-  branch: { name: string } | null;
-  branches: { name: string } | { name: string }[] | null;
-}
 
 interface Props {
   logs: AttendanceLog[];

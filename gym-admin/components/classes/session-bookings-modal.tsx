@@ -9,7 +9,7 @@ import { fmt12, fmtTime12 } from '@/lib/time';
 interface Booking {
   id: string;
   gym_member_id: string;
-  status: 'booked' | 'attended' | 'absent';
+  status: 'booked' | 'confirmed' | 'attended' | 'absent';
   created_at: string;
   member_number: string;
   full_name: string | null;   // from manual add
@@ -97,7 +97,11 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) { toast.error('Failed to update'); return; }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? 'Failed to update');
+        return;
+      }
       const updated = bookings.map(b => b.id === booking.id ? { ...b, status: newStatus } : b);
       setBookings(updated);
       // booked_count = total active bookings (status changes don't affect count)

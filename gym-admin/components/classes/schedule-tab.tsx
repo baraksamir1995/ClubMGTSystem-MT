@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, User, Users, Pencil, XCircle, Globe, EyeOff, AlertTriangle, Loader2, StopCircle } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, User, Users, Pencil, XCircle, Globe, EyeOff, AlertTriangle, Loader2, StopCircle, CalendarPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymClass, ClassSession, GymBranch } from '@/app/dashboard/classes/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { fmt12 } from '@/lib/time';
+import CopyMonthModal from './copy-month-modal';
 
 export interface WeeklySlot {
   id: string;
@@ -90,6 +91,7 @@ export default function ScheduleTab({
   const [publishing,  setPublishing]  = useState(false);
   const [localChangedAt, setLocalChangedAt] = useState<string | null>(null);
   const initialSessionCount = useRef<number | null>(null);
+  const [showCopyMonth, setShowCopyMonth] = useState(false);
 
   useEffect(() => {
     fetch('/api/schedule')
@@ -235,6 +237,19 @@ export default function ScheduleTab({
         </div>
       )}
 
+      {/* ── Bulk actions (under the publish banner) ── */}
+      {can(permissions, 'classes', 'create') && (
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => setShowCopyMonth(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 hover:border-purple-500/50 hover:bg-purple-500/5 text-gray-400 hover:text-purple-300 text-xs font-medium transition-colors"
+          >
+            <CalendarPlus className="w-3.5 h-3.5" />
+            Copy this month to next month
+          </button>
+        </div>
+      )}
+
       {/* ── Branch tabs (multi-branch only) ── */}
       {branches.length > 1 && (
         <div className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
@@ -363,6 +378,22 @@ export default function ScheduleTab({
           );
         })}
       </div>
+
+      {showCopyMonth && (
+        <CopyMonthModal
+          branchId={activeBranchId}
+          branchName={branches.find(b => b.id === activeBranchId)?.name ?? null}
+          onClose={() => setShowCopyMonth(false)}
+          onCopied={() => {
+            // Hard reload so the parent's local sessions state is rebuilt
+            // from a fresh SSR fetch — router.refresh() alone re-renders the
+            // server component but useState in classes-page.tsx wouldn't
+            // pick up the new rows until remount. Delay so the success
+            // toast is visible before navigation.
+            setTimeout(() => window.location.reload(), 1500);
+          }}
+        />
+      )}
     </div>
   );
 }

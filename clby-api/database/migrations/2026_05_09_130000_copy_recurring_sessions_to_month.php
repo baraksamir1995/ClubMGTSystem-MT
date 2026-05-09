@@ -1,0 +1,149 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // Copies one calendar month's recurring sessions into the next
+        // calendar month for a single branch. Walks the distinct
+        // (class_id, weekday, time, studio_id, capacity, instructor,
+        // walk_in_allowed) tuples in the source month, creates a fresh
+        // recurring_session_templates row per tuple (so "Stop Recurring"
+        // on the new month doesn't bleed back into the source), and
+        // generates one session per matching weekday in the target month.
+        //
+        // Refuses (returns ok=false) if the target month already contains
+        // ANY sessions for the gym+branch — caller decides how to surface.
+        // Branch matching is exact NULL-or-uuid; sessions tagged to a
+        // different branch in the source month aren't included.
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION public.copy_recurring_sessions_to_month(
+    p_gym_id     uuid,
+    p_branch_id  uuid,
+    p_source_date date DEFAULT CURRENT_DATE
+) RETURNS jsonb
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_source_start  date := date_trunc('month', p_source_date)::date;
+  v_source_end    date := (date_trunc('month', p_source_date) + interval '1 month - 1 day')::date;
+  v_target_start  date := (date_trunc('month', p_source_date) + interval '1 month')::date;
+  v_target_end    date := (date_trunc('month', p_source_date) + interval '2 months - 1 day')::date;
+  v_existing      int;
+  v_created       int := 0;
+  v_templates     int := 0;
+  v_pattern       record;
+  v_template_id   uuid;
+  v_session_date  date;
+BEGIN
+  -- Serialize concurrent copy attempts for the same gym+branch so two
+  -- simultaneous admin clicks can't both pass the "target empty" check
+  -- and end up duplicating every session.
+  IF NOT pg_try_advisory_xact_lock(
+       hashtext('copy_month'),
+       hashtext(p_gym_id::text || ':' || COALESCE(p_branch_id::text, ''))
+     ) THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'busy');
+  END IF;
+
+  -- Refuse if target month already has any sessions in this branch.
+  -- Strict NULL-or-uuid match: sessions with branch_id IS NULL only
+  -- conflict when the caller is also copying for "no branch".
+  SELECT COUNT(*) INTO v_existing
+  FROM class_sessions
+  WHERE gym_id = p_gym_id
+    AND ((p_branch_id IS NULL AND branch_id IS NULL) OR branch_id = p_branch_id)
+    AND session_date BETWEEN v_target_start AND v_target_end;
+
+  IF v_existing > 0 THEN
+    RETURN jsonb_build_object(
+      'ok', false,
+      'reason', 'target_month_not_empty',
+      'existing_count', v_existing,
+      'source_start', v_source_start,
+      'source_end', v_source_end,
+      'target_start', v_target_start,
+      'target_end', v_target_end
+    );
+  END IF;
+
+  -- For each distinct recurring pattern in source month, create a fresh
+  -- template + one session per matching weekday in target month.
+  FOR v_pattern IN
+    SELECT DISTINCT ON (
+        cs.class_id, EXTRACT(DOW FROM cs.session_date)::int,
+        cs.start_time, cs.end_time, cs.studio_id, cs.capacity,
+        cs.instructor, cs.walk_in_allowed, cs.location
+      )
+      cs.class_id,
+      EXTRACT(DOW FROM cs.session_date)::int AS day_of_week,
+      cs.start_time,
+      cs.end_time,
+      cs.capacity,
+      cs.instructor,
+      cs.location,
+      cs.branch_id,
+      cs.studio_id,
+      cs.walk_in_allowed
+    FROM class_sessions cs
+    WHERE cs.gym_id = p_gym_id
+      AND ((p_branch_id IS NULL AND cs.branch_id IS NULL) OR cs.branch_id = p_branch_id)
+      AND cs.session_date BETWEEN v_source_start AND v_source_end
+      AND cs.session_type = 'recurring'
+      AND cs.status <> 'cancelled'
+    ORDER BY
+        cs.class_id, EXTRACT(DOW FROM cs.session_date)::int,
+        cs.start_time, cs.end_time, cs.studio_id, cs.capacity,
+        cs.instructor, cs.walk_in_allowed, cs.location
+  LOOP
+    INSERT INTO recurring_session_templates
+      (gym_id, class_id, day_of_week, start_time, end_time, capacity, instructor, location)
+    VALUES
+      (p_gym_id, v_pattern.class_id, v_pattern.day_of_week, v_pattern.start_time, v_pattern.end_time,
+       v_pattern.capacity, v_pattern.instructor, v_pattern.location)
+    RETURNING id INTO v_template_id;
+    v_templates := v_templates + 1;
+
+    FOR v_session_date IN
+      SELECT d::date
+      FROM generate_series(v_target_start, v_target_end, '1 day'::interval) d
+      WHERE EXTRACT(DOW FROM d)::int = v_pattern.day_of_week
+    LOOP
+      INSERT INTO class_sessions
+        (gym_id, class_id, recurring_template_id, session_date, start_time, end_time,
+         capacity, instructor, location, session_type, studio_id, branch_id, walk_in_allowed,
+         is_published, status)
+      VALUES
+        (p_gym_id, v_pattern.class_id, v_template_id, v_session_date,
+         v_pattern.start_time, v_pattern.end_time,
+         v_pattern.capacity, v_pattern.instructor, v_pattern.location, 'recurring',
+         v_pattern.studio_id, v_pattern.branch_id, v_pattern.walk_in_allowed,
+         false, 'scheduled');
+      v_created := v_created + 1;
+    END LOOP;
+  END LOOP;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'created', v_created,
+    'templates', v_templates,
+    'source_start', v_source_start,
+    'source_end', v_source_end,
+    'target_start', v_target_start,
+    'target_end', v_target_end
+  );
+END;
+$function$;
+SQL);
+    }
+
+    public function down(): void
+    {
+        DB::unprepared('DROP FUNCTION IF EXISTS public.copy_recurring_sessions_to_month(uuid, uuid, date);');
+    }
+};

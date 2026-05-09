@@ -221,6 +221,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Session management
     Route::post('/sessions', [SessionController::class, 'store'])->middleware('permission:classes,create');
     Route::post('/sessions/recurring', [SessionController::class, 'createRecurring'])->middleware('permission:classes,create');
+    Route::post('/sessions/copy-to-next-month', [SessionController::class, 'copyToNextMonth'])->middleware('permission:classes,create');
     Route::put('/sessions/{id}', [SessionController::class, 'update'])->middleware('permission:classes,edit');
     Route::post('/sessions/{id}/cancel', [SessionController::class, 'cancel'])->middleware('permission:classes,edit');
     Route::post('/sessions/{id}/checkin', [SessionController::class, 'checkin'])->middleware('permission:classes,edit');

@@ -292,6 +292,49 @@ class SessionController extends Controller
         return response()->json(['message' => 'Recurring series stopped']);
     }
 
+    /**
+     * Copy the current calendar month's recurring sessions into the next
+     * calendar month for one branch. Refuses (HTTP 422) if the target month
+     * already contains any sessions for that gym+branch — admin must clear
+     * them first.
+     */
+    public function copyToNextMonth(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'branch_id' => 'nullable|uuid',
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        $result = DB::selectOne(
+            'SELECT copy_recurring_sessions_to_month(?, ?, CURRENT_DATE) AS data',
+            [$gymId, $validated['branch_id'] ?? null]
+        );
+
+        $payload = is_string($result?->data ?? null) ? json_decode($result->data, true) : null;
+        if (! is_array($payload)) {
+            return response()->json([
+                'error' => 'Copy failed — no result returned from the database.',
+            ], 500);
+        }
+
+        if (! ($payload['ok'] ?? false)) {
+            $reason = $payload['reason'] ?? null;
+            $message = $reason === 'busy'
+                ? 'Another copy is already running for this branch — try again in a moment.'
+                : 'Target month is not empty — clear it before copying.';
+            return response()->json([
+                'error' => $message,
+                'reason' => $reason,
+                'existing_count' => $payload['existing_count'] ?? null,
+                'target_start' => $payload['target_start'] ?? null,
+                'target_end' => $payload['target_end'] ?? null,
+            ], $reason === 'busy' ? 409 : 422);
+        }
+
+        return response()->json($payload);
+    }
+
     public function consume(Request $request): JsonResponse
     {
         $validated = $request->validate([

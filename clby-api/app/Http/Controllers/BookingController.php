@@ -119,7 +119,20 @@ class BookingController extends Controller
 
     /**
      * Update booking status (booked/attended/absent/cancelled etc).
-     * Does NOT change booked_count — only add/remove affects the count.
+     *
+     * - booked_count is only recalculated when crossing the cancelled boundary.
+     * - Transitioning into 'attended' blocks (HTTP 422) if the member's
+     *   sessions plan is exhausted, then bumps sessions_used and writes an
+     *   attendance_logs row matching the QR-scan path.
+     * - Reverting out of 'attended' undoes both effects so toggling stays
+     *   accurate.
+     *
+     * The exhaustion check, increment, and revert all use the same
+     * deterministic picker (start_date DESC) under SELECT FOR UPDATE so two
+     * concurrent admin marks on the same member can't bypass the cap.
+     * consume_class_session is intentionally NOT reused — its picker has no
+     * ORDER BY, so on members with multiple active sessions plans it could
+     * mutate a different row than our checks targeted.
      */
     public function updateStatus(Request $request, string $id): JsonResponse
     {
@@ -128,19 +141,120 @@ class BookingController extends Controller
         ]);
 
         $gymId = $request->user()->gym_id;
+        $newStatus = $validated['status'];
 
-        // Scope to user's gym via session
         $booking = SessionBooking::whereHas('session', fn ($q) => $q->where('gym_id', $gymId))
             ->findOrFail($id);
         $oldStatus = $booking->status;
-        $booking->update(['status' => $validated['status']]);
 
-        // Only recalculate if moving to/from cancelled (that affects the count)
-        if ($oldStatus === 'cancelled' || $validated['status'] === 'cancelled') {
-            $this->recalculateBookedCount($booking->session_id);
-        }
+        $isAttending = $oldStatus !== 'attended' && $newStatus === 'attended';
+        $isReverting = $oldStatus === 'attended' && $newStatus !== 'attended';
 
-        return response()->json(['data' => $booking]);
+        // Resolve the session row up-front so the attendance-log insert
+        // can't half-succeed (would otherwise decrement without logging).
+        $session = ($isAttending || $isReverting)
+            ? DB::selectOne(
+                "SELECT cs.id, cs.gym_id, cs.branch_id, cs.studio_id,
+                        COALESCE(cs.instructor, c.instructor) AS instructor,
+                        c.name AS class_name
+                 FROM class_sessions cs JOIN classes c ON c.id = cs.class_id
+                 WHERE cs.id = ?",
+                [$booking->session_id]
+            )
+            : null;
+
+        return DB::transaction(function () use ($booking, $oldStatus, $newStatus, $isAttending, $isReverting, $session) {
+            if ($isAttending) {
+                // Lock the canonical membership row first so the cap can't
+                // move under us between the check and the increment.
+                $membership = DB::selectOne(
+                    "SELECT mm.id, mm.sessions_used, mm.sessions_total, mp.session_count
+                     FROM member_memberships mm
+                     JOIN membership_plans mp ON mp.id = mm.plan_id
+                     WHERE mm.gym_member_id = ?
+                       AND mm.status = 'active'
+                       AND mp.plan_type IN ('sessions','duration_session')
+                     ORDER BY mm.start_date DESC LIMIT 1
+                     FOR UPDATE OF mm",
+                    [$booking->gym_member_id]
+                );
+
+                if ($membership) {
+                    $cap = $membership->sessions_total ?? $membership->session_count;
+                    if ($cap !== null && (int) $membership->sessions_used >= (int) $cap) {
+                        return response()->json([
+                            'error' => 'Member has no remaining sessions on their plan',
+                        ], 422);
+                    }
+                    DB::statement(
+                        "UPDATE member_memberships
+                         SET sessions_used = COALESCE(sessions_used, 0) + 1
+                         WHERE id = ?",
+                        [$membership->id]
+                    );
+                }
+                // No sessions plan → mark attended without decrement, mirrors
+                // validate_studio_access semantics for unlimited / non-session
+                // plans.
+
+                $booking->update(['status' => $newStatus]);
+
+                if ($session) {
+                    DB::insert(
+                        "INSERT INTO attendance_logs
+                         (gym_member_id, gym_id, branch_id, check_in_at, method,
+                          access_point, class_session_id, studio_id, specialist_name)
+                         VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'admin', ?, ?, ?, ?)",
+                        [
+                            $booking->gym_member_id, $session->gym_id, $session->branch_id,
+                            $session->class_name, $session->id, $session->studio_id,
+                            $session->instructor,
+                        ]
+                    );
+                }
+            } elseif ($isReverting) {
+                // Same locked picker, reverse the increment.
+                $membership = DB::selectOne(
+                    "SELECT mm.id FROM member_memberships mm
+                     JOIN membership_plans mp ON mp.id = mm.plan_id
+                     WHERE mm.gym_member_id = ?
+                       AND mm.status = 'active'
+                       AND mp.plan_type IN ('sessions','duration_session')
+                     ORDER BY mm.start_date DESC LIMIT 1
+                     FOR UPDATE OF mm",
+                    [$booking->gym_member_id]
+                );
+
+                if ($membership) {
+                    DB::statement(
+                        "UPDATE member_memberships
+                         SET sessions_used = GREATEST(0, COALESCE(sessions_used, 0) - 1)
+                         WHERE id = ?",
+                        [$membership->id]
+                    );
+                }
+
+                $booking->update(['status' => $newStatus]);
+
+                // Drop the admin-marked log so member history matches the
+                // current attendance state. QR-path logs are left alone.
+                if ($session) {
+                    DB::delete(
+                        "DELETE FROM attendance_logs
+                         WHERE gym_member_id = ? AND class_session_id = ? AND method = 'admin'",
+                        [$booking->gym_member_id, $session->id]
+                    );
+                }
+            } else {
+                $booking->update(['status' => $newStatus]);
+            }
+
+            if ($oldStatus === 'cancelled' || $newStatus === 'cancelled') {
+                $this->recalculateBookedCount($booking->session_id);
+            }
+
+            return response()->json(['data' => $booking]);
+        });
     }
 
     public function destroy(Request $request, string $id): JsonResponse

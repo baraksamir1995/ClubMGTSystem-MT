@@ -35,9 +35,14 @@ class SessionController extends Controller
             $query->where('status', $status);
         }
 
+        // Clamp per_page so a misbehaving client can't request the full
+        // history in one shot. Admin SSR currently passes 999 which is the
+        // upper bound here.
+        $perPage = min(max((int) $request->query('per_page', 50), 1), 1000);
+
         $sessions = $query->orderBy('session_date')
             ->orderBy('start_time')
-            ->paginate($request->query('per_page', 50));
+            ->paginate($perPage);
 
         return response()->json($sessions);
     }
@@ -115,11 +120,64 @@ class SessionController extends Controller
             'walk_in_allowed' => 'sometimes|boolean',
             'branch_id' => 'nullable|uuid',
             'studio_id' => 'nullable|uuid',
+            'apply_to_series' => 'sometimes|boolean',
         ]);
 
-        $session->update($validated);
+        $applyToSeries = (bool) ($validated['apply_to_series'] ?? false);
+        unset($validated['apply_to_series']);
 
-        return response()->json(['data' => $session]);
+        // Capture pre-update date so we can shift siblings by the same delta
+        // (a Sunday → Monday move shifts the whole weekly series by one day).
+        $originalDate = \Carbon\Carbon::parse($session->session_date);
+
+        // Atomic so a partial failure during sibling propagation rolls back
+        // the head update too. Without this, the edited row could end up out
+        // of sync with the rest of its series.
+        return DB::transaction(function () use ($session, $validated, $applyToSeries, $originalDate, $gymId) {
+            $session->update($validated);
+
+            $updatedSiblings = 0;
+            if ($applyToSeries && $session->recurring_template_id) {
+                // is_published / session_type / cancel state stay per-row;
+                // everything else propagates.
+                $propagatable = array_intersect_key($validated, array_flip([
+                    'start_time', 'end_time', 'capacity', 'instructor',
+                    'location', 'branch_id', 'studio_id', 'walk_in_allowed',
+                ]));
+
+                // diffInDays returns float in Carbon 3; round to defend against
+                // any sub-day drift (DST, fractional precision) before truncating.
+                $newDate = \Carbon\Carbon::parse($session->session_date);
+                $deltaDays = (int) round(
+                    $originalDate->copy()->startOfDay()
+                        ->diffInDays($newDate->copy()->startOfDay(), false)
+                );
+
+                $futureSiblings = ClassSession::where('gym_id', $gymId)
+                    ->where('recurring_template_id', $session->recurring_template_id)
+                    ->where('id', '!=', $session->id)
+                    ->where('status', 'scheduled')
+                    ->where('session_date', '>=', $originalDate->toDateString())
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($futureSiblings as $sibling) {
+                    $update = $propagatable;
+                    if ($deltaDays !== 0) {
+                        $update['session_date'] = \Carbon\Carbon::parse($sibling->session_date)
+                            ->addDays($deltaDays)
+                            ->toDateString();
+                    }
+                    $sibling->update($update);
+                    $updatedSiblings++;
+                }
+            }
+
+            return response()->json([
+                'data' => $session,
+                'updated_siblings' => $updatedSiblings,
+            ]);
+        });
     }
 
     public function cancel(Request $request, string $id): JsonResponse

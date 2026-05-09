@@ -5,14 +5,6 @@ import type { GymPartner } from '@/components/content/partners-tab';
 
 export const dynamic = 'force-dynamic';
 
-export interface GymFaq {
-  id: string; question: string; answer: string; is_visible: boolean;
-  display_order: number; created_at: string;
-}
-export interface GymAnnouncement {
-  id: string; title: string; body: string; is_visible: boolean;
-  visible_from: string | null; visible_until: string | null; created_at: string;
-}
 export interface GymBanner {
   id: string; image_url: string; storage_path: string | null; caption: string | null;
   description: string | null; tag: string | null; tag_color: string | null;
@@ -43,14 +35,6 @@ export interface GymNotification {
   scheduled_at: string | null; sent_at: string | null;
   status: 'sent' | 'scheduled' | 'cancelled'; recipient_count: number | null; created_at: string;
 }
-export interface GymPhoto {
-  id: string;
-  url: string;
-  storage_path: string | null;
-  caption: string | null;
-  is_visible: boolean;
-  created_at: string;
-}
 export interface PlanOption { id: string; name: string; }
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
@@ -80,10 +64,8 @@ export default async function ContentRoute() {
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
 
-  const [faqsData, announcementsData, bannersData, popupsData, partnersData, notifData, plansData] =
+  const [bannersData, popupsData, partnersData, notifData, plansData] =
     await Promise.all([
-      fetchApi('/content/faqs', token),
-      fetchApi('/content/announcements', token),
       fetchApi('/content/banners', token),
       fetchApi('/content/popups', token),
       fetchApi('/content/partners', token),
@@ -93,8 +75,6 @@ export default async function ContentRoute() {
 
   return (
     <ContentPage
-      initialFaqs={(faqsData?.data ?? faqsData ?? []) as GymFaq[]}
-      initialAnnouncements={(announcementsData?.data ?? announcementsData ?? []) as GymAnnouncement[]}
       initialBanners={(bannersData?.data ?? bannersData ?? []) as GymBanner[]}
       initialPopups={(popupsData?.data ?? popupsData ?? []) as GymPopup[]}
       initialPartners={(partnersData?.data ?? partnersData ?? []) as GymPartner[]}

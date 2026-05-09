@@ -323,6 +323,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Content management
     Route::post('/content/{type}', [ContentController::class, 'store'])->middleware('permission:content,create');
+    Route::post('/content/{type}/{id}/image', [ContentController::class, 'replaceImage'])->middleware('permission:content,edit');
     Route::patch('/content/{type}/{id}', [ContentController::class, 'update'])->middleware('permission:content,edit');
     Route::delete('/content/{type}/{id}', [ContentController::class, 'destroy'])->middleware('permission:content,delete');
 

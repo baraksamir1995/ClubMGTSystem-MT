@@ -21,44 +21,39 @@ class ContentController extends Controller
     public function __construct(
         private StorageService $storage,
     ) {}
+    // Removed: announcements / faqs / onboarding / photos. Their admin tabs
+    // were retired and the existing whitelists didn't match the real schemas
+    // anyway. Tables stay (no destructive drop), just the controller no
+    // longer routes to them — /api/content/<removed> returns 400.
     private const TABLES = [
-        'announcements' => 'gym_announcements',
         'banners' => 'gym_banners',
-        'faqs' => 'gym_faqs',
-        'onboarding' => 'gym_onboarding_slides',
         'partners' => 'gym_partners',
-        'photos' => 'gym_photos',
         'popups' => 'gym_popups',
     ];
 
     /** Singular key names for response wrapping (matches frontend expectations) */
     private const SINGULAR = [
-        'announcements' => 'announcement',
         'banners' => 'banner',
-        'faqs' => 'faq',
-        'onboarding' => 'slide',
         'partners' => 'partner',
-        'photos' => 'photo',
         'popups' => 'popup',
     ];
 
-    /** Allowed columns per content type */
+    /** Allowed columns per content type — must match the real DB schema. */
     private const ALLOWED_COLUMNS = [
-        'announcements' => ['title', 'content', 'is_active', 'priority', 'start_date', 'end_date'],
         'banners' => [
-            'title', 'subtitle', 'description', 'image_url', 'link_url',
-            'is_active', 'position', 'start_date', 'end_date',
+            'image_url', 'storage_path', 'caption', 'description',
+            'tag', 'tag_color', 'action_type', 'action_value',
+            'sort_order', 'is_active', 'is_featured',
             // Sponsor variant: when banner.action_type = 'sponsor', tapping
             // opens an in-app detail screen with reveal-and-copy promo code.
-            'caption', 'tag', 'tag_color', 'action_type', 'action_value',
-            'sort_order', 'is_featured',
             'sponsor_promo_code', 'sponsor_external_url', 'sponsor_terms',
         ],
-        'faqs' => ['question', 'answer', 'position', 'is_active', 'category'],
-        'onboarding' => ['title', 'subtitle', 'description', 'image_url', 'position', 'is_active'],
-        'partners' => ['name', 'description', 'image_url', 'link_url', 'is_active', 'position'],
-        'photos' => ['title', 'description', 'image_url', 'is_active', 'position'],
-        'popups' => ['title', 'subtitle', 'description', 'image_url', 'link_url', 'is_active', 'start_date', 'end_date', 'show_once'],
+        'partners' => ['name', 'image_url', 'storage_path', 'is_visible', 'display_order'],
+        'popups' => [
+            'title', 'subtitle', 'image_url', 'storage_path',
+            'cta_label', 'cta_action_type', 'cta_action_value',
+            'is_active', 'priority',
+        ],
     ];
 
     /** Convert camelCase keys to snake_case */
@@ -124,11 +119,7 @@ class ContentController extends Controller
         // Handle file upload for content types that have images
         if ($request->hasFile('file')) {
             $folder = match ($type) {
-                'banners' => 'gym_content',
-                'photos' => 'gym_content',
-                'partners' => 'gym_content',
-                'popups' => 'gym_content',
-                'onboarding' => 'gym_content',
+                'banners', 'partners', 'popups' => 'gym_content',
                 default => 'uploads',
             };
             $result = $this->storage->upload($request->file('file'), $folder, $gymId);
@@ -150,21 +141,6 @@ class ContentController extends Controller
         $gymId = $request->user()->gym_id;
         $data = $this->filterAllowed($this->toSnakeCase($request->all()), $type);
 
-        // Allow image replacement on edit — mirrors store(): if the request
-        // carries a file under "file", upload it and overwrite image_url.
-        if ($request->hasFile('file')) {
-            $folder = match ($type) {
-                'banners' => 'gym_content',
-                'photos' => 'gym_content',
-                'partners' => 'gym_content',
-                'popups' => 'gym_content',
-                'onboarding' => 'gym_content',
-                default => 'uploads',
-            };
-            $result = $this->storage->upload($request->file('file'), $folder, $gymId);
-            $data['image_url'] = $result['url'];
-        }
-
         if (! empty($data)) {
             DB::table($table)->where('id', $id)->where('gym_id', $gymId)->update($data);
         }
@@ -173,6 +149,41 @@ class ContentController extends Controller
         $updated = DB::table($table)->where('id', $id)->first();
         $key = self::SINGULAR[$type] ?? 'item';
         return response()->json([$key => $updated ? (array) $updated : $data]);
+    }
+
+    /**
+     * Replace the image_url of an existing content row (banners / partners /
+     * popups). Lives at its own POST route because PHP only parses multipart
+     * bodies for POST, not PATCH — sidestepping the spoofing dance.
+     */
+    public function replaceImage(Request $request, string $type, string $id): JsonResponse
+    {
+        $imageBackedTypes = ['banners', 'partners', 'popups'];
+        if (! in_array($type, $imageBackedTypes, true)) {
+            return response()->json(['error' => 'This content type does not have an image'], 400);
+        }
+        $table = self::TABLES[$type] ?? null;
+        if (! $table) return response()->json(['error' => 'Invalid content type'], 400);
+
+        if (! $request->hasFile('file')) {
+            return response()->json(['error' => 'Missing file upload'], 422);
+        }
+
+        $gymId = $request->user()->gym_id;
+        $existing = DB::table($table)->where('id', $id)->where('gym_id', $gymId)->first();
+        if (! $existing) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
+
+        $result = $this->storage->upload($request->file('file'), 'gym_content', $gymId);
+        DB::table($table)
+            ->where('id', $id)
+            ->where('gym_id', $gymId)
+            ->update(['image_url' => $result['url']]);
+
+        $updated = DB::table($table)->where('id', $id)->first();
+        $key = self::SINGULAR[$type] ?? 'item';
+        return response()->json([$key => $updated ? (array) $updated : ['image_url' => $result['url']]]);
     }
 
     public function destroy(Request $request, string $type, string $id): JsonResponse

@@ -1,20 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { HelpCircle, Megaphone, LayoutTemplate, Handshake, Bell, Layers, Smartphone } from 'lucide-react';
-import FaqsTab from './faqs-tab';
-import AnnouncementsTab from './announcements-tab';
+import { LayoutTemplate, Handshake, Bell, Layers } from 'lucide-react';
 import BannersTab from './banners-tab';
 import PopupsTab from './popups-tab';
 import PartnersTab, { type GymPartner } from './partners-tab';
-import OnboardingTab from './onboarding-tab';
 import NotificationsPage from '@/components/notifications/notifications-page';
-import type { GymFaq, GymAnnouncement, GymBanner, GymPopup, GymNotification, PlanOption } from '@/app/dashboard/content/page';
+import type { GymBanner, GymPopup, GymNotification, PlanOption } from '@/app/dashboard/content/page';
 import type { Permission } from '@/lib/get-permissions';
 
 interface Props {
-  initialFaqs: GymFaq[];
-  initialAnnouncements: GymAnnouncement[];
   initialBanners: GymBanner[];
   initialPopups: GymPopup[];
   initialPartners: GymPartner[];
@@ -24,10 +19,10 @@ interface Props {
   gymId: string;
 }
 
-type Tab = 'banners' | 'popups' | 'faqs' | 'announcements' | 'partners' | 'communications' | 'onboarding';
+type Tab = 'banners' | 'popups' | 'partners' | 'communications';
 
 export default function ContentPage({
-  initialFaqs, initialAnnouncements, initialBanners, initialPopups,
+  initialBanners, initialPopups,
   initialPartners, initialNotifications, planOptions,
   permissions, gymId,
 }: Props) {
@@ -52,30 +47,18 @@ export default function ContentPage({
         <button onClick={() => setActiveTab('popups')} className={tabCls('popups')}>
           <Layers className="w-4 h-4" /> Pop-ups
         </button>
-        <button onClick={() => setActiveTab('faqs')} className={tabCls('faqs')}>
-          <HelpCircle className="w-4 h-4" /> FAQs
-        </button>
-        <button onClick={() => setActiveTab('announcements')} className={tabCls('announcements')}>
-          <Megaphone className="w-4 h-4" /> Announcements
-        </button>
         <button onClick={() => setActiveTab('partners')} className={tabCls('partners')}>
           <Handshake className="w-4 h-4" /> Partners
         </button>
         <button onClick={() => setActiveTab('communications')} className={tabCls('communications')}>
           <Bell className="w-4 h-4" /> Communications
         </button>
-        <button onClick={() => setActiveTab('onboarding')} className={tabCls('onboarding')}>
-          <Smartphone className="w-4 h-4" /> Onboarding
-        </button>
       </div>
 
       {activeTab === 'banners'        && <BannersTab        initialBanners={initialBanners} permissions={permissions} />}
       {activeTab === 'popups'         && <PopupsTab         initialPopups={initialPopups} permissions={permissions} />}
-      {activeTab === 'faqs'           && <FaqsTab           initialFaqs={initialFaqs} permissions={permissions} />}
-      {activeTab === 'announcements'  && <AnnouncementsTab  initialAnnouncements={initialAnnouncements} permissions={permissions} />}
       {activeTab === 'partners'       && <PartnersTab       initialPartners={initialPartners} permissions={permissions} gymId={gymId} />}
       {activeTab === 'communications' && <NotificationsPage initialNotifications={initialNotifications} plans={planOptions} permissions={permissions} />}
-      {activeTab === 'onboarding'      && <OnboardingTab permissions={permissions} />}
     </div>
   );
 }

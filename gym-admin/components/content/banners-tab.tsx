@@ -120,7 +120,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch(`/api/content/banners/${bannerId}`, { method: 'PATCH', body: fd });
+      const res = await fetch(`/api/content/banners/${bannerId}/image`, { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? 'Image upload failed'); return; }
       const updated = data.banner ?? data;
@@ -270,7 +270,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <select
                   value={form.actionType}
-                  onChange={e => setForm(f => ({ ...f, actionType: e.target.value as ActionType, actionValue: '' }))}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    actionType: e.target.value as ActionType,
+                    actionValue: '',
+                    sponsorPromoCode: '',
+                    sponsorExternalUrl: '',
+                    sponsorTerms: '',
+                  }))}
                   className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
                   {(Object.entries(ACTION_LABELS) as [ActionType, string][]).map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>
@@ -441,7 +448,17 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         <div className="flex gap-2">
                           <select
                             value={ef.actionType}
-                            onChange={e => setEditForm(f => ({ ...f, actionType: e.target.value as ActionType, actionValue: '' }))}
+                            onChange={e => setEditForm(f => ({
+                              ...f,
+                              actionType: e.target.value as ActionType,
+                              // Clear all variant-specific fields so toggling
+                              // sponsor → external → sponsor doesn't re-surface
+                              // stale promo code / URL / terms.
+                              actionValue: '',
+                              sponsorPromoCode: '',
+                              sponsorExternalUrl: '',
+                              sponsorTerms: '',
+                            }))}
                             className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500">
                             {(Object.entries(ACTION_LABELS) as [ActionType, string][]).map(([v, l]) => (
                               <option key={v} value={v}>{l}</option>

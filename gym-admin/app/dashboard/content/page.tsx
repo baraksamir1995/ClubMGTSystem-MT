@@ -18,6 +18,10 @@ export interface GymBanner {
   description: string | null; tag: string | null; tag_color: string | null;
   action_type: string; action_value: string | null; sort_order: number;
   is_active: boolean; is_featured: boolean; created_at: string;
+  // Sponsor variant: populated when action_type === 'sponsor'.
+  sponsor_promo_code: string | null;
+  sponsor_external_url: string | null;
+  sponsor_terms: string | null;
 }
 export interface GymOffer {
   id: string; title: string; short_description: string | null; full_description: string | null;

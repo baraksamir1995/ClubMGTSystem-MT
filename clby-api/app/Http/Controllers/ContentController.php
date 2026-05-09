@@ -45,7 +45,15 @@ class ContentController extends Controller
     /** Allowed columns per content type */
     private const ALLOWED_COLUMNS = [
         'announcements' => ['title', 'content', 'is_active', 'priority', 'start_date', 'end_date'],
-        'banners' => ['title', 'subtitle', 'description', 'image_url', 'link_url', 'is_active', 'position', 'start_date', 'end_date'],
+        'banners' => [
+            'title', 'subtitle', 'description', 'image_url', 'link_url',
+            'is_active', 'position', 'start_date', 'end_date',
+            // Sponsor variant: when banner.action_type = 'sponsor', tapping
+            // opens an in-app detail screen with reveal-and-copy promo code.
+            'caption', 'tag', 'tag_color', 'action_type', 'action_value',
+            'sort_order', 'is_featured',
+            'sponsor_promo_code', 'sponsor_external_url', 'sponsor_terms',
+        ],
         'faqs' => ['question', 'answer', 'position', 'is_active', 'category'],
         'onboarding' => ['title', 'subtitle', 'description', 'image_url', 'position', 'is_active'],
         'partners' => ['name', 'description', 'image_url', 'link_url', 'is_active', 'position'],
@@ -142,7 +150,24 @@ class ContentController extends Controller
         $gymId = $request->user()->gym_id;
         $data = $this->filterAllowed($this->toSnakeCase($request->all()), $type);
 
-        DB::table($table)->where('id', $id)->where('gym_id', $gymId)->update($data);
+        // Allow image replacement on edit — mirrors store(): if the request
+        // carries a file under "file", upload it and overwrite image_url.
+        if ($request->hasFile('file')) {
+            $folder = match ($type) {
+                'banners' => 'gym_content',
+                'photos' => 'gym_content',
+                'partners' => 'gym_content',
+                'popups' => 'gym_content',
+                'onboarding' => 'gym_content',
+                default => 'uploads',
+            };
+            $result = $this->storage->upload($request->file('file'), $folder, $gymId);
+            $data['image_url'] = $result['url'];
+        }
+
+        if (! empty($data)) {
+            DB::table($table)->where('id', $id)->where('gym_id', $gymId)->update($data);
+        }
 
         // Return the full updated record
         $updated = DB::table($table)->where('id', $id)->first();

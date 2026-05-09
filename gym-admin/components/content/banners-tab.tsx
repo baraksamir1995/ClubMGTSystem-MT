@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import {
   Upload, Trash2, Loader2, ImageIcon, Eye, EyeOff,
-  ExternalLink, Smartphone, ChevronDown, ChevronUp, Pencil, Check, X,
+  ExternalLink, Smartphone, ChevronDown, ChevronUp, Pencil, Check, X, Tag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymBanner } from '@/app/dashboard/content/page';
@@ -14,12 +14,13 @@ interface Props {
   permissions: Permission[] | null;
 }
 
-type ActionType = 'none' | 'external_link' | 'internal';
+type ActionType = 'none' | 'external_link' | 'internal' | 'sponsor';
 
 const ACTION_LABELS: Record<ActionType, string> = {
   none:          'No action',
   external_link: 'Open URL',
   internal:      'Internal screen',
+  sponsor:       'Sponsor offer',
 };
 
 const INTERNAL_SCREENS = [
@@ -37,10 +38,15 @@ interface UploadForm {
   actionType: ActionType;
   actionValue: string;
   sortOrder: string;
+  // Sponsor variant: shown when actionType === 'sponsor'.
+  sponsorPromoCode: string;
+  sponsorExternalUrl: string;
+  sponsorTerms: string;
 }
 
 const emptyForm = (): UploadForm => ({
   caption: '', description: '', tag: '', tagColor: '#FFFFFF', actionType: 'none', actionValue: '', sortOrder: '0',
+  sponsorPromoCode: '', sponsorExternalUrl: '', sponsorTerms: '',
 });
 
 export default function BannersTab({ initialBanners, permissions }: Props) {
@@ -53,7 +59,12 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
   const [editingId,  setEditingId]  = useState<string | null>(null);
   const [editForm,   setEditForm]   = useState<Partial<UploadForm>>({});
   const [savingId,   setSavingId]   = useState<string | null>(null);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceFileRef = useRef<HTMLInputElement>(null);
+  // Tracks which banner row a click on the hidden replace-image input
+  // belongs to, so we know which row to PATCH when the file is picked.
+  const pendingReplaceIdRef = useRef<string | null>(null);
 
   // ─── Upload ────────────────────────────────────────────────────────────────
   const upload = async (file: File) => {
@@ -66,8 +77,15 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
       fd.append('tag',         form.tag);
       fd.append('tagColor',    form.tag ? form.tagColor : '');
       fd.append('actionType',  form.actionType);
-      fd.append('actionValue', form.actionType === 'none' ? '' : form.actionValue);
+      // Sponsor variant uses dedicated columns instead of actionValue, so
+      // null actionValue out for that type to keep the union semantics clean.
+      fd.append('actionValue', form.actionType === 'none' || form.actionType === 'sponsor' ? '' : form.actionValue);
       fd.append('sortOrder',   form.sortOrder);
+      if (form.actionType === 'sponsor') {
+        fd.append('sponsorPromoCode',   form.sponsorPromoCode);
+        fd.append('sponsorExternalUrl', form.sponsorExternalUrl);
+        fd.append('sponsorTerms',       form.sponsorTerms);
+      }
 
       const res  = await fetch('/api/content/banners', { method: 'POST', body: fd });
       const data = await res.json();
@@ -96,6 +114,22 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
     finally { setTogglingId(null); }
   };
 
+  // ─── Replace image only (no other field changes) ──────────────────────────
+  const replaceImage = async (bannerId: string, file: File) => {
+    setReplacingId(bannerId);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`/api/content/banners/${bannerId}`, { method: 'PATCH', body: fd });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? 'Image upload failed'); return; }
+      const updated = data.banner ?? data;
+      setBanners(prev => prev.map(b => b.id === bannerId ? updated : b));
+      toast.success('Image updated');
+    } catch { toast.error('Network error'); }
+    finally { setReplacingId(null); }
+  };
+
   // ─── Inline edit save ─────────────────────────────────────────────────────
   const startEdit = (banner: GymBanner) => {
     setEditingId(banner.id);
@@ -107,6 +141,9 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
       actionType:  (banner.action_type as ActionType) ?? 'none',
       actionValue: banner.action_value ?? '',
       sortOrder:   String(banner.sort_order ?? 0),
+      sponsorPromoCode:   banner.sponsor_promo_code   ?? '',
+      sponsorExternalUrl: banner.sponsor_external_url ?? '',
+      sponsorTerms:       banner.sponsor_terms        ?? '',
     });
   };
 
@@ -122,8 +159,13 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
           tag:         editForm.tag || null,
           tagColor:    editForm.tag ? (editForm.tagColor || null) : null,
           actionType:  editForm.actionType,
-          actionValue: editForm.actionType === 'none' ? null : (editForm.actionValue || null),
+          actionValue: editForm.actionType === 'none' || editForm.actionType === 'sponsor'
+            ? null
+            : (editForm.actionValue || null),
           sortOrder:   parseInt(editForm.sortOrder ?? '0', 10),
+          sponsorPromoCode:   editForm.actionType === 'sponsor' ? (editForm.sponsorPromoCode   || null) : null,
+          sponsorExternalUrl: editForm.actionType === 'sponsor' ? (editForm.sponsorExternalUrl || null) : null,
+          sponsorTerms:       editForm.actionType === 'sponsor' ? (editForm.sponsorTerms       || null) : null,
         }),
       });
       const data = await res.json();
@@ -152,6 +194,20 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
 
   return (
     <div className="space-y-6">
+
+      {/* Always-mounted hidden input for the per-row Replace-image overlay.
+          Lives at the root so it's available regardless of whether the
+          create/upload form is currently expanded. */}
+      <input
+        ref={replaceFileRef} type="file" accept="image/*" className="hidden"
+        onChange={e => {
+          const f = e.target.files?.[0];
+          const id = pendingReplaceIdRef.current;
+          pendingReplaceIdRef.current = null;
+          if (f && id) replaceImage(id, f);
+          e.target.value = '';
+        }}
+      />
 
       {/* ── Upload section ─────────────────────────────────────────────────── */}
       {can(permissions, 'content', 'create') && (
@@ -242,18 +298,46 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                 )}
               </div>
 
+              {form.actionType === 'sponsor' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border border-purple-700/40 bg-purple-900/10">
+                  <input
+                    value={form.sponsorPromoCode}
+                    onChange={e => setForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
+                    placeholder="Promo code (e.g. CLBY15) — optional"
+                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  />
+                  <input
+                    value={form.sponsorExternalUrl}
+                    onChange={e => setForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
+                    placeholder="External URL (e.g. proteinhouse.com) — optional"
+                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  />
+                  <input
+                    value={form.sponsorTerms}
+                    onChange={e => setForm(f => ({ ...f, sponsorTerms: e.target.value }))}
+                    placeholder="Fine-print terms — optional"
+                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 sm:col-span-2"
+                  />
+                </div>
+              )}
+
               <input
                 ref={fileRef} type="file" accept="image/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ''; }}
               />
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                {uploading
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
-                  : <><Upload className="w-4 h-4" /> Choose Image & Upload</>}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  {uploading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
+                    : <><Upload className="w-4 h-4" /> Choose Image & Upload</>}
+                </button>
+                <p className="text-xs text-gray-500">
+                  Recommended <span className="text-gray-300 font-medium">1170×534 px</span> (2.19∶1) · JPG or PNG · &lt; 500 KB
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -280,7 +364,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
 
                 <div className="flex gap-0">
                   {/* Thumbnail */}
-                  <div className="relative flex-shrink-0 w-32 h-24 sm:w-40 sm:h-28">
+                  <div className="relative flex-shrink-0 w-32 h-24 sm:w-40 sm:h-28 group">
                     <img
                       src={banner.image_url}
                       alt={banner.caption ?? 'Banner'}
@@ -293,6 +377,21 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         </span>
                       )}
                     </div>
+                    {can(permissions, 'content', 'edit') && (
+                      <button
+                        type="button"
+                        disabled={replacingId === banner.id}
+                        onClick={() => {
+                          pendingReplaceIdRef.current = banner.id;
+                          replaceFileRef.current?.click();
+                        }}
+                        title="Replace image"
+                        className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/0 hover:bg-black/55 text-white text-xs font-medium opacity-0 hover:opacity-100 transition-all disabled:opacity-100 disabled:bg-black/55">
+                        {replacingId === banner.id
+                          ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> Uploading…</>
+                          : <><Upload className="w-3.5 h-3.5"/> Replace image</>}
+                      </button>
+                    )}
                   </div>
 
                   {/* Content */}
@@ -368,6 +467,29 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             </select>
                           )}
                         </div>
+
+                        {ef.actionType === 'sponsor' && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg border border-purple-700/40 bg-purple-900/10">
+                            <input
+                              value={ef.sponsorPromoCode ?? ''}
+                              onChange={e => setEditForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
+                              placeholder="Promo code"
+                              className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            />
+                            <input
+                              value={ef.sponsorExternalUrl ?? ''}
+                              onChange={e => setEditForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
+                              placeholder="External URL"
+                              className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            />
+                            <input
+                              value={ef.sponsorTerms ?? ''}
+                              onChange={e => setEditForm(f => ({ ...f, sponsorTerms: e.target.value }))}
+                              placeholder="Terms"
+                              className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 sm:col-span-2"
+                            />
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -480,6 +602,14 @@ function ActionBadge({ type, value }: { type: ActionType; value: string | null }
       <span className="inline-flex items-center gap-1 text-xs bg-purple-500/15 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">
         <Smartphone className="w-3 h-3" />
         {value || 'Screen not set'}
+      </span>
+    );
+  }
+  if (type === 'sponsor') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/20">
+        <Tag className="w-3 h-3" />
+        Sponsor
       </span>
     );
   }

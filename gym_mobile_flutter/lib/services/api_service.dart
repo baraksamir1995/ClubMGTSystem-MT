@@ -26,6 +26,14 @@ const _tokenKey = 'auth_token';
 const _userIdKey = 'user_id';
 
 class ApiService {
+  // Single shared HTTP client for the app's lifetime.
+  // Reusing one client lets the underlying HttpClient hold its connection
+  // pool open, so subsequent requests reuse the existing TCP + TLS session
+  // (HTTP keep-alive). The default top-level http.get / http.post create a
+  // throwaway client per call — every request paid a fresh handshake,
+  // ~150-300ms over LTE. Cellular cold start was dominated by this.
+  static final http.Client _http = http.Client();
+
   String get _baseUrl => Env.apiUrl;
 
   Future<String?> get _token => _storage.read(key: _tokenKey);
@@ -55,15 +63,21 @@ class ApiService {
 
   static const _timeout = Duration(seconds: 15);
 
+  /// GETs are idempotent — safe to retry. Two attempts with a 600ms gap
+  /// covers most transient connection failures (cellular handoff, TLS
+  /// renegotiation hiccup) without the user noticing. Non-2xx HTTP
+  /// responses propagate as-is — only network-level errors retry.
   Future<dynamic> _get(String path, {Map<String, String>? queryParams}) async {
     final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: queryParams);
-    final response = await http.get(uri, headers: await _headers).timeout(_timeout);
-    return _parse(response);
+    return _withRetry(() async {
+      final response = await _http.get(uri, headers: await _headers).timeout(_timeout);
+      return _parse(response);
+    });
   }
 
   Future<dynamic> _post(String path, [Map<String, dynamic>? body]) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await http.post(
+    final response = await _http.post(
       uri,
       headers: await _headers,
       body: body != null ? jsonEncode(body) : null,
@@ -73,7 +87,7 @@ class ApiService {
 
   Future<dynamic> _put(String path, Map<String, dynamic> body) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await http.put(
+    final response = await _http.put(
       uri,
       headers: await _headers,
       body: jsonEncode(body),
@@ -83,7 +97,7 @@ class ApiService {
 
   Future<dynamic> _patch(String path, Map<String, dynamic> body) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await http.patch(
+    final response = await _http.patch(
       uri,
       headers: await _headers,
       body: jsonEncode(body),
@@ -93,8 +107,24 @@ class ApiService {
 
   Future<dynamic> _delete(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await http.delete(uri, headers: await _headers).timeout(_timeout);
+    final response = await _http.delete(uri, headers: await _headers).timeout(_timeout);
     return _parse(response);
+  }
+
+  /// One transparent retry for transient network errors on idempotent GETs.
+  /// Skips retry on TimeoutException (the user already waited 15s) and on
+  /// any ApiException (server returned a real response, just non-2xx).
+  Future<T> _withRetry<T>(Future<T> Function() op) async {
+    try {
+      return await op();
+    } on TimeoutException {
+      rethrow;
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      await Future.delayed(const Duration(milliseconds: 600));
+      return await op();
+    }
   }
 
   Future<dynamic> _parse(http.Response response) async {

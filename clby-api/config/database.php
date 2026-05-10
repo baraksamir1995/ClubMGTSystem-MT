@@ -97,6 +97,20 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Reuse PDO connections across requests within the same PHP-FPM
+            // worker — saves the ~5-10ms PDO connect cost per request.
+            // Safe with FPM (each worker is single-threaded and recycles
+            // on pm.max_requests, which drops any stale connection).
+            // Toggle off via DB_PERSISTENT=false if connection pinning ever
+            // becomes a problem (e.g. a slow query holding a worker hostage).
+            'options' => [
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', true),
+            ],
+            // When read replicas are added later, sticky=true keeps a
+            // connection on the writer for the rest of the request after
+            // any write — read-after-write consistency without app code
+            // changes. No-op today (single connection in the cluster).
+            'sticky' => true,
         ],
 
         'sqlsrv' => [

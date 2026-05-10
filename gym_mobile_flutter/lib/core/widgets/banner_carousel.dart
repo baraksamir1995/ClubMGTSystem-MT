@@ -123,7 +123,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     BannerAnalytics.logTap(banner);
 
     if (banner.isSponsor) {
-      if (mounted) context.push('/banner-sponsor', extra: banner);
+      if (mounted) context.push('/banner-sponsor/${banner.id}', extra: banner);
       return;
     }
 
@@ -133,7 +133,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } else if (banner.isInternal) {
-      if (mounted) context.push('/banner-details', extra: banner);
+      if (mounted) context.push('/banner-details/${banner.id}', extra: banner);
     }
   }
 

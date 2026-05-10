@@ -24,6 +24,7 @@ import 'features/splash/splash_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/onboarding/welcome_screen.dart';
 import 'features/auth/register_screen.dart';
+import 'features/banners/banner_provider.dart';
 import 'features/banners/screens/banner_details_screen.dart';
 import 'features/banners/screens/sponsor_banner_detail_screen.dart';
 import 'features/billing/billing_screen.dart';
@@ -354,12 +355,14 @@ GoRouter buildRouter(BuildContext context) {
           transitionDuration: const Duration(milliseconds: 300),
         ),
       ),
-      // Banner details — internal banner content screen
+      // Banner details — internal banner content screen.
+      // ID is in the path so the route survives app suspend/resume; `extra`
+      // is a fast path that avoids a provider lookup on the initial push.
       GoRoute(
-        path: '/banner-details',
+        path: '/banner-details/:id',
         name: 'banner-details',
         pageBuilder: (context, state) {
-          final banner = state.extra as BannerModel?;
+          final banner = _resolveBanner(context, state);
           if (banner == null) {
             return CustomTransitionPage(
               child: const Scaffold(body: Center(child: Text('Banner not found'))),
@@ -385,10 +388,10 @@ GoRouter buildRouter(BuildContext context) {
       // Sponsor banner detail — same slide-from-right transition as
       // banner-details so route observers + system back behave the same.
       GoRoute(
-        path: '/banner-sponsor',
+        path: '/banner-sponsor/:id',
         name: 'banner-sponsor',
         pageBuilder: (context, state) {
-          final banner = state.extra as BannerModel?;
+          final banner = _resolveBanner(context, state);
           if (banner == null) {
             return CustomTransitionPage(
               child: const Scaffold(body: Center(child: Text('Banner not found'))),
@@ -616,6 +619,21 @@ GoRouter buildRouter(BuildContext context) {
 
   AnalyticsRouteObserver.attach(router);
   return router;
+}
+
+/// Resolve a banner for the banner-detail routes. Prefers `state.extra`
+/// (set by the carousel on push), falls back to a lookup by `:id` against
+/// BannerProvider so the page survives app suspend/resume — `extra` lives
+/// in memory only, but the URL with the id is preserved.
+BannerModel? _resolveBanner(BuildContext context, GoRouterState state) {
+  final extra = state.extra;
+  if (extra is BannerModel) return extra;
+  final id = state.pathParameters['id'];
+  if (id == null || id.isEmpty) return null;
+  for (final b in context.read<BannerProvider>().banners) {
+    if (b.id == id) return b;
+  }
+  return null;
 }
 
 /// Placeholder shown for locked guest branches (tap is intercepted before navigation).

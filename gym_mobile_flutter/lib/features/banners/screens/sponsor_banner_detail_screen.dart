@@ -202,33 +202,30 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
+    final width = MediaQuery.of(context).size.width;
+    // Image fills the safe-area inset too, so it reads as a true edge-to-edge
+    // hero rather than ending at a header border.
+    final imageHeight = (width / _bannerAspectRatio) + topInset;
     return Stack(
       children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Status-bar spacer in peach so the image area visually starts
-            // flush against the safe-area edge.
-            Container(height: topInset, color: _SponsorBannerDetailScreenState._kPeach),
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-              child: AspectRatio(
-                aspectRatio: _bannerAspectRatio,
-                child: Container(
-                  color: _SponsorBannerDetailScreenState._kPeach,
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => Container(color: _SponsorBannerDetailScreenState._kPeach),
-                    errorWidget: (_, _, _) => Container(color: _SponsorBannerDetailScreenState._kPeach),
-                  ),
-                ),
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            height: imageHeight,
+            child: Container(
+              color: _SponsorBannerDetailScreenState._kPeach,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(color: _SponsorBannerDetailScreenState._kPeach),
+                errorWidget: (_, _, _) => Container(color: _SponsorBannerDetailScreenState._kPeach),
               ),
             ),
-          ],
+          ),
         ),
         Positioned(
           top: topInset + 8,

@@ -24,13 +24,19 @@ class BannerProvider extends ChangeNotifier {
     // Avoid redundant fetches unless forced
     if (_loadedGymId == gymId && _banners.isNotEmpty && !force) return Future.value();
 
-    // Concurrent callers (pull-to-refresh + lifecycle resume + post-login)
-    // share one in-flight Future so a slow first response can't overwrite a
-    // fresher one that landed in between.
-    final existing = _inFlight;
-    if (existing != null) return existing;
+    // Concurrent non-forced callers (lifecycle resume, post-login, etc.)
+    // share one in-flight Future so a slow first response can't overwrite
+    // a fresher one that landed in between. force=true bypasses this so
+    // pull-to-refresh isn't held hostage to a stuck bootstrap load.
+    if (!force) {
+      final existing = _inFlight;
+      if (existing != null) return existing;
+    }
 
-    final future = _doLoad(gymId).whenComplete(() => _inFlight = null);
+    late final Future<void> future;
+    future = _doLoad(gymId).whenComplete(() {
+      if (identical(_inFlight, future)) _inFlight = null;
+    });
     _inFlight = future;
     return future;
   }

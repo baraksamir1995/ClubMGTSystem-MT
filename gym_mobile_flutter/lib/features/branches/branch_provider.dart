@@ -25,10 +25,18 @@ class BranchProvider extends ChangeNotifier {
   Future<void> loadBranches(String gymId, {bool force = false}) {
     if (_loadedGymId == gymId && _branches.isNotEmpty && !force) return Future.value();
 
-    final existing = _inFlight;
-    if (existing != null) return existing;
+    // force=true (pull-to-refresh, post-login) bypasses the in-flight
+    // share so a slow load that the bootstrap timeout already gave up on
+    // can't trap a forced refresh in its stuck Future.
+    if (!force) {
+      final existing = _inFlight;
+      if (existing != null) return existing;
+    }
 
-    final future = _doLoad(gymId).whenComplete(() => _inFlight = null);
+    late final Future<void> future;
+    future = _doLoad(gymId).whenComplete(() {
+      if (identical(_inFlight, future)) _inFlight = null;
+    });
     _inFlight = future;
     return future;
   }

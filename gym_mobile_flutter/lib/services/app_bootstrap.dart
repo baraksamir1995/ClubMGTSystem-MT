@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import '../utils/logger.dart';
 
 import '../features/banners/banner_provider.dart';
@@ -22,7 +21,6 @@ class AppBootstrap {
   static const _totalTimeout = Duration(seconds: 12);
   static const _authTimeout = Duration(seconds: 10);
   static const _dataTimeout = Duration(seconds: 8);
-  static const _sessionsTimeout = Duration(seconds: 6);
 
   final AuthProvider _auth;
   final MemberProvider _member;
@@ -62,28 +60,43 @@ class AppBootstrap {
     final gymId = _auth.profile?.gymId;
     if (gymId == null) return;
 
-    // ── 3. Load member data, notifications, banners, popup concurrently ──
-    //       Notifications, banners, and popup only need gymId.
-    //       Member data must finish before sessions (sessions need member.id).
-    await Future.wait<void>([
-      _member.loadMemberData(gymId),
-      _member.loadNotifications(gymId),
-      _banners.loadBanners(gymId),
-      _branches.loadBranches(gymId),
-      _popups.loadActivePopup(gymId),
-    ]).timeout(_dataTimeout, onTimeout: () => []);
-
-    // ── 4. Load sessions (enrichment uses member.id) ──────────────────────
-    if (_member.member != null) {
-      try {
-        await _member.loadSessions(gymId).timeout(_sessionsTimeout);
-      } catch (e) {
-        appLog('[AppBootstrap] Sessions load timed out or failed: $e');
-      }
+    // ── 3. Critical-path loads — only what's visible on home above the
+    //      fold the moment we navigate there. Sessions / notifications /
+    //      popup are NOT awaited here:
+    //        - sessions: HomeScreen renders the "Today's classes" shimmer
+    //          for ~300ms while loadSessions runs in the background.
+    //        - notifications: bell badge populates in the background.
+    //        - popup: HomeScreen calls maybeShowPopup on its own, the
+    //          first call performs the load if needed.
+    //      Each previously added a full network round-trip to splash
+    //      duration; deferring them shaves 1-2s off cold start without
+    //      visible regression.
+    bool criticalLoadsCompleted = false;
+    try {
+      await Future.wait<void>([
+        _member.loadMemberData(gymId),
+        _banners.loadBanners(gymId),
+        _branches.loadBranches(gymId),
+      ]).timeout(_dataTimeout);
+      criticalLoadsCompleted = true;
+    } catch (e) {
+      appLog('[AppBootstrap] Critical loads failed/timed out: $e');
+      // Leave isBootstrapped=false so HomeScreen's _loadData fallback
+      // re-issues these requests once it mounts.
     }
 
-    // ── 5. Signal that bootstrap completed ────────────────────────────────
-    _member.markBootstrapped();
+    // ── 4. Background loads — fire-and-forget. They populate state via
+    //      notifyListeners as they complete; splash doesn't wait.
+    unawaited(_member.loadNotifications(gymId));
+    unawaited(_member.loadSessions(gymId));
+    unawaited(_popups.loadActivePopup(gymId));
+
+    // ── 5. Signal that bootstrap completed only when critical-path data
+    //      actually landed. Marking bootstrapped on a timeout would let
+    //      HomeScreen skip its own fetch and leave shimmers stuck.
+    if (criticalLoadsCompleted) {
+      _member.markBootstrapped();
+    }
   }
 
   /// Waits for [AuthProvider.isLoading] to become false.

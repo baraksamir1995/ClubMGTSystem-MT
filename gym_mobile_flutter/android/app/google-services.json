@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:877582097644:android:c6c3be888fc793a0fc59c9",
+        "mobilesdk_app_id": "1:877582097644:android:9b5c91a64bc623e5fc59c9",
         "android_client_info": {
-          "package_name": "com.clbyapp.shift"
+          "package_name": "com.clbyapp.clby"
         }
       },
       "oauth_client": [],
@@ -26,9 +26,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:877582097644:android:86dec2c46294e0d1fc59c9",
+        "mobilesdk_app_id": "1:877582097644:android:c6c3be888fc793a0fc59c9",
         "android_client_info": {
-          "package_name": "com.clubmgt.gym_mobile_flutter"
+          "package_name": "com.clbyapp.shift"
         }
       },
       "oauth_client": [],

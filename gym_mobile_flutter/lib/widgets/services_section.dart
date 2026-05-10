@@ -26,7 +26,7 @@ class ServicesSection extends StatelessWidget {
 
   List<ServiceModel> get _visibleServices {
     final counts = packageCounts;
-    if (counts == null || counts.isEmpty) return kServices;
+    if (counts == null) return kServices;
     return kServices
         .where((s) => (counts[s.trainerType] ?? 0) > 0)
         .toList();

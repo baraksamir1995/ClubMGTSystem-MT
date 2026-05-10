@@ -38,7 +38,9 @@ class _SplashScreenState extends State<SplashScreen>
   static const _gymNameKey = 'cached_gym_name';
 
   /// Minimum time the splash is visible regardless of load speed.
-  static const _minDisplayMs = 1400;
+  /// Kept short so users on fast networks aren't held back, but long
+  /// enough that the brand mark + wordmark have time to fade in.
+  static const _minDisplayMs = 600;
 
   String? _logoUrl;
   String? _gymName;
@@ -102,10 +104,13 @@ class _SplashScreenState extends State<SplashScreen>
     final name = await _storage.read(key: _gymNameKey);
 
     // Pre-decode the network image so CachedNetworkImage doesn't blink
-    // when the mark fades in.
+    // when the mark fades in. Capped at 800 ms so a slow CDN can't
+    // hold the splash mark hidden — falls through to the bundled
+    // default mark which then swaps to the gym logo on first paint.
     if (logo != null && logo.isNotEmpty && mounted) {
       try {
-        await precacheImage(CachedNetworkImageProvider(logo), context);
+        await precacheImage(CachedNetworkImageProvider(logo), context)
+            .timeout(const Duration(milliseconds: 800));
       } catch (_) {/* fall through to default mark */}
     }
 

@@ -251,8 +251,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         memberProvider.loadMemberData(gymId),
         bannerProvider.loadBanners(gymId, force: true),
         branchProvider.loadBranches(gymId, force: true),
+        memberProvider.loadSessions(gymId, force: true),
       ]);
-      await memberProvider.loadSessions(gymId);
     }
   }
 
@@ -263,12 +263,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final gymId = authProvider.profile?.gymId;
     if (gymId != null) {
       final branchProvider = context.read<BranchProvider>();
+      // force: true bypasses each provider's in-flight share. Pull-to-
+      // refresh is an explicit "give me fresh data NOW" — we'd rather
+      // run two writes (last wins) than join a slow bootstrap load that
+      // can leave the spinner running for 30s+.
       await Future.wait([
         memberProvider.loadMemberData(gymId),
         bannerProvider.loadBanners(gymId, force: true),
         branchProvider.loadBranches(gymId, force: true),
+        memberProvider.loadSessions(gymId, force: true),
       ]);
-      await memberProvider.loadSessions(gymId);
     }
   }
 

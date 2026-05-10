@@ -67,61 +67,79 @@ class ApiService {
   /// covers most transient connection failures (cellular handoff, TLS
   /// renegotiation hiccup) without the user noticing. Non-2xx HTTP
   /// responses propagate as-is — only network-level errors retry.
+  ///
+  /// The whole op (including the FlutterSecureStorage token read) runs
+  /// inside the timeout. iOS keychain calls can stall for several seconds
+  /// after first install / Face ID prompt; if we awaited headers outside
+  /// the timeout, the future could hang forever and the caller's
+  /// `_isLoading` flag would never reset.
   Future<dynamic> _get(String path, {Map<String, String>? queryParams}) async {
     final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: queryParams);
-    return _withRetry(() async {
-      final response = await _http.get(uri, headers: await _headers).timeout(_timeout);
+    return _withRetry(() => _runWithTimeout(() async {
+      final response = await _http.get(uri, headers: await _headers);
       return _parse(response);
-    });
+    }));
   }
 
   Future<dynamic> _post(String path, [Map<String, dynamic>? body]) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await _http.post(
-      uri,
-      headers: await _headers,
-      body: body != null ? jsonEncode(body) : null,
-    ).timeout(_timeout);
-    return _parse(response);
+    return _runWithTimeout(() async {
+      final response = await _http.post(
+        uri,
+        headers: await _headers,
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _parse(response);
+    });
   }
 
   Future<dynamic> _put(String path, Map<String, dynamic> body) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await _http.put(
-      uri,
-      headers: await _headers,
-      body: jsonEncode(body),
-    ).timeout(_timeout);
-    return _parse(response);
+    return _runWithTimeout(() async {
+      final response = await _http.put(
+        uri,
+        headers: await _headers,
+        body: jsonEncode(body),
+      );
+      return _parse(response);
+    });
   }
 
   Future<dynamic> _patch(String path, Map<String, dynamic> body) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await _http.patch(
-      uri,
-      headers: await _headers,
-      body: jsonEncode(body),
-    ).timeout(_timeout);
-    return _parse(response);
+    return _runWithTimeout(() async {
+      final response = await _http.patch(
+        uri,
+        headers: await _headers,
+        body: jsonEncode(body),
+      );
+      return _parse(response);
+    });
   }
 
   Future<dynamic> _delete(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
-    final response = await _http.delete(uri, headers: await _headers).timeout(_timeout);
-    return _parse(response);
+    return _runWithTimeout(() async {
+      final response = await _http.delete(uri, headers: await _headers);
+      return _parse(response);
+    });
   }
 
+  Future<T> _runWithTimeout<T>(Future<T> Function() op) =>
+      Future.sync(op).timeout(_timeout);
+
   /// One transparent retry for transient network errors on idempotent GETs.
-  /// Skips retry on TimeoutException (the user already waited 15s) and on
-  /// any ApiException (server returned a real response, just non-2xx).
+  /// Only retries on actual network-layer failures (SocketException,
+  /// http.ClientException). Server responses (ApiException), timeouts, and
+  /// programmer errors (FormatException, type errors) propagate as-is so
+  /// the caller's catch can clear loading state and surface a real error.
   Future<T> _withRetry<T>(Future<T> Function() op) async {
     try {
       return await op();
-    } on TimeoutException {
-      rethrow;
-    } on ApiException {
-      rethrow;
-    } catch (_) {
+    } on SocketException {
+      await Future.delayed(const Duration(milliseconds: 600));
+      return await op();
+    } on http.ClientException {
       await Future.delayed(const Duration(milliseconds: 600));
       return await op();
     }

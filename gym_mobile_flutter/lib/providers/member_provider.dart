@@ -159,10 +159,29 @@ class MemberProvider extends ChangeNotifier {
   /// Run [fn] under [key]. If a Future for [key] is already pending,
   /// return that Future; otherwise start one and cache it until it
   /// completes. Errors propagate so callers' try/catch still works.
-  Future<void> _runOnce(String key, Future<void> Function() fn) {
-    final existing = _inFlight[key];
-    if (existing != null) return existing;
-    final f = fn().whenComplete(() => _inFlight.remove(key));
+  ///
+  /// [force]=true bypasses the in-flight share — starts a fresh fn() even
+  /// if another is already running. Used by pull-to-refresh and post-login
+  /// flows where the user explicitly requested fresh data; we accept the
+  /// "two writes can race" trade-off because the LAST write wins, and
+  /// fresh data after the spinner is the desired outcome. Without this
+  /// bypass, a slow load that started during bootstrap (whose outer
+  /// .timeout() already gave up) would keep its in-flight slot for 30s+
+  /// and pull-to-refresh would silently join it — looking like an
+  /// infinite spinner.
+  Future<void> _runOnce(String key, Future<void> Function() fn, {bool force = false}) {
+    if (!force) {
+      final existing = _inFlight[key];
+      if (existing != null) return existing;
+    }
+    // `late` so the whenComplete closure can reference the same Future
+    // it's chained off of — needed for the "still own this slot" check.
+    late final Future<void> f;
+    f = fn().whenComplete(() {
+      // Only clear the slot if we still own it — a later force=true call
+      // may have replaced it with a newer future.
+      if (identical(_inFlight[key], f)) _inFlight.remove(key);
+    });
     _inFlight[key] = f;
     return f;
   }
@@ -207,7 +226,8 @@ class MemberProvider extends ChangeNotifier {
     }
   });
 
-  Future<void> loadSessions(String gymId) => _runOnce('sessions:$gymId', () => _doLoadSessions(gymId));
+  Future<void> loadSessions(String gymId, {bool force = false}) =>
+      _runOnce('sessions:$gymId', () => _doLoadSessions(gymId), force: force);
 
   Future<void> _doLoadSessions(String gymId) async {
     _isLoadingSessions = true;

@@ -14,7 +14,6 @@ import '../../utils/env.dart';
 // ── Design tokens (warm cream + peach + orange) ─────────────────────────────
 const _kBg      = Color(0xFFF7F6F2);
 const _kInk     = Color(0xFF1F1A14);
-const _kInk2    = Color(0x9E1F1A14);
 const _kInk3    = Color(0x6B1F1A14);
 const _kPeach   = Color(0xFFF4DCC1);
 
@@ -92,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (liveUrl != null && liveUrl != _logoUrl) {
       _storage.write(key: _gymLogoKey, value: liveUrl);
     }
-    if (liveName != null && liveName != _gymName) {
+    if (liveName != _gymName) {
       _storage.write(key: _gymNameKey, value: liveName);
     }
   }
@@ -192,7 +191,7 @@ class _SplashScreenState extends State<SplashScreen>
             child: Center(
               child: AnimatedBuilder(
                 animation: _glowCtrl,
-                builder: (_, __) {
+                builder: (_, _) {
                   final t = Curves.easeOut.transform(_glowCtrl.value);
                   return IgnorePointer(
                     child: Opacity(
@@ -235,26 +234,19 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  FadeTransition(
-                    opacity: _textCtrl,
-                    child: Text(
-                      wordmark.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: _kInk,
-                        letterSpacing: 6,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FadeTransition(
-                    opacity: _textCtrl,
-                    child: const Text(
-                      'TRAIN · TRACK · SHARE',
-                      style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w500,
-                        color: _kInk2, letterSpacing: 1.5,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: FadeTransition(
+                      opacity: _textCtrl,
+                      child: Text(
+                        wordmark.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: _kInk,
+                          letterSpacing: 6,
+                        ),
                       ),
                     ),
                   ),
@@ -317,8 +309,8 @@ class _BrandMark extends StatelessWidget {
             imageUrl: logoUrl!,
             width: size, height: size,
             fit: BoxFit.contain,
-            placeholder: (_, __) => _DefaultMark(size: size),
-            errorWidget: (_, __, ___) => _DefaultMark(size: size),
+            placeholder: (_, _) => _DefaultMark(size: size),
+            errorWidget: (_, _, _) => _DefaultMark(size: size),
           ),
         ),
       );

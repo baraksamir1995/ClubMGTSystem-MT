@@ -12,6 +12,11 @@ class SessionTransferController extends Controller
     /**
      * Lookup a member in the same gym by phone number.
      * Returns minimal public info only (full_name, photo_url).
+     *
+     * Excludes suspended / inactive / soft-deleted members so they don't
+     * appear in the transfer-target picker. A frozen or admin-suspended
+     * member shouldn't be a valid recipient — sending sessions there is
+     * equivalent to throwing them away from the sender's perspective.
      */
     public function lookup(Request $request): JsonResponse
     {
@@ -27,6 +32,9 @@ class SessionTransferController extends Controller
             ->where('p.phone', $validated['phone'])
             ->where('gm.gym_id', $gymId)
             ->whereNull('gm.deleted_at')
+            ->where('gm.status', 'active')
+            ->whereNull('p.deleted_at')
+            ->where('p.is_active', true)
             ->select('p.full_name', 'p.photo_url', 'gm.id as gym_member_id', 'p.id as user_id')
             ->first();
 

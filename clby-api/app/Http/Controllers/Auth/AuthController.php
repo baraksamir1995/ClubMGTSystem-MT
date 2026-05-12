@@ -44,6 +44,12 @@ class AuthController extends Controller
             'email' => [
                 'required',
                 'email',
+                // Pre-check at validation time — fast path, clean 422 with
+                // field-level error. The DB unique index added in migration
+                // 2026_05_12_140000 is the authoritative gate that closes
+                // the concurrent-register race; if two requests both pass
+                // this validator, the second insert raises SQLSTATE 23505
+                // which we catch below.
                 Rule::unique('profiles', 'email')->where(
                     fn ($q) => $q->whereRaw('LOWER(email) = ?', [strtolower((string) $request->input('email'))])
                 ),
@@ -57,28 +63,43 @@ class AuthController extends Controller
 
         $userId = Str::uuid()->toString();
 
-        // Insert into auth.users first (FK target)
-        DB::table('auth.users')->insert([
-            'id' => $userId,
-            'email' => $validated['email'],
-            'encrypted_password' => Hash::make($validated['password']),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Atomic insert across auth.users + profiles. Both tables now carry
+        // a case-insensitive UNIQUE index on email; the transaction lets the
+        // race-loser unwind its auth.users row when the profiles insert hits
+        // the unique violation, so we don't leave orphan shim rows.
+        try {
+            $user = DB::transaction(function () use ($userId, $validated) {
+                DB::table('auth.users')->insert([
+                    'id' => $userId,
+                    'email' => $validated['email'],
+                    'encrypted_password' => Hash::make($validated['password']),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
-        // Create profile (forceCreate so id + role pass through $fillable).
-        // gym_id stays NULL — see register() docblock.
-        $user = User::forceCreate([
-            'id' => $userId,
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'full_name' => $validated['full_name'],
-            'phone' => $validated['phone'] ?? null,
-            'date_of_birth' => $validated['date_of_birth'] ?? null,
-            'gender' => $validated['gender'] ?? null,
-            'gym_id' => null,
-            'role' => 'member',
-        ]);
+                return User::forceCreate([
+                    'id' => $userId,
+                    'email' => $validated['email'],
+                    'password' => $validated['password'],
+                    'full_name' => $validated['full_name'],
+                    'phone' => $validated['phone'] ?? null,
+                    'date_of_birth' => $validated['date_of_birth'] ?? null,
+                    'gender' => $validated['gender'] ?? null,
+                    'gym_id' => null,
+                    'role' => 'member',
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // 23505 = unique_violation. Race-loser path — present the same
+            // 422 the validator would have if the requests had been serial.
+            if ($e->getCode() === '23505') {
+                return response()->json([
+                    'message' => 'The email has already been taken.',
+                    'errors' => ['email' => ['The email has already been taken.']],
+                ], 422);
+            }
+            throw $e;
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

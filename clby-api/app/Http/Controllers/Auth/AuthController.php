@@ -33,6 +33,13 @@ class AuthController extends Controller
     {
         $this->normalizeEmail($request);
 
+        // SECURITY: `gym_id` is intentionally NOT accepted on self-registration.
+        // Honoring a user-supplied gym_id here lets any internet user enroll as
+        // a member of any gym in the platform (multi-tenant isolation bypass,
+        // disclosed 2026-05-12). Gym membership is established through the
+        // admin-invite path (POST /api/members/register, gated by
+        // permission:members,create) instead. Self-registered profiles land
+        // unaffiliated (gym_id = NULL) until a gym admin attaches them.
         $validated = $request->validate([
             'email' => [
                 'required',
@@ -46,7 +53,6 @@ class AuthController extends Controller
             'phone' => 'nullable|string|max:20',
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string|in:male,female,other',
-            'gym_id' => 'nullable|uuid|exists:gyms,id',
         ]);
 
         $userId = Str::uuid()->toString();
@@ -60,7 +66,8 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Create profile (forceCreate so id + role pass through $fillable)
+        // Create profile (forceCreate so id + role pass through $fillable).
+        // gym_id stays NULL — see register() docblock.
         $user = User::forceCreate([
             'id' => $userId,
             'email' => $validated['email'],
@@ -69,23 +76,9 @@ class AuthController extends Controller
             'phone' => $validated['phone'] ?? null,
             'date_of_birth' => $validated['date_of_birth'] ?? null,
             'gender' => $validated['gender'] ?? null,
-            'gym_id' => $validated['gym_id'] ?? null,
+            'gym_id' => null,
             'role' => 'member',
         ]);
-
-        // Create gym_members record — no member_number yet (assigned when membership is paid)
-        if (! empty($validated['gym_id'])) {
-            DB::table('gym_members')->insert([
-                'id' => Str::uuid()->toString(),
-                'gym_id' => $validated['gym_id'],
-                'user_id' => $userId,
-                'member_number' => null,
-                'status' => 'active',
-                'joined_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

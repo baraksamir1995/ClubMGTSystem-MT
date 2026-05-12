@@ -79,40 +79,59 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function () {
 });
 
 // ─── Member-accessible routes (any authenticated user) ──────────────────────
-Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \App\Http\Middleware\LogActivityMiddleware::class])->group(function () {
-    // Auth
+//
+// Two nested groups:
+//   1. Always-on (auth + gym_id only): profile + auth flows, so a freshly
+//      registered (unverified) user can fetch /me and call resend-verification
+//      to recover. These are intentionally NOT gated on email verification.
+//   2. Verified-member group (auth + gym_id + verified_member): every endpoint
+//      that exposes tenant data or modifies state. Closes the
+//      register-token-bypass disclosed 2026-05-12 — without this, a register-
+//      issued Sanctum token could read the gym's full content/schedule/etc.
+//      before the user confirmed their email.
+//
+// `verified_member` middleware bypasses for admin/staff/trainer/super_admin
+// roles (see RequireVerifiedEmail), so admin Next.js calls are unaffected.
+//
+// This first group intentionally OMITS RequireGymId so users who self-
+// registered (gym_id = NULL until an admin invites them) can still fetch
+// their own profile + resend the verification email. Without that exemption
+// the mobile would have no way to render the post-register state.
+Route::middleware(['auth:sanctum', \App\Http\Middleware\LogActivityMiddleware::class])->group(function () {
+    // Auth — must stay reachable to unverified / unaffiliated users
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/auth/resend-verification', [AuthController::class, 'resendVerificationEmail']);
 
-    // Profile (own)
+    // Profile (own) — must stay reachable so the mobile can render the
+    // "verify your email" / "ask staff to add you" screen after register.
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/me', [AuthController::class, 'updateProfile']);
+});
 
+Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 'verified_member', \App\Http\Middleware\LogActivityMiddleware::class])->group(function () {
     // Bucket-aware membership summary (unified card + per-bucket detail)
     Route::get('/me/membership-summary', [MembershipController::class, 'mySummary']);
 
     // Sessions (read-only for members — browse schedule)
     Route::get('/sessions', [SessionController::class, 'index']);
-    Route::post('/sessions/consume', [SessionController::class, 'consume'])->middleware('verified_member');
-    Route::post('/sessions/checkin', [SessionController::class, 'checkinGeneric'])->middleware('verified_member');
+    Route::post('/sessions/consume', [SessionController::class, 'consume']);
+    Route::post('/sessions/checkin', [SessionController::class, 'checkinGeneric']);
 
     // Bookings (own bookings)
     Route::get('/bookings', [BookingController::class, 'myBookings']);
-    Route::post('/bookings', [BookingController::class, 'store'])->middleware('verified_member');
-    Route::delete('/bookings/{id}', [BookingController::class, 'destroy'])->middleware('verified_member');
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
 
     // Payments (own)
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
 
-    // Memberships (own purchase) — money-moving + entitlement-touching
-    // endpoints require a verified member email so a freshly registered
-    // (unverified) user can't act before confirming.
-    Route::post('/memberships/purchase', [MembershipController::class, 'purchase'])->middleware('verified_member');
-    Route::post('/memberships/purchase-package', [MembershipController::class, 'purchaseServicePackage'])->middleware('verified_member');
-    Route::post('/memberships/{id}/freeze', [MembershipController::class, 'freeze'])->middleware('verified_member');
-    Route::post('/memberships/{id}/unfreeze', [MembershipController::class, 'unfreeze'])->middleware('verified_member');
+    // Memberships (own purchase)
+    Route::post('/memberships/purchase', [MembershipController::class, 'purchase']);
+    Route::post('/memberships/purchase-package', [MembershipController::class, 'purchaseServicePackage']);
+    Route::post('/memberships/{id}/freeze', [MembershipController::class, 'freeze']);
+    Route::post('/memberships/{id}/unfreeze', [MembershipController::class, 'unfreeze']);
     Route::get('/memberships/{id}/freeze-logs', [MembershipController::class, 'freezeLogs']);
 
     // Read-only data (browse gym content)
@@ -134,32 +153,26 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/promo-codes', [PromoCodeController::class, 'index']);
     Route::post('/promo-codes/validate', [PromoCodeController::class, 'validate']);
     Route::get('/reviews', [ReviewController::class, 'index']);
-    Route::post('/ratings', [ReviewController::class, 'store'])->middleware('verified_member');
+    Route::post('/ratings', [ReviewController::class, 'store']);
 
-    // QR / Access — entrance check-in requires verified email so an
-    // unverified registration can't walk into the gym.
-    Route::post('/qr-token/generate', [QrTokenController::class, 'generate'])->middleware('verified_member');
+    // QR / Access
+    Route::post('/qr-token/generate', [QrTokenController::class, 'generate']);
     Route::post('/qr-token/verify', [QrTokenController::class, 'verify']);
     Route::post('/access/qr/validate', [AccessController::class, 'validateQr']);
-    Route::post('/access/branch', [AccessController::class, 'validateBranch'])->middleware('verified_member');
-    Route::post('/access/studio', [AccessController::class, 'validateStudio'])->middleware('verified_member');
-    Route::post('/attendance/qr', [AttendanceController::class, 'logByQr'])->middleware('verified_member');
+    Route::post('/access/branch', [AccessController::class, 'validateBranch']);
+    Route::post('/access/studio', [AccessController::class, 'validateStudio']);
+    Route::post('/attendance/qr', [AttendanceController::class, 'logByQr']);
 
     // Paymob (mobile payment flow)
-    Route::post('/paymob/intention', [PaymobController::class, 'intention'])->middleware('verified_member');
+    Route::post('/paymob/intention', [PaymobController::class, 'intention']);
 
     // Member details (own — scoped by gym_member_id in query)
     Route::get('/members', [MemberController::class, 'index']);
-    Route::delete('/members/account', [MemberController::class, 'deleteAccount'])->middleware('verified_member');
+    Route::delete('/members/account', [MemberController::class, 'deleteAccount']);
 
     // Session transfers (member-initiated share) — MUST be above /members/{id}
-    // Lookup is hit by the live-search input as the user types — keep it
-    // generous so debounced typing doesn't trip the limit. Returns
-    // same-gym member info by phone, so it must require a verified
-    // member; otherwise an unverified registration could enumerate the
-    // gym's directory by partial phone match.
-    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware(['throttle:120,1', 'verified_member']);
-    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware(['throttle:60,1', 'verified_member']);
+    Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:120,1');
+    Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:60,1');
     Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
 
     Route::get('/members/{id}', [MemberController::class, 'show']);
@@ -169,12 +182,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/attendance', [AttendanceController::class, 'index']);
 
     // Invitations (own)
-    Route::post('/invitations', [InvitationController::class, 'store'])->middleware('verified_member');
-    Route::post('/invitations/activate', [InvitationController::class, 'activate'])->middleware('verified_member');
+    Route::post('/invitations', [InvitationController::class, 'store']);
+    Route::post('/invitations/activate', [InvitationController::class, 'activate']);
     Route::get('/invitations/my-pass', [InvitationController::class, 'myPass']);
 
     // File upload (own avatar etc)
-    Route::post('/files/upload', [FileController::class, 'upload'])->middleware('verified_member');
+    Route::post('/files/upload', [FileController::class, 'upload']);
 
     // Search
     Route::get('/search', [SearchController::class, 'search']);

@@ -143,20 +143,33 @@ class MemberController extends Controller
                 ->get()
             : [];
 
-        // Other gym members for transfer modal
-        $gymMembers = GymMember::where('gym_id', $gymId)
+        // Other gym members for transfer modal.
+        // SECURITY: previously this embed leaked full_name + email of every
+        // gym member to ANY member who fetched their own record (PII leak,
+        // disclosed 2026-05-12). Admin/staff/trainer keep the PII (they
+        // already have full member-list access anyway); non-admin members
+        // get only ids + member numbers — the transfer flow can resolve a
+        // chosen target's name server-side via a scoped lookup endpoint.
+        $callerIsAdmin = $this->callerIsAdmin($request);
+        $query = GymMember::where('gym_id', $gymId)
             ->where('id', '!=', $id)
             ->whereNull('deleted_at')
-            ->with('user:id,full_name,email')
             ->orderBy('created_at', 'desc')
-            ->limit(100)
-            ->get()
-            ->map(fn ($m) => [
+            ->limit(100);
+        if ($callerIsAdmin) {
+            $query->with('user:id,full_name,email');
+        }
+        $gymMembers = $query->get()->map(function ($m) use ($callerIsAdmin) {
+            $row = [
                 'id' => $m->id,
                 'member_number' => $m->member_number,
-                'full_name' => $m->user->full_name ?? null,
-                'email' => $m->user->email ?? null,
-            ]);
+            ];
+            if ($callerIsAdmin) {
+                $row['full_name'] = $m->user->full_name ?? null;
+                $row['email'] = $m->user->email ?? null;
+            }
+            return $row;
+        });
 
         return response()->json([
             'data' => $member,

@@ -56,7 +56,14 @@ class AuthController extends Controller
             ],
             'password' => ['required', 'confirmed', Password::min(8)],
             'full_name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            // Phone uniqueness is enforced by a partial unique index added
+            // in 2026_05_12_180000. The Rule::unique here is the fast path
+            // (clean 422 with field-level error); the DB index is the
+            // race-condition gate, caught below as SQLSTATE 23505.
+            'phone' => [
+                'nullable', 'string', 'max:20',
+                Rule::unique('profiles', 'phone')->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string|in:male,female,other',
         ]);
@@ -92,10 +99,19 @@ class AuthController extends Controller
         } catch (\Illuminate\Database\QueryException $e) {
             // 23505 = unique_violation. Race-loser path — present the same
             // 422 the validator would have if the requests had been serial.
+            // Inspect the PG error message to figure out WHICH column raced.
             if ($e->getCode() === '23505') {
+                $msg = $e->getMessage();
+                $field = match (true) {
+                    str_contains($msg, 'profiles_phone_unique')        => 'phone',
+                    str_contains($msg, 'profiles_email_lower_unique'),
+                    str_contains($msg, 'auth_users_email_lower_unique') => 'email',
+                    default                                              => 'email', // fallback
+                };
+                $label = $field === 'phone' ? 'phone number' : 'email';
                 return response()->json([
-                    'message' => 'The email has already been taken.',
-                    'errors' => ['email' => ['The email has already been taken.']],
+                    'message' => "The {$label} has already been taken.",
+                    'errors'  => [$field => ["The {$label} has already been taken."]],
                 ], 422);
             }
             throw $e;
@@ -247,9 +263,18 @@ class AuthController extends Controller
 
     public function updateProfile(Request $request): JsonResponse
     {
+        $userId = $request->user()->id;
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|nullable|string|max:20',
+            // Phone must be unique platform-wide (excluding self + soft-deleted).
+            // DB-level partial unique index is the authoritative gate; this
+            // validator is the fast-path 422 message.
+            'phone' => [
+                'sometimes', 'nullable', 'string', 'max:20',
+                Rule::unique('profiles', 'phone')
+                    ->ignore($userId)
+                    ->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'date_of_birth' => 'sometimes|nullable|date',
             'gender' => 'sometimes|nullable|string|in:male,female,other',
             'address' => 'sometimes|nullable|string|max:500',

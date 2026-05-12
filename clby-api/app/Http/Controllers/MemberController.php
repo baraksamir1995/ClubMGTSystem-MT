@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 use \App\Traits\LogsActivity;
 
@@ -188,7 +189,10 @@ class MemberController extends Controller
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'email' => 'nullable|email',
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'nullable', 'string', 'max:20',
+                Rule::unique('profiles', 'phone')->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'gender' => 'nullable|string|max:10',
             'date_of_birth' => 'nullable|date',
             'address' => 'nullable|string|max:500',
@@ -266,7 +270,12 @@ class MemberController extends Controller
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
             'email' => 'nullable|email',
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'nullable', 'string', 'max:20',
+                Rule::unique('profiles', 'phone')
+                    ->ignore($member->user_id)
+                    ->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'gender' => 'nullable|string|max:10',
             'date_of_birth' => 'nullable|date',
             'address' => 'nullable|string|max:500',
@@ -510,7 +519,14 @@ class MemberController extends Controller
             'user_id' => 'required|uuid',
             'email' => 'required|email',
             'full_name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'nullable', 'string', 'max:20',
+                // Allow re-binding the same phone to the same profile being
+                // registered into this gym; reject any OTHER profile holding it.
+                Rule::unique('profiles', 'phone')
+                    ->ignore($request->input('user_id'))
+                    ->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'date_of_birth' => 'nullable|date',
         ]);
 

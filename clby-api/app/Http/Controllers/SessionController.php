@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendGymAnnouncementPush;
 use App\Models\ClassSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -188,11 +189,66 @@ class SessionController extends Controller
 
         $gymId = $request->user()->gym_id;
 
-        DB::select('SELECT cancel_session(?, ?, ?)', [
-            $id,
-            $gymId,
-            $validated['reason'] ?? null,
-        ]);
+        // Snapshot affected members + session metadata BEFORE the cancel,
+        // so we know who to push (we cancel their bookings as part of the
+        // same op; once that lands, joining bookings → members loses the
+        // confirmed list).
+        $session = DB::table('class_sessions')
+            ->leftJoin('classes', 'class_sessions.class_id', '=', 'classes.id')
+            ->where('class_sessions.id', $id)
+            ->where('class_sessions.gym_id', $gymId)
+            ->select(
+                'class_sessions.id',
+                'class_sessions.session_date',
+                'class_sessions.start_time',
+                'classes.name as class_name',
+            )
+            ->first();
+
+        $bookedUserIds = DB::table('session_bookings')
+            ->join('gym_members', 'session_bookings.gym_member_id', '=', 'gym_members.id')
+            ->where('session_bookings.session_id', $id)
+            ->where('session_bookings.status', 'confirmed')
+            ->pluck('gym_members.user_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        DB::transaction(function () use ($id, $gymId, $validated) {
+            DB::select('SELECT cancel_session(?, ?, ?)', [
+                $id,
+                $gymId,
+                $validated['reason'] ?? null,
+            ]);
+
+            // Cascade to bookings so members don't keep a "confirmed"
+            // booking pointing at a cancelled session in My Bookings.
+            DB::table('session_bookings')
+                ->where('session_id', $id)
+                ->where('status', 'confirmed')
+                ->update(['status' => 'cancelled', 'updated_at' => now()]);
+        });
+
+        // Best-effort FCM push to everyone whose booking just got cancelled.
+        // Queued so the admin's HTTP request returns immediately; PushService
+        // silently no-ops when Firebase isn't configured (e.g. local dev).
+        if (! empty($bookedUserIds) && $session) {
+            $when = trim(($session->session_date ?? '') . ' ' . substr((string) ($session->start_time ?? ''), 0, 5));
+            $className = $session->class_name ?: 'Your class';
+            $body = trim($when) !== ''
+                ? "$className on $when has been cancelled."
+                : "$className has been cancelled.";
+            if (! empty($validated['reason'])) {
+                $body .= ' Reason: ' . $validated['reason'];
+            }
+
+            SendGymAnnouncementPush::dispatch(
+                $bookedUserIds,
+                'Session cancelled',
+                $body,
+                ['type' => 'session_cancelled', 'session_id' => (string) $id],
+            );
+        }
 
         return response()->json(['message' => 'Session cancelled successfully']);
     }
@@ -273,21 +329,42 @@ class SessionController extends Controller
     public function stopRecurring(Request $request, string $id): JsonResponse
     {
         $gymId = $request->user()->gym_id;
-
-        // Cancel all future scheduled sessions with this recurring_template_id
         $today = now()->toDateString();
 
-        DB::table('class_sessions')
+        // Future scheduled sessions for this template — these are the ones
+        // we wipe. Past/already-cancelled rows stay so historical reports
+        // and attendance records don't lose context.
+        $sessionIds = DB::table('class_sessions')
             ->where('recurring_template_id', $id)
             ->where('gym_id', $gymId)
             ->where('status', 'scheduled')
             ->where('session_date', '>=', $today)
-            ->update([
-                'status' => 'cancelled',
-                'cancel_reason' => 'Recurring series stopped',
-                'cancelled_at' => now(),
-                'updated_at' => now(),
-            ]);
+            ->pluck('id');
+
+        if ($sessionIds->isEmpty()) {
+            return response()->json(['message' => 'Recurring series stopped']);
+        }
+
+        DB::transaction(function () use ($sessionIds) {
+            // Booking ids first — needed to clear session_ratings, which
+            // FKs the booking, before we drop the bookings themselves.
+            $bookingIds = DB::table('session_bookings')
+                ->whereIn('session_id', $sessionIds)
+                ->pluck('id');
+
+            // FK order: ratings → attendance_logs → bookings → sessions.
+            // attendance_logs / ratings shouldn't exist for future sessions,
+            // but the deletes are no-ops then and let one cleanup path
+            // serve any edge case (e.g. an admin stopped a series with a
+            // session whose date is today and already had a check-in).
+            if ($bookingIds->isNotEmpty()) {
+                DB::table('session_ratings')->whereIn('booking_id', $bookingIds)->delete();
+            }
+            DB::table('session_ratings')->whereIn('session_id', $sessionIds)->delete();
+            DB::table('attendance_logs')->whereIn('class_session_id', $sessionIds)->delete();
+            DB::table('session_bookings')->whereIn('session_id', $sessionIds)->delete();
+            DB::table('class_sessions')->whereIn('id', $sessionIds)->delete();
+        });
 
         return response()->json(['message' => 'Recurring series stopped']);
     }

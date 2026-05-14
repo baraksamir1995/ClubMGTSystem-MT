@@ -38,7 +38,12 @@ class SessionCard extends StatelessWidget {
         : null;
 
     final endTime = session.endTime;
-    final capacity = session.capacity;
+    final isWalkIn = session.walkInAllowed;
+    // Walk-in sessions ignore capacity — admin may have set a number from
+    // a previous configuration but the rule is no longer enforced. Treat
+    // as null so the capacity bar / "Full" badge / "Full" button branch
+    // all skip silently.
+    final capacity = isWalkIn ? null : session.capacity;
     final booked = session.bookedCount ?? 0;
     final spotsLeft = capacity != null ? capacity - booked : null;
     final isFull = spotsLeft != null && spotsLeft <= 0;
@@ -408,6 +413,16 @@ class SessionCard extends StatelessWidget {
                     backgroundColor: Colors.transparent,
                     foregroundColor: theme.colorScheme.onSurfaceVariant,
                     outlined: true,
+                  ),
+                ),
+              ] else if (session.walkInAllowed) ...[
+                // Walk-in — no booking, members scan the studio QR.
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: 'Walk-in · scan QR',
+                    backgroundColor: const Color(0xFFFFF7ED),
+                    foregroundColor: const Color(0xFFEA580C),
                   ),
                 ),
               ] else if (onBook != null) ...[

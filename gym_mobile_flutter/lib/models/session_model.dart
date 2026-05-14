@@ -15,6 +15,10 @@ class Session {
   final String? imageUrl;
   final DateTime? endTime;
   final String? branchId;
+  /// Server field: class_sessions.walk_in_allowed.
+  /// When true, the session is a walk-in — members attend by scanning the
+  /// studio QR; no booking required. Mobile renders this as `!needsBooking`.
+  final bool walkInAllowed;
   bool isBooked;
   bool hasRated;
   String? bookingId;
@@ -37,6 +41,7 @@ class Session {
     this.imageUrl,
     this.endTime,
     this.branchId,
+    this.walkInAllowed = false,
     this.isBooked = false,
     this.hasRated = false,
     this.bookingId,
@@ -84,6 +89,12 @@ class Session {
       imageUrl: classJson?['image_url'] as String?,
       endTime: endTime,
       branchId: json['branch_id'] as String?,
+      walkInAllowed: json['walk_in_allowed'] as bool? ?? false,
     );
   }
+
+  /// Member-facing concept: this class requires booking before attending.
+  /// Inverse of the server's [walkInAllowed] flag — see admin's "Needs
+  /// Booking" toggle. When false, members scan to attend directly.
+  bool get needsBooking => !walkInAllowed;
 }

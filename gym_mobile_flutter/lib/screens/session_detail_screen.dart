@@ -86,6 +86,13 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   }
 
   Future<void> _handleBook() async {
+    // Defensive: walk-in sessions never reach this from the UI (the button
+    // renders as a non-actionable "Walk-in · scan studio QR"), but other
+    // call sites — schedule cards, share-extra deep links — could still
+    // wire onBook into a walk-in session by accident. Refuse here so a
+    // misrouted tap can't create a stray booking.
+    if (widget.session.walkInAllowed) return;
+
     final endTime = widget.session.endTime;
     final spotsLeft = widget.session.capacity != null
         ? widget.session.capacity! - (widget.session.bookedCount ?? 0)
@@ -172,7 +179,11 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final session = widget.session;
     final accentColor = _accentColor();
     final endTime = session.endTime;
-    final capacity = session.capacity;
+    final isWalkIn = session.walkInAllowed;
+    // Capacity is irrelevant for walk-in sessions — admins may have left a
+    // number from a previous configuration but the rule no longer enforces
+    // it, so the UI hides the capacity card and treats "full" as not full.
+    final capacity = isWalkIn ? null : session.capacity;
     final booked = session.bookedCount ?? 0;
     final spotsLeft = capacity != null ? capacity - booked : null;
     final isFull = spotsLeft != null && spotsLeft <= 0;
@@ -1512,6 +1523,27 @@ class _BottomBar extends StatelessWidget {
           icon: const Icon(Icons.close, size: 16),
           label: const Text('Class is full',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ),
+      );
+    }
+
+    // WALK-IN — no booking needed; the action is to scan the studio QR.
+    // Renders as a non-actionable info button instead of "Book this class".
+    if (session.walkInAllowed) {
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: OutlinedButton.icon(
+          style: baseShape.copyWith(
+            side: WidgetStatePropertyAll(BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.35))),
+            foregroundColor: WidgetStatePropertyAll(theme.colorScheme.onSurface),
+            backgroundColor: const WidgetStatePropertyAll(Colors.white),
+          ),
+          onPressed: null,
+          icon: const Icon(Icons.qr_code_scanner_rounded, size: 18, color: _orange),
+          label: const Text('Walk-in · scan the studio QR',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         ),
       );
     }

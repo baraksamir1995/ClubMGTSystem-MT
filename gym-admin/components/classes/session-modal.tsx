@@ -380,12 +380,22 @@ export default function SessionModal({ classes, branches, studios, existing, def
             </div>
           </div>
 
-          {/* Capacity */}
+          {/* Capacity — disabled when this is a walk-in session (no booking
+              means no enforced cap). State stays in `capacity` so toggling
+              back to booking-required preserves whatever the admin typed. */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Capacity <span className="text-gray-500">(optional)</span></label>
+            <label className="block text-xs text-gray-400 mb-1.5">
+              Capacity <span className="text-gray-500">(optional)</span>
+              {walkInAllowed && (
+                <span className="ml-2 text-[10px] uppercase tracking-wider text-gray-500">
+                  Not enforced for walk-in
+                </span>
+              )}
+            </label>
             <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)}
-              min="1" placeholder="Unlimited"
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
+              min="1" placeholder={walkInAllowed ? 'Not enforced' : 'Unlimited'}
+              disabled={walkInAllowed}
+              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 disabled:opacity-40 disabled:cursor-not-allowed" />
           </div>
 
           {/* Studio — filtered by selected branch */}
@@ -407,18 +417,34 @@ export default function SessionModal({ classes, branches, studios, existing, def
             </select>
           </div>
 
-          {/* Walk-in toggle — only relevant when a studio is selected */}
+          {/* Booking requirement — only relevant when a studio is selected.
+              Displayed state is the inverse of the stored flag: the column
+              is `walk_in_allowed` (true = no booking needed), but admins
+              think in terms of "does this class need booking?" so the
+              toggle is labelled the other way around. ON = booking
+              required (today's default), OFF = walk-in. */}
           {studioId && (
             <div>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div onClick={() => setWalkInAllowed(p => !p)}
-                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${walkInAllowed ? 'bg-purple-600' : 'bg-gray-600'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${walkInAllowed ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-300">Allow walk-ins</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Members can scan the studio QR without booking</p>
-                </div>
+                {(() => {
+                  const needsBooking = !walkInAllowed;
+                  return (
+                    <>
+                      <div onClick={() => setWalkInAllowed(p => !p)}
+                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${needsBooking ? 'bg-purple-600' : 'bg-gray-600'}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${needsBooking ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-300">Needs booking</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {needsBooking
+                            ? 'Members must book a spot before attending.'
+                            : 'Members attend by scanning the studio QR — no booking needed.'}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
               </label>
             </div>
           )}

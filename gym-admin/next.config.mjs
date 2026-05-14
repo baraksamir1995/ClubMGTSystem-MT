@@ -1,9 +1,11 @@
-// Next.js dev mode uses react-refresh which evaluates strings. Allow
-// 'unsafe-eval' only in development so CSP doesn't break hot reload.
-const isDev = process.env.NODE_ENV !== 'production';
-const scriptSrc = isDev
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-  : "script-src 'self' 'unsafe-inline'";
+// `unsafe-eval` is required by several runtime dependencies pulled into the
+// admin bundle (recharts, schema validators, etc) — production was throwing
+// "Refused to evaluate a string as JavaScript" CSP errors, which React
+// surfaced as a generic "Something went wrong" toast (e.g. when sending a
+// notification). The strict policy is worth keeping out of reach long-term;
+// the follow-up is to find the offending library and replace it, then drop
+// 'unsafe-eval' from the prod policy. Until then, allow it both envs.
+const scriptSrc = "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
 // SECURITY: HIGH-2 — Comprehensive security headers for all responses
 const securityHeaders = [

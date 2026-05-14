@@ -797,21 +797,19 @@ class _AttRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  _name,
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600,
+                    color: _kInk, letterSpacing: -0.1, height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 3),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: Text(
-                        _name,
-                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600,
-                          color: _kInk, letterSpacing: -0.1, height: 1.25,
-                        ),
-                      ),
-                    ),
                     if (_isToday) ...[
-                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
@@ -826,13 +824,13 @@ class _AttRow extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 6),
                     ],
+                    Text(
+                      DateFormat('EEE · MMM d, yyyy').format(item.checkedInAt),
+                      style: const TextStyle(fontSize: 12, color: _kInk2),
+                    ),
                   ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  DateFormat('EEE · MMM d, yyyy').format(item.checkedInAt),
-                  style: const TextStyle(fontSize: 12, color: _kInk2),
                 ),
               ],
             ),
@@ -898,21 +896,19 @@ class _TransferRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  title,
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600,
+                    color: _kInk, letterSpacing: -0.1, height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 3),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600,
-                          color: _kInk, letterSpacing: -0.1, height: 1.25,
-                        ),
-                      ),
-                    ),
                     if (_isToday) ...[
-                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
@@ -927,13 +923,13 @@ class _TransferRow extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 6),
                     ],
+                    Text(
+                      DateFormat('EEE · MMM d, yyyy').format(item.createdAt),
+                      style: const TextStyle(fontSize: 12, color: _kInk2),
+                    ),
                   ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  DateFormat('EEE · MMM d, yyyy').format(item.createdAt),
-                  style: const TextStyle(fontSize: 12, color: _kInk2),
                 ),
               ],
             ),

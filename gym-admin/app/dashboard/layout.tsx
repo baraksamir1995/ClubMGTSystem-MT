@@ -133,13 +133,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   }
 
-  // Active offer count for sidebar badge
+  // Active offer count for sidebar badge — runs on every dashboard route,
+  // so a single bad item in /offers (null, missing status, missing
+  // expires_at) crashes the entire dashboard layout via React's error
+  // boundary, which surfaces as a generic "Something went wrong" toast on
+  // unrelated pages (notifications, content, etc). Guard each access.
   let activeOffersCount = 0;
   if (me?.gym_id) {
     const offersData = await fetchApi('/offers', token);
     const offers = offersData?.data ?? offersData ?? [];
     activeOffersCount = Array.isArray(offers)
-      ? offers.filter((o: any) => o.status === 'active' && new Date(o.expires_at) > new Date()).length
+      ? offers.filter((o: any) => {
+          if (!o || o.status !== 'active') return false;
+          const exp = o.expires_at ? new Date(o.expires_at) : null;
+          // No expiry means evergreen → still active.
+          return exp == null || exp > new Date();
+        }).length
       : 0;
   }
 

@@ -80,7 +80,11 @@ class PushService
     ): bool {
         if (! $this->messaging) return false;
 
-        $message = CloudMessage::withTarget('token', $token)
+        // kreait/firebase-php v8 dropped the static `withTarget('token', $t)`
+        // factory in favour of `CloudMessage::new()->toToken($t)`. Older docs
+        // still reference the v6 API — don't trust them.
+        $message = CloudMessage::new()
+            ->toToken($token)
             ->withNotification(FcmNotification::create($title, $body))
             ->withDefaultSounds()
             ->withData(array_map('strval', $data));

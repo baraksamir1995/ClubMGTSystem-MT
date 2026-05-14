@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\PushService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SendTestPush extends Command
 {
@@ -23,10 +24,12 @@ class SendTestPush extends Command
         }
 
         $userArg = $this->option('user') ?? $this->ask('Recipient (profile id or email)');
-        $row = DB::table('profiles')
-            ->where('id', $userArg)
-            ->orWhere('email', $userArg)
-            ->first();
+        // profiles.id is uuid — comparing against a non-uuid string raises
+        // SQLSTATE 22P02 at the driver level before the email-clause
+        // can even fire. Pick the lookup column up front.
+        $row = Str::isUuid($userArg)
+            ? DB::table('profiles')->where('id', $userArg)->first()
+            : DB::table('profiles')->where('email', $userArg)->first();
         if (! $row) {
             $this->error("No user matched '$userArg'.");
             return self::FAILURE;

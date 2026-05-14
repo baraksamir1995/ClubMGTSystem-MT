@@ -7,7 +7,8 @@ import type { GymNotification, PlanOption } from '@/app/dashboard/notifications/
 import { can, type Permission } from '@/lib/get-permissions';
 
 interface Props {
-  initialNotifications: GymNotification[];
+  // Notifications are fetched on demand per-tab inside the component (true
+  // server-side pagination), so no initial blob is needed from the parent.
   plans: PlanOption[];
   permissions: Permission[] | null;
 }
@@ -31,30 +32,57 @@ function fmtDt(iso: string) {
     d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-export default function NotificationsPage({ initialNotifications, plans, permissions }: Props) {
+export default function NotificationsPage({ plans, permissions }: Props) {
   const [activeTab,      setActiveTab]      = useState<'compose' | 'scheduled' | 'sent'>('compose');
-  const [notifications,  setNotifications]  = useState<GymNotification[]>(initialNotifications);
   const [form,           setForm]           = useState(emptyForm());
   const [sending,        setSending]        = useState(false);
   const [editingId,      setEditingId]      = useState<string | null>(null);
   const [cancellingId,   setCancellingId]   = useState<string | null>(null);
+
+  // Per-tab server-paged state. Each tab maintains its own page cursor and
+  // its own loading flag so switching tabs doesn't clobber the other's
+  // data while a fetch is in flight.
+  const [scheduledItems, setScheduledItems] = useState<GymNotification[]>([]);
   const [scheduledPage,  setScheduledPage]  = useState(1);
+  const [scheduledTotal, setScheduledTotal] = useState(0);
+  const [scheduledPages, setScheduledPages] = useState(1);
+  const [scheduledLoading, setScheduledLoading] = useState(false);
+
+  const [sentItems,      setSentItems]      = useState<GymNotification[]>([]);
   const [sentPage,       setSentPage]       = useState(1);
+  const [sentTotal,      setSentTotal]      = useState(0);
+  const [sentPages,      setSentPages]      = useState(1);
+  const [sentLoading,    setSentLoading]    = useState(false);
 
-  const scheduled = notifications.filter(n => n.status === 'scheduled');
-  const sent      = notifications.filter(n => n.status === 'sent');
+  // Fetch one page for a given status. Caller decides whether to await.
+  const loadPage = async (status: 'scheduled' | 'sent', page: number) => {
+    const setLoading = status === 'scheduled' ? setScheduledLoading : setSentLoading;
+    const setItems   = status === 'scheduled' ? setScheduledItems   : setSentItems;
+    const setTotal   = status === 'scheduled' ? setScheduledTotal   : setSentTotal;
+    const setPages   = status === 'scheduled' ? setScheduledPages   : setSentPages;
+    setLoading(true);
+    try {
+      const res  = await fetch(`/api/notifications?status=${status}&page=${page}&per_page=${PAGE_SIZE}`);
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? 'Failed to load');
+        return;
+      }
+      const items: GymNotification[] = json?.data ?? [];
+      const pag  = json?.pagination ?? {};
+      setItems(items);
+      setTotal(typeof pag.total === 'number' ? pag.total : items.length);
+      setPages(Math.max(1, typeof pag.pages === 'number' ? pag.pages : Math.ceil(items.length / PAGE_SIZE)));
+    } catch {
+      toast.error('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Total pages per tab. Reset the page index whenever the underlying list
-  // shrinks (e.g. user cancels the last item on page 3) so we don't render
-  // an empty page past the new end.
-  const scheduledPages = Math.max(1, Math.ceil(scheduled.length / PAGE_SIZE));
-  const sentPages      = Math.max(1, Math.ceil(sent.length      / PAGE_SIZE));
-  useEffect(() => { if (scheduledPage > scheduledPages) setScheduledPage(scheduledPages); }, [scheduledPages, scheduledPage]);
-  useEffect(() => { if (sentPage      > sentPages)      setSentPage(sentPages);           }, [sentPages, sentPage]);
-
-  // Page slice = the 10 items shown for the current tab page.
-  const scheduledSlice = scheduled.slice((scheduledPage - 1) * PAGE_SIZE, scheduledPage * PAGE_SIZE);
-  const sentSlice      = sent.slice((sentPage - 1) * PAGE_SIZE, sentPage * PAGE_SIZE);
+  // Lazy-load each tab the first time it's opened, and re-fetch on page change.
+  useEffect(() => { if (activeTab === 'scheduled') loadPage('scheduled', scheduledPage); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [activeTab, scheduledPage]);
+  useEffect(() => { if (activeTab === 'sent')      loadPage('sent',      sentPage);      /* eslint-disable-line react-hooks/exhaustive-deps */ }, [activeTab, sentPage]);
 
   const inp = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500';
 
@@ -120,24 +148,21 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
 
       const notif = (data.notification ?? data.data ?? data) as Partial<GymNotification>;
-      if (!isEdit && !notif.id) {
-        toast.error('Notification sent, but the response was incomplete. Refresh to see it.');
-        return;
-      }
-
       const saved = notif as GymNotification;
-      setNotifications(prev => isEdit
-        ? prev.map(n => n.id === editingId ? { ...n, ...payload, ...notif } as GymNotification : n)
-        : [saved, ...prev]
-      );
 
+      // Jump to the relevant tab and reset its page to 1 — the most-recent
+      // item lives at the top of the list. Setting page to 1 also triggers
+      // the lazy-load effect, so the list refetches and shows the new row
+      // even on edit (where the existing row's content changed).
       if (form.sendMode === 'now') {
         const count = saved.recipient_count ?? 0;
         toast.success(`Notification sent to ${count} member${count !== 1 ? 's' : ''}!`);
         setActiveTab('sent');
+        if (sentPage === 1) loadPage('sent', 1); else setSentPage(1);
       } else {
         toast.success('Notification scheduled');
         setActiveTab('scheduled');
+        if (scheduledPage === 1) loadPage('scheduled', 1); else setScheduledPage(1);
       }
       setEditingId(null);
       setForm(emptyForm());
@@ -155,8 +180,13 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
         body: JSON.stringify({ status: 'cancelled' }),
       });
       if (!res.ok) { toast.error('Failed'); return; }
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'cancelled' as const } : n));
       toast.success('Notification cancelled');
+      // Refresh the scheduled tab — the cancelled row drops out of the
+      // status='scheduled' filter so the page count + items both change.
+      // The cancelled item ends up under status='cancelled' which we don't
+      // currently render, so it just disappears from view (matches old
+      // behaviour where the row stayed but greyed out).
+      loadPage('scheduled', scheduledPage);
     } catch { toast.error('Network error'); }
     finally { setCancellingId(null); }
   };
@@ -181,8 +211,8 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
         </button>
         <button onClick={() => setActiveTab('scheduled')} className={tabCls('scheduled')}>
           <Clock className="w-4 h-4" /> Scheduled
-          {scheduled.length > 0 && (
-            <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">{scheduled.length}</span>
+          {scheduledTotal > 0 && (
+            <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">{scheduledTotal}</span>
           )}
         </button>
         <button onClick={() => setActiveTab('sent')} className={tabCls('sent')}>
@@ -342,7 +372,11 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
       {activeTab === 'scheduled' && (
         <>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {scheduled.length === 0 ? (
+          {scheduledLoading && scheduledItems.length === 0 ? (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+            </div>
+          ) : scheduledItems.length === 0 ? (
             <div className="col-span-full bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
               <Clock className="w-10 h-10 text-gray-600 mx-auto mb-3" />
               <p className="text-sm text-gray-400">No scheduled notifications</p>
@@ -353,7 +387,7 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
                 </button>
               )}
             </div>
-          ) : scheduledSlice.map(n => (
+          ) : scheduledItems.map(n => (
             <div key={n.id} className="bg-gray-800 border border-gray-700 rounded-xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -386,7 +420,7 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
             </div>
           ))}
         </div>
-        <Pager total={scheduled.length} page={scheduledPage} pages={scheduledPages} onChange={setScheduledPage} />
+        <Pager total={scheduledTotal} page={scheduledPage} pages={scheduledPages} onChange={setScheduledPage} />
         </>
       )}
 
@@ -394,12 +428,16 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
       {activeTab === 'sent' && (
         <>
         <div className="space-y-3">
-          {sent.length === 0 ? (
+          {sentLoading && sentItems.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+            </div>
+          ) : sentItems.length === 0 ? (
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
               <History className="w-10 h-10 text-gray-600 mx-auto mb-3" />
               <p className="text-sm text-gray-400">No notifications sent yet</p>
             </div>
-          ) : sentSlice.map(n => (
+          ) : sentItems.map(n => (
             <div key={n.id} className="bg-gray-800 border border-gray-700 rounded-xl p-5">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -422,7 +460,7 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
             </div>
           ))}
         </div>
-        <Pager total={sent.length} page={sentPage} pages={sentPages} onChange={setSentPage} />
+        <Pager total={sentTotal} page={sentPage} pages={sentPages} onChange={setSentPage} />
         </>
       )}
     </div>

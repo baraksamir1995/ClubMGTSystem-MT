@@ -44,18 +44,15 @@ export default async function NotificationsRoute() {
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
 
-  const [notifData, plansData] = await Promise.all([
-    fetchApi('/notifications', token),
-    fetchApi('/plans', token),
-  ]);
-
-  const notifications = (notifData?.data ?? notifData ?? []) as GymNotification[];
+  // Notifications are fetched per-tab on the client (true server-side
+  // pagination), so we only need the plans list up front. Saves one
+  // /notifications round-trip on every visit.
+  const plansData = await fetchApi('/plans', token);
   const rawPlans = plansData?.data ?? plansData ?? [];
   const plans = rawPlans.map((p: any) => ({ id: p.id, name: p.name })) as PlanOption[];
 
   return (
     <NotificationsPage
-      initialNotifications={notifications}
       plans={plans}
       permissions={permissions}
     />

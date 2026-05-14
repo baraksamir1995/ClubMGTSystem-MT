@@ -3,15 +3,31 @@ import { resolveGymId, laravelApi } from '@/lib/api-gym-id';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const resolved = await resolveGymId();
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const res = await laravelApi('/notifications', token);
+  // Forward whitelisted query params so the client can paginate per tab
+  // (e.g. ?status=scheduled&page=2&per_page=10). Raw passthrough would
+  // expose any backend filter the user happened to know about — explicit
+  // allowlist keeps surface area honest.
+  const inUrl = new URL(req.url);
+  const allowed = ['status', 'page', 'per_page'];
+  const params = new URLSearchParams();
+  for (const key of allowed) {
+    const v = inUrl.searchParams.get(key);
+    if (v != null && v !== '') params.set(key, v);
+  }
+  const qs = params.toString();
+  const path = qs ? `/notifications?${qs}` : '/notifications';
+
+  const res = await laravelApi(path, token);
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: json.error ?? 'Failed' }, { status: res.status });
-  return NextResponse.json(json.data ?? json);
+  // Preserve the full envelope ({data, pagination}) so the client can read
+  // total / page-count, not just the items.
+  return NextResponse.json(json);
 }
 
 export async function POST(req: NextRequest) {

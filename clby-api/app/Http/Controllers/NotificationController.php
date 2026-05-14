@@ -13,15 +13,31 @@ class NotificationController extends Controller
     /** Recipients per queued job — keeps each job small enough to retry cheaply. */
     private const PUSH_CHUNK_SIZE = 50;
 
+    /**
+     * Allowed status values for the ?status= filter. Restricting the list
+     * up front means a malformed value falls through to "no filter" rather
+     * than producing an empty page silently.
+     */
+    private const STATUS_VALUES = ['scheduled', 'sent', 'cancelled'];
+
     public function index(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
         $perPage = min(100, max(1, (int) $request->query('per_page', 50)));
 
-        $paginator = DB::table('gym_notifications')
+        $query = DB::table('gym_notifications')
             ->where('gym_id', $gymId)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->orderBy('created_at', 'desc');
+
+        // Optional status filter — admin's notifications page paginates per
+        // tab (Scheduled / Sent), so each tab calls index() with its own
+        // status to get an accurate per-tab total + slice.
+        $status = $request->query('status');
+        if (is_string($status) && in_array($status, self::STATUS_VALUES, true)) {
+            $query->where('status', $status);
+        }
+
+        $paginator = $query->paginate($perPage);
 
         return response()->json([
             'data' => $paginator->items(),

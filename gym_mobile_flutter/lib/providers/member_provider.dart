@@ -5,6 +5,7 @@ import '../models/membership_model.dart';
 import '../models/membership_summary_model.dart';
 import '../models/session_model.dart';
 import '../models/attendance_model.dart';
+import '../models/transfer_log.dart';
 import '../models/notification_model.dart';
 import '../models/payment_model.dart';
 import '../services/api_service.dart';
@@ -23,6 +24,7 @@ class MemberProvider extends ChangeNotifier {
   List<Session> _sessions = [];
   List<BookingRecord> _myBookings = [];
   List<Attendance> _attendance = [];
+  List<TransferLog> _transfers = [];
   List<GymNotification> _notifications = [];
   List<Payment> _payments = [];
   int _monthlyCheckIns = 0;
@@ -40,6 +42,7 @@ class MemberProvider extends ChangeNotifier {
   bool _isLoadingSessions = false;
   bool _isLoadingMyBookings = false;
   bool _isLoadingAttendance = false;
+  bool _isLoadingTransfers = false;
   bool _isLoadingNotifications = false;
   bool _isLoadingPayments = false;
 
@@ -57,6 +60,7 @@ class MemberProvider extends ChangeNotifier {
   String? _sessionsError;
   String? _myBookingsError;
   String? _attendanceError;
+  String? _transfersError;
   String? _notificationsError;
   String? _paymentsError;
 
@@ -70,6 +74,9 @@ class MemberProvider extends ChangeNotifier {
   bool get isLoadingMyBookings => _isLoadingMyBookings;
   String? get myBookingsError => _myBookingsError;
   List<Attendance> get attendance => _attendance;
+  List<TransferLog> get transfers => _transfers;
+  bool get isLoadingTransfers => _isLoadingTransfers;
+  String? get transfersError => _transfersError;
   List<GymNotification> get notifications => _notifications;
   // US-01-04: true when new notifications arrived since last visit
   bool get hasUnreadNotifications =>
@@ -370,6 +377,34 @@ class MemberProvider extends ChangeNotifier {
         _attendanceError = friendlyError(e);
       } finally {
         _isLoadingAttendance = false;
+        notifyListeners();
+      }
+    });
+  }
+
+  /// Load the caller's session-transfer history (sent + received) into one
+  /// flat list, sorted by created_at DESC. Used alongside attendance to power
+  /// the unified-timeline activity view on the attendance screen.
+  Future<void> loadTransfers() {
+    if (_member == null) return Future.value();
+    return _runOnce('transfers:${_member!.id}', () async {
+      _isLoadingTransfers = true;
+      _transfersError = null;
+      notifyListeners();
+      try {
+        final raw = await _service.getMyTransfers();
+        final sent = (raw['sent'] ?? const <Map<String, dynamic>>[])
+            .map((m) => TransferLog.fromJson(m, isSent: true))
+            .toList();
+        final received = (raw['received'] ?? const <Map<String, dynamic>>[])
+            .map((m) => TransferLog.fromJson(m, isSent: false))
+            .toList();
+        _transfers = [...sent, ...received]
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } catch (e) {
+        _transfersError = friendlyError(e);
+      } finally {
+        _isLoadingTransfers = false;
         notifyListeners();
       }
     });

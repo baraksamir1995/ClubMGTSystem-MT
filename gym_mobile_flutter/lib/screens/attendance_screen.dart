@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/attendance_model.dart';
+import '../models/transfer_log.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../widgets/gym_app_bar.dart';
@@ -24,12 +25,33 @@ const _kPrimary     = Color(0xFFE07A3B);
 const _kPrimaryDeep = Color(0xFFC8642A);
 const _kSuccess     = Color(0xFF3F8B5C);
 
-enum _AttendanceFilter { all, entrance, classes }
+enum _AttendanceFilter { all, entrance, classes, transfers }
 
 class _DateRange {
   final DateTime from;
   final DateTime to;
   const _DateRange(this.from, this.to);
+}
+
+/// Polymorphic timeline item — either a check-in (attendance) or a session
+/// transfer. Lets _HistoryList render both in one chronological list.
+sealed class _ActivityItem {
+  DateTime get timestamp;
+  String get id;
+}
+
+class _AttItem extends _ActivityItem {
+  final Attendance attendance;
+  _AttItem(this.attendance);
+  @override DateTime get timestamp => attendance.checkedInAt;
+  @override String get id => attendance.id;
+}
+
+class _XferItem extends _ActivityItem {
+  final TransferLog transfer;
+  _XferItem(this.transfer);
+  @override DateTime get timestamp => transfer.createdAt;
+  @override String get id => transfer.id;
 }
 
 class AttendanceScreen extends StatefulWidget {
@@ -53,7 +75,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final memberProvider = context.read<MemberProvider>();
     final gymId = context.read<AuthProvider>().profile?.gymId;
     if (gymId != null) await memberProvider.ensureMemberLoaded(gymId);
-    await memberProvider.loadAttendance();
+    // Load attendance + transfers in parallel — both populate the unified
+    // activity timeline rendered by _HistoryList.
+    await Future.wait([
+      memberProvider.loadAttendance(),
+      memberProvider.loadTransfers(),
+    ]);
   }
 
   @override
@@ -77,7 +104,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final hasActivePlan = hasActiveSubscription || hasTransferredAccess;
     final isSuspended = memberStatus == 'suspended';
 
-    final filtered = _applyFilters(mp.attendance);
+    // Build the unified timeline (attendance + transfers) and apply filters.
+    // Sorting happens here, so additions to either list naturally interleave.
+    final activity = <_ActivityItem>[
+      ...mp.attendance.map((a) => _AttItem(a)),
+      ...mp.transfers.map((t) => _XferItem(t)),
+    ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final filtered = _applyFilters(activity);
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -106,9 +139,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 onPickDate: _openDatePicker,
                 onClearDate: () => setState(() => _dateRange = null),
                 onScan: _openScanner,
-                attendance: filtered,
-                isLoading: mp.isLoadingAttendance,
-                error: mp.attendanceError,
+                items: filtered,
+                isLoading: mp.isLoadingAttendance || mp.isLoadingTransfers,
+                error: mp.attendanceError ?? mp.transfersError,
                 onViewAll: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -126,29 +159,30 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   // ── Filtering ───────────────────────────────────────────────────────────────
-  List<Attendance> _applyFilters(List<Attendance> all) {
-    Iterable<Attendance> items = all;
-    if (_filter == _AttendanceFilter.entrance) {
-      items = items.where(_isEntrance);
-    } else if (_filter == _AttendanceFilter.classes) {
-      items = items.where(_isClass);
+  List<_ActivityItem> _applyFilters(List<_ActivityItem> all) {
+    Iterable<_ActivityItem> items = all;
+    switch (_filter) {
+      case _AttendanceFilter.all:
+        // no type filter — show everything
+        break;
+      case _AttendanceFilter.entrance:
+        items = items.whereType<_AttItem>().where((i) => i.attendance.isEntrance);
+        break;
+      case _AttendanceFilter.classes:
+        items = items.whereType<_AttItem>().where((i) => i.attendance.isClassOrStudio);
+        break;
+      case _AttendanceFilter.transfers:
+        items = items.whereType<_XferItem>();
+        break;
     }
     final r = _dateRange;
     if (r != null) {
       final from = DateTime(r.from.year, r.from.month, r.from.day);
       final to   = DateTime(r.to.year,   r.to.month,   r.to.day,   23, 59, 59);
-      items = items.where((a) => !a.checkedInAt.isBefore(from) && !a.checkedInAt.isAfter(to));
+      items = items.where((i) => !i.timestamp.isBefore(from) && !i.timestamp.isAfter(to));
     }
     return items.toList();
   }
-
-  // Filter predicates: branch_id-backed rows are gym/branch entrance scans;
-  // studio_id and class_session_id rows are "Classes" (studio access).
-  // We rely on the joined name fields the Laravel index endpoint already
-  // returns — exactly one of branch_name / studio_name / class_name is set
-  // per row.
-  static bool _isEntrance(Attendance a) => a.isEntrance;
-  static bool _isClass(Attendance a) => a.isClassOrStudio;
 
   Future<void> _openDatePicker() async {
     final picked = await showModalBottomSheet<_DateRange>(
@@ -182,7 +216,7 @@ class _ActiveBody extends StatelessWidget {
   final VoidCallback onPickDate;
   final VoidCallback onClearDate;
   final VoidCallback onScan;
-  final List<Attendance> attendance;
+  final List<_ActivityItem> items;
   final bool isLoading;
   final String? error;
   final VoidCallback onViewAll;
@@ -198,7 +232,7 @@ class _ActiveBody extends StatelessWidget {
     required this.onPickDate,
     required this.onClearDate,
     required this.onScan,
-    required this.attendance,
+    required this.items,
     required this.isLoading,
     required this.error,
     required this.onViewAll,
@@ -229,10 +263,10 @@ class _ActiveBody extends StatelessWidget {
           )
         else if (error != null)
           _ErrorBlock(error: error!, onRetry: onRetry)
-        else if (attendance.isEmpty)
+        else if (items.isEmpty)
           const _EmptyHistory()
         else
-          _HistoryList(items: attendance, onViewAll: onViewAll),
+          _HistoryList(items: items, onViewAll: onViewAll),
       ],
     );
   }
@@ -469,6 +503,7 @@ class _FilterChips extends StatelessWidget {
       (_AttendanceFilter.all, 'All'),
       (_AttendanceFilter.entrance, 'Entrance'),
       (_AttendanceFilter.classes, 'Classes'),
+      (_AttendanceFilter.transfers, 'Transfers'),
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -591,13 +626,28 @@ class _DateChip extends StatelessWidget {
 
 // ── Grouped history list ─────────────────────────────────────────────────────
 class _HistoryList extends StatelessWidget {
-  final List<Attendance> items;
+  final List<_ActivityItem> items;
   final VoidCallback onViewAll;
   const _HistoryList({required this.items, required this.onViewAll});
+
+  /// Header label accounts for both event types: "3 check-ins • 2 transfers"
+  /// when a month has both, or just "2 transfers" / "3 check-ins" alone.
+  String _headerCount(List<_ActivityItem> group) {
+    final att = group.whereType<_AttItem>().length;
+    final xfer = group.whereType<_XferItem>().length;
+    final parts = <String>[];
+    if (att > 0)  parts.add('$att ${att == 1 ? 'check-in' : 'check-ins'}');
+    if (xfer > 0) parts.add('$xfer ${xfer == 1 ? 'transfer' : 'transfers'}');
+    return parts.join(' • ');
+  }
 
   @override
   Widget build(BuildContext context) {
     final groups = _groupByMonth(items);
+    // "View all" still goes to the dedicated check-in history. Only show it
+    // when the unfiltered list is long AND has at least one check-in row to
+    // browse (transfers don't have a paginated history screen yet).
+    final hasAnyCheckIn = items.any((i) => i is _AttItem);
     return Padding(
       padding: const EdgeInsets.fromLTRB(22, 6, 22, 0),
       child: Column(
@@ -618,7 +668,7 @@ class _HistoryList extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    '${groups[i].items.length} ${groups[i].items.length == 1 ? 'check-in' : 'check-ins'}',
+                    _headerCount(groups[i].items),
                     style: const TextStyle(
                       fontSize: 11, fontWeight: FontWeight.w600,
                       color: _kInk3,
@@ -641,13 +691,13 @@ class _HistoryList extends StatelessWidget {
                   for (var j = 0; j < groups[i].items.length; j++) ...[
                     if (j > 0)
                       const Divider(height: 1, thickness: 1, color: _kHair, indent: 14, endIndent: 14),
-                    _AttRow(item: groups[i].items[j]),
+                    _activityRow(groups[i].items[j]),
                   ],
                 ],
               ),
             ),
           ],
-          if (items.length >= 8) ...[
+          if (items.length >= 8 && hasAnyCheckIn) ...[
             const SizedBox(height: 18),
             Center(
               child: GestureDetector(
@@ -673,20 +723,25 @@ class _HistoryList extends StatelessWidget {
       ),
     );
   }
+
+  Widget _activityRow(_ActivityItem item) => switch (item) {
+        _AttItem(:final attendance) => _AttRow(item: attendance),
+        _XferItem(:final transfer)  => _TransferRow(item: transfer),
+      };
 }
 
 class _MonthGroup {
   final String label;
-  final List<Attendance> items;
+  final List<_ActivityItem> items;
   _MonthGroup(this.label, this.items);
 }
 
-List<_MonthGroup> _groupByMonth(List<Attendance> items) {
-  final groups = <String, List<Attendance>>{};
+List<_MonthGroup> _groupByMonth(List<_ActivityItem> items) {
+  final groups = <String, List<_ActivityItem>>{};
   final order = <String>[];
   final fmt = DateFormat('MMM yyyy');
   for (final a in items) {
-    final key = fmt.format(a.checkedInAt);
+    final key = fmt.format(a.timestamp);
     if (!groups.containsKey(key)) {
       groups[key] = [];
       order.add(key);
@@ -748,10 +803,10 @@ class _AttRow extends StatelessWidget {
                     Flexible(
                       child: Text(
                         _name,
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w600,
-                          color: _kInk, letterSpacing: -0.1,
+                          color: _kInk, letterSpacing: -0.1, height: 1.25,
                         ),
                       ),
                     ),
@@ -785,6 +840,107 @@ class _AttRow extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             DateFormat('h:mm a').format(item.checkedInAt),
+            style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600,
+              color: _kInk, fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Single transfer row — visually parallel to [_AttRow] so the unified
+/// timeline reads as one list. Direction is conveyed only through the
+/// icon's tint (orange = sent, green = received); the title carries the
+/// count + counter-party name, and the right side shows the time exactly
+/// like a check-in row.
+class _TransferRow extends StatelessWidget {
+  final TransferLog item;
+  const _TransferRow({required this.item});
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return item.createdAt.year == now.year &&
+        item.createdAt.month == now.month &&
+        item.createdAt.day == now.day;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sent = item.isSent;
+    final accent = sent ? _kPrimary : _kSuccess;
+    final iconBg = sent ? const Color(0x1AE07A3B) : const Color(0x1A3F8B5C);
+    final unit = item.count == 1 ? 'session' : 'sessions';
+    final title = sent
+        ? 'Sent ${item.count} $unit to ${item.otherName}'
+        : 'Received ${item.count} $unit from ${item.otherName}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              sent ? Icons.north_east_rounded : Icons.south_west_rounded,
+              color: accent, size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600,
+                          color: _kInk, letterSpacing: -0.1, height: 1.25,
+                        ),
+                      ),
+                    ),
+                    if (_isToday) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _kPeach,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'TODAY',
+                          style: TextStyle(
+                            fontSize: 10, fontWeight: FontWeight.w700,
+                            color: _kPrimaryDeep, letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  DateFormat('EEE · MMM d, yyyy').format(item.createdAt),
+                  style: const TextStyle(fontSize: 12, color: _kInk2),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            DateFormat('h:mm a').format(item.createdAt),
             style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w600,
               color: _kInk, fontFeatures: [FontFeature.tabularFigures()],

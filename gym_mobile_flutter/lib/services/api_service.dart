@@ -639,7 +639,13 @@ class ApiService {
   // ─── Sessions ─────────────────────────────────────────────────────────────
 
   Future<List<session_model.Session>> getUpcomingSessions(String gymId) async {
-    final data = await _get('/api/sessions');
+    // The /api/sessions endpoint paginates with per_page=50 by default and
+    // returns rows ordered ASC by session_date. With a populated gym (300+
+    // sessions) that means today / upcoming dates sit past the first page,
+    // and the schedule screen — which client-side filters by selected
+    // date — shows an empty day. Ask for the controller's upper bound so
+    // the mobile receives the full active+upcoming window in one shot.
+    final data = await _get('/api/sessions', queryParams: {'per_page': '1000'});
     List list;
     if (data is List) {
       list = data;

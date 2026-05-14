@@ -104,14 +104,21 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
 
-      const notif = data.notification as GymNotification;
+      const notif = (data.notification ?? data.data ?? data) as Partial<GymNotification>;
+      if (!isEdit && !notif.id) {
+        toast.error('Notification sent, but the response was incomplete. Refresh to see it.');
+        return;
+      }
+
+      const saved = notif as GymNotification;
       setNotifications(prev => isEdit
-        ? prev.map(n => n.id === editingId ? notif : n)
-        : [notif, ...prev]
+        ? prev.map(n => n.id === editingId ? { ...n, ...payload, ...notif } as GymNotification : n)
+        : [saved, ...prev]
       );
 
       if (form.sendMode === 'now') {
-        toast.success(`Notification sent to ${notif.recipient_count ?? 0} member${notif.recipient_count !== 1 ? 's' : ''}!`);
+        const count = saved.recipient_count ?? 0;
+        toast.success(`Notification sent to ${count} member${count !== 1 ? 's' : ''}!`);
         setActiveTab('sent');
       } else {
         toast.success('Notification scheduled');

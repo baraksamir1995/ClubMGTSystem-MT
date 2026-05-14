@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Bell, Send, Clock, History, Plus, Pencil, X, Trash2, Loader2, Users, Filter, CalendarClock, CheckCircle2, Zap, Target } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, Send, Clock, History, Plus, Pencil, X, Trash2, Loader2, Users, Filter, CalendarClock, CheckCircle2, Zap, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymNotification, PlanOption } from '@/app/dashboard/notifications/page';
 import { can, type Permission } from '@/lib/get-permissions';
@@ -13,6 +13,7 @@ interface Props {
 }
 
 const STATUSES = ['active', 'expired', 'suspended', 'cancelled'] as const;
+const PAGE_SIZE = 10;
 const STATUS_LABELS: Record<string, string> = { active: 'Active', expired: 'Expired', suspended: 'Suspended', cancelled: 'Cancelled' };
 
 const emptyForm = () => ({
@@ -37,9 +38,23 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
   const [sending,        setSending]        = useState(false);
   const [editingId,      setEditingId]      = useState<string | null>(null);
   const [cancellingId,   setCancellingId]   = useState<string | null>(null);
+  const [scheduledPage,  setScheduledPage]  = useState(1);
+  const [sentPage,       setSentPage]       = useState(1);
 
   const scheduled = notifications.filter(n => n.status === 'scheduled');
   const sent      = notifications.filter(n => n.status === 'sent');
+
+  // Total pages per tab. Reset the page index whenever the underlying list
+  // shrinks (e.g. user cancels the last item on page 3) so we don't render
+  // an empty page past the new end.
+  const scheduledPages = Math.max(1, Math.ceil(scheduled.length / PAGE_SIZE));
+  const sentPages      = Math.max(1, Math.ceil(sent.length      / PAGE_SIZE));
+  useEffect(() => { if (scheduledPage > scheduledPages) setScheduledPage(scheduledPages); }, [scheduledPages, scheduledPage]);
+  useEffect(() => { if (sentPage      > sentPages)      setSentPage(sentPages);           }, [sentPages, sentPage]);
+
+  // Page slice = the 10 items shown for the current tab page.
+  const scheduledSlice = scheduled.slice((scheduledPage - 1) * PAGE_SIZE, scheduledPage * PAGE_SIZE);
+  const sentSlice      = sent.slice((sentPage - 1) * PAGE_SIZE, sentPage * PAGE_SIZE);
 
   const inp = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500';
 
@@ -325,6 +340,7 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
 
       {/* ── SCHEDULED ── */}
       {activeTab === 'scheduled' && (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {scheduled.length === 0 ? (
             <div className="col-span-full bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
@@ -337,7 +353,7 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
                 </button>
               )}
             </div>
-          ) : scheduled.map(n => (
+          ) : scheduledSlice.map(n => (
             <div key={n.id} className="bg-gray-800 border border-gray-700 rounded-xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -370,17 +386,20 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
             </div>
           ))}
         </div>
+        <Pager total={scheduled.length} page={scheduledPage} pages={scheduledPages} onChange={setScheduledPage} />
+        </>
       )}
 
       {/* ── SENT HISTORY ── */}
       {activeTab === 'sent' && (
+        <>
         <div className="space-y-3">
           {sent.length === 0 ? (
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
               <History className="w-10 h-10 text-gray-600 mx-auto mb-3" />
               <p className="text-sm text-gray-400">No notifications sent yet</p>
             </div>
-          ) : sent.map(n => (
+          ) : sentSlice.map(n => (
             <div key={n.id} className="bg-gray-800 border border-gray-700 rounded-xl p-5">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -403,7 +422,50 @@ export default function NotificationsPage({ initialNotifications, plans, permiss
             </div>
           ))}
         </div>
+        <Pager total={sent.length} page={sentPage} pages={sentPages} onChange={setSentPage} />
+        </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Compact pager — hidden when the list fits on a single page so the layout
+ * stays clean for gyms with under PAGE_SIZE notifications. Renders prev /
+ * next arrows + a "Page X of Y · N total" indicator.
+ */
+function Pager({ total, page, pages, onChange }: {
+  total: number; page: number; pages: number; onChange: (p: number) => void;
+}) {
+  if (pages <= 1) return null;
+  const start = (page - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(page * PAGE_SIZE, total);
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3">
+      <p className="text-xs text-gray-500">
+        Showing <span className="text-gray-300">{start}–{end}</span> of <span className="text-gray-300">{total}</span>
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          className="p-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 disabled:text-gray-600 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-xs text-gray-400 px-2 tabular-nums">
+          Page {page} of {pages}
+        </span>
+        <button
+          onClick={() => onChange(Math.min(pages, page + 1))}
+          disabled={page >= pages}
+          className="p-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 disabled:text-gray-600 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+          aria-label="Next page"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

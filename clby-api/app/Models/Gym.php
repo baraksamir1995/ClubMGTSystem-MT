@@ -20,7 +20,7 @@ class Gym extends Model
         'name', 'description', 'address', 'city', 'country',
         'phone', 'email', 'website', 'logo_url', 'timezone', 'language',
         'owner_id', 'saas_tier', 'branding_config',
-        'mobile_payments_enabled', 'operating_hours', 'max_branches',
+        'mobile_payments_enabled', 'session_transfer_enabled', 'operating_hours', 'max_branches',
         'price_per_branch', 'capacity_feature_enabled', 'max_capacity',
         'category', 'latitude', 'longitude', 'services', 'is_listed',
         'cover_image_url',
@@ -31,6 +31,7 @@ class Gym extends Model
         return [
             'is_active' => 'boolean',
             'mobile_payments_enabled' => 'boolean',
+            'session_transfer_enabled' => 'boolean',
             'capacity_feature_enabled' => 'boolean',
             'is_listed' => 'boolean',
             'branding_config' => 'array',

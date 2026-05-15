@@ -5,6 +5,10 @@ class Gym {
   final String? primaryColor;
   final String? secondaryColor;
   final bool mobilePaymentsEnabled;
+  // Per-gym toggle (admin Settings → "Session Transfers"). When false the
+  // profile screen hides the "Share sessions" entry point. Defaults true
+  // so a not-yet-loaded gym keeps the current behaviour (fail-open).
+  final bool sessionTransferEnabled;
 
   const Gym({
     required this.id,
@@ -13,6 +17,7 @@ class Gym {
     this.primaryColor,
     this.secondaryColor,
     this.mobilePaymentsEnabled = true,
+    this.sessionTransferEnabled = true,
   });
 
   factory Gym.fromJson(Map<String, dynamic> json) {
@@ -25,6 +30,7 @@ class Gym {
       primaryColor: branding?['primary_color'] as String? ?? json['primary_color'] as String?,
       secondaryColor: branding?['secondary_color'] as String? ?? json['secondary_color'] as String?,
       mobilePaymentsEnabled: json['mobile_payments_enabled'] as bool? ?? true,
+      sessionTransferEnabled: json['session_transfer_enabled'] as bool? ?? true,
     );
   }
 
@@ -38,6 +44,7 @@ class Gym {
         'secondary_color': secondaryColor,
       },
       'mobile_payments_enabled': mobilePaymentsEnabled,
+      'session_transfer_enabled': sessionTransferEnabled,
     };
   }
 }

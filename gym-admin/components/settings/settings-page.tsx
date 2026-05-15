@@ -46,6 +46,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const [hours,       setHours]       = useState<OperatingHours>(gym.operating_hours ?? DEFAULT_HOURS);
   const [logoUrl,     setLogoUrl]     = useState(gym.logo_url);
   const [mobilePaymentsEnabled, setMobilePaymentsEnabled] = useState(gym.mobile_payments_enabled);
+  const [sessionTransferEnabled, setSessionTransferEnabled] = useState(gym.session_transfer_enabled ?? true);
   const [capacityEnabled, setCapacityEnabled] = useState(gym.capacity_feature_enabled ?? false);
   const [maxCapacity,     setMaxCapacity]     = useState(String(gym.max_capacity ?? 100));
   const [savingCapacity,  setSavingCapacity]  = useState(false);
@@ -135,7 +136,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobilePaymentsEnabled }),
+        body: JSON.stringify({ mobilePaymentsEnabled, sessionTransferEnabled }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
@@ -463,6 +464,29 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               >
                 <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
                   mobilePaymentsEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            {/* Session transfers toggle */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-white">Session Transfers</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Allow members to transfer sessions to another member from their profile.
+                  When disabled, the &quot;Share sessions&quot; entry point is hidden in the member app.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => can(permissions, 'settings', 'edit') && setSessionTransferEnabled(v => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                  sessionTransferEnabled ? 'bg-purple-600' : 'bg-gray-600'
+                } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                aria-pressed={sessionTransferEnabled}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                  sessionTransferEnabled ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>

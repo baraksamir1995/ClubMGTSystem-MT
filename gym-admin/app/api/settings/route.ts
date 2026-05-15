@@ -37,6 +37,8 @@ export async function PATCH(req: NextRequest) {
   if (body.branding_config !== undefined) payload.branding_config = body.branding_config;
   if (body.mobilePaymentsEnabled !== undefined) payload.mobile_payments_enabled = body.mobilePaymentsEnabled;
   if (body.mobile_payments_enabled !== undefined) payload.mobile_payments_enabled = body.mobile_payments_enabled;
+  if (body.sessionTransferEnabled !== undefined) payload.session_transfer_enabled = body.sessionTransferEnabled;
+  if (body.session_transfer_enabled !== undefined) payload.session_transfer_enabled = body.session_transfer_enabled;
   if (body.capacityEnabled !== undefined) payload.capacity_feature_enabled = body.capacityEnabled;
   if (body.capacity_feature_enabled !== undefined) payload.capacity_feature_enabled = body.capacity_feature_enabled;
   if (body.maxCapacity !== undefined) payload.max_capacity = body.maxCapacity;

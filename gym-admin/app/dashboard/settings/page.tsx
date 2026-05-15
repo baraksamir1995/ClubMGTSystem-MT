@@ -52,6 +52,7 @@ export default async function SettingsRoute() {
     description:              gym?.description              ?? null,
     operating_hours:          gym?.operating_hours          ?? null,
     mobile_payments_enabled:  gym?.mobile_payments_enabled  ?? true,
+    session_transfer_enabled: gym?.session_transfer_enabled ?? true,
     capacity_feature_enabled: gym?.capacity_feature_enabled ?? false,
     max_capacity:             gym?.max_capacity             ?? null,
     branding_config:          gym?.branding_config          ?? null,

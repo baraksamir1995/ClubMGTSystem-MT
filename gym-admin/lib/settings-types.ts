@@ -13,6 +13,7 @@ export interface GymSettings {
   description: string | null;
   operating_hours: OperatingHours | null;
   mobile_payments_enabled: boolean;
+  session_transfer_enabled: boolean;
   capacity_feature_enabled: boolean;
   max_capacity: number | null;
   branding_config: BrandingConfig | null;

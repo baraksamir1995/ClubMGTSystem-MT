@@ -59,6 +59,7 @@ class GymController extends Controller
             'category' => $gym->category,
             'services' => $gym->services,
             'mobile_payments_enabled' => $gym->mobile_payments_enabled,
+            'session_transfer_enabled' => $gym->session_transfer_enabled,
         ]);
     }
 
@@ -80,6 +81,7 @@ class GymController extends Controller
             'language' => 'sometimes|string|max:10',
             'branding_config' => 'nullable|array',
             'mobile_payments_enabled' => 'sometimes|boolean',
+            'session_transfer_enabled' => 'sometimes|boolean',
             'operating_hours' => 'nullable|array',
             'capacity_feature_enabled' => 'sometimes|boolean',
             'max_capacity' => 'sometimes|integer|min:1',

@@ -202,9 +202,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
 
-                  // Share sessions banner — dark with primary CTA tile
+                  // Share sessions banner — dark with primary CTA tile.
+                  // Gated on the gym's session_transfer_enabled flag (admin
+                  // Settings toggle). `gym` may be null on a cold start
+                  // before it loads — default to showing (?? true) so we
+                  // don't flicker the banner away from gyms that have it on.
                   if (mp.membershipSummary != null
-                      && mp.membershipSummary!.totalSessions > 0)
+                      && mp.membershipSummary!.totalSessions > 0
+                      && (gym?.sessionTransferEnabled ?? true))
                     Padding(
                       padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
                       child: _buildShareBanner(primary: primary),

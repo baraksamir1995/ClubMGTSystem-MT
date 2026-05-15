@@ -6,14 +6,13 @@ import BannersTab from './banners-tab';
 import PopupsTab from './popups-tab';
 import PartnersTab, { type GymPartner } from './partners-tab';
 import NotificationsPage from '@/components/notifications/notifications-page';
-import type { GymBanner, GymPopup, GymNotification, PlanOption } from '@/app/dashboard/content/page';
+import type { GymBanner, GymPopup, PlanOption } from '@/app/dashboard/content/page';
 import type { Permission } from '@/lib/get-permissions';
 
 interface Props {
   initialBanners: GymBanner[];
   initialPopups: GymPopup[];
   initialPartners: GymPartner[];
-  initialNotifications: GymNotification[];
   planOptions: PlanOption[];
   permissions: Permission[] | null;
   gymId: string;
@@ -23,7 +22,7 @@ type Tab = 'banners' | 'popups' | 'partners' | 'communications';
 
 export default function ContentPage({
   initialBanners, initialPopups,
-  initialPartners, initialNotifications, planOptions,
+  initialPartners, planOptions,
   permissions, gymId,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('banners');
@@ -58,7 +57,7 @@ export default function ContentPage({
       {activeTab === 'banners'        && <BannersTab        initialBanners={initialBanners} permissions={permissions} />}
       {activeTab === 'popups'         && <PopupsTab         initialPopups={initialPopups} permissions={permissions} />}
       {activeTab === 'partners'       && <PartnersTab       initialPartners={initialPartners} permissions={permissions} gymId={gymId} />}
-      {activeTab === 'communications' && <NotificationsPage initialNotifications={initialNotifications} plans={planOptions} permissions={permissions} />}
+      {activeTab === 'communications' && <NotificationsPage plans={planOptions} permissions={permissions} />}
     </div>
   );
 }

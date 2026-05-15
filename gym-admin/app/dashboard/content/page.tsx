@@ -64,12 +64,13 @@ export default async function ContentRoute() {
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
 
-  const [bannersData, popupsData, partnersData, notifData, plansData] =
+  // /notifications no longer fetched here — the communications tab's
+  // NotificationsPage does its own per-tab server-paged loading.
+  const [bannersData, popupsData, partnersData, plansData] =
     await Promise.all([
       fetchApi('/content/banners', token),
       fetchApi('/content/popups', token),
       fetchApi('/content/partners', token),
-      fetchApi('/notifications', token),
       fetchApi('/plans', token),
     ]);
 
@@ -78,7 +79,6 @@ export default async function ContentRoute() {
       initialBanners={(bannersData?.data ?? bannersData ?? []) as GymBanner[]}
       initialPopups={(popupsData?.data ?? popupsData ?? []) as GymPopup[]}
       initialPartners={(partnersData?.data ?? partnersData ?? []) as GymPartner[]}
-      initialNotifications={(notifData?.data ?? notifData ?? []) as GymNotification[]}
       planOptions={(plansData?.data ?? plansData ?? []).map((p: any) => ({ id: p.id, name: p.name })) as PlanOption[]}
       permissions={permissions}
       gymId={gymId}

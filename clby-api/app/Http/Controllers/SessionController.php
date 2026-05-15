@@ -28,6 +28,19 @@ class SessionController extends Controller
             $query->where('session_date', $date);
         }
 
+        // Server-side date window. The mobile schedule only navigates
+        // today..+29d, so it sends from/to instead of pulling the full
+        // history — the returned volume is then bounded by the window
+        // length, not by gym age. Only applied when present; the admin
+        // SSR (date=/per_page=999) path is unaffected.
+        if ($from = $request->query('from')) {
+            $query->where('session_date', '>=', $from);
+        }
+
+        if ($to = $request->query('to')) {
+            $query->where('session_date', '<=', $to);
+        }
+
         if ($classId = $request->query('class_id')) {
             $query->where('class_id', $classId);
         }

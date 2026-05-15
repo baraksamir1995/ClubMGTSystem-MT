@@ -639,24 +639,44 @@ class ApiService {
   // ─── Sessions ─────────────────────────────────────────────────────────────
 
   Future<List<session_model.Session>> getUpcomingSessions(String gymId) async {
-    // The /api/sessions endpoint paginates with per_page=50 by default and
-    // returns rows ordered ASC by session_date. With a populated gym (300+
-    // sessions) that means today / upcoming dates sit past the first page,
-    // and the schedule screen — which client-side filters by selected
-    // date — shows an empty day. Ask for the controller's upper bound so
-    // the mobile receives the full active+upcoming window in one shot.
-    final data = await _get('/api/sessions', queryParams: {'per_page': '1000'});
-    List list;
-    if (data is List) {
-      list = data;
-    } else if (data is Map && data['data'] is List) {
-      list = data['data'] as List;
-    } else {
-      return [];
+    // Server-side date window instead of pulling the full history. Both
+    // schedule screens only navigate today..+29d (_dateRange), so a
+    // today..+30d window covers every reachable date with no empty-day
+    // regression, and the response volume is bounded by the window — not
+    // by gym age. Pages are drained so a very busy gym can't truncate.
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    String fmt(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final from = fmt(today);
+    final to = fmt(today.add(const Duration(days: 30)));
+
+    final sessions = <session_model.Session>[];
+    for (var page = 1; page <= 20; page++) {
+      final data = await _get('/api/sessions', queryParams: {
+        'from': from,
+        'to': to,
+        'per_page': '200',
+        'page': '$page',
+      });
+      List list;
+      int? lastPage;
+      if (data is List) {
+        list = data;
+      } else if (data is Map && data['data'] is List) {
+        list = data['data'] as List;
+        final lp = data['last_page'];
+        if (lp is num) lastPage = lp.toInt();
+      } else {
+        break;
+      }
+      sessions.addAll(list.map(
+          (e) => session_model.Session.fromJson(e as Map<String, dynamic>)));
+      if (list.isEmpty || lastPage == null || page >= lastPage) break;
     }
-    return list
-        .map((e) => session_model.Session.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return sessions;
   }
 
   Future<List<String>> getBookedSessionIds(String memberId) async {

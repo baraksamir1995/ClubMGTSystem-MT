@@ -28,6 +28,29 @@ class AnalyticsController extends Controller
         $from = $request->query('from', now()->subDays(90)->toDateString());
         $to = $request->query('to', now()->toDateString());
 
+        // Cap the window. The timeline helpers build one row per day via
+        // generate_series(from, to, '1 day') with per-bucket aggregation;
+        // an unbounded range (e.g. from=2000-01-01) generates thousands of
+        // buckets and pins an FPM worker + its PG connection until the
+        // 60s FastCGI timeout. 366 days covers the widest legit dashboard
+        // view (trailing year) with margin.
+        try {
+            $fromDate = \Carbon\Carbon::parse($from)->startOfDay();
+            $toDate   = \Carbon\Carbon::parse($to)->endOfDay();
+        } catch (\Throwable) {
+            return response()->json(['error' => 'invalid_date'], 422);
+        }
+        if ($fromDate->greaterThan($toDate)) {
+            return response()->json(['error' => 'from_after_to'], 422);
+        }
+        if ($fromDate->diffInDays($toDate) > 366) {
+            return response()->json([
+                'error' => 'range_too_large',
+                'message' => 'Analytics range is limited to 366 days.',
+                'max_days' => 366,
+            ], 422);
+        }
+
         return response()->json([
             'members' => $this->memberAnalytics($gymId, $from, $to),
             'revenue' => $this->revenueAnalytics($gymId, $from, $to),

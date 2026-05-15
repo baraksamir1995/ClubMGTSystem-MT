@@ -60,7 +60,13 @@ class PaymentController extends Controller
             return response()->json(['data' => $results]);
         }
 
-        $results = DB::select('SELECT * FROM get_gym_payments(?)', [$gymId]);
+        // Optional pagination passthrough. Defaults match the SQL
+        // function's own DEFAULT (5000 / 0) so existing callers + the
+        // current admin table (which still aggregates client-side) are
+        // unaffected. Clamp to sane bounds.
+        $limit  = max(1, min((int) $request->query('limit', 5000), 5000));
+        $offset = max(0, (int) $request->query('offset', 0));
+        $results = DB::select('SELECT * FROM get_gym_payments(?, ?, ?)', [$gymId, $limit, $offset]);
 
         // Cast numeric string columns to floats (PG returns decimal as string)
         $numericCols = ['amount', 'original_amount', 'discount_amount', 'refund_amount', 'refunded_amount'];

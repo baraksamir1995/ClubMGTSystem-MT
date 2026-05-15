@@ -2,11 +2,18 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 import { resolveGymId, laravelApi } from '@/lib/api-gym-id';
+import { denyUnlessPermitted } from '@/lib/get-permissions';
 
 export async function POST(req: Request) {
   const resolved = await resolveGymId();
   if (resolved.response) return resolved.response;
   const { token } = resolved;
+
+  // /paymob/intention is intentionally member-facing on the backend (mobile
+  // checkout), so this proxy is the only enforcement point for the admin
+  // send-link flow. Mirror the POST /api/payments guard.
+  const denied = await denyUnlessPermitted(token, 'payments', 'create');
+  if (denied) return denied;
 
   const body = await req.json();
   const res = await laravelApi('/paymob/intention', token, {

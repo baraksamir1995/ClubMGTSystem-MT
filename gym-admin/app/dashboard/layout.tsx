@@ -104,8 +104,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         allowedModules = modules;
       }
     } catch {
-      // If permission check fails, show all (fail open for UX, endpoints still validate)
-      allowedModules = null;
+      // Fail closed for staff/trainer: a thrown/unexpected permission
+      // response must not expose the full admin nav. Behave like a
+      // zero-permission staff member (empty set) — the guard below then
+      // restricts/redirects. null stays reserved for confirmed
+      // unrestricted users (handled above).
+      allowedModules = new Set();
     }
   }
 

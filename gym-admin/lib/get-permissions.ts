@@ -51,7 +51,12 @@ export const getStaffPermissions = cache(async (token: string): Promise<Permissi
 
     const staffList = staffData?.data ?? staffData ?? [];
     const myStaff = staffList.find((s: any) => s.user_id === me.id);
-    if (!myStaff) return null;
+    // Fail closed: a staff/trainer with no resolvable staff row gets no
+    // permissions, not owner access. null is reserved for confirmed
+    // gym_admin only (above) — returning it here would promote any
+    // unmatched staff row (stale row, unexpected shape, or a paginated
+    // /staff response that omits this user) to full dashboard admin.
+    if (!myStaff) return [];
 
     const myRoleIds = (myStaff.roles ?? []).map((r: any) => r.id);
     if (myRoleIds.length === 0) return [];

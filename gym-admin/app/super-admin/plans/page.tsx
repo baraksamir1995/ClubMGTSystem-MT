@@ -112,17 +112,17 @@ export default function PlansPage() {
 
   const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 }).format(n);
 
-  const inp = 'w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors';
+  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
 
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Gym Plans</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage subscription plans for gyms</p>
+          <h1 className="text-2xl font-bold text-fg">Gym Plans</h1>
+          <p className="text-sm text-fg-muted mt-0.5">Manage subscription plans for gyms</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Add Plan
         </button>
       </div>
@@ -130,35 +130,35 @@ export default function PlansPage() {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-              <h2 className="text-lg font-semibold text-white">{editingId ? 'Edit Plan' : 'New Plan'}</h2>
-              <button onClick={() => { setShowForm(false); resetForm(); }} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+              <h2 className="text-lg font-semibold text-fg">{editingId ? 'Edit Plan' : 'New Plan'}</h2>
+              <button onClick={() => { setShowForm(false); resetForm(); }} className="text-fg-muted hover:text-fg"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Plan Name *</label>
+                <label className="block text-xs font-medium text-fg-muted mb-1">Plan Name *</label>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Starter, Pro, Enterprise" className={inp} required />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Description</label>
+                <label className="block text-xs font-medium text-fg-muted mb-1">Description</label>
                 <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" className={inp} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1">Monthly Price (EGP) *</label>
+                  <label className="block text-xs font-medium text-fg-muted mb-1">Monthly Price (EGP) *</label>
                   <input type="number" min="0" step="1" value={priceMonthly} onChange={e => setPriceMonthly(e.target.value)} placeholder="0" className={inp} required />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1">Annual Price (EGP) *</label>
+                  <label className="block text-xs font-medium text-fg-muted mb-1">Annual Price (EGP) *</label>
                   <input type="number" min="0" step="1" value={priceAnnual} onChange={e => setPriceAnnual(e.target.value)} placeholder="0" className={inp} required />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => { setShowForm(false); resetForm(); }}
-                  className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancel</button>
+                  className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
                 <button type="submit" disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
                   {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                   {editingId ? 'Save' : 'Create'}
                 </button>
@@ -170,50 +170,50 @@ export default function PlansPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-brand animate-spin" />
         </div>
       )}
 
       {!loading && plans.length === 0 && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <FileText className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No plans yet. Create your first plan.</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+          <FileText className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <p className="text-sm text-fg-muted">No plans yet. Create your first plan.</p>
         </div>
       )}
 
       {!loading && plans.length > 0 && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">PLAN</th>
-                <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">MONTHLY</th>
-                <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">ANNUAL</th>
-                <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">STATUS</th>
-                <th className="text-right text-xs text-gray-400 font-medium px-5 py-3">ACTIONS</th>
+              <tr className="border-b border-line">
+                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PLAN</th>
+                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">MONTHLY</th>
+                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">ANNUAL</th>
+                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">STATUS</th>
+                <th className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700/50">
+            <tbody className="divide-y divide-line">
               {plans.map(plan => (
-                <tr key={plan.id} className="hover:bg-gray-700/20 transition-colors">
+                <tr key={plan.id} className="hover:bg-surface-3/20 transition-colors">
                   <td className="px-5 py-3.5">
-                    <p className="text-white font-medium">{plan.name}</p>
-                    {plan.description && <p className="text-xs text-gray-500 mt-0.5">{plan.description}</p>}
+                    <p className="text-fg font-medium">{plan.name}</p>
+                    {plan.description && <p className="text-xs text-fg-faint mt-0.5">{plan.description}</p>}
                   </td>
-                  <td className="px-5 py-3.5 text-white">{fmt(plan.price_monthly)}</td>
-                  <td className="px-5 py-3.5 text-white">{fmt(plan.price_annual)}</td>
+                  <td className="px-5 py-3.5 text-fg">{fmt(plan.price_monthly)}</td>
+                  <td className="px-5 py-3.5 text-fg">{fmt(plan.price_annual)}</td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleActive(plan)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer ${plan.is_active ? 'bg-emerald-400/20 text-emerald-400' : 'bg-gray-400/20 text-gray-400'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer ${plan.is_active ? 'bg-emerald-400/20 text-emerald-400' : 'bg-gray-400/20 text-fg-muted'}`}>
                       {plan.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(plan)} className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors">
+                      <button onClick={() => openEdit(plan)} className="p-1.5 text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => deletePlan(plan)} className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
+                      <button onClick={() => deletePlan(plan)} className="p-1.5 text-fg-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

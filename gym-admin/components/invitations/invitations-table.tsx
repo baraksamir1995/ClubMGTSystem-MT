@@ -13,7 +13,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   pending:     { label: 'Pending',     color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', icon: Clock },
   accepted:    { label: 'Accepted',    color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',       icon: CheckCircle },
   active:      { label: 'Active',      color: 'text-green-400 bg-green-400/10 border-green-400/20',    icon: Activity },
-  expired:     { label: 'Expired',     color: 'text-gray-500 bg-gray-500/10 border-gray-500/20',       icon: AlertCircle },
+  expired:     { label: 'Expired',     color: 'text-fg-faint bg-gray-500/10 border-gray-500/20',       icon: AlertCircle },
   invalidated: { label: 'Invalidated', color: 'text-red-400 bg-red-400/10 border-red-400/20',          icon: Ban },
 };
 
@@ -82,8 +82,8 @@ export default function InvitationsTable({ invitations: initial }: Props) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Guest Invitations</h1>
-        <p className="text-sm text-gray-400 mt-1">Track and manage member guest invitations</p>
+        <h1 className="text-xl font-bold text-fg">Guest Invitations</h1>
+        <p className="text-sm text-fg-muted mt-1">Track and manage member guest invitations</p>
       </div>
 
       {/* Summary cards */}
@@ -92,27 +92,27 @@ export default function InvitationsTable({ invitations: initial }: Props) {
           { key: 'pending',     label: 'Pending',     color: 'text-yellow-400' },
           { key: 'accepted',    label: 'Accepted',    color: 'text-blue-400' },
           { key: 'active',      label: 'Active',      color: 'text-green-400' },
-          { key: 'expired',     label: 'Expired',     color: 'text-gray-400' },
+          { key: 'expired',     label: 'Expired',     color: 'text-fg-muted' },
           { key: 'invalidated', label: 'Invalidated', color: 'text-red-400' },
         ].map(c => (
           <button
             key={c.key}
             onClick={() => setStatusFilter(prev => prev === c.key ? 'all' : c.key)}
-            className={`bg-gray-800 border rounded-xl p-4 text-left transition-colors ${statusFilter === c.key ? 'border-purple-500 bg-purple-500/5' : 'border-gray-700 hover:border-gray-600'}`}
+            className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === c.key ? "border-brand bg-brand/5" : "border-line hover:border-line-strong"}`}
           >
             <p className={`text-2xl font-bold ${c.color}`}>{counts[c.key as keyof typeof counts]}</p>
-            <p className="text-xs text-gray-400 mt-1">{c.label}</p>
+            <p className="text-xs text-fg-muted mt-1">{c.label}</p>
           </button>
         ))}
       </div>
 
       {/* Filter bar */}
       <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-gray-500" />
+        <Filter className="w-4 h-4 text-fg-faint" />
         <div className="flex gap-1.5 flex-wrap">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'all' ? 'bg-brand text-brand-ink' : 'bg-surface-3 text-fg-muted hover:bg-surface-4'}`}
           >
             All ({counts.all})
           </button>
@@ -120,7 +120,7 @@ export default function InvitationsTable({ invitations: initial }: Props) {
             <button
               key={s}
               onClick={() => setStatusFilter(prev => prev === s ? 'all' : s)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${statusFilter === s ? 'bg-brand text-brand-ink' : 'bg-surface-3 text-fg-muted hover:bg-surface-4'}`}
             >
               {STATUS_CONFIG[s].label} ({counts[s as keyof typeof counts]})
             </button>
@@ -130,25 +130,25 @@ export default function InvitationsTable({ invitations: initial }: Props) {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <Mail className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">No invitations found</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+          <Mail className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <p className="text-fg-muted text-sm">No invitations found</p>
         </div>
       ) : (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Guest</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Invited By</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Pass Type</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sent</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Expires</th>
+              <tr className="border-b border-line">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-fg-muted uppercase tracking-wider">Guest</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-fg-muted uppercase tracking-wider">Invited By</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-fg-muted uppercase tracking-wider">Pass Type</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-fg-muted uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-fg-muted uppercase tracking-wider">Sent</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-fg-muted uppercase tracking-wider">Expires</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700/50">
+            <tbody className="divide-y divide-line">
               {filtered.map(inv => {
                 const member = inv.gym_members;
                 const memberName = member?.profiles?.full_name ?? '—';
@@ -158,22 +158,22 @@ export default function InvitationsTable({ invitations: initial }: Props) {
                   : `${inv.max_visits} visit${inv.max_visits !== 1 ? 's' : ''}`;
 
                 return (
-                  <tr key={inv.id} className="hover:bg-gray-700/30 transition-colors">
+                  <tr key={inv.id} className="hover:bg-surface-3/30 transition-colors">
                     {/* Guest */}
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <User className="w-4 h-4 text-gray-400" />
+                        <div className="w-8 h-8 rounded-full bg-surface-3 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <User className="w-4 h-4 text-fg-muted" />
                         </div>
                         <div>
-                          <p className="text-white font-medium">{inv.guest_name ?? 'Unknown'}</p>
+                          <p className="text-fg font-medium">{inv.guest_name ?? 'Unknown'}</p>
                           <div className="flex items-center gap-1 mt-0.5">
-                            <Mail className="w-3 h-3 text-gray-500" />
-                            <span className="text-gray-400 text-xs">{inv.guest_email}</span>
+                            <Mail className="w-3 h-3 text-fg-faint" />
+                            <span className="text-fg-muted text-xs">{inv.guest_email}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-gray-500" />
-                            <span className="text-gray-400 text-xs">{inv.guest_phone}</span>
+                            <Phone className="w-3 h-3 text-fg-faint" />
+                            <span className="text-fg-muted text-xs">{inv.guest_phone}</span>
                           </div>
                         </div>
                       </div>
@@ -181,15 +181,15 @@ export default function InvitationsTable({ invitations: initial }: Props) {
 
                     {/* Invited by */}
                     <td className="px-4 py-3">
-                      <p className="text-white text-sm">{memberName}</p>
-                      {memberNum && <p className="text-gray-500 text-xs">{memberNum}</p>}
+                      <p className="text-fg text-sm">{memberName}</p>
+                      {memberNum && <p className="text-fg-faint text-xs">{memberNum}</p>}
                     </td>
 
                     {/* Pass type */}
                     <td className="px-4 py-3">
-                      <span className="text-gray-300 text-sm">{passLabel}</span>
+                      <span className="text-fg-muted text-sm">{passLabel}</span>
                       {inv.duration_type === 'per_visit' && inv.visits_used > 0 && (
-                        <p className="text-gray-500 text-xs">{inv.visits_used} used</p>
+                        <p className="text-fg-faint text-xs">{inv.visits_used} used</p>
                       )}
                     </td>
 
@@ -197,18 +197,18 @@ export default function InvitationsTable({ invitations: initial }: Props) {
                     <td className="px-4 py-3">
                       <StatusBadge status={inv.status} />
                       {inv.status === 'pending' && (
-                        <p className="text-xs text-gray-500 mt-1">{countdown(inv.expires_at)}</p>
+                        <p className="text-xs text-fg-faint mt-1">{countdown(inv.expires_at)}</p>
                       )}
                       {inv.status === 'active' && inv.pass_expires_at && (
-                        <p className="text-xs text-gray-500 mt-1">Pass: {countdown(inv.pass_expires_at)}</p>
+                        <p className="text-xs text-fg-faint mt-1">Pass: {countdown(inv.pass_expires_at)}</p>
                       )}
                     </td>
 
                     {/* Sent */}
-                    <td className="px-4 py-3 text-gray-400 text-sm">{fmtDate(inv.created_at)}</td>
+                    <td className="px-4 py-3 text-fg-muted text-sm">{fmtDate(inv.created_at)}</td>
 
                     {/* Validity */}
-                    <td className="px-4 py-3 text-gray-400 text-sm">{fmtDate(inv.expires_at)}</td>
+                    <td className="px-4 py-3 text-fg-muted text-sm">{fmtDate(inv.expires_at)}</td>
 
                     {/* Actions */}
                     <td className="px-4 py-3 text-right">

@@ -8,6 +8,7 @@ import PartnersTab, { type GymPartner } from './partners-tab';
 import NotificationsPage from '@/components/notifications/notifications-page';
 import type { GymBanner, GymPopup, PlanOption } from '@/app/dashboard/content/page';
 import type { Permission } from '@/lib/get-permissions';
+import { Tabs } from '@/components/ui';
 
 interface Props {
   initialBanners: GymBanner[];
@@ -27,32 +28,21 @@ export default function ContentPage({
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('banners');
 
-  const tabCls = (t: Tab) =>
-    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-      activeTab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-    }`;
-
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-white">Content</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage everything members see in the app</p>
+        <h1 className="text-2xl font-bold text-fg">Content</h1>
+        <p className="text-sm text-fg-muted mt-0.5">Manage everything members see in the app</p>
       </div>
 
-      <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 flex-wrap">
-        <button onClick={() => setActiveTab('banners')} className={tabCls('banners')}>
-          <LayoutTemplate className="w-4 h-4" /> Banners
-        </button>
-        <button onClick={() => setActiveTab('popups')} className={tabCls('popups')}>
-          <Layers className="w-4 h-4" /> Pop-ups
-        </button>
-        <button onClick={() => setActiveTab('partners')} className={tabCls('partners')}>
-          <Handshake className="w-4 h-4" /> Partners
-        </button>
-        <button onClick={() => setActiveTab('communications')} className={tabCls('communications')}>
-          <Bell className="w-4 h-4" /> Communications
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+        <Tabs.List className="flex-wrap">
+          <Tabs.Trigger value="banners" icon={LayoutTemplate}>Banners</Tabs.Trigger>
+          <Tabs.Trigger value="popups" icon={Layers}>Pop-ups</Tabs.Trigger>
+          <Tabs.Trigger value="partners" icon={Handshake}>Partners</Tabs.Trigger>
+          <Tabs.Trigger value="communications" icon={Bell}>Communications</Tabs.Trigger>
+        </Tabs.List>
+      </Tabs>
 
       {activeTab === 'banners'        && <BannersTab        initialBanners={initialBanners} permissions={permissions} />}
       {activeTab === 'popups'         && <PopupsTab         initialPopups={initialPopups} permissions={permissions} />}

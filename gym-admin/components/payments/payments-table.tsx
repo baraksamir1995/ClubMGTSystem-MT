@@ -12,15 +12,16 @@ import ReminderModal from './reminder-modal';
 import type { Payment, MemberOption, GymInfo, ServiceOption, TrainerOption, PromoCode } from '@/app/dashboard/payments/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { can, type Permission } from '@/lib/get-permissions';
+import { Badge, type BadgeProps, Button } from '@/components/ui';
 
 const PAGE_SIZE = 10;
 
-const statusConfig: Record<string, { label: string; icon: React.ElementType; cls: string; dot: string }> = {
-  paid:          { label: 'Paid',          icon: CheckCircle, cls: 'bg-emerald-400/10 text-emerald-400',  dot: 'bg-emerald-400' },
-  pending:       { label: 'Pending',       icon: Clock,       cls: 'bg-amber-400/10 text-amber-400',      dot: 'bg-amber-400' },
-  overdue:       { label: 'Overdue',       icon: AlertCircle, cls: 'bg-red-400/10 text-red-400',          dot: 'bg-red-400' },
-  refunded:      { label: 'Refunded',      icon: RotateCcw,   cls: 'bg-blue-400/10 text-blue-400',        dot: 'bg-blue-400' },
-  partial_refund:{ label: 'Part. Refund',  icon: RotateCcw,   cls: 'bg-blue-400/10 text-blue-400',        dot: 'bg-blue-400' },
+const statusConfig: Record<string, { label: string; icon: React.ElementType; variant: BadgeProps['variant']; dot: string }> = {
+  paid:          { label: 'Paid',          icon: CheckCircle, variant: 'success', dot: 'bg-success' },
+  pending:       { label: 'Pending',       icon: Clock,       variant: 'warning', dot: 'bg-warning' },
+  overdue:       { label: 'Overdue',       icon: AlertCircle, variant: 'danger',  dot: 'bg-danger' },
+  refunded:      { label: 'Refunded',      icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
+  partial_refund:{ label: 'Part. Refund',  icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
 };
 
 const methodLabel: Record<string, string> = {
@@ -138,7 +139,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   };
 
   const overduePayments = payments.filter(p => p.status === 'overdue');
-  const selectCls = 'bg-gray-700 border border-gray-600 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors';
+  const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
 
   return (
     <>
@@ -146,31 +147,28 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Payments</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Record and track member payments</p>
+            <h1 className="text-2xl font-bold text-fg">Payments</h1>
+            <p className="text-sm text-fg-muted mt-0.5">Record and track member payments</p>
           </div>
           <div className="flex items-center gap-2">
             {overduePayments.length > 0 && can(permissions, 'payments', 'create') && (
-              <button onClick={() => setReminderOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg transition-colors">
-                <Bell className="w-4 h-4" />
+              <Button variant="danger" onClick={() => setReminderOpen(true)} leftIcon={<Bell className="w-4 h-4" />}>
                 Send Reminders
-                <span className="bg-red-400/30 text-red-200 text-xs px-1.5 py-0.5 rounded-full">{overduePayments.length}</span>
-              </button>
+                <span className="ml-1.5 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{overduePayments.length}</span>
+              </Button>
             )}
             {can(permissions, 'payments', 'create') && (
-              <button onClick={() => setModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors">
-                <Plus className="w-4 h-4" /> Record Payment
-              </button>
+              <Button variant="primary" onClick={() => setModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+                Record Payment
+              </Button>
             )}
           </div>
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-            <p className="text-xs text-gray-400 mb-1">Total Revenue</p>
+          <div className="bg-surface-2 border border-line rounded-xl p-4">
+            <p className="text-xs text-fg-muted mb-1">Total Revenue</p>
             <p className="text-xl font-bold text-emerald-400">{fmt(totalRevenue)}</p>
           </div>
           {[
@@ -180,45 +178,45 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
           ].map(s => (
             <button key={s.filter}
               onClick={() => setStatusFilter(statusFilter === s.filter ? 'all' : s.filter)}
-              className={`bg-gray-800 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? 'border-purple-500' : 'border-gray-700 hover:border-gray-600'}`}>
-              <p className="text-xs text-gray-400 mb-1">{s.label}</p>
+              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}>
+              <p className="text-xs text-fg-muted mb-1">{s.label}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
           ))}
         </div>
 
         {/* Search + Filters */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by member name, email, or member #…"
-              className="w-full pl-9 pr-9 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full pl-9 pr-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg">
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-white">Filters</span>
+            <Filter className="w-4 h-4 text-fg-muted" />
+            <span className="text-sm font-medium text-fg">Filters</span>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="ml-auto text-xs text-gray-400 hover:text-white transition-colors">Clear all</button>
+              <button onClick={clearFilters} className="ml-auto text-xs text-fg-muted hover:text-fg transition-colors">Clear all</button>
             )}
           </div>
 
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">From</label>
+              <label className="block text-xs text-fg-faint mb-1">From</label>
               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className={selectCls + ' w-full [color-scheme:dark]'} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">To</label>
+              <label className="block text-xs text-fg-faint mb-1">To</label>
               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
                 className={selectCls + ' w-full [color-scheme:dark]'} />
             </div>
@@ -261,19 +259,19 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                     ? 'All Branches'
                     : `${branchFilter.length} Branch${branchFilter.length > 1 ? 'es' : ''}`}
                   {branchFilter.length > 0 && (
-                    <span className="ml-1 bg-purple-500/20 text-purple-400 text-xs px-1.5 py-0.5 rounded-full">{branchFilter.length}</span>
+                    <span className="ml-1 bg-brand/20 text-brand text-xs px-1.5 py-0.5 rounded-full">{branchFilter.length}</span>
                   )}
                 </button>
-                <div className={`${branchDropdownOpen ? '' : 'hidden'} absolute z-20 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto`}>
+                <div className={`${branchDropdownOpen ? '' : 'hidden'} absolute z-20 mt-1 w-48 bg-surface-2 border border-line rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto`}>
                   {branches.map(b => (
-                    <label key={b} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-700/50 cursor-pointer text-sm text-white">
+                    <label key={b} className="flex items-center gap-2 px-3 py-2 hover:bg-surface-3/50 cursor-pointer text-sm text-fg">
                       <input
                         type="checkbox"
                         checked={branchFilter.includes(b)}
                         onChange={() => setBranchFilter(prev =>
                           prev.includes(b) ? prev.filter(x => x !== b) : [...prev, b]
                         )}
-                        className="rounded border-gray-600 bg-gray-900 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                        className="rounded border-line bg-surface accent-brand focus:ring-brand focus:ring-offset-0"
                       />
                       {b}
                     </label>
@@ -281,23 +279,22 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                 </div>
               </div>
             )}
-            <span className="ml-auto text-xs text-gray-500">{filtered.length} of {payments.length} payments</span>
+            <span className="ml-auto text-xs text-fg-faint">{filtered.length} of {payments.length} payments</span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           {filtered.length === 0 ? (
             <div className="p-12 text-center">
-              <DollarSign className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">
+              <DollarSign className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-fg-muted text-sm">
                 {payments.length === 0 ? 'No payments recorded yet' : 'No payments match your filters'}
               </p>
               {payments.length === 0 && can(permissions, 'payments', 'create') && (
-                <button onClick={() => setModalOpen(true)}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors">
-                  <Plus className="w-4 h-4" /> Record first payment
-                </button>
+                <Button variant="primary" className="mt-4" onClick={() => setModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+                  Record first payment
+                </Button>
               )}
             </div>
           ) : (
@@ -305,7 +302,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wide">
+                    <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
                       <th className="text-left px-5 py-3">Member</th>
                       <th className="text-left px-5 py-3">Amount</th>
                       <th className="text-left px-5 py-3">Service / Item</th>
@@ -318,73 +315,73 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                       <th className="text-right px-5 py-3">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700/50">
+                  <tbody className="divide-y divide-line">
                     {paginated.map(payment => {
                       const sc = statusConfig[payment.status] ?? statusConfig.pending;
                       return (
-                        <tr key={payment.id} className="hover:bg-gray-700/30 transition-colors">
+                        <tr key={payment.id} className="hover:bg-surface-3/30 transition-colors">
                           <td className="px-5 py-3.5">
                             <Link href={`/dashboard/members/${payment.gym_member_id}`} className="flex items-center gap-3 hover:opacity-80">
-                              <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-xs font-bold text-purple-400 flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
                                 {String(payment.full_name ?? payment.member_number ?? "?").slice(0, 2).toUpperCase()}
                               </div>
                               <div>
-                                <p className="text-white font-medium hover:text-purple-400 transition-colors">{payment.full_name}</p>
-                                <p className="text-xs text-gray-500">{payment.member_number}</p>
+                                <p className="text-fg font-medium hover:text-brand transition-colors">{payment.full_name}</p>
+                                <p className="text-xs text-fg-faint">{payment.member_number}</p>
                               </div>
                             </Link>
                           </td>
-                          <td className="px-5 py-3.5 font-semibold text-white">
+                          <td className="px-5 py-3.5 font-semibold text-fg">
                             {fmt(payment.amount, payment.currency)}
                           </td>
                           <td className="px-5 py-3.5 min-w-[200px]">
                             {payment.service_name ? (
                               <div>
-                                <p className="text-white text-sm">{payment.service_name}</p>
+                                <p className="text-fg text-sm">{payment.service_name}</p>
                                 {payment.service_type && (
-                                  <p className="text-xs text-gray-500 mt-0.5 capitalize">
+                                  <p className="text-xs text-fg-faint mt-0.5 capitalize">
                                     {payment.service_type.replace(/_/g, ' ')}
                                   </p>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-gray-600 text-xs">—</span>
+                              <span className="text-fg-faint text-xs">—</span>
                             )}
                           </td>
                           <td className="px-5 py-3.5">
                             {payment.branch_name
-                              ? <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400">{payment.branch_name}</span>
-                              : <span className="text-gray-600 text-xs">—</span>}
+                              ? <span className="text-xs px-2 py-0.5 rounded-full bg-brand/10 text-brand">{payment.branch_name}</span>
+                              : <span className="text-fg-faint text-xs">—</span>}
                           </td>
                           <td className="px-5 py-3.5 min-w-[140px]">
                             {payment.specialist_name ? (
-                              <p className="text-gray-300 text-sm">{payment.specialist_name}</p>
+                              <p className="text-fg-muted text-sm">{payment.specialist_name}</p>
                             ) : (
-                              <span className="text-gray-600 text-xs">—</span>
+                              <span className="text-fg-faint text-xs">—</span>
                             )}
                           </td>
-                          <td className="px-5 py-3.5 text-gray-400 capitalize">
+                          <td className="px-5 py-3.5 text-fg-muted capitalize">
                             {methodLabel[payment.payment_method] ?? payment.payment_method}
                           </td>
                           <td className="px-5 py-3.5">
                             <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                               payment.source === 'mobile_app'
                                 ? 'bg-blue-400/10 text-blue-400'
-                                : 'bg-purple-400/10 text-purple-400'
+                                : 'bg-brand/10 text-brand'
                             }`}>
                               {payment.source === 'mobile_app' ? 'Mobile App' : 'Admin'}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5 text-gray-400">
+                          <td className="px-5 py-3.5 text-fg-muted">
                             {payment.paid_at
                               ? new Date(payment.paid_at).toLocaleDateString('en-GB')
                               : new Date(payment.created_at).toLocaleDateString('en-GB')}
                           </td>
                           <td className="px-5 py-3.5">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${sc.cls}`}>
+                            <Badge variant={sc.variant}>
                               <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                               {sc.label}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="px-5 py-3.5">
                             <div className="flex items-center justify-end gap-1">
@@ -392,7 +389,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                               <button
                                 onClick={() => setInvoicePayment(payment)}
                                 title={payment.status === 'paid' ? 'View Receipt' : 'View Invoice'}
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-purple-400/10 transition-colors"
+                                className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                               >
                                 <FileText className="w-4 h-4" />
                               </button>
@@ -401,7 +398,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                 <button
                                   onClick={() => setRefundPayment(payment)}
                                   title="Process Refund"
-                                  className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
                                 >
                                   <RotateCcw className="w-4 h-4" />
                                 </button>
@@ -412,7 +409,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   onClick={() => updateStatus(payment, 'paid')}
                                   disabled={updatingId === payment.id}
                                   title="Mark as Paid"
-                                  className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40 text-xs font-medium"
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40 text-xs font-medium"
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </button>
@@ -422,7 +419,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   onClick={() => updateStatus(payment, 'overdue')}
                                   disabled={updatingId === payment.id}
                                   title="Mark as Overdue"
-                                  className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
                                 >
                                   <AlertCircle className="w-4 h-4" />
                                 </button>
@@ -432,7 +429,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   onClick={() => updateStatus(payment, 'pending')}
                                   disabled={updatingId === payment.id}
                                   title="Mark as Pending"
-                                  className="p-1.5 rounded-lg text-gray-500 hover:text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
                                 >
                                   <Clock className="w-4 h-4" />
                                 </button>
@@ -448,23 +445,23 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-5 py-3 border-t border-gray-700">
-                  <p className="text-xs text-gray-500">
+                <div className="flex items-center justify-between px-5 py-3 border-t border-line">
+                  <p className="text-xs text-fg-faint">
                     Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
                   </p>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                       <button key={n} onClick={() => setPage(n)}
-                        className={`w-8 h-8 text-xs rounded-lg transition-colors ${n === page ? 'bg-purple-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}>
+                        className={`w-8 h-8 text-xs rounded-lg transition-colors ${n === page ? 'bg-brand text-brand-ink font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>
                         {n}
                       </button>
                     ))}
                     <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                      className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>

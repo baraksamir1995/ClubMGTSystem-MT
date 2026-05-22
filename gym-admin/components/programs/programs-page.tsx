@@ -12,7 +12,7 @@ type StatusFilter = 'all' | 'draft' | 'published';
 
 const STATUS_STYLES: Record<string, string> = {
   published: 'bg-emerald-400/10 text-emerald-400',
-  draft:     'bg-gray-400/10 text-gray-400',
+  draft:     'bg-gray-400/10 text-fg-muted',
 };
 
 export default function ProgramsPage({
@@ -87,13 +87,13 @@ export default function ProgramsPage({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Programs</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage training programs shown on the mobile app Explore feed</p>
+            <h1 className="text-2xl font-bold text-fg">Programs</h1>
+            <p className="text-sm text-fg-muted mt-0.5">Manage training programs shown on the mobile app Explore feed</p>
           </div>
           {can(permissions, 'programs', 'create') && (
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" /> New Program
             </button>
@@ -103,61 +103,61 @@ export default function ProgramsPage({
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
           {([
-            { label: 'Total Programs', value: counts.total,     color: 'text-white',       filter: 'all' as StatusFilter },
+            { label: 'Total Programs', value: counts.total,     color: 'text-fg',       filter: 'all' as StatusFilter },
             { label: 'Published',      value: counts.published, color: 'text-emerald-400', filter: 'published' as StatusFilter },
-            { label: 'Draft',          value: counts.draft,     color: 'text-gray-300',    filter: 'draft' as StatusFilter },
+            { label: 'Draft',          value: counts.draft,     color: 'text-fg-muted',    filter: 'draft' as StatusFilter },
           ] as const).map(s => (
             <button
               key={s.filter}
               onClick={() => setStatusFilter(statusFilter === s.filter ? 'all' : s.filter)}
-              className={`bg-gray-800 border rounded-xl p-4 text-left transition-colors ${
-                statusFilter === s.filter ? 'border-purple-500' : 'border-gray-700 hover:border-gray-600'
+              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${
+                statusFilter === s.filter ? 'border-brand' : 'border-line hover:border-line'
               }`}
             >
-              <p className="text-xs text-gray-400 mb-1">{s.label}</p>
+              <p className="text-xs text-fg-muted mb-1">{s.label}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
           ))}
         </div>
 
         {/* Search + filter */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by title, category, trainer or level…"
-              className="w-full pl-9 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div className="flex gap-3 items-center">
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-              className="bg-gray-700 border border-gray-600 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors"
+              className="bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors"
             >
               <option value="all">All Statuses</option>
               <option value="published">Published</option>
               <option value="draft">Draft</option>
             </select>
-            <span className="ml-auto text-xs text-gray-500">{filtered.length} of {programs.length} programs</span>
+            <span className="ml-auto text-xs text-fg-faint">{filtered.length} of {programs.length} programs</span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           {filtered.length === 0 ? (
             <div className="p-12 text-center">
-              <Layers className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">
+              <Layers className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-fg-muted text-sm">
                 {programs.length === 0 ? 'No programs yet. Create your first program.' : 'No programs match your filters.'}
               </p>
               {programs.length === 0 && can(permissions, 'programs', 'create') && (
                 <button
                   onClick={openCreate}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Create your first program
                 </button>
@@ -167,7 +167,7 @@ export default function ProgramsPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wide">
+                  <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
                     <th className="text-left px-5 py-3">Program</th>
                     <th className="text-left px-5 py-3">Details</th>
                     <th className="text-left px-5 py-3">Trainer</th>
@@ -176,9 +176,9 @@ export default function ProgramsPage({
                     <th className="text-right px-5 py-3">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-line">
                   {filtered.map(program => (
-                    <tr key={program.id} className="hover:bg-gray-700/30 transition-colors">
+                    <tr key={program.id} className="hover:bg-surface-3/30 transition-colors">
 
                       {/* Program */}
                       <td className="px-5 py-3.5 max-w-xs">
@@ -188,18 +188,18 @@ export default function ProgramsPage({
                             <img
                               src={program.image_url}
                               alt=""
-                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-700"
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-surface-3"
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
-                              <Layers className="w-5 h-5 text-gray-500" />
+                            <div className="w-12 h-12 rounded-lg bg-surface-3 flex items-center justify-center flex-shrink-0">
+                              <Layers className="w-5 h-5 text-fg-faint" />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-medium text-white truncate">{program.title}</p>
+                            <p className="font-medium text-fg truncate">{program.title}</p>
                             {program.category && (
-                              <p className="text-xs text-gray-500 mt-0.5">{program.category}</p>
+                              <p className="text-xs text-fg-faint mt-0.5">{program.category}</p>
                             )}
                           </div>
                         </div>
@@ -209,17 +209,17 @@ export default function ProgramsPage({
                       <td className="px-5 py-3.5">
                         <div className="flex flex-wrap gap-1.5">
                           {program.duration_weeks && (
-                            <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
+                            <span className="px-2 py-0.5 bg-surface-3 text-fg-muted rounded text-xs">
                               {program.duration_weeks}w
                             </span>
                           )}
                           {program.level && (
-                            <span className="px-2 py-0.5 bg-purple-600/20 text-purple-300 rounded text-xs">
+                            <span className="px-2 py-0.5 bg-brand/20 text-brand rounded text-xs">
                               {program.level}
                             </span>
                           )}
                           {program.session_duration_minutes && (
-                            <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
+                            <span className="px-2 py-0.5 bg-surface-3 text-fg-muted rounded text-xs">
                               {program.session_duration_minutes} min
                             </span>
                           )}
@@ -227,19 +227,19 @@ export default function ProgramsPage({
                       </td>
 
                       {/* Trainer */}
-                      <td className="px-5 py-3.5 text-gray-300 text-sm">
-                        {program.trainer_name ?? <span className="text-gray-600">—</span>}
+                      <td className="px-5 py-3.5 text-fg-muted text-sm">
+                        {program.trainer_name ?? <span className="text-fg-faint">—</span>}
                       </td>
 
                       {/* Status */}
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[program.status] ?? 'bg-gray-400/10 text-gray-400'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[program.status] ?? 'bg-gray-400/10 text-fg-muted'}`}>
                           {program.status}
                         </span>
                       </td>
 
                       {/* Order */}
-                      <td className="px-5 py-3.5 text-gray-500 text-xs">
+                      <td className="px-5 py-3.5 text-fg-faint text-xs">
                         {program.display_order}
                       </td>
 
@@ -250,7 +250,7 @@ export default function ProgramsPage({
                             <button
                               onClick={() => openEdit(program)}
                               title="Edit program"
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-purple-400/10 transition-colors"
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -260,7 +260,7 @@ export default function ProgramsPage({
                               onClick={() => handleDelete(program.id)}
                               disabled={deletingId === program.id}
                               title="Delete program"
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

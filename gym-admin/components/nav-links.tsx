@@ -26,10 +26,14 @@ const ALL_NAV = [
 
 interface Props {
   allowedHrefs: string[];
-  contentBadge: number;
+  /**
+   * Kept for backwards-compatibility with the dashboard layout's call
+   * site — the badge itself is no longer rendered per product request.
+   */
+  contentBadge?: number;
 }
 
-export default function NavLinks({ allowedHrefs, contentBadge }: Props) {
+export default function NavLinks({ allowedHrefs }: Props) {
   const pathname = usePathname();
   const allowed = new Set(allowedHrefs);
   const items = ALL_NAV.filter(item => allowed.has(item.href));
@@ -46,17 +50,12 @@ export default function NavLinks({ allowedHrefs, contentBadge }: Props) {
             href={href}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
               isActive
-                ? 'bg-purple-600/20 text-purple-400 font-medium'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                ? 'bg-clby-green/15 text-clby-green font-medium'
+                : 'text-gray-400 hover:text-white hover:bg-clby-surface'
             }`}
           >
-            <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-purple-400' : ''}`} />
+            <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-clby-green' : ''}`} />
             <span className="flex-1">{label}</span>
-            {href === '/dashboard/content' && contentBadge > 0 && (
-              <span className="bg-purple-600 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
-                {contentBadge}
-              </span>
-            )}
           </Link>
         );
       })}

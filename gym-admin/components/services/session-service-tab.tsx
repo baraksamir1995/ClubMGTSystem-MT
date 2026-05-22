@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Plus, Pencil, Archive, ArchiveRestore, UserX, UserCheck, X, User, Dumbbell } from 'lucide-react';
+import { Button, Card, EmptyState } from '@/components/ui';
 import toast from 'react-hot-toast';
 import TrainerModal, { type TrainerProfile } from '@/components/trainers/trainer-modal';
 import { can, type Permission } from '@/lib/get-permissions';
@@ -100,16 +101,16 @@ function PackageModal({
     }
   };
 
-  const inputCls = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors';
-  const labelCls = 'block text-xs text-gray-400 mb-1.5';
+  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+  const labelCls = 'block text-xs text-fg-muted mb-1.5';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-          <h2 className="text-base font-semibold text-white">{existing ? 'Edit Package' : 'Add Package'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+      <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+          <h2 className="text-base font-semibold text-fg">{existing ? 'Edit Package' : 'Add Package'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -135,16 +136,16 @@ function PackageModal({
             </select>
           </div>
           <div>
-            <label className={labelCls}>Description <span className="text-gray-600">(optional)</span></label>
+            <label className={labelCls}>Description <span className="text-fg-faint">(optional)</span></label>
             <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. 600 min · Save 15%" className={inputCls} />
           </div>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} disabled={saving}
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50">
+              className="flex-1 px-4 py-2 rounded-lg border border-line text-sm text-fg-muted hover:bg-surface-3 transition-colors disabled:opacity-50">
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white transition-colors disabled:opacity-40">
+              className="flex-1 px-4 py-2 rounded-lg bg-brand hover:bg-brand text-sm font-medium text-brand-ink transition-colors disabled:opacity-40">
               {saving ? 'Saving…' : (existing ? 'Save changes' : 'Add package')}
             </button>
           </div>
@@ -247,8 +248,8 @@ export default function SessionServiceTab({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-white">Specialists</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <h3 className="text-base font-semibold text-fg">Specialists</h3>
+            <p className="text-xs text-fg-muted mt-0.5">
               {activeTrainers.length} active
               {inactiveTrainers.length > 0 && ` · ${inactiveTrainers.length} inactive`}
             </p>
@@ -256,44 +257,45 @@ export default function SessionServiceTab({
           {can(permissions, 'classes', 'create') && (
             <button
               onClick={() => setTrainerModal({ open: true })}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors">
+              className="flex items-center gap-2 px-3 py-1.5 bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium rounded-lg transition-colors">
               <Plus className="w-3.5 h-3.5" /> Add Specialist
             </button>
           )}
         </div>
 
         {trainers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 bg-gray-800/50 border border-gray-700 rounded-xl">
-            <User className="w-8 h-8 text-gray-600 mb-2" />
-            <p className="text-sm text-gray-500">No specialists added yet</p>
-            {can(permissions, 'classes', 'create') && (
-              <button onClick={() => setTrainerModal({ open: true })}
-                className="mt-3 text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                + Add your first specialist
-              </button>
-            )}
-          </div>
+          <Card padding="none">
+            <EmptyState
+              icon={User}
+              title="No specialists added yet"
+              action={can(permissions, 'classes', 'create') ? (
+                <Button variant="ghost" size="sm" onClick={() => setTrainerModal({ open: true })}>
+                  + Add your first specialist
+                </Button>
+              ) : undefined}
+            />
+          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {trainers.map(trainer => (
               <div key={trainer.id}
-                className={`bg-gray-800 border rounded-xl p-4 transition-opacity ${trainer.is_active ? 'border-gray-700' : 'border-gray-700/50 opacity-60'}`}>
+                className={`bg-surface-2 border rounded-xl p-4 transition-opacity ${trainer.is_active ? 'border-line' : 'border-line/50 opacity-60'}`}>
                 <div className="flex items-start gap-3">
                   {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-600/20 flex-shrink-0 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-brand/20 flex-shrink-0 flex items-center justify-center">
                     {trainer.photo_url ? (
                       <img src={trainer.photo_url} alt={trainer.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-sm font-bold text-purple-400">
+                      <span className="text-sm font-bold text-brand">
                         {trainer.name.slice(0, 2).toUpperCase()}
                       </span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{trainer.name}</p>
+                    <p className="text-sm font-medium text-fg truncate">{trainer.name}</p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                        trainer.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-400/10 text-gray-400'
+                        trainer.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-400/10 text-fg-muted'
                       }`}>
                         {trainer.is_active ? 'Active' : 'Inactive'}
                       </span>
@@ -301,12 +303,12 @@ export default function SessionServiceTab({
                     {(trainer.specialisations ?? []).length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {(trainer.specialisations ?? []).slice(0, 3).map(s => (
-                          <span key={s} className="text-[10px] text-gray-400 bg-gray-700 px-1.5 py-0.5 rounded-full">
+                          <span key={s} className="text-[10px] text-fg-muted bg-surface-3 px-1.5 py-0.5 rounded-full">
                             {s}
                           </span>
                         ))}
                         {(trainer.specialisations ?? []).length > 3 && (
-                          <span className="text-[10px] text-gray-500">+{(trainer.specialisations ?? []).length - 3}</span>
+                          <span className="text-[10px] text-fg-faint">+{(trainer.specialisations ?? []).length - 3}</span>
                         )}
                       </div>
                     )}
@@ -325,15 +327,15 @@ export default function SessionServiceTab({
                   </div>
                 </div>
                 {can(permissions, 'classes', 'update') && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-700">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-line">
                     <button onClick={() => setTrainerModal({ open: true, existing: trainer })}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
                       <Pencil className="w-3 h-3" /> Edit
                     </button>
                     <button
                       onClick={() => toggleTrainer(trainer)}
                       disabled={togglingId === trainer.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50">
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors disabled:opacity-50">
                       {trainer.is_active
                         ? <><UserX className="w-3 h-3" /> Deactivate</>
                         : <><UserCheck className="w-3 h-3" /> Reactivate</>}
@@ -350,40 +352,41 @@ export default function SessionServiceTab({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-white">Session Packages</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <h3 className="text-base font-semibold text-fg">Session Packages</h3>
+            <p className="text-xs text-fg-muted mt-0.5">
               {packages.length} package{packages.length !== 1 ? 's' : ''} · shown in mobile app
             </p>
           </div>
           {can(permissions, 'plans', 'create') && (
             <button
               onClick={() => setPackageModal({ open: true })}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors">
+              className="flex items-center gap-2 px-3 py-1.5 bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium rounded-lg transition-colors">
               <Plus className="w-3.5 h-3.5" /> Add Package
             </button>
           )}
         </div>
 
         {packages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 bg-gray-800/50 border border-gray-700 rounded-xl">
-            <Dumbbell className="w-8 h-8 text-gray-600 mb-2" />
-            <p className="text-sm text-gray-500">No packages for this service yet</p>
-            {can(permissions, 'plans', 'create') && (
-              <button onClick={() => setPackageModal({ open: true })}
-                className="mt-3 text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                + Add your first package
-              </button>
-            )}
-          </div>
+          <Card padding="none">
+            <EmptyState
+              icon={Dumbbell}
+              title="No packages for this service yet"
+              action={can(permissions, 'plans', 'create') ? (
+                <Button variant="ghost" size="sm" onClick={() => setPackageModal({ open: true })}>
+                  + Add your first package
+                </Button>
+              ) : undefined}
+            />
+          </Card>
         ) : (
-          <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+          <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Package</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Sessions</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Price</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Per session</th>
+                <tr className="border-b border-line">
+                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Package</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Sessions</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Price</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Per session</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -394,30 +397,30 @@ export default function SessionServiceTab({
                     : '—';
                   const isArchived = !pkg.is_active;
                   return (
-                    <tr key={pkg.id} className={`${i > 0 ? 'border-t border-gray-700/50' : ''} hover:bg-gray-700/30 transition-colors ${isArchived ? 'opacity-60' : ''}`}>
+                    <tr key={pkg.id} className={`${i > 0 ? 'border-t border-line/50' : ''} hover:bg-surface-3/30 transition-colors ${isArchived ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-white">{pkg.name}</p>
+                          <p className="text-sm font-medium text-fg">{pkg.name}</p>
                           {isArchived && (
                             <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400">
                               Archived
                             </span>
                           )}
                         </div>
-                        {pkg.description && <p className="text-xs text-gray-500 mt-0.5">{pkg.description}</p>}
+                        {pkg.description && <p className="text-xs text-fg-faint mt-0.5">{pkg.description}</p>}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-300">
+                      <td className="px-4 py-3 text-sm text-fg-muted">
                         {pkg.session_count ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-white">
+                      <td className="px-4 py-3 text-sm font-medium text-fg">
                         {fmtPrice(pkg.price, pkg.currency)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-400">{perSession}</td>
+                      <td className="px-4 py-3 text-sm text-fg-muted">{perSession}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           {can(permissions, 'plans', 'update') && !isArchived && (
                             <button onClick={() => setPackageModal({ open: true, existing: pkg })}
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -425,13 +428,13 @@ export default function SessionServiceTab({
                             isArchived ? (
                               <button onClick={() => reactivatePackage(pkg)} disabled={deletingId === pkg.id}
                                 title="Reactivate package"
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
+                                className="p-1.5 rounded-lg text-fg-faint hover:text-emerald-400 hover:bg-surface-3 transition-colors disabled:opacity-50">
                                 <ArchiveRestore className="w-3.5 h-3.5" />
                               </button>
                             ) : (
                               <button onClick={() => archivePackage(pkg)} disabled={deletingId === pkg.id}
                                 title="Archive package"
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-amber-400 hover:bg-gray-700 transition-colors disabled:opacity-50">
+                                className="p-1.5 rounded-lg text-fg-faint hover:text-amber-400 hover:bg-surface-3 transition-colors disabled:opacity-50">
                                 <Archive className="w-3.5 h-3.5" />
                               </button>
                             )

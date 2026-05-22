@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Mail, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Payment } from '@/app/dashboard/payments/page';
+import { Button, Modal } from '@/components/ui';
 
 interface Props {
   overduePayments: Payment[];
@@ -49,110 +50,92 @@ export default function ReminderModal({ overduePayments, gym, onClose }: Props) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-red-400" />
-            <h2 className="text-base font-semibold text-white">Send Overdue Reminders</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="lg">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2"><Mail className="w-4 h-4 text-danger" /> Send Overdue Reminders</span>
+      </Modal.Header>
 
-        {results ? (
-          /* Results view */
-          <div className="flex-1 overflow-y-auto p-5 space-y-3">
-            <p className="text-sm text-gray-400 mb-4">Reminder sending complete:</p>
-            {overduePayments.filter(p => selected.has(p.id) && p.email).map(p => (
-              <div key={p.id} className="flex items-center gap-3 bg-gray-700/40 rounded-xl px-4 py-3">
-                {results[p.id] === 'sent'
-                  ? <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  : <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                }
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium truncate">{p.full_name}</p>
-                  <p className="text-xs text-gray-400 truncate">{p.email}</p>
-                </div>
-                <span className={`text-xs font-medium ${results[p.id] === 'sent' ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {results[p.id] === 'sent' ? 'Sent' : 'Failed'}
-                </span>
+      {results ? (
+        /* Results view */
+        <Modal.Body className="space-y-3">
+          <p className="text-sm text-fg-muted mb-4">Reminder sending complete:</p>
+          {overduePayments.filter(p => selected.has(p.id) && p.email).map(p => (
+            <div key={p.id} className="flex items-center gap-3 bg-surface-3/40 rounded-xl px-4 py-3">
+              {results[p.id] === 'sent'
+                ? <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
+                : <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />
+              }
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-fg font-medium truncate">{p.full_name}</p>
+                <p className="text-xs text-fg-muted truncate">{p.email}</p>
               </div>
-            ))}
+              <span className={`text-xs font-medium ${results[p.id] === 'sent' ? 'text-success' : 'text-danger'}`}>
+                {results[p.id] === 'sent' ? 'Sent' : 'Failed'}
+              </span>
+            </div>
+          ))}
+        </Modal.Body>
+      ) : (
+        <Modal.Body className="space-y-3">
+          {/* Info */}
+          <div className="bg-danger-soft border border-danger/20 rounded-xl p-3 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-danger">
+              {overduePayments.length} member{overduePayments.length !== 1 ? 's' : ''} with overdue payments.
+              {overduePayments.length - withEmail.length > 0 &&
+                ` ${overduePayments.length - withEmail.length} have no email on file.`}
+            </p>
           </div>
-        ) : (
-          <>
-            {/* Info */}
-            <div className="px-5 pt-4 flex-shrink-0">
-              <div className="bg-red-400/10 border border-red-400/20 rounded-xl p-3 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-red-300">
-                  {overduePayments.length} member{overduePayments.length !== 1 ? 's' : ''} with overdue payments.
-                  {overduePayments.length - withEmail.length > 0 &&
-                    ` ${overduePayments.length - withEmail.length} have no email on file.`}
-                </p>
-              </div>
-            </div>
 
-            {/* Member list */}
-            <div className="flex-1 overflow-y-auto px-5 py-3">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-gray-400">{selected.size} selected</span>
-                <button onClick={toggleAll} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                  {selected.size === withEmail.length ? 'Deselect all' : 'Select all'}
-                </button>
-              </div>
-              <div className="space-y-2">
-                {overduePayments.map(p => {
-                  const hasEmail = !!p.email;
-                  return (
-                    <label key={p.id}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${
-                        !hasEmail ? 'border-gray-700 opacity-50 cursor-not-allowed' :
-                        selected.has(p.id) ? 'border-red-500/50 bg-red-400/5' : 'border-gray-700 hover:border-gray-600'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected.has(p.id)}
-                        disabled={!hasEmail}
-                        onChange={() => toggle(p.id)}
-                        className="w-4 h-4 rounded border-gray-600 text-red-500 focus:ring-red-500 accent-red-500"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-medium truncate">{p.full_name}</p>
-                        <p className="text-xs text-gray-400 truncate">{p.email || 'No email on file'}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-red-400">{fmt(p.amount, p.currency)}</p>
-                        <p className="text-xs text-gray-500">overdue</p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
+          {/* Member list */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-fg-muted">{selected.size} selected</span>
+              <button onClick={toggleAll} className="text-xs text-brand hover:text-brand-dim transition-colors">
+                {selected.size === withEmail.length ? 'Deselect all' : 'Select all'}
+              </button>
             </div>
-          </>
+            <div className="space-y-2">
+              {overduePayments.map(p => {
+                const hasEmail = !!p.email;
+                return (
+                  <label key={p.id}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${
+                      !hasEmail ? 'border-line opacity-50 cursor-not-allowed' :
+                      selected.has(p.id) ? 'border-danger/50 bg-danger-soft' : 'border-line hover:border-line-strong'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      disabled={!hasEmail}
+                      onChange={() => toggle(p.id)}
+                      className="w-4 h-4 rounded border-line accent-danger focus:ring-danger"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-fg font-medium truncate">{p.full_name}</p>
+                      <p className="text-xs text-fg-muted truncate">{p.email || 'No email on file'}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold text-danger">{fmt(p.amount, p.currency)}</p>
+                      <p className="text-xs text-fg-faint">overdue</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </Modal.Body>
+      )}
+
+      <Modal.Footer>
+        <Button variant="secondary" fullWidth onClick={onClose}>{results ? 'Close' : 'Cancel'}</Button>
+        {!results && (
+          <Button variant="danger" fullWidth onClick={sendReminders} disabled={selected.size === 0} isLoading={sending}>
+            Send {selected.size} Reminder{selected.size !== 1 ? 's' : ''}
+          </Button>
         )}
-
-        {/* Footer */}
-        <div className="flex gap-2 px-5 py-4 border-t border-gray-700 flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 text-sm hover:bg-gray-700 transition-colors">
-            {results ? 'Close' : 'Cancel'}
-          </button>
-          {!results && (
-            <button
-              onClick={sendReminders}
-              disabled={selected.size === 0 || sending}
-              className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-            >
-              {sending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</> : `Send ${selected.size} Reminder${selected.size !== 1 ? 's' : ''}`}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      </Modal.Footer>
+    </Modal>
   );
 }

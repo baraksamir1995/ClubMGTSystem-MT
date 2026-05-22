@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { X } from 'lucide-react';
+import { Button, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 
 interface MemberWithProfile {
   id: string;
@@ -92,164 +92,111 @@ export default function MemberModal({ member, onClose }: Props) {
     }
   };
 
-  const inputCls = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500';
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-700">
-          <h2 className="text-base font-semibold text-white">
-            {isEditing ? 'Edit Member' : 'Add Member'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+    <Modal open onClose={onClose} size="md">
+      <Modal.Header>{isEditing ? 'Edit Member' : 'Add Member'}</Modal.Header>
+      <Modal.Body>
+        <form id="member-form" onSubmit={handleSubmit} className="space-y-5">
           {/* ── Personal Info ── */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
               Personal Info
             </p>
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">
-                  Full Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
+              <Field label="Full Name" required>
+                <Input
                   value={form.full_name}
                   onChange={(e) => set('full_name', e.target.value)}
                   placeholder="Jane Doe"
-                  className={inputCls}
                   required
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Email</label>
-                <input
+              <Field label="Email">
+                <Input
                   type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
                   placeholder="jane@example.com"
-                  className={inputCls}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Phone</label>
-                <input
+              <Field label="Phone">
+                <Input
                   type="tel"
                   value={form.phone}
                   onChange={(e) => set('phone', e.target.value)}
                   placeholder="01012345678"
-                  className={inputCls}
                 />
-              </div>
+              </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Gender</label>
-                  <select
-                    value={form.gender}
-                    onChange={(e) => set('gender', e.target.value)}
-                    className={inputCls}
-                  >
+                <Field label="Gender">
+                  <Select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
                     <option value="">— Select —</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Date of Birth</label>
-                  <input
+                  </Select>
+                </Field>
+                <Field label="Date of Birth">
+                  <Input
                     type="date"
                     value={form.date_of_birth}
                     onChange={(e) => set('date_of_birth', e.target.value)}
-                    className={`${inputCls} [color-scheme:dark]`}
+                    className="[color-scheme:dark]"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Address</label>
-                <input
-                  type="text"
+              <Field label="Address">
+                <Input
                   value={form.address}
                   onChange={(e) => set('address', e.target.value)}
                   placeholder="123 Main St, Cairo"
-                  className={inputCls}
                 />
-              </div>
+              </Field>
             </div>
           </div>
 
           {/* Divider */}
-          <div className="border-t border-gray-700" />
+          <div className="border-t border-line" />
 
           {/* ── Membership Details ── */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
               Membership Details
             </p>
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Status</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => set('status', e.target.value)}
-                  className={inputCls}
-                >
+              <Field label="Status">
+                <Select value={form.status} onChange={(e) => set('status', e.target.value)}>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="suspended">Suspended</option>
-                </select>
-              </div>
+                </Select>
+              </Field>
 
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Notes</label>
-                <textarea
+              <Field label="Notes">
+                <Textarea
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
                   placeholder="Optional notes..."
                   rows={3}
-                  className={`${inputCls} resize-none`}
+                  className="resize-none"
                 />
-              </div>
+              </Field>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Member'}
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button type="button" variant="secondary" fullWidth onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button type="submit" form="member-form" variant="primary" fullWidth isLoading={loading}>
+          {isEditing ? 'Save Changes' : 'Add Member'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }

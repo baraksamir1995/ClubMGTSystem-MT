@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, ArrowRight, Search, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Search, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Avatar, Button, Field, Input, Modal } from '@/components/ui';
 
 interface Member {
   id: string;
@@ -71,51 +72,37 @@ export default function TransferModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-700">
-          <h2 className="text-base font-semibold text-white">Transfer Membership</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="md">
+      <Modal.Header>Transfer Membership</Modal.Header>
 
-        {step === 'select' ? (
-          <div className="p-5 space-y-4">
+      {step === 'select' ? (
+        <>
+          <Modal.Body className="space-y-4">
             {/* Source */}
-            <div className="bg-gray-700/40 rounded-lg p-3 border border-gray-700">
-              <p className="text-xs text-gray-500 mb-1">Transferring FROM</p>
-              <p className="text-sm font-medium text-white">{sourceMemberName}</p>
+            <div className="bg-surface-3/40 rounded-lg p-3 border border-line">
+              <p className="text-xs text-fg-faint mb-1">Transferring FROM</p>
+              <p className="text-sm font-medium text-fg">{sourceMemberName}</p>
               {activeMembership ? (
-                <p className="text-xs text-purple-400 mt-0.5">{activeMembership.plan_name}</p>
+                <p className="text-xs text-brand mt-0.5">{activeMembership.plan_name}</p>
               ) : (
-                <p className="text-xs text-red-400 mt-0.5">No active membership</p>
+                <p className="text-xs text-danger mt-0.5">No active membership</p>
               )}
             </div>
 
             {/* Search destination */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Search destination member</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Name, member #, or email…"
-                  className="w-full pl-9 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-            </div>
+            <Field label="Search destination member">
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Name, member #, or email…"
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </Field>
 
             {/* Member list */}
             <div className="space-y-1 max-h-52 overflow-y-auto">
               {filtered.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No members found</p>
+                <p className="text-sm text-fg-faint text-center py-4">No members found</p>
               )}
               {filtered.map(m => (
                 <button
@@ -123,96 +110,81 @@ export default function TransferModal({
                   onClick={() => setSelected(m)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                     selected?.id === m.id
-                      ? 'bg-purple-500/20 border border-purple-500'
-                      : 'hover:bg-gray-700/50 border border-transparent'
+                      ? 'bg-brand/15 border border-brand'
+                      : 'hover:bg-surface-3/50 border border-transparent'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center text-xs font-bold text-blue-400 flex-shrink-0">
-                    {String(m.full_name ?? m.member_number ?? '?').slice(0, 2).toUpperCase()}
-                  </div>
+                  <Avatar name={m.full_name ?? m.member_number ?? '?'} size={32} />
                   <div className="min-w-0">
-                    <p className="text-sm text-white font-medium truncate">{m.full_name ?? '—'}</p>
-                    <p className="text-xs text-gray-500">{m.member_number} · {m.email ?? ''}</p>
+                    <p className="text-sm text-fg font-medium truncate">{m.full_name ?? '—'}</p>
+                    <p className="text-xs text-fg-faint truncate">{m.member_number} · {m.email ?? ''}</p>
                   </div>
                 </button>
               ))}
             </div>
+          </Modal.Body>
 
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button" onClick={onClose}
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setStep('review')}
-                disabled={!selected || !activeMembership}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white transition-colors disabled:opacity-50"
-              >
-                Review <ArrowRight className="w-4 h-4" />
-              </button>
+          <Modal.Footer>
+            <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => setStep('review')}
+              disabled={!selected || !activeMembership}
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+            >
+              Review
+            </Button>
+          </Modal.Footer>
+        </>
+      ) : (
+        <>
+          <Modal.Body className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 bg-surface-3/40 rounded-lg p-3 border border-line text-center">
+                <p className="text-xs text-fg-faint mb-1">From</p>
+                <p className="text-sm font-medium text-fg">{sourceMemberName}</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-brand flex-shrink-0" />
+              <div className="flex-1 bg-surface-3/40 rounded-lg p-3 border border-brand/40 text-center">
+                <p className="text-xs text-fg-faint mb-1">To</p>
+                <p className="text-sm font-medium text-fg">{selected?.full_name ?? '—'}</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="p-5 space-y-4">
-            {/* Transfer summary */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-gray-700/40 rounded-lg p-3 border border-gray-700 text-center">
-                  <p className="text-xs text-gray-500 mb-1">From</p>
-                  <p className="text-sm font-medium text-white">{sourceMemberName}</p>
+
+            <div className="bg-surface-3/40 rounded-lg p-4 border border-line space-y-2">
+              <p className="text-xs text-fg-muted font-medium uppercase tracking-wide">Membership being transferred</p>
+              <p className="text-sm text-fg font-semibold">{activeMembership?.plan_name}</p>
+              {activeMembership?.end_date && (
+                <div className="flex justify-between">
+                  <span className="text-xs text-fg-faint">Expiry</span>
+                  <span className="text-xs text-fg">{new Date(activeMembership.end_date).toLocaleDateString('en-GB')}</span>
                 </div>
-                <ArrowRight className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                <div className="flex-1 bg-gray-700/40 rounded-lg p-3 border border-purple-500/40 text-center">
-                  <p className="text-xs text-gray-500 mb-1">To</p>
-                  <p className="text-sm font-medium text-white">{selected?.full_name ?? '—'}</p>
+              )}
+              {activeMembership?.sessions_remaining != null && (
+                <div className="flex justify-between">
+                  <span className="text-xs text-fg-faint">Sessions remaining</span>
+                  <span className="text-xs text-fg">{activeMembership.sessions_remaining}</span>
                 </div>
-              </div>
-
-              <div className="bg-gray-700/40 rounded-lg p-4 border border-gray-700 space-y-2">
-                <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Membership being transferred</p>
-                <p className="text-sm text-white font-semibold">{activeMembership?.plan_name}</p>
-                {activeMembership?.end_date && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-gray-500">Expiry</span>
-                    <span className="text-xs text-white">{new Date(activeMembership.end_date).toLocaleDateString('en-GB')}</span>
-                  </div>
-                )}
-                {activeMembership?.sessions_remaining != null && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-gray-500">Sessions remaining</span>
-                    <span className="text-xs text-white">{activeMembership.sessions_remaining}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-start gap-2 bg-amber-400/10 border border-amber-400/30 rounded-lg p-3">
-                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-300">
-                  This will cancel the source member's active plan and transfer the remaining duration to the destination member. This cannot be undone.
-                </p>
-              </div>
+              )}
             </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep('select')}
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleConfirm}
-                disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Transferring…' : 'Confirm Transfer'}
-              </button>
+            <div className="flex items-start gap-2 bg-warning-soft border border-warning/30 rounded-lg p-3">
+              <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-warning">
+                This will cancel the source member&apos;s active plan and transfer the remaining duration to the destination member. This cannot be undone.
+              </p>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button variant="secondary" fullWidth onClick={() => setStep('select')}>Back</Button>
+            <Button variant="primary" fullWidth onClick={handleConfirm} isLoading={loading}>
+              Confirm Transfer
+            </Button>
+          </Modal.Footer>
+        </>
+      )}
+    </Modal>
   );
 }

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Dumbbell, Eye, EyeOff } from 'lucide-react';
+import { Dumbbell } from 'lucide-react';
+import { Button, Field, Input, PasswordInput } from '@/components/ui';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gymInfo, setGymInfo] = useState<{ name: string; logoUrl: string | null } | null>(null);
 
@@ -110,68 +110,53 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-clby-bg flex flex-col items-center justify-center p-4 relative">
       <div className="w-full max-w-sm">
         {/* Gym Identity */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-gray-700 rounded-2xl flex items-center justify-center mb-4 shadow-lg overflow-hidden">
+          <div className="w-16 h-16 bg-surface-3 rounded-2xl flex items-center justify-center mb-4 shadow-lg overflow-hidden">
             {gymInfo?.logoUrl ? (
               <img src={gymInfo.logoUrl} alt={gymInfo.name} className="w-full h-full object-cover" />
             ) : (
-              <Dumbbell className="w-8 h-8 text-purple-400" />
+              <Dumbbell className="w-8 h-8 text-brand" />
             )}
           </div>
-          <h1 className="text-2xl font-bold text-white">{gymInfo?.name ?? 'Gym Admin'}</h1>
-          <p className="text-sm text-gray-400 mt-1">Sign in to manage your gym</p>
+          <h1 className="text-2xl font-bold text-fg">{gymInfo?.name ?? 'Gym Admin'}</h1>
+          <p className="text-sm text-fg-muted mt-1">Sign in to manage your gym</p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-2xl">
+        <div className="bg-surface-2 border border-line rounded-2xl p-6 shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Email address
-              </label>
-              <input
+            <Field label="Email address" required>
+              <Input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@yourgym.com"
-                className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
+            <Field label="Password" required>
+              <PasswordInput
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </Field>
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors mt-2"
+              variant="primary"
+              size="md"
+              fullWidth
+              isLoading={loading}
+              className="mt-2"
             >
               {loading ? 'Signing in…' : 'Sign in'}
-            </button>
+            </Button>
           </form>
         </div>
 
@@ -179,6 +164,11 @@ export default function LoginPage() {
           Contact your system administrator if you need access.
         </p>
       </div>
+
+      {/* Brand footer */}
+      <footer className="absolute bottom-4 inset-x-0 text-center text-[11px] text-gray-500 tracking-wide">
+        Powered by <span className="text-clby-green font-semibold">CLBY</span>
+      </footer>
     </div>
   );
 }

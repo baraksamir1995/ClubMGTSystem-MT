@@ -6,6 +6,7 @@ import PaymentHistoryTab from './payment-history-tab';
 import SessionTransfersList from './session-transfers-list';
 import type { MemberPayment } from './payment-history-tab';
 import type { AttendanceLog } from '@/lib/types/attendance-log';
+import { Badge, Tabs } from '@/components/ui';
 
 interface Props {
   attendanceLogs: AttendanceLog[];
@@ -37,31 +38,21 @@ export default function MemberProfileTabs({
   return (
     <div className="space-y-5">
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActive(tab)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              active === tab
-                ? 'bg-gray-700 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            {tab}
-            {tab === 'Attendance' && (
-              <span className="ml-1.5 text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">
-                {attendanceLogs.length}
-              </span>
-            )}
-            {tab === 'Payments' && payments.length > 0 && (
-              <span className="ml-1.5 text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">
-                {payments.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs value={active} onValueChange={(v) => setActive(v as typeof tabs[number])}>
+        <Tabs.List>
+          {tabs.map(tab => (
+            <Tabs.Trigger key={tab} value={tab}>
+              {tab}
+              {tab === 'Attendance' && (
+                <Badge variant="neutral" size="sm" className="ml-1.5">{attendanceLogs.length}</Badge>
+              )}
+              {tab === 'Payments' && payments.length > 0 && (
+                <Badge variant="neutral" size="sm" className="ml-1.5">{payments.length}</Badge>
+              )}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+      </Tabs>
 
       {/* Content */}
       {active === 'Overview' && overviewContent}

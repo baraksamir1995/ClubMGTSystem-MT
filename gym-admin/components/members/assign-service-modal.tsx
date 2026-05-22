@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Dumbbell, Salad, HeartPulse, Check } from 'lucide-react';
+import { Dumbbell, Salad, HeartPulse, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button, Modal, Select, Textarea } from '@/components/ui';
 
 const SERVICE_TYPES = [
-  { value: 'personal_trainer',  label: 'Personal Training', icon: Dumbbell,   color: 'text-purple-400',  bg: 'bg-purple-400/10',  border: 'border-purple-400/30' },
+  { value: 'personal_trainer',  label: 'Personal Training', icon: Dumbbell,   color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30' },
   { value: 'nutritionist',      label: 'Nutrition',         icon: Salad,       color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
   { value: 'physiotherapist',   label: 'Physiotherapy',     icon: HeartPulse,  color: 'text-blue-400',    bg: 'bg-blue-400/10',    border: 'border-blue-400/30' },
 ] as const;
@@ -101,24 +102,18 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-gray-900 rounded-2xl w-full max-w-lg border border-gray-700/50 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <Modal open onClose={onClose} size="lg">
+      <Modal.Header>
+        <span>
+          Assign Service Package
+          <span className="block text-fg-muted text-xs font-normal mt-0.5">{memberName}</span>
+        </span>
+      </Modal.Header>
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
-          <div>
-            <h2 className="text-white font-semibold text-base">Assign Service Package</h2>
-            <p className="text-gray-400 text-xs mt-0.5">{memberName}</p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-5">
+      <Modal.Body className="space-y-5">
           {/* Service type selector */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Service Type</label>
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">Service Type</label>
             <div className="grid grid-cols-3 gap-2">
               {SERVICE_TYPES.map(({ value, label, icon: Icon, color, bg, border }) => (
                 <button
@@ -127,7 +122,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
                   className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-all ${
                     serviceType === value
                       ? `${bg} ${color} ${border}`
-                      : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-600'
+                      : 'bg-surface-2 text-fg-muted border-line hover:border-line-strong'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -139,11 +134,11 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
 
           {/* Package list */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Package</label>
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">Package</label>
             {fetching ? (
-              <div className="text-sm text-gray-500 py-4 text-center">Loading packages…</div>
+              <div className="text-sm text-fg-faint py-4 text-center">Loading packages…</div>
             ) : packages.length === 0 ? (
-              <div className="text-sm text-gray-500 py-4 text-center">No packages available for this service type.</div>
+              <div className="text-sm text-fg-faint py-4 text-center">No packages available for this service type.</div>
             ) : (
               <div className="space-y-2">
                 {packages.map(pkg => (
@@ -152,17 +147,17 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
                     onClick={() => setSelectedPkg(pkg)}
                     className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
                       selectedPkg?.id === pkg.id
-                        ? 'bg-purple-600/10 border-purple-500/40 text-white'
-                        : 'bg-gray-800 border-gray-700 hover:border-gray-600 text-gray-300'
+                        ? 'bg-brand/10 border-brand/40 text-fg'
+                        : 'bg-surface-2 border-line hover:border-line-strong text-fg-muted'
                     }`}
                   >
                     <div>
                       <p className="text-sm font-medium">{pkg.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{pkg.session_count} sessions</p>
+                      <p className="text-xs text-fg-faint mt-0.5">{pkg.session_count} sessions</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-purple-400">{fmt(pkg.price, pkg.currency)}</p>
-                      {selectedPkg?.id === pkg.id && <Check className="w-4 h-4 text-purple-400 ml-auto mt-1" />}
+                      <p className="text-sm font-semibold text-brand">{fmt(pkg.price, pkg.currency)}</p>
+                      {selectedPkg?.id === pkg.id && <Check className="w-4 h-4 text-brand ml-auto mt-1" />}
                     </div>
                   </button>
                 ))}
@@ -173,89 +168,69 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
           {/* Trainer (optional) */}
           {trainers.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-                Specialist <span className="text-gray-600 normal-case font-normal">(optional)</span>
+              <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">
+                Specialist <span className="text-fg-faint normal-case font-normal">(optional)</span>
               </label>
-              <select
-                value={trainerId}
-                onChange={e => setTrainerId(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-              >
+              <Select value={trainerId} onChange={e => setTrainerId(e.target.value)}>
                 <option value="">— Not assigned —</option>
                 {trainers.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
           {/* Payment method */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Payment Method</label>
-            <select
-              value={paymentMethod}
-              onChange={e => setPaymentMethod(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
-            >
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">Payment Method</label>
+            <Select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
               {PAYMENT_METHODS.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-              Notes <span className="text-gray-600 normal-case font-normal">(optional)</span>
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">
+              Notes <span className="text-fg-faint normal-case font-normal">(optional)</span>
             </label>
-            <textarea
+            <Textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
               placeholder="e.g. Start next Monday"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none"
+              className="resize-none"
             />
           </div>
 
           {/* Summary */}
           {selectedPkg && (
-            <div className="bg-gray-800/60 rounded-xl p-4 text-sm space-y-1.5">
-              <div className="flex justify-between text-gray-400">
+            <div className="bg-surface-3/60 rounded-xl p-4 text-sm space-y-1.5">
+              <div className="flex justify-between text-fg-muted">
                 <span>Package</span>
-                <span className="text-white font-medium">{selectedPkg.name}</span>
+                <span className="text-fg font-medium">{selectedPkg.name}</span>
               </div>
-              <div className="flex justify-between text-gray-400">
+              <div className="flex justify-between text-fg-muted">
                 <span>Sessions</span>
-                <span className="text-white">{selectedPkg.session_count}</span>
+                <span className="text-fg">{selectedPkg.session_count}</span>
               </div>
-              <div className="flex justify-between text-gray-400">
+              <div className="flex justify-between text-fg-muted">
                 <span>Amount due</span>
-                <span className="text-purple-400 font-semibold">{fmt(selectedPkg.price, selectedPkg.currency)}</span>
+                <span className="text-brand font-semibold">{fmt(selectedPkg.price, selectedPkg.currency)}</span>
               </div>
             </div>
           )}
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-danger text-sm">{error}</p>}
+      </Modal.Body>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-600 text-gray-300 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading || !selectedPkg}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Assigning…' : 'Assign Package'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer>
+        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button variant="primary" fullWidth onClick={handleSubmit} disabled={!selectedPkg} isLoading={loading}>
+          Assign Package
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }

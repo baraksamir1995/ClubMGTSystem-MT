@@ -20,12 +20,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (body.trainerType !== undefined || body.trainer_type !== undefined) payload.trainer_type = body.trainerType ?? body.trainer_type;
   if (body.isActive !== undefined || body.is_active !== undefined) payload.is_active = body.isActive ?? body.is_active;
   if (body.branchId !== undefined || body.branch_id !== undefined) payload.branch_id = body.branchId ?? body.branch_id;
+  // Optional credential edits (only forward when the admin actually
+  // supplied a value — empty string means "leave password unchanged").
+  if (typeof body.password === 'string' && body.password.length > 0) payload.password = body.password;
+  if (typeof body.username === 'string' && body.username.length > 0) payload.username = body.username;
 
   const res = await laravelApi(`/trainers/${params.id}`, token, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
   const json = await res.json();
-  if (!res.ok) return NextResponse.json({ error: json.error ?? json.message ?? 'Failed' }, { status: res.status });
+  if (!res.ok) return NextResponse.json({ error: json.error ?? json.message ?? 'Failed', code: json.code }, { status: res.status });
   return NextResponse.json(json.data ?? json);
 }

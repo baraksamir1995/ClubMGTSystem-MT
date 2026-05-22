@@ -12,3 +12,31 @@ input[type="number"].no-spinner {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* ── Brand-green button contrast ─────────────────────────────────────
+   The remapped `purple-*` ramp puts neon brand green (#B8FF2E) on the
+   500–700 range. Existing components hardcode `text-white` on those
+   backgrounds, which is unreadable against the neon. Force near-black
+   text wherever a SOLID brand-green background is applied, and on
+   their direct icon/text children. Translucent variants like
+   `bg-purple-600/20` use a different class name and are intentionally
+   left alone — text on those still benefits from light colors. */
+.bg-purple-500,
+.bg-purple-600,
+.bg-purple-700,
+.hover\:bg-purple-500:hover,
+.hover\:bg-purple-600:hover,
+.hover\:bg-purple-700:hover,
+.bg-clby-green,
+.hover\:bg-clby-green:hover,
+.bg-clby-greenDim,
+.bg-purple-500 > *,
+.bg-purple-600 > *,
+.bg-purple-700 > *,
+.hover\:bg-purple-500:hover > *,
+.hover\:bg-purple-600:hover > *,
+.hover\:bg-purple-700:hover > *,
+.bg-clby-green > *,
+.bg-clby-greenDim > * {
+  color: #0A0A0A !important;
+}

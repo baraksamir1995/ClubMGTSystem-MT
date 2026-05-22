@@ -52,12 +52,12 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Repeat2 className="w-4 h-4 text-purple-400" />
-          <h2 className="text-sm font-semibold text-white">Session Transfers</h2>
+          <Repeat2 className="w-4 h-4 text-brand" />
+          <h2 className="text-sm font-semibold text-fg">Session Transfers</h2>
         </div>
-        <p className="text-xs text-gray-500">Loading…</p>
+        <p className="text-xs text-fg-faint">Loading…</p>
       </div>
     );
   }
@@ -65,19 +65,19 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
   if (error) return null;
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+    <div className="bg-surface-2 border border-line rounded-xl p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Repeat2 className="w-4 h-4 text-purple-400" />
-        <h2 className="text-sm font-semibold text-white">Session Transfers</h2>
+        <Repeat2 className="w-4 h-4 text-brand" />
+        <h2 className="text-sm font-semibold text-fg">Session Transfers</h2>
         {totalCount > 0 && (
-          <span className="ml-auto text-xs text-gray-500">
+          <span className="ml-auto text-xs text-fg-faint">
             {sent.length} sent · {received.length} received
           </span>
         )}
       </div>
 
       {totalCount === 0 ? (
-        <p className="text-sm text-gray-500">No transfers yet.</p>
+        <p className="text-sm text-fg-faint">No transfers yet.</p>
       ) : (
         <div className="space-y-2">
           {sent.map((t) => (
@@ -100,7 +100,7 @@ function Row({ row, direction }: { row: TransferRow; direction: 'sent' | 'receiv
     : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
-    <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-gray-900/40 border border-gray-700/50">
+    <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-surface/40 border border-line">
       <div
         className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
           isSent ? 'bg-amber-400/10' : 'bg-emerald-400/10'
@@ -113,11 +113,11 @@ function Row({ row, direction }: { row: TransferRow; direction: 'sent' | 'receiv
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white truncate">
+        <p className="text-sm text-fg truncate">
           {isSent ? 'Sent to' : 'Received from'}{' '}
           <span className="font-medium">{row.other_name ?? '—'}</span>
         </p>
-        <p className="text-xs text-gray-500">{dateStr}</p>
+        <p className="text-xs text-fg-faint">{dateStr}</p>
       </div>
       <div
         className={`text-sm font-semibold flex-shrink-0 ${

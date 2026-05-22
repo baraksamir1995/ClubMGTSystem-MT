@@ -6,6 +6,7 @@ import VerifyEmailButton from '@/components/members/verify-email-button';
 import MemberDetailActions from '@/components/members/member-detail-actions';
 import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
+import { Avatar, Badge, type BadgeProps } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,17 +24,17 @@ async function fetchApi(path: string, token: string) {
     return null;
   }
 }
-const statusColor: Record<string, string> = {
-  active:    'bg-emerald-400/10 text-emerald-400',
-  inactive:  'bg-gray-400/10 text-gray-400',
-  expired:   'bg-red-400/10 text-red-400',
-  exhausted: 'bg-red-400/10 text-red-400',
-  suspended: 'bg-amber-400/10 text-amber-400',
-  cancelled: 'bg-gray-400/10 text-gray-400',
-  paused:    'bg-blue-400/10 text-blue-400',
+const statusVariant: Record<string, BadgeProps['variant']> = {
+  active:    'success',
+  inactive:  'neutral',
+  expired:   'danger',
+  exhausted: 'danger',
+  suspended: 'warning',
+  cancelled: 'neutral',
+  paused:    'neutral',
 };
 
-function getMembershipBadge(m: any): { label: string; cls: string } | null {
+function getMembershipBadge(m: any): { label: string; variant: BadgeProps['variant'] } | null {
   if (!m || m.status !== 'active') return null;
   const daysLeft = m.end_date
     ? Math.ceil((new Date(m.end_date).getTime() - Date.now()) / 86_400_000)
@@ -43,13 +44,13 @@ function getMembershipBadge(m: any): { label: string; cls: string } | null {
     : null;
 
   if (daysLeft !== null && daysLeft < 0)
-    return { label: `Expired ${Math.abs(daysLeft)}d ago`, cls: 'bg-red-400/10 text-red-400' };
+    return { label: `Expired ${Math.abs(daysLeft)}d ago`, variant: 'danger' };
   if (daysLeft !== null && daysLeft <= 14)
-    return { label: `Expiring in ${daysLeft}d`, cls: 'bg-amber-400/10 text-amber-400' };
+    return { label: `Expiring in ${daysLeft}d`, variant: 'warning' };
   if (sessionsLeft !== null && sessionsLeft === 0)
-    return { label: 'No sessions left', cls: 'bg-red-400/10 text-red-400' };
+    return { label: 'No sessions left', variant: 'danger' };
   if (sessionsLeft !== null && sessionsLeft <= 2)
-    return { label: `${sessionsLeft} session${sessionsLeft !== 1 ? 's' : ''} left`, cls: 'bg-orange-400/10 text-orange-400' };
+    return { label: `${sessionsLeft} session${sessionsLeft !== 1 ? 's' : ''} left`, variant: 'warning' };
   return null;
 }
 
@@ -157,33 +158,24 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
     : null;
 
   const displayName = profile?.full_name ?? String(member.member_number ?? '---');
-  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <Link href="/dashboard/members" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors">
+      <Link href="/dashboard/members" className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg transition-colors">
         <ChevronLeft className="w-4 h-4" /> Members
       </Link>
 
       {/* Header */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
         <div className="flex items-center gap-4">
-          {profile?.photo_url ? (
-            <img src={profile.photo_url} alt={displayName} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-purple-600/20 flex items-center justify-center text-xl font-bold text-purple-400 flex-shrink-0">
-              {initials}
-            </div>
-          )}
+          <Avatar name={displayName} src={profile?.photo_url} size={56} />
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-white">{displayName}</h1>
+            <h1 className="text-xl font-bold text-fg">{displayName}</h1>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <span className="text-sm text-gray-400 font-mono">{member.member_number}</span>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[member.status] ?? 'bg-gray-400/10 text-gray-400'}`}>
-                {member.status}
-              </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-sm text-fg-muted font-mono">{member.member_number}</span>
+              <Badge variant={statusVariant[member.status] ?? 'neutral'} className="capitalize">{member.status}</Badge>
+              <span className="text-xs text-fg-faint">
                 Joined {member.joined_at ? new Date(member.joined_at).toLocaleDateString('en-GB') : '---'}
               </span>
             </div>
@@ -226,28 +218,24 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
         overviewContent={<>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Personal Info */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <div className="bg-surface-2 border border-line rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <User className="w-4 h-4 text-purple-400" />
-            <h2 className="text-sm font-semibold text-white">Personal Information</h2>
+            <User className="w-4 h-4 text-brand" />
+            <h2 className="text-sm font-semibold text-fg">Personal Information</h2>
           </div>
           <dl className="space-y-3">
             {/* Email with verification status */}
             <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <Mail className="w-4 h-4 text-fg-faint mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500">Email</p>
+                <p className="text-xs text-fg-faint">Email</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm text-white truncate">{profile?.email ?? '---'}</p>
+                  <p className="text-sm text-fg truncate">{profile?.email ?? '---'}</p>
                   {profile?.email && (
                     profile?.email_verified ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-400/10 text-emerald-400">
-                        <MailCheck className="w-3 h-3" /> Verified
-                      </span>
+                      <Badge variant="success" size="sm"><MailCheck className="w-3 h-3" /> Verified</Badge>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-400/10 text-amber-400">
-                        Unverified
-                      </span>
+                      <Badge variant="warning" size="sm">Unverified</Badge>
                     )
                   )}
                   {profile?.email && !profile?.email_verified && (
@@ -264,10 +252,10 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
               { icon: Hash,        label: 'Notes',        value: member.notes ?? '---' },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-start gap-3">
-                <Icon className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                <Icon className="w-4 h-4 text-fg-faint mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500">{label}</p>
-                  <p className="text-sm text-white truncate">{value}</p>
+                  <p className="text-xs text-fg-faint">{label}</p>
+                  <p className="text-sm text-fg truncate">{value}</p>
                 </div>
               </div>
             ))}
@@ -275,28 +263,28 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
         </div>
 
         {/* Active Services */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <div className="bg-surface-2 border border-line rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-4 h-4 text-purple-400" />
-            <h2 className="text-sm font-semibold text-white">Active Services</h2>
+            <CreditCard className="w-4 h-4 text-brand" />
+            <h2 className="text-sm font-semibold text-fg">Active Services</h2>
           </div>
 
           {!currentMembership && transferredBuckets.length === 0 && activeAssignments.length === 0 ? (
-            <p className="text-sm text-gray-500">No active services.</p>
+            <p className="text-sm text-fg-faint">No active services.</p>
           ) : (
             <div className="space-y-3">
-              <div className="bg-gray-700/40 rounded-lg p-4 border border-gray-700">
+              <div className="bg-surface-3/40 rounded-lg p-4 border border-line">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-white font-semibold">
+                  <p className="text-fg font-semibold">
                     {currentMembership ? (plan?.name ?? '---') : 'Transferred sessions only'}
                   </p>
                   {currentMembership && (
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[getDisplayStatus(currentMembership)] ?? 'bg-gray-400/10 text-gray-400'}`}>
+                    <Badge variant={statusVariant[getDisplayStatus(currentMembership)] ?? 'neutral'} className="capitalize">
                       {getDisplayStatus(currentMembership)}
-                    </span>
+                    </Badge>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 capitalize mb-2">
+                <p className="text-xs text-fg-muted capitalize mb-2">
                   {currentMembership
                     ? `${plan?.plan_type?.replace('_', ' ') ?? ''} plan`
                     : 'No active subscription — sessions received from other members'}
@@ -304,13 +292,11 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                 {currentMembership && (() => {
                   const badge = getMembershipBadge(currentMembership);
                   return badge ? (
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>
-                      {badge.label}
-                    </span>
+                    <Badge variant={badge.variant}>{badge.label}</Badge>
                   ) : null;
                 })()}
                 {currentMembership && plan?.price != null && (
-                  <p className="text-sm font-medium text-purple-400 mt-1">{fmt(plan.price, plan.currency)}</p>
+                  <p className="text-sm font-medium text-brand mt-1">{fmt(plan.price, plan.currency)}</p>
                 )}
               </div>
               <dl className="space-y-2">
@@ -327,26 +313,26 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                   },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between">
-                    <dt className="text-xs text-gray-500">{label}</dt>
-                    <dd className="text-xs text-white">{value}</dd>
+                    <dt className="text-xs text-fg-faint">{label}</dt>
+                    <dd className="text-xs text-fg">{value}</dd>
                   </div>
                 ))}
                 {aggregateSessionsTotal != null && aggregateSessionsTotal > 0 && (
                   <>
                     <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Sessions Used</dt>
-                      <dd className="text-xs text-white">
+                      <dt className="text-xs text-fg-faint">Sessions Used</dt>
+                      <dd className="text-xs text-fg">
                         {aggregateSessionsUsed} / {aggregateSessionsTotal}
                       </dd>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                    <div className="w-full bg-surface-3 rounded-full h-1.5 mt-1">
                       <div
-                        className="bg-purple-500 h-1.5 rounded-full transition-all"
+                        className="bg-brand h-1.5 rounded-full transition-all"
                         style={{ width: `${Math.min(100, Math.round(aggregateSessionsUsed / aggregateSessionsTotal * 100))}%` }}
                       />
                     </div>
                     {transferredBuckets.length > 0 && (
-                      <p className="text-[11px] text-gray-500 italic">
+                      <p className="text-[11px] text-fg-faint italic">
                         Includes {transferredSessionsTotal} session{transferredSessionsTotal !== 1 ? 's' : ''} from transfers
                         {transferredEarliestExpiry && (
                           <> · expire{transferredBuckets.length > 1 ? 's earliest' : 's'} {transferredEarliestExpiry.toLocaleDateString('en-GB')}</>
@@ -359,9 +345,9 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
 
               {/* Freeze status + history */}
               {currentMembership && plan?.freeze_enabled && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
+                <div className="mt-4 pt-4 border-t border-line">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Freeze History</p>
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">Freeze History</p>
                     {currentMembership.freeze_status === 'frozen' && (
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 text-xs font-medium">
                         Frozen until {currentMembership.frozen_until ? new Date(currentMembership.frozen_until).toLocaleDateString('en-GB') : '---'}
@@ -370,21 +356,21 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                   </div>
                   <div className="flex gap-4 mb-3">
                     <div>
-                      <p className="text-xs text-gray-500">Days used</p>
-                      <p className="text-sm font-semibold text-white">{currentMembership.freeze_days_used ?? 0} / {plan.freeze_max_days ?? '...'}</p>
+                      <p className="text-xs text-fg-faint">Days used</p>
+                      <p className="text-sm font-semibold text-fg">{currentMembership.freeze_days_used ?? 0} / {plan.freeze_max_days ?? '...'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Freezes used</p>
-                      <p className="text-sm font-semibold text-white">{currentMembership.freeze_count ?? 0} / {plan.freeze_max_count ?? '...'}</p>
+                      <p className="text-xs text-fg-faint">Freezes used</p>
+                      <p className="text-sm font-semibold text-fg">{currentMembership.freeze_count ?? 0} / {plan.freeze_max_count ?? '...'}</p>
                     </div>
                   </div>
                   {freezeLogs && freezeLogs.length > 0 ? (
                     <div className="space-y-1.5">
                       {(freezeLogs as any[]).map((log: any, i: number) => (
-                        <div key={log.id} className="flex items-center justify-between py-1.5 border-b border-gray-700/50 last:border-0">
+                        <div key={log.id} className="flex items-center justify-between py-1.5 border-b border-line last:border-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">#{i + 1}</span>
-                            <span className="text-xs text-white">
+                            <span className="text-xs text-fg-faint">#{i + 1}</span>
+                            <span className="text-xs text-fg">
                               {new Date(log.frozen_at).toLocaleDateString('en-GB')} &rarr; {new Date(log.frozen_until).toLocaleDateString('en-GB')}
                             </span>
                             <span className="text-xs text-blue-400">{log.freeze_days}d</span>
@@ -398,7 +384,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-600">No freeze history yet.</p>
+                    <p className="text-xs text-fg-faint">No freeze history yet.</p>
                   )}
                 </div>
               )}
@@ -407,7 +393,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                   packages with progress bars. Sit alongside the membership
                   inside this panel so admin sees one unified picture. */}
               {activeAssignments.length > 0 && (
-                <div className={`pt-4 ${currentMembership || transferredBuckets.length > 0 ? 'mt-4 border-t border-gray-700' : ''} space-y-3`}>
+                <div className={`pt-4 ${currentMembership || transferredBuckets.length > 0 ? 'mt-4 border-t border-line' : ''} space-y-3`}>
                   {activeAssignments.map((a: any) => {
                     const used = Number(a.sessions_used) || 0;
                     const total = Number(a.sessions_total) || 0;
@@ -420,31 +406,29 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                     };
                     const label = labelMap[a.service_type] ?? (a.service_type ?? '').toString().replace('_', ' ');
                     return (
-                      <div key={a.id} className="bg-gray-700/40 rounded-lg p-4 border border-gray-700">
+                      <div key={a.id} className="bg-surface-3/40 rounded-lg p-4 border border-line">
                         <div className="flex items-center justify-between gap-3 mb-1">
                           <div className="min-w-0">
-                            <p className="text-white font-semibold truncate">{a.package_name ?? 'Package'}</p>
-                            <p className="text-xs text-gray-400 capitalize mt-0.5">
+                            <p className="text-fg font-semibold truncate">{a.package_name ?? 'Package'}</p>
+                            <p className="text-xs text-fg-muted capitalize mt-0.5">
                               {label}{a.trainer_name ? ` · with ${a.trainer_name}` : ''}
                             </p>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-400/10 text-emerald-400 capitalize shrink-0">
-                            Active
-                          </span>
+                          <Badge variant="success" size="sm" className="shrink-0">Active</Badge>
                         </div>
                         {total > 0 && (
                           <>
                             <div className="flex justify-between mt-2">
-                              <dt className="text-xs text-gray-500">Sessions Used</dt>
-                              <dd className="text-xs text-white">{used} / {total}</dd>
+                              <dt className="text-xs text-fg-faint">Sessions Used</dt>
+                              <dd className="text-xs text-fg">{used} / {total}</dd>
                             </div>
-                            <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                            <div className="w-full bg-surface-3 rounded-full h-1.5 mt-1">
                               <div
-                                className="bg-purple-500 h-1.5 rounded-full transition-all"
+                                className="bg-brand h-1.5 rounded-full transition-all"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
-                            <p className="text-[11px] text-gray-500 mt-1">{left} session{left !== 1 ? 's' : ''} remaining</p>
+                            <p className="text-[11px] text-fg-faint mt-1">{left} session{left !== 1 ? 's' : ''} remaining</p>
                           </>
                         )}
                       </div>

@@ -1,0 +1,28 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/\\b(?:bg|text|border|hover\\\\:bg|hover\\\\:text|hover\\\\:border|focus\\\\:border|focus\\\\:ring|ring)-(?:purple-(?:[3-9]00|950)|gray-(?:[7-9]00|950))\\b/]",
+        "message": "Legacy Tailwind class detected. Use the semantic tokens from components/ui/ (bg-brand, bg-surface-2, text-fg, border-line, …) — see components/ui/README.md."
+      },
+      {
+        "selector": "TemplateElement[value.cooked=/\\b(?:bg|text|border|hover\\\\:bg|hover\\\\:text|hover\\\\:border|focus\\\\:border|focus\\\\:ring|ring)-(?:purple-(?:[3-9]00|950)|gray-(?:[7-9]00|950))\\b/]",
+        "message": "Legacy Tailwind class detected. Use the semantic tokens from components/ui/ (bg-brand, bg-surface-2, text-fg, border-line, …) — see components/ui/README.md."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "components/ui/**",
+        "app/globals.css",
+        "tailwind.config.ts"
+      ],
+      "rules": {
+        "no-restricted-syntax": "off"
+      }
+    }
+  ]
+}

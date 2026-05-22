@@ -77,7 +77,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [paymentLoaded, setPaymentLoaded] = useState(false);
 
-  const inp = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500';
+  const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand';
 
   const saveProfile = async () => {
     if (!profile.name.trim()) { toast.error('Gym name is required'); return; }
@@ -249,10 +249,10 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
     >
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
+        <h2 className="text-sm font-semibold text-fg">{title}</h2>
       </div>
       <ChevronDown
-        className={`w-4 h-4 text-gray-400 group-hover:text-white transition-transform duration-200 ${open[sectionKey] ? 'rotate-0' : '-rotate-90'}`}
+        className={`w-4 h-4 text-fg-muted group-hover:text-fg transition-transform duration-200 ${open[sectionKey] ? 'rotate-0' : '-rotate-90'}`}
       />
     </button>
   );
@@ -260,32 +260,33 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage your gym profile, operations, and integrations</p>
+        <h1 className="text-2xl font-bold text-fg">Settings</h1>
+        <p className="text-sm text-fg-muted mt-0.5">Manage your gym profile, operations, and integrations</p>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 1: GYM PROFILE (Logo + Profile fields)
          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <SectionHeader sectionKey="profile" icon={<Building2 className="w-4 h-4 text-purple-400" />} title="Gym Profile" />
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
+        <SectionHeader sectionKey="profile" icon={<Building2 className="w-4 h-4 text-brand" />} title="Gym Profile" />
         {open.profile && (
           <div className="space-y-6 mt-5">
             {/* Logo */}
             <div className="flex items-center gap-5">
-              <div className="w-20 h-20 rounded-xl bg-gray-700 border border-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-20 h-20 rounded-xl bg-surface-3 border border-line flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoUrl
+                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded gym logo on external host
                   ? <img src={logoUrl} alt="Gym logo" className="w-full h-full object-cover" />
-                  : <Dumbbell className="w-8 h-8 text-gray-500" />}
+                  : <Dumbbell className="w-8 h-8 text-fg-faint" />}
               </div>
               <div>
-                <p className="text-sm text-gray-300 mb-2">Used in the member app and splash screen</p>
+                <p className="text-sm text-fg-muted mb-2">Used in the member app and splash screen</p>
                 {can(permissions, 'settings', 'edit') && (
                   <>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden"
                       onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ''; }} />
                     <button onClick={() => fileRef.current?.click()} disabled={uploadingLogo}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                      className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-4 border border-line text-gray-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                       {uploadingLogo
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
                         : <><Upload className="w-4 h-4" /> Upload Logo</>}
@@ -295,41 +296,41 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               </div>
             </div>
 
-            <div className="border-t border-gray-700" />
+            <div className="border-t border-line" />
 
             {/* Profile fields */}
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5">Gym Name <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">Gym Name <span className="text-red-400">*</span></label>
                 <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                   placeholder="e.g. Iron Fitness Club" className={inp} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Email</label>
+                  <label className="block text-xs text-fg-muted mb-1.5">Email</label>
                   <input type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
                     placeholder="contact@gym.com" className={inp} />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1.5">Phone</label>
+                  <label className="block text-xs text-fg-muted mb-1.5">Phone</label>
                   <input value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
                     placeholder="+1 234 567 8900" className={inp} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5">Address</label>
+                <label className="block text-xs text-fg-muted mb-1.5">Address</label>
                 <input value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
                   placeholder="123 Main St, City, Country" className={inp} />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1.5">Description <span className="text-gray-600">(shown on app splash screen)</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">Description <span className="text-fg-faint">(shown on app splash screen)</span></label>
                 <textarea value={profile.description} onChange={e => setProfile(p => ({ ...p, description: e.target.value }))}
                   placeholder="Brief description of your gym…" rows={3}
                   className={inp + ' resize-none'} />
               </div>
               {can(permissions, 'settings', 'edit') && (
                 <button onClick={saveProfile} disabled={savingProfile}
-                  className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingProfile ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save Profile</>}
                 </button>
               )}
@@ -341,19 +342,19 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION: APP BRANDING (Colors)
          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <SectionHeader sectionKey="branding" icon={<Palette className="w-4 h-4 text-purple-400" />} title="App Branding" />
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
+        <SectionHeader sectionKey="branding" icon={<Palette className="w-4 h-4 text-brand" />} title="App Branding" />
         {open.branding && (
           <div className="space-y-6 mt-5">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-fg-muted">
               Customize the colors members see in the mobile app. Changes take effect next time a member opens the app.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Primary color */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Primary Color</label>
-                <p className="text-xs text-gray-400 mb-3">Used for buttons, links, navigation highlights, and main accents.</p>
+                <label className="block text-sm font-medium text-fg mb-2">Primary Color</label>
+                <p className="text-xs text-fg-muted mb-3">Used for buttons, links, navigation highlights, and main accents.</p>
                 <div className="flex items-center gap-3">
                   <label className="relative cursor-pointer">
                     <input
@@ -364,7 +365,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
                     <div
-                      className="w-12 h-12 rounded-xl border-2 border-gray-600 shadow-lg transition-transform hover:scale-105"
+                      className="w-12 h-12 rounded-xl border-2 border-line shadow-lg transition-transform hover:scale-105"
                       style={{ backgroundColor: primaryColor }}
                     />
                   </label>
@@ -381,8 +382,8 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
               {/* Secondary color */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Secondary Color</label>
-                <p className="text-xs text-gray-400 mb-3">Used for badges, tags, secondary buttons, and subtle highlights.</p>
+                <label className="block text-sm font-medium text-fg mb-2">Secondary Color</label>
+                <p className="text-xs text-fg-muted mb-3">Used for badges, tags, secondary buttons, and subtle highlights.</p>
                 <div className="flex items-center gap-3">
                   <label className="relative cursor-pointer">
                     <input
@@ -393,7 +394,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
                     <div
-                      className="w-12 h-12 rounded-xl border-2 border-gray-600 shadow-lg transition-transform hover:scale-105"
+                      className="w-12 h-12 rounded-xl border-2 border-line shadow-lg transition-transform hover:scale-105"
                       style={{ backgroundColor: secondaryColor }}
                     />
                   </label>
@@ -411,18 +412,18 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
             {/* Preview */}
             <div>
-              <p className="text-xs text-gray-400 mb-3">Preview</p>
+              <p className="text-xs text-fg-muted mb-3">Preview</p>
               <div className="flex items-center gap-3 flex-wrap">
-                <button className="px-5 py-2 rounded-lg text-white text-sm font-medium" style={{ backgroundColor: primaryColor }}>
+                <button className="px-5 py-2 rounded-lg text-fg text-sm font-medium" style={{ backgroundColor: primaryColor }}>
                   Primary Button
                 </button>
-                <button className="px-5 py-2 rounded-lg text-white text-sm font-medium" style={{ backgroundColor: secondaryColor }}>
+                <button className="px-5 py-2 rounded-lg text-fg text-sm font-medium" style={{ backgroundColor: secondaryColor }}>
                   Secondary Button
                 </button>
-                <span className="px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: primaryColor }}>
+                <span className="px-3 py-1 rounded-full text-xs font-medium text-fg" style={{ backgroundColor: primaryColor }}>
                   Badge
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: secondaryColor }}>
+                <span className="px-3 py-1 rounded-full text-xs font-medium text-fg" style={{ backgroundColor: secondaryColor }}>
                   Tag
                 </span>
               </div>
@@ -430,7 +431,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
             {can(permissions, 'settings', 'edit') && (
               <button onClick={saveBranding} disabled={savingBranding}
-                className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                 {savingBranding ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save Colors</>}
               </button>
             )}
@@ -441,15 +442,15 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION: MOBILE APP & PAYMENTS (Toggle + Payment Gateway)
          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <SectionHeader sectionKey="app" icon={<Smartphone className="w-4 h-4 text-purple-400" />} title="Mobile App & Payments" />
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
+        <SectionHeader sectionKey="app" icon={<Smartphone className="w-4 h-4 text-brand" />} title="Mobile App & Payments" />
         {open.app && (
           <div className="space-y-6 mt-5">
             {/* Mobile payments toggle */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-white">Mobile Payments</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-sm font-medium text-fg">Mobile Payments</p>
+                <p className="text-xs text-fg-muted mt-0.5">
                   Allow members to pay for memberships, programmes, and packages directly in the app.
                   When disabled, all payment buttons are hidden from the member app.
                 </p>
@@ -458,7 +459,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 type="button"
                 onClick={() => can(permissions, 'settings', 'edit') && setMobilePaymentsEnabled(v => !v)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                  mobilePaymentsEnabled ? 'bg-purple-600' : 'bg-gray-600'
+                  mobilePaymentsEnabled ? 'bg-brand' : 'bg-surface-4'
                 } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
                 aria-pressed={mobilePaymentsEnabled}
               >
@@ -471,8 +472,8 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {/* Session transfers toggle */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-white">Session Transfers</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-sm font-medium text-fg">Session Transfers</p>
+                <p className="text-xs text-fg-muted mt-0.5">
                   Allow members to transfer sessions to another member from their profile.
                   When disabled, the &quot;Share sessions&quot; entry point is hidden in the member app.
                 </p>
@@ -481,7 +482,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 type="button"
                 onClick={() => can(permissions, 'settings', 'edit') && setSessionTransferEnabled(v => !v)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                  sessionTransferEnabled ? 'bg-purple-600' : 'bg-gray-600'
+                  sessionTransferEnabled ? 'bg-brand' : 'bg-surface-4'
                 } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
                 aria-pressed={sessionTransferEnabled}
               >
@@ -492,7 +493,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             </div>
             {can(permissions, 'settings', 'edit') && (
               <button onClick={saveAppSettings} disabled={savingAppSettings}
-                className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                 {savingAppSettings ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save</>}
               </button>
             )}
@@ -500,10 +501,10 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {/* Payment gateway config */}
             {can(permissions, 'settings', 'edit') && (
               <>
-                <div className="border-t border-gray-700" />
+                <div className="border-t border-line" />
                 <div className="flex items-center gap-2 mb-1">
-                  <CreditCard className="w-4 h-4 text-purple-400" />
-                  <h3 className="text-sm font-semibold text-white">Payment Gateway</h3>
+                  <CreditCard className="w-4 h-4 text-brand" />
+                  <h3 className="text-sm font-semibold text-fg">Payment Gateway</h3>
                 </div>
 
                 {/* Current status */}
@@ -517,76 +518,76 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                       </p>
                     </div>
                     {paymentStatus.configured && (
-                      <div className="text-xs text-gray-400 space-y-1">
-                        <p>Provider: <span className="text-white font-medium capitalize">{paymentStatus.provider}</span></p>
-                        {paymentStatus.secret_key_hint && <p>Secret key: <span className="text-white font-mono">{paymentStatus.secret_key_hint}</span></p>}
-                        {paymentStatus.public_key_hint && <p>Public key: <span className="text-white font-mono">{paymentStatus.public_key_hint}</span></p>}
+                      <div className="text-xs text-fg-muted space-y-1">
+                        <p>Provider: <span className="text-fg font-medium capitalize">{paymentStatus.provider}</span></p>
+                        {paymentStatus.secret_key_hint && <p>Secret key: <span className="text-fg font-mono">{paymentStatus.secret_key_hint}</span></p>}
+                        {paymentStatus.public_key_hint && <p>Public key: <span className="text-fg font-mono">{paymentStatus.public_key_hint}</span></p>}
                         <div className="flex gap-3 mt-1">
-                          <span className={paymentStatus.has_card ? 'text-emerald-400' : 'text-gray-600'}>Card {paymentStatus.has_card ? '✓' : '✗'}</span>
-                          <span className={paymentStatus.has_valu ? 'text-emerald-400' : 'text-gray-600'}>ValU {paymentStatus.has_valu ? '✓' : '✗'}</span>
-                          <span className={paymentStatus.has_applepay ? 'text-emerald-400' : 'text-gray-600'}>Apple Pay {paymentStatus.has_applepay ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_card ? 'text-emerald-400' : 'text-fg-faint'}>Card {paymentStatus.has_card ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_valu ? 'text-emerald-400' : 'text-fg-faint'}>ValU {paymentStatus.has_valu ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_applepay ? 'text-emerald-400' : 'text-fg-faint'}>Apple Pay {paymentStatus.has_applepay ? '✓' : '✗'}</span>
                         </div>
                         {paymentStatus.updated_at && (
-                          <p className="text-gray-500 mt-1">Last updated: {new Date(paymentStatus.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          <p className="text-fg-faint mt-1">Last updated: {new Date(paymentStatus.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                         )}
                       </div>
                     )}
                   </div>
                 )}
 
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-fg-muted">
                   Enter your Paymob credentials below. For security, saved credentials are never displayed.
                   Submitting new values will overwrite the existing configuration.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Secret Key <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">Secret Key <span className="text-red-400">*</span></label>
                     <div className="relative">
                       <input
                         type={showSecretKey ? 'text' : 'password'}
                         value={paymentForm.secretKey}
                         onChange={e => setPaymentForm(p => ({ ...p, secretKey: e.target.value }))}
                         placeholder="sk_live_•••••••••••"
-                        className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white w-full pr-10 focus:outline-none focus:border-purple-500"
+                        className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full pr-10 focus:outline-none focus:border-brand"
                       />
                       <button type="button" onClick={() => setShowSecretKey(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg">
                         {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Public Key <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">Public Key <span className="text-red-400">*</span></label>
                     <input type="text" value={paymentForm.publicKey}
                       onChange={e => setPaymentForm(p => ({ ...p, publicKey: e.target.value }))}
                       placeholder="pk_live_•••••••••••"
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:border-purple-500" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Card Integration ID <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">Card Integration ID <span className="text-red-400">*</span></label>
                     <input type="text" value={paymentForm.integrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, integrationId: e.target.value }))}
                       placeholder="e.g. 123456"
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:border-purple-500" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">ValU Integration ID <span className="text-gray-500">(optional)</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">ValU Integration ID <span className="text-fg-faint">(optional)</span></label>
                     <input type="text" value={paymentForm.valuIntegrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, valuIntegrationId: e.target.value }))}
                       placeholder="e.g. 789012"
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:border-purple-500" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Apple Pay Integration ID <span className="text-gray-500">(optional)</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">Apple Pay Integration ID <span className="text-fg-faint">(optional)</span></label>
                     <input type="text" value={paymentForm.applepayIntegrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, applepayIntegrationId: e.target.value }))}
                       placeholder="e.g. 345678"
-                      className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white w-full focus:outline-none focus:border-purple-500" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                 </div>
 
                 <button onClick={savePaymentConfig} disabled={savingPayment}
-                  className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingPayment ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CreditCard className="w-4 h-4" /> Save Payment Config</>}
                 </button>
               </>
@@ -598,15 +599,15 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 3: BRANCHES & OPERATIONS (Hours + Capacity + Branches)
          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <SectionHeader sectionKey="operations" icon={<GitBranch className="w-4 h-4 text-purple-400" />} title="Branches & Operations" />
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
+        <SectionHeader sectionKey="operations" icon={<GitBranch className="w-4 h-4 text-brand" />} title="Branches & Operations" />
         {open.operations && (
           <div className="space-y-6 mt-5">
             {/* Operating Hours */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white">Operating Hours</h3>
+                <Clock className="w-4 h-4 text-fg-muted" />
+                <h3 className="text-sm font-semibold text-fg">Operating Hours</h3>
               </div>
               <div className="space-y-3">
                 {DAYS.map(day => {
@@ -617,21 +618,21 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" checked={!dh.closed}
                             onChange={e => updateDay(day, 'closed', !e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-purple-600 focus:ring-purple-500" />
-                          <span className={`text-sm font-medium capitalize ${dh.closed ? 'text-gray-500' : 'text-white'}`}>
+                            className="w-4 h-4 rounded border-line bg-surface-3 text-brand focus:ring-brand" />
+                          <span className={`text-sm font-medium capitalize ${dh.closed ? 'text-fg-faint' : 'text-fg'}`}>
                             {DAY_LABELS[day]}
                           </span>
                         </label>
                       </div>
                       {dh.closed ? (
-                        <span className="text-xs text-gray-500 italic">Closed</span>
+                        <span className="text-xs text-fg-faint italic">Closed</span>
                       ) : (
                         <div className="flex items-center gap-2 flex-1">
                           <input type="time" value={dh.open} onChange={e => updateDay(day, 'open', e.target.value)}
-                            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]" />
-                          <span className="text-gray-500 text-xs">to</span>
+                            className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]" />
+                          <span className="text-fg-faint text-xs">to</span>
                           <input type="time" value={dh.close} onChange={e => updateDay(day, 'close', e.target.value)}
-                            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]" />
+                            className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]" />
                         </div>
                       )}
                     </div>
@@ -640,32 +641,32 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               </div>
               {can(permissions, 'settings', 'edit') && (
                 <button onClick={saveHours} disabled={savingHours}
-                  className="mt-5 flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="mt-5 flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingHours ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save Hours</>}
                 </button>
               )}
             </div>
 
-            <div className="border-t border-gray-700" />
+            <div className="border-t border-line" />
 
             {/* Gym Capacity */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Users className="w-4 h-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-white">Gym Capacity</h3>
+                <Users className="w-4 h-4 text-fg-muted" />
+                <h3 className="text-sm font-semibold text-fg">Gym Capacity</h3>
               </div>
               <div className="space-y-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-white">Enable Capacity Tracking</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-sm font-medium text-fg">Enable Capacity Tracking</p>
+                    <p className="text-xs text-fg-muted mt-0.5">
                       Show members how busy the gym is right now. Based on check-ins in the last 2 hours.
                     </p>
                   </div>
                   <button type="button"
                     onClick={() => can(permissions, 'settings', 'edit') && setCapacityEnabled(v => !v)}
                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                      capacityEnabled ? 'bg-purple-600' : 'bg-gray-600'
+                      capacityEnabled ? 'bg-brand' : 'bg-surface-4'
                     } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
                     aria-pressed={capacityEnabled}
                   >
@@ -677,24 +678,24 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
                 {capacityEnabled && (
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Maximum Gym Capacity <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">Maximum Gym Capacity <span className="text-red-400">*</span></label>
                     <input type="number" min={1} value={maxCapacity}
                       onChange={e => setMaxCapacity(e.target.value)} placeholder="e.g. 100"
-                      className="w-48 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                      className="w-48 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                       readOnly={!can(permissions, 'settings', 'edit')} />
-                    <p className="text-xs text-gray-500 mt-1">Total number of members allowed in the gym at once</p>
+                    <p className="text-xs text-fg-faint mt-1">Total number of members allowed in the gym at once</p>
                   </div>
                 )}
 
                 {capacityEnabled && liveCapacity && (
-                  <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">Live Preview</p>
+                  <div className="bg-surface border border-line rounded-lg p-4">
+                    <p className="text-xs text-fg-muted font-semibold uppercase tracking-wider mb-3">Live Preview</p>
                     <div className="flex items-center gap-3 mb-2">
                       <span className={`inline-block w-2 h-2 rounded-full ${
                         liveCapacity.status === 'not_busy' ? 'bg-green-500' :
                         liveCapacity.status === 'moderate' ? 'bg-amber-500' : 'bg-red-500'
                       }`} />
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-fg">
                         {liveCapacity.status === 'not_busy' ? 'Not crowded' :
                          liveCapacity.status === 'moderate' ? 'Moderately busy' : 'Very busy'}
                       </span>
@@ -703,13 +704,13 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                         liveCapacity.status === 'moderate' ? 'text-amber-400' : 'text-red-400'
                       }`}>{liveCapacity.capacity_percentage}%</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-surface-3 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all ${
                         liveCapacity.status === 'not_busy' ? 'bg-green-500' :
                         liveCapacity.status === 'moderate' ? 'bg-amber-500' : 'bg-red-500'
                       }`} style={{ width: `${liveCapacity.capacity_percentage}%` }} />
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-fg-faint mt-2">
                       {liveCapacity.active_users} active members out of {liveCapacity.max_capacity} capacity
                     </p>
                   </div>
@@ -717,14 +718,14 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
                 {can(permissions, 'settings', 'edit') && (
                   <button onClick={saveCapacity} disabled={savingCapacity}
-                    className="flex items-center gap-2 px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                    className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                     {savingCapacity ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save</>}
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="border-t border-gray-700" />
+            <div className="border-t border-line" />
 
             {/* Branches */}
             <BranchesPage

@@ -211,32 +211,32 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
 
       {/* ── Upload section ─────────────────────────────────────────────────── */}
       {can(permissions, 'content', 'create') && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           <button
             onClick={() => setShowForm(v => !v)}
-            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-medium text-white hover:bg-gray-750 transition-colors">
+            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-medium text-fg hover:bg-surface-3 transition-colors">
             <span className="flex items-center gap-2">
-              <Upload className="w-4 h-4 text-purple-400" />
+              <Upload className="w-4 h-4 text-brand" />
               Add New Banner
             </span>
-            {showForm ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+            {showForm ? <ChevronUp className="w-4 h-4 text-fg-muted" /> : <ChevronDown className="w-4 h-4 text-fg-muted" />}
           </button>
 
           {showForm && (
-            <div className="px-5 pb-5 space-y-3 border-t border-gray-700">
+            <div className="px-5 pb-5 space-y-3 border-t border-line">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                 <input
                   value={form.caption}
                   onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
                   placeholder="Caption (optional)"
-                  className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
                 <input
                   value={form.sortOrder}
                   onChange={e => setForm(f => ({ ...f, sortOrder: e.target.value }))}
                   type="number"
                   placeholder="Sort order (0 = first)"
-                  className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
               </div>
 
@@ -245,7 +245,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Description (shown on banner detail screen)"
                 rows={2}
-                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
               />
 
               <div className="flex items-center gap-2">
@@ -253,10 +253,10 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                   value={form.tag}
                   onChange={e => setForm(f => ({ ...f, tag: e.target.value }))}
                   placeholder="Tag label (e.g. New, Promo, Event)"
-                  className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  className="flex-1 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="text-xs text-gray-400 whitespace-nowrap">Tag color</label>
+                  <label className="text-xs text-fg-muted whitespace-nowrap">Tag color</label>
                   <input
                     type="color"
                     value={form.tagColor}
@@ -278,7 +278,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     sponsorExternalUrl: '',
                     sponsorTerms: '',
                   }))}
-                  className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
                   {(Object.entries(ACTION_LABELS) as [ActionType, string][]).map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>
                   ))}
@@ -289,14 +289,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     value={form.actionValue}
                     onChange={e => setForm(f => ({ ...f, actionValue: e.target.value }))}
                     placeholder="https://example.com"
-                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                   />
                 )}
                 {form.actionType === 'internal' && (
                   <select
                     value={form.actionValue}
                     onChange={e => setForm(f => ({ ...f, actionValue: e.target.value }))}
-                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
                     <option value="">Select screen…</option>
                     {INTERNAL_SCREENS.map(s => (
                       <option key={s.value} value={s.value}>{s.label}</option>
@@ -306,24 +306,24 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
               </div>
 
               {form.actionType === 'sponsor' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border border-purple-700/40 bg-purple-900/10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border border-brand/40 bg-brand/10">
                   <input
                     value={form.sponsorPromoCode}
                     onChange={e => setForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
                     placeholder="Promo code (e.g. CLBY15) — optional"
-                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                   />
                   <input
                     value={form.sponsorExternalUrl}
                     onChange={e => setForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
                     placeholder="External URL (e.g. proteinhouse.com) — optional"
-                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                   />
                   <input
                     value={form.sponsorTerms}
                     onChange={e => setForm(f => ({ ...f, sponsorTerms: e.target.value }))}
                     placeholder="Fine-print terms — optional"
-                    className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 sm:col-span-2"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand sm:col-span-2"
                   />
                 </div>
               )}
@@ -336,13 +336,13 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {uploading
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
                     : <><Upload className="w-4 h-4" /> Choose Image & Upload</>}
                 </button>
-                <p className="text-xs text-gray-500">
-                  Recommended <span className="text-gray-300 font-medium">1170×534 px</span> (2.19∶1) · JPG or PNG · &lt; 500 KB
+                <p className="text-xs text-fg-faint">
+                  Recommended <span className="text-fg-muted font-medium">1170×534 px</span> (2.19∶1) · JPG or PNG · &lt; 500 KB
                 </p>
               </div>
             </div>
@@ -352,9 +352,9 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
 
       {/* ── Banner list ────────────────────────────────────────────────────── */}
       {sortedBanners.length === 0 ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <ImageIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No banners yet — add one above</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+          <ImageIcon className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <p className="text-sm text-fg-muted">No banners yet — add one above</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -365,13 +365,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
             return (
               <div
                 key={banner.id}
-                className={`bg-gray-800 border rounded-xl overflow-hidden transition-opacity ${
-                  banner.is_active ? 'border-gray-700' : 'border-gray-700 opacity-60'
+                className={`bg-surface-2 border rounded-xl overflow-hidden transition-opacity ${
+                  banner.is_active ? "border-line" : "border-line opacity-60"
                 }`}>
 
                 <div className="flex gap-0">
                   {/* Thumbnail */}
                   <div className="relative flex-shrink-0 w-32 h-24 sm:w-40 sm:h-28 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded banner on external host */}
                     <img
                       src={banner.image_url}
                       alt={banner.caption ?? 'Banner'}
@@ -379,7 +380,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     />
                     <div className="absolute top-1.5 left-1.5 flex gap-1 flex-wrap">
                       {!banner.is_active && (
-                        <span className="text-xs bg-gray-900/90 text-gray-400 px-1.5 py-0.5 rounded-full">
+                        <span className="text-xs bg-surface/90 text-fg-muted px-1.5 py-0.5 rounded-full">
                           Inactive
                         </span>
                       )}
@@ -393,7 +394,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           replaceFileRef.current?.click();
                         }}
                         title="Replace image"
-                        className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/0 hover:bg-black/55 text-white text-xs font-medium opacity-0 hover:opacity-100 transition-all disabled:opacity-100 disabled:bg-black/55">
+                        className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/0 hover:bg-black/55 text-fg text-xs font-medium opacity-0 hover:opacity-100 transition-all disabled:opacity-100 disabled:bg-black/55">
                         {replacingId === banner.id
                           ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> Uploading…</>
                           : <><Upload className="w-3.5 h-3.5"/> Replace image</>}
@@ -410,14 +411,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             value={ef.caption}
                             onChange={e => setEditForm(f => ({ ...f, caption: e.target.value }))}
                             placeholder="Caption"
-                            className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                           <input
                             value={ef.sortOrder}
                             onChange={e => setEditForm(f => ({ ...f, sortOrder: e.target.value }))}
                             type="number"
                             placeholder="Sort order"
-                            className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                         </div>
                         <textarea
@@ -425,17 +426,17 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                           placeholder="Description"
                           rows={2}
-                          className="w-full bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
                         />
                         <div className="flex items-center gap-2">
                           <input
                             value={ef.tag}
                             onChange={e => setEditForm(f => ({ ...f, tag: e.target.value }))}
                             placeholder="Tag label (optional)"
-                            className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <label className="text-xs text-gray-400 whitespace-nowrap">Color</label>
+                            <label className="text-xs text-fg-muted whitespace-nowrap">Color</label>
                             <input
                               type="color"
                               value={ef.tagColor ?? '#FFFFFF'}
@@ -459,7 +460,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                               sponsorExternalUrl: '',
                               sponsorTerms: '',
                             }))}
-                            className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500">
+                            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
                             {(Object.entries(ACTION_LABELS) as [ActionType, string][]).map(([v, l]) => (
                               <option key={v} value={v}>{l}</option>
                             ))}
@@ -469,14 +470,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                               value={ef.actionValue}
                               onChange={e => setEditForm(f => ({ ...f, actionValue: e.target.value }))}
                               placeholder="https://…"
-                              className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                              className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                             />
                           )}
                           {ef.actionType === 'internal' && (
                             <select
                               value={ef.actionValue}
                               onChange={e => setEditForm(f => ({ ...f, actionValue: e.target.value }))}
-                              className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500">
+                              className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
                               <option value="">Select screen…</option>
                               {INTERNAL_SCREENS.map(s => (
                                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -486,35 +487,35 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         </div>
 
                         {ef.actionType === 'sponsor' && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg border border-purple-700/40 bg-purple-900/10">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg border border-brand/40 bg-brand/10">
                             <input
                               value={ef.sponsorPromoCode ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
                               placeholder="Promo code"
-                              className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                             />
                             <input
                               value={ef.sponsorExternalUrl ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
                               placeholder="External URL"
-                              className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                             />
                             <input
                               value={ef.sponsorTerms ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorTerms: e.target.value }))}
                               placeholder="Terms"
-                              className="bg-gray-900 border border-gray-600 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 sm:col-span-2"
+                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand sm:col-span-2"
                             />
                           </div>
                         )}
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-white truncate">
-                          {banner.caption || <span className="text-gray-500 italic">No caption</span>}
+                        <p className="text-sm font-medium text-fg truncate">
+                          {banner.caption || <span className="text-fg-faint italic">No caption</span>}
                         </p>
                         {banner.description && (
-                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{banner.description}</p>
+                          <p className="text-xs text-fg-muted mt-0.5 line-clamp-2">{banner.description}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           {banner.tag && (
@@ -530,14 +531,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             </span>
                           )}
                           <ActionBadge type={banner.action_type as ActionType} value={banner.action_value} />
-                          <span className="text-xs text-gray-500">Order: {banner.sort_order ?? 0}</span>
+                          <span className="text-xs text-fg-faint">Order: {banner.sort_order ?? 0}</span>
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 border-l border-gray-700">
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 border-l border-line">
                     {isEditing ? (
                       <>
                         <button
@@ -552,7 +553,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         <button
                           onClick={() => setEditingId(null)}
                           title="Cancel"
-                          className="p-1.5 rounded-lg bg-gray-600/40 hover:bg-gray-600 text-gray-400 transition-colors">
+                          className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       </>
@@ -562,7 +563,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           <button
                             onClick={() => startEdit(banner)}
                             title="Edit"
-                            className="p-1.5 rounded-lg bg-gray-600/40 hover:bg-gray-600 text-gray-300 transition-colors">
+                            className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             <Pencil className="w-4 h-4" />
                           </button>
                         )}
@@ -571,7 +572,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             onClick={() => toggleActive(banner)}
                             disabled={togglingId === banner.id}
                             title={banner.is_active ? 'Deactivate' : 'Activate'}
-                            className="p-1.5 rounded-lg bg-gray-600/40 hover:bg-gray-600 text-gray-300 transition-colors">
+                            className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             {togglingId === banner.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
                               : banner.is_active
@@ -616,7 +617,7 @@ function ActionBadge({ type, value }: { type: ActionType; value: string | null }
   }
   if (type === 'internal') {
     return (
-      <span className="inline-flex items-center gap-1 text-xs bg-purple-500/15 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20">
+      <span className="inline-flex items-center gap-1 text-xs bg-brand/15 text-brand px-2 py-0.5 rounded-full border border-brand/20">
         <Smartphone className="w-3 h-3" />
         {value || 'Screen not set'}
       </span>
@@ -631,6 +632,6 @@ function ActionBadge({ type, value }: { type: ActionType; value: string | null }
     );
   }
   return (
-    <span className="text-xs text-gray-600">No action</span>
+    <span className="text-xs text-fg-faint">No action</span>
   );
 }

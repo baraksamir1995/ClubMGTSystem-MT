@@ -1,5 +1,12 @@
 'use client';
 
+/* eslint-disable no-restricted-syntax --
+ * This is an intentionally LIGHT-themed printable invoice/receipt rendered on
+ * white "paper" (and printed verbatim via handlePrint). It deliberately uses
+ * dark-on-white colors (text-gray-900/700, bg-gray-100) rather than the dark-UI
+ * design tokens — `text-fg` etc. are near-white and would be invisible here.
+ */
+
 import { useState, useRef } from 'react';
 import { X, Printer, Mail, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -116,7 +123,7 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-              isReceipt ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
+              isReceipt ? 'bg-emerald-100 text-emerald-700' : 'bg-accent/10 text-accent'
             }`}>{docType}</span>
             <span className="text-sm font-mono text-gray-500">{docNumber}</span>
           </div>
@@ -146,12 +153,13 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
             <div className="flex items-start justify-between mb-8">
               <div>
                 {gym.logo_url && (
+                  // eslint-disable-next-line @next/next/no-img-element -- printed verbatim; next/image unsuitable for print window
                   <img src={gym.logo_url} alt={gym.name} className="w-12 h-12 rounded-xl object-cover mb-2" />
                 )}
                 <p className="gym-name text-lg font-bold text-gray-900">{gym.name}</p>
               </div>
               <div className="text-right">
-                <p className={`text-2xl font-black tracking-widest ${isReceipt ? 'text-emerald-600' : 'text-purple-600'}`}>
+                <p className={`text-2xl font-black tracking-widest ${isReceipt ? 'text-emerald-600' : 'text-accent'}`}>
                   {docType}
                 </p>
                 <p className="text-sm font-mono text-gray-400 mt-1">{docNumber}</p>

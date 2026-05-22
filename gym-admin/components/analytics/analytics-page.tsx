@@ -146,36 +146,36 @@ export default function AnalyticsPage() {
   };
 
   const tabCls = (t: string) =>
-    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`;
+    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === t ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`;
 
-  const inp = 'bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 [color-scheme:dark]';
+  const inp = 'bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]';
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Reporting & Analytics</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Growth, churn, and revenue insights</p>
+          <h1 className="text-2xl font-bold text-fg">Reporting & Analytics</h1>
+          <p className="text-sm text-fg-muted mt-0.5">Growth, churn, and revenue insights</p>
         </div>
         <div className="relative">
           <button onClick={() => setShowExport(v => !v)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 bg-surface-2 border border-line text-fg-muted text-sm font-medium rounded-lg hover:bg-surface-3 transition-colors">
             <Download className="w-4 h-4" /> Export
           </button>
           {showExport && (
-            <div className="absolute right-0 top-full mt-1 z-20 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+            <div className="absolute right-0 top-full mt-1 z-20 bg-surface-2 border border-line rounded-xl shadow-xl overflow-hidden min-w-[160px]">
               <button onClick={() => exportAs('csv')}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
                 <Download className="w-4 h-4 text-emerald-400" /> CSV
               </button>
               <button onClick={() => exportAs('xlsx')}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
                 <FileSpreadsheet className="w-4 h-4 text-blue-400" /> Excel (.xlsx)
               </button>
               <button onClick={() => exportAs('print')}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
-                <Printer className="w-4 h-4 text-purple-400" /> Print / PDF
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
+                <Printer className="w-4 h-4 text-brand" /> Print / PDF
               </button>
             </div>
           )}
@@ -183,7 +183,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit flex-wrap">
+      <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit flex-wrap">
         <button onClick={() => setActiveTab('dashboard')} className={tabCls('dashboard')}>
           <LayoutDashboard className="w-4 h-4" /> Dashboard
         </button>
@@ -206,12 +206,12 @@ export default function AnalyticsPage() {
             {(['day','week','month'] as const).map(p => (
               <button key={p} onClick={() => { setDashPeriod(p); fetchDashboard(p); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
-                  dashPeriod === p ? 'bg-purple-600/20 border-purple-600/40 text-purple-400' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'
+                  dashPeriod === p ? 'bg-brand/20 border-brand/40 text-brand' : 'bg-surface-2 border-line text-fg-muted hover:text-fg'
                 }`}>
                 {p === 'day' ? 'Today' : p === 'week' ? 'This Week' : 'This Month'}
               </button>
             ))}
-            {dashLoading && <RefreshCw className="w-4 h-4 text-purple-400 animate-spin ml-2" />}
+            {dashLoading && <RefreshCw className="w-4 h-4 text-brand animate-spin ml-2" />}
           </div>
 
           {!dashLoading && dashData && (() => {
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
               <>
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <KpiCard icon={Users}        color="text-purple-400" bg="bg-purple-400/10" label="Active Members"  value={kpis.activeMembers.toLocaleString()} sub={kpis.newMembers > 0 ? `+${kpis.newMembers} new` : undefined} />
+                  <KpiCard icon={Users}        color="text-brand" bg="bg-brand/10" label="Active Members"  value={kpis.activeMembers.toLocaleString()} sub={kpis.newMembers > 0 ? `+${kpis.newMembers} new` : undefined} />
                   <KpiCard icon={DollarSign}   color="text-emerald-400" bg="bg-emerald-400/10" label="Revenue"       value={fmt(kpis.revenue, kpis.currency)} sub="collected" />
                   <KpiCard icon={ScanLine}     color="text-blue-400" bg="bg-blue-400/10"    label="Check-ins"        value={kpis.checkins.toLocaleString()} sub="gym entries" />
                   <KpiCard icon={CalendarDays} color="text-amber-400" bg="bg-amber-400/10"  label="Sessions"         value={kpis.sessions.toLocaleString()} sub={`${kpis.totalBookings} bookings`} />
@@ -229,8 +229,8 @@ export default function AnalyticsPage() {
 
                 {/* Timeline chart */}
                 {timeline.length > 0 && (
-                  <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-                    <h2 className="text-sm font-semibold text-white mb-4">Performance Over Period</h2>
+                  <div className="bg-surface-2 border border-line rounded-xl p-5">
+                    <h2 className="text-sm font-semibold text-fg mb-4">Performance Over Period</h2>
                     <ResponsiveContainer width="100%" height={260}>
                       <AreaChart data={timeline.map(t => ({ ...t, date: fmtDate(t.date) }))}
                         margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
@@ -265,24 +265,24 @@ export default function AnalyticsPage() {
       )}
 
       {/* Date Range */}
-      {activeTab !== 'dashboard' && <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex flex-wrap items-center gap-3">
+      {activeTab !== 'dashboard' && <div className="bg-surface-2 border border-line rounded-xl p-4 flex flex-wrap items-center gap-3">
         <div className="flex gap-1.5 flex-wrap">
           {PRESET_RANGES.map(p => (
             <button key={p.days} onClick={() => applyPreset(p.days)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                preset === p.days ? 'bg-purple-600/20 border-purple-600/40 text-purple-400' : 'border-gray-700 text-gray-400 hover:text-white'
+                preset === p.days ? 'bg-brand/20 border-brand/40 text-brand' : 'border-line text-fg-muted hover:text-fg'
               }`}>
               {p.label}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2 ml-auto flex-wrap">
-          <span className="text-xs text-gray-500">Custom:</span>
+          <span className="text-xs text-fg-faint">Custom:</span>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className={inp} />
-          <span className="text-gray-600 text-xs">to</span>
+          <span className="text-fg-faint text-xs">to</span>
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className={inp} />
           <button onClick={applyCustom} disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40">
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium rounded-lg transition-colors disabled:opacity-40">
             {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <BarChart3 className="w-3.5 h-3.5" />}
             Apply
           </button>
@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-brand animate-spin" />
         </div>
       )}
 
@@ -304,7 +304,7 @@ export default function AnalyticsPage() {
               label="New Members" value={memberData.totalNew.toString()} />
             <StatCard icon={TrendingDown} color="text-red-400" bg="bg-red-400/10"
               label="Cancellations" value={memberData.totalChurned.toString()} />
-            <StatCard icon={Users} color="text-purple-400" bg="bg-purple-400/10"
+            <StatCard icon={Users} color="text-brand" bg="bg-brand/10"
               label="Net Growth" value={(memberData.totalNew - memberData.totalChurned >= 0 ? '+' : '') + (memberData.totalNew - memberData.totalChurned)}
               valueColor={memberData.totalNew >= memberData.totalChurned ? 'text-emerald-400' : 'text-red-400'} />
             <StatCard icon={BarChart3} color="text-amber-400" bg="bg-amber-400/10"
@@ -313,8 +313,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Growth vs Churn chart */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Growth vs Churn by Month</h2>
+          <div className="bg-surface-2 border border-line rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-fg mb-4">Growth vs Churn by Month</h2>
             {memberData.timeline.length === 0 ? (
               <EmptyChart />
             ) : (
@@ -336,8 +336,8 @@ export default function AnalyticsPage() {
 
           {/* Trend line */}
           {memberData.timeline.length > 1 && (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-4">Net Growth Trend</h2>
+            <div className="bg-surface-2 border border-line rounded-xl p-5">
+              <h2 className="text-sm font-semibold text-fg mb-4">Net Growth Trend</h2>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart
                   data={memberData.timeline.map(d => ({
@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={DollarSign} color="text-emerald-400" bg="bg-emerald-400/10"
               label="Total Collected" value={fmt(revenueData.totalRevenue, revenueData.currency)} />
-            <StatCard icon={BarChart3} color="text-purple-400" bg="bg-purple-400/10"
+            <StatCard icon={BarChart3} color="text-brand" bg="bg-brand/10"
               label="Paid Transactions" value={revenueData.paidCount.toString()} />
             <StatCard icon={AlertCircle} color="text-red-400" bg="bg-red-400/10"
               label="Overdue Amount" value={fmt(revenueData.totalOverdue, revenueData.currency)} />
@@ -380,7 +380,7 @@ export default function AnalyticsPage() {
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-red-400">Outstanding Balances</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-fg-muted mt-0.5">
                   {fmt(revenueData.totalOverdue, revenueData.currency)} overdue across {revenueData.overdueCount} payment{revenueData.overdueCount !== 1 ? 's' : ''}
                   {revenueData.totalPending > 0 && ` · ${fmt(revenueData.totalPending, revenueData.currency)} pending`}
                 </p>
@@ -389,8 +389,8 @@ export default function AnalyticsPage() {
           )}
 
           {/* Revenue timeline */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-4">Revenue by Month</h2>
+          <div className="bg-surface-2 border border-line rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-fg mb-4">Revenue by Month</h2>
             {revenueData.timeline.length === 0 ? (
               <EmptyChart />
             ) : (
@@ -417,8 +417,8 @@ export default function AnalyticsPage() {
           {revenueData.byPlan.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Pie chart */}
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-                <h2 className="text-sm font-semibold text-white mb-4">Revenue by Plan</h2>
+              <div className="bg-surface-2 border border-line rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-fg mb-4">Revenue by Plan</h2>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie data={revenueData.byPlan} dataKey="revenue" nameKey="plan"
@@ -436,9 +436,9 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Plan breakdown table */}
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-                <h2 className="text-sm font-semibold text-white mb-4">Plan Breakdown</h2>
-                <div className="space-y-0 divide-y divide-gray-700/50">
+              <div className="bg-surface-2 border border-line rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-fg mb-4">Plan Breakdown</h2>
+                <div className="space-y-0 divide-y divide-line">
                   {revenueData.byPlan.map((p, i) => {
                     const pct = revenueData.totalRevenue > 0
                       ? Math.round((p.revenue / revenueData.totalRevenue) * 100) : 0;
@@ -448,18 +448,18 @@ export default function AnalyticsPage() {
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                               style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                            <span className="text-sm text-white">{p.plan}</span>
+                            <span className="text-sm text-fg">{p.plan}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-sm font-semibold text-white">{fmt(p.revenue, revenueData.currency)}</span>
-                            <span className="text-xs text-gray-500 ml-2">{p.count} payment{p.count !== 1 ? 's' : ''}</span>
+                            <span className="text-sm font-semibold text-fg">{fmt(p.revenue, revenueData.currency)}</span>
+                            <span className="text-xs text-fg-faint ml-2">{p.count} payment{p.count !== 1 ? 's' : ''}</span>
                           </div>
                         </div>
-                        <div className="w-full bg-gray-700 rounded-full h-1.5">
+                        <div className="w-full bg-surface-3 rounded-full h-1.5">
                           <div className="h-1.5 rounded-full transition-all"
                             style={{ width: `${pct}%`, backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5 text-right">{pct}% of total</p>
+                        <p className="text-xs text-fg-faint mt-0.5 text-right">{pct}% of total</p>
                       </div>
                     );
                   })}
@@ -475,7 +475,7 @@ export default function AnalyticsPage() {
         <div className="space-y-5">
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Dumbbell}    color="text-purple-400" bg="bg-purple-400/10"
+            <StatCard icon={Dumbbell}    color="text-brand" bg="bg-brand/10"
               label="Total Sessions" value={classData.totalSessions.toString()} />
             <StatCard icon={Users}       color="text-emerald-400" bg="bg-emerald-400/10"
               label="Total Bookings" value={classData.totalBookings.toString()} />
@@ -494,37 +494,37 @@ export default function AnalyticsPage() {
 
           {/* Class ranking table */}
           {classData.byClass.length === 0 ? (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-              <Dumbbell className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">No class sessions in this period</p>
+            <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+              <Dumbbell className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-sm text-fg-muted">No class sessions in this period</p>
             </div>
           ) : (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-700 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-purple-400" />
-                <h2 className="text-sm font-semibold text-white">Classes by Attendance</h2>
+            <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-line flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-brand" />
+                <h2 className="text-sm font-semibold text-fg">Classes by Attendance</h2>
               </div>
-              <div className="divide-y divide-gray-700/50">
+              <div className="divide-y divide-line">
                 {classData.byClass.map((c, i) => {
                   const rate = c.bookingRate;
-                  const rateColor = rate == null ? 'text-gray-500'
+                  const rateColor = rate == null ? 'text-fg-faint'
                     : rate >= 75 ? 'text-emerald-400'
                     : rate >= 40 ? 'text-amber-400' : 'text-red-400';
                   return (
                     <div key={c.name} className="flex items-center gap-4 px-5 py-3.5">
-                      <span className="text-lg font-bold text-gray-600 w-6 flex-shrink-0">#{i + 1}</span>
+                      <span className="text-lg font-bold text-fg-faint w-6 flex-shrink-0">#{i + 1}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white">{c.name}</p>
-                        <p className="text-xs text-gray-500 capitalize">{c.class_type} · {c.sessions} session{c.sessions !== 1 ? 's' : ''}</p>
+                        <p className="text-sm font-medium text-fg">{c.name}</p>
+                        <p className="text-xs text-fg-faint capitalize">{c.class_type} · {c.sessions} session{c.sessions !== 1 ? 's' : ''}</p>
                         {rate != null && (
-                          <div className="w-full max-w-xs bg-gray-700 rounded-full h-1.5 mt-1.5">
-                            <div className="h-1.5 rounded-full bg-purple-500" style={{ width: `${rate}%` }} />
+                          <div className="w-full max-w-xs bg-surface-3 rounded-full h-1.5 mt-1.5">
+                            <div className="h-1.5 rounded-full bg-brand" style={{ width: `${rate}%` }} />
                           </div>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-white">{c.totalBooked} bookings</p>
-                        <p className="text-xs text-gray-500">avg {c.avgBooked}/session</p>
+                        <p className="text-sm font-semibold text-fg">{c.totalBooked} bookings</p>
+                        <p className="text-xs text-fg-faint">avg {c.avgBooked}/session</p>
                         {rate != null && <p className={`text-xs font-medium mt-0.5 ${rateColor}`}>{rate}% fill rate</p>}
                       </div>
                     </div>
@@ -536,9 +536,9 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Peak days */}
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-1">Bookings by Day of Week</h2>
-              <p className="text-xs text-gray-500 mb-4">Green = peak day</p>
+            <div className="bg-surface-2 border border-line rounded-xl p-5">
+              <h2 className="text-sm font-semibold text-fg mb-1">Bookings by Day of Week</h2>
+              <p className="text-xs text-fg-faint mb-4">Green = peak day</p>
               {classData.byDay.every(d => d.booked === 0) ? <EmptyChart /> : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={classData.byDay.map(d => ({ day: d.day.slice(0, 3), booked: d.booked }))}
@@ -560,9 +560,9 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Peak times */}
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-1">Bookings by Start Time</h2>
-              <p className="text-xs text-gray-500 mb-4">Amber = peak hour</p>
+            <div className="bg-surface-2 border border-line rounded-xl p-5">
+              <h2 className="text-sm font-semibold text-fg mb-1">Bookings by Start Time</h2>
+              <p className="text-xs text-fg-faint mb-4">Amber = peak hour</p>
               {classData.byHour.length === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={classData.byHour}
@@ -593,14 +593,14 @@ function StatCard({ icon: Icon, color, bg, label, value, valueColor }: {
   icon: any; color: string; bg: string; label: string; value: string; valueColor?: string;
 }) {
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+    <div className="bg-surface-2 border border-line rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
           <Icon className={`w-3.5 h-3.5 ${color}`} />
         </div>
-        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-xs text-fg-muted">{label}</p>
       </div>
-      <p className={`text-2xl font-bold ${valueColor ?? 'text-white'}`}>{value}</p>
+      <p className={`text-2xl font-bold ${valueColor ?? 'text-fg'}`}>{value}</p>
     </div>
   );
 }
@@ -609,15 +609,15 @@ function KpiCard({ icon: Icon, color, bg, label, value, sub }: {
   icon: any; color: string; bg: string; label: string; value: string; sub?: string;
 }) {
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+    <div className="bg-surface-2 border border-line rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
           <Icon className={`w-3.5 h-3.5 ${color}`} />
         </div>
-        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-xs text-fg-muted">{label}</p>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
-      {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+      <p className="text-2xl font-bold text-fg">{value}</p>
+      {sub && <p className="text-xs text-fg-faint mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -625,7 +625,7 @@ function KpiCard({ icon: Icon, color, bg, label, value, sub }: {
 function EmptyChart() {
   return (
     <div className="flex items-center justify-center h-40">
-      <p className="text-sm text-gray-500">No data for this period</p>
+      <p className="text-sm text-fg-faint">No data for this period</p>
     </div>
   );
 }

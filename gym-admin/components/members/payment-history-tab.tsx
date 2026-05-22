@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Download, Filter, DollarSign, CheckCircle, Clock, AlertCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge, type BadgeProps, Button, Input } from '@/components/ui';
 
 const PAGE_SIZE = 5;
 
@@ -41,12 +42,12 @@ const methodLabel: Record<string, string> = {
   cash: 'Cash', bank_transfer: 'Bank Transfer', card: 'Card', other: 'Other',
 };
 
-const statusConfig: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
-  paid:          { label: 'Paid',          cls: 'bg-emerald-400/10 text-emerald-400',  icon: CheckCircle },
-  pending:       { label: 'Pending',       cls: 'bg-amber-400/10 text-amber-400',      icon: Clock },
-  overdue:       { label: 'Overdue',       cls: 'bg-red-400/10 text-red-400',          icon: AlertCircle },
-  refunded:      { label: 'Refunded',      cls: 'bg-blue-400/10 text-blue-400',        icon: RotateCcw },
-  partial_refund:{ label: 'Part. Refunded',cls: 'bg-blue-400/10 text-blue-400',        icon: RotateCcw },
+const statusConfig: Record<string, { label: string; variant: BadgeProps['variant']; icon: React.ElementType }> = {
+  paid:          { label: 'Paid',          variant: 'success', icon: CheckCircle },
+  pending:       { label: 'Pending',       variant: 'warning', icon: Clock },
+  overdue:       { label: 'Overdue',       variant: 'danger',  icon: AlertCircle },
+  refunded:      { label: 'Refunded',      variant: 'neutral', icon: RotateCcw },
+  partial_refund:{ label: 'Part. Refunded',variant: 'neutral', icon: RotateCcw },
 };
 
 export default function PaymentHistoryTab({ payments, memberName, memberNumber }: Props) {
@@ -102,71 +103,71 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
     <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-1">Total Paid</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-faint mb-1">Total Paid</p>
           <p className="text-xl font-bold text-emerald-400">{fmt(totalPaid, filtered[0]?.currency ?? 'EGP')}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{filtered.filter(p => p.status === 'paid').length} payments</p>
+          <p className="text-xs text-fg-faint mt-0.5">{filtered.filter(p => p.status === 'paid').length} payments</p>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-1">Outstanding</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-faint mb-1">Outstanding</p>
           <p className="text-xl font-bold text-amber-400">{fmt(totalPending, filtered[0]?.currency ?? 'EGP')}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{filtered.filter(p => p.status === 'pending' || p.status === 'overdue').length} pending</p>
+          <p className="text-xs text-fg-faint mt-0.5">{filtered.filter(p => p.status === 'pending' || p.status === 'overdue').length} pending</p>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-500 mb-1">Refunded</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-faint mb-1">Refunded</p>
           <p className="text-xl font-bold text-blue-400">{fmt(totalRefunded, filtered[0]?.currency ?? 'EGP')}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{filtered.filter(p => p.status === 'refunded' || p.status === 'partial_refund').length} refunds</p>
+          <p className="text-xs text-fg-faint mt-0.5">{filtered.filter(p => p.status === 'refunded' || p.status === 'partial_refund').length} refunds</p>
         </div>
       </div>
 
       {/* Filters + Download */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+      <div className="bg-surface-2 border border-line rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-white">Filter Period</span>
+          <Filter className="w-4 h-4 text-fg-muted" />
+          <span className="text-sm font-medium text-fg">Filter Period</span>
           {(fromDate || toDate) && (
-            <button onClick={() => { setFromDate(''); setToDate(''); }}
-              className="ml-auto text-xs text-gray-400 hover:text-white transition-colors">Clear</button>
+            <Button variant="ghost" size="sm" className="ml-auto" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</Button>
           )}
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={downloadStatement}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors ml-auto">
-            <Download className="w-3.5 h-3.5" /> Download Statement
-          </button>
+            leftIcon={<Download className="w-3.5 h-3.5" />}
+            className={fromDate || toDate ? '' : 'ml-auto'}>
+            Download Statement
+          </Button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">From</label>
-            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500 [color-scheme:dark]" />
+            <label className="block text-xs text-fg-faint mb-1">From</label>
+            <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="[color-scheme:dark]" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">To</label>
-            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500 [color-scheme:dark]" />
+            <label className="block text-xs text-fg-faint mb-1">To</label>
+            <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="[color-scheme:dark]" />
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-700 flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-gray-400" />
-          <span className="text-sm font-medium text-white">Transactions</span>
-          <span className="ml-auto text-xs text-gray-500">{filtered.length} records</span>
+      <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-line flex items-center gap-2">
+          <DollarSign className="w-4 h-4 text-fg-muted" />
+          <span className="text-sm font-medium text-fg">Transactions</span>
+          <span className="ml-auto text-xs text-fg-faint">{filtered.length} records</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="p-10 text-center">
-            <DollarSign className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No payments{(fromDate || toDate) ? ' in this period' : ' recorded'}.</p>
+            <DollarSign className="w-8 h-8 text-fg-faint mx-auto mb-2" />
+            <p className="text-sm text-fg-faint">No payments{(fromDate || toDate) ? ' in this period' : ' recorded'}.</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wide">
+                  <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
                     <th className="text-left px-4 py-3">Date</th>
                     <th className="text-left px-4 py-3">Service / Item</th>
                     <th className="text-left px-4 py-3">Method</th>
@@ -175,49 +176,47 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                     <th className="text-right px-4 py-3">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-line">
                   {paginated.map(p => {
                   const sc = statusConfig[p.status] ?? statusConfig.pending;
                   const Icon = sc.icon;
                   return (
-                    <tr key={p.id} className="hover:bg-gray-700/20 transition-colors">
+                    <tr key={p.id} className="hover:bg-surface-3/20 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="text-white text-sm">
+                        <p className="text-fg text-sm">
                           {new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                         {p.paid_at && p.status === 'paid' && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-fg-faint">
                             Paid {new Date(p.paid_at).toLocaleDateString('en-GB')}
                           </p>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         {p.item_name ? (
-                          <span className="text-white font-medium">{p.item_name}</span>
+                          <span className="text-fg font-medium">{p.item_name}</span>
                         ) : (
-                          <span className="text-gray-500">—</span>
+                          <span className="text-fg-faint">—</span>
                         )}
                         {p.specialist_name && (
-                          <p className="text-xs text-gray-400 mt-0.5">{p.specialist_name}</p>
+                          <p className="text-xs text-fg-muted mt-0.5">{p.specialist_name}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-400">
+                      <td className="px-4 py-3 text-fg-muted">
                         {methodLabel[p.payment_method] ?? p.payment_method}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          p.source === 'mobile_app' ? 'bg-blue-400/10 text-blue-400' : 'bg-purple-400/10 text-purple-400'
-                        }`}>
+                        <Badge variant={p.source === 'mobile_app' ? 'neutral' : 'brand'} size="sm">
                           {p.source === 'mobile_app' ? 'Mobile' : 'Admin'}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${sc.cls}`}>
+                        <Badge variant={sc.variant}>
                           <Icon className="w-3 h-3" />
                           {sc.label}
-                        </span>
+                        </Badge>
                         {p.notes && (
-                          <p className="text-xs text-gray-500 mt-0.5 max-w-[180px] truncate" title={p.notes}>{p.notes}</p>
+                          <p className="text-xs text-fg-faint mt-0.5 max-w-[180px] truncate" title={p.notes}>{p.notes}</p>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -227,14 +226,14 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                           </span>
                         ) : p.discount_amount && p.discount_amount > 0 ? (
                           <div>
-                            <p className="text-xs text-gray-500 line-through">{fmt(p.original_amount ?? p.amount, p.currency)}</p>
+                            <p className="text-xs text-fg-faint line-through">{fmt(p.original_amount ?? p.amount, p.currency)}</p>
                             <p className="font-semibold text-emerald-400">{fmt(p.amount, p.currency)}</p>
                             {p.promo_code && (
-                              <p className="text-xs text-purple-400 mt-0.5 font-mono">{p.promo_code}</p>
+                              <p className="text-xs text-brand mt-0.5 font-mono">{p.promo_code}</p>
                             )}
                           </div>
                         ) : (
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-fg">
                             {fmt(p.amount, p.currency)}
                           </span>
                         )}
@@ -246,23 +245,23 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
               </table>
             </div>
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-700">
-                <p className="text-xs text-gray-500">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-line">
+                <p className="text-xs text-fg-faint">
                   {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
                 </p>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                     <button key={n} onClick={() => setPage(n)}
-                      className={`w-7 h-7 text-xs rounded-lg transition-colors ${n === page ? 'bg-purple-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}>
+                      className={`w-7 h-7 text-xs rounded-lg transition-colors ${n === page ? 'bg-brand text-brand-ink font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>
                       {n}
                     </button>
                   ))}
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>

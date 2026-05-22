@@ -16,8 +16,8 @@ const LEVEL_PRESETS = ['Beginner friendly', 'All levels', 'Intermediate', 'Advan
 const CATEGORY_PRESETS = ['Boxing', 'HIIT', 'Yoga', 'Strength', 'Cardio', 'Pilates', 'Cycling', 'CrossFit', 'Functional'];
 const FOCUS_PRESETS = ['Cardio conditioning', 'Core strength', 'Strength building', 'Flexibility', 'Fat loss', 'Muscle gain', 'Mobility', 'Mental resilience', 'Footwork & movement', 'Technique'];
 
-const inputCls = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors';
-const labelCls = 'block text-xs font-medium text-gray-400 mb-1.5';
+const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+const labelCls = 'block text-xs font-medium text-fg-muted mb-1.5';
 
 export default function ProgramModal({ program, gymId, onClose, onSaved }: Props) {
   const isEdit = !!program;
@@ -143,19 +143,19 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-600/20 rounded-lg flex items-center justify-center">
-              <Layers className="w-4 h-4 text-purple-400" />
+            <div className="w-8 h-8 bg-brand/20 rounded-lg flex items-center justify-center">
+              <Layers className="w-4 h-4 text-brand" />
             </div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-semibold text-fg">
               {isEdit ? 'Edit Program' : 'New Program'}
             </h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -177,12 +177,12 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
                   onClick={() => setStatus(s.value)}
                   className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-colors ${
                     status === s.value
-                      ? 'border-purple-500 bg-purple-600/10'
-                      : 'border-gray-700 hover:border-gray-600'
+                      ? 'border-brand bg-brand/10'
+                      : 'border-line hover:border-line'
                   }`}
                 >
-                  <span className="text-sm font-medium text-white">{s.label}</span>
-                  <span className="text-xs text-gray-400 mt-0.5">{s.hint}</span>
+                  <span className="text-sm font-medium text-fg">{s.label}</span>
+                  <span className="text-xs text-fg-muted mt-0.5">{s.hint}</span>
                 </button>
               ))}
             </div>
@@ -192,29 +192,28 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           <div>
             <label className={labelCls}>Cover Image</label>
             {imageUrl ? (
-              <div className="relative rounded-xl overflow-hidden bg-gray-900 border border-gray-700">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="relative rounded-xl overflow-hidden bg-surface border border-line">
                 <img src={imageUrl} alt="Cover" className="w-full h-44 object-cover"
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <button type="button"
                   onClick={() => { setImageUrl(''); setStoragePath(''); if (fileRef.current) fileRef.current.value = ''; }}
-                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-white transition-colors">
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
+                  className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors">
                   <Upload className="w-3 h-3" />
                   {uploading ? 'Uploading…' : 'Replace'}
                 </button>
               </div>
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                className="w-full flex flex-col items-center justify-center gap-2 h-36 bg-gray-900 border border-dashed border-gray-700 hover:border-purple-500 rounded-xl text-gray-500 hover:text-purple-400 disabled:opacity-50 transition-colors">
+                className="w-full flex flex-col items-center justify-center gap-2 h-36 bg-surface border border-dashed border-line hover:border-brand rounded-xl text-fg-faint hover:text-brand disabled:opacity-50 transition-colors">
                 {uploading ? <span className="text-sm">Uploading…</span> : (
                   <>
                     <ImageIcon className="w-6 h-6" />
                     <span className="text-sm">Click to upload cover image</span>
-                    <span className="text-xs text-gray-600">JPEG, PNG, WebP · max 5 MB</span>
+                    <span className="text-xs text-fg-faint">JPEG, PNG, WebP · max 5 MB</span>
                   </>
                 )}
               </button>
@@ -233,7 +232,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={labelCls.replace('mb-1.5', '')}>Description</label>
-              <span className={`text-xs ${description.length > 600 ? 'text-red-400' : 'text-gray-500'}`}>
+              <span className={`text-xs ${description.length > 600 ? 'text-red-400' : 'text-fg-faint'}`}>
                 {description.length}/600
               </span>
             </div>
@@ -246,7 +245,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           <div>
             <label className={labelCls}>Programme Price (EGP)</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">EGP</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
               <input
                 className={`${inputCls} pl-12`}
                 type="number"
@@ -285,7 +284,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               {LEVEL_PRESETS.map(l => (
                 <button key={l} type="button" onClick={() => setLevel(level === l ? '' : l)}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    level === l ? 'border-purple-500 bg-purple-600/20 text-purple-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                    level === l ? 'border-brand bg-brand/20 text-brand' : 'border-line text-fg-muted hover:border-gray-500'
                   }`}>{l}</button>
               ))}
             </div>
@@ -300,7 +299,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               {CATEGORY_PRESETS.map(c => (
                 <button key={c} type="button" onClick={() => setCategory(category === c ? '' : c)}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    category === c ? 'border-purple-500 bg-purple-600/20 text-purple-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                    category === c ? 'border-brand bg-brand/20 text-brand' : 'border-line text-fg-muted hover:border-gray-500'
                   }`}>{c}</button>
               ))}
             </div>
@@ -334,13 +333,13 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={labelCls.replace('mb-1.5', '')}>What You&apos;ll Work On</label>
-              <span className="text-xs text-gray-500">{focusAreas.length} areas</span>
+              <span className="text-xs text-fg-faint">{focusAreas.length} areas</span>
             </div>
             {/* Presets */}
             <div className="flex flex-wrap gap-2 mb-2">
               {FOCUS_PRESETS.filter(f => !focusAreas.includes(f)).map(f => (
                 <button key={f} type="button" onClick={() => addFocusArea(f)}
-                  className="px-2.5 py-1 rounded-lg border border-dashed border-gray-700 text-xs text-gray-500 hover:border-purple-500 hover:text-purple-400 transition-colors">
+                  className="px-2.5 py-1 rounded-lg border border-dashed border-line text-xs text-fg-faint hover:border-brand hover:text-brand transition-colors">
                   + {f}
                 </button>
               ))}
@@ -349,9 +348,9 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
             {focusAreas.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {focusAreas.map((area, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-700 rounded-lg text-xs text-white">
+                  <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-3 rounded-lg text-xs text-fg">
                     {area}
-                    <button type="button" onClick={() => removeFocusArea(i)} className="text-gray-500 hover:text-red-400 transition-colors">
+                    <button type="button" onClick={() => removeFocusArea(i)} className="text-fg-faint hover:text-red-400 transition-colors">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -365,7 +364,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFocusArea(); } }}
                 placeholder="Add a focus area and press Enter" />
               <button type="button" onClick={() => addFocusArea()} disabled={!focusInput.trim()}
-                className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg transition-colors">
+                className="flex items-center gap-1.5 px-3 py-2 bg-surface-3 hover:bg-surface-4 disabled:opacity-40 text-fg text-sm rounded-lg transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -377,19 +376,19 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
             <input className={inputCls} type="number" min={0} value={displayOrder}
               onChange={e => setDisplayOrder(e.target.value)}
               placeholder="0 = first" />
-            <p className="text-xs text-gray-600 mt-1">Lower number = shown first in the Explore feed.</p>
+            <p className="text-xs text-fg-faint mt-1">Lower number = shown first in the Explore feed.</p>
           </div>
 
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-line flex-shrink-0">
           <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+            className="px-4 py-2 text-sm text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
             Cancel
           </button>
           <button type="submit" form="program-form" disabled={saving || uploading}
-            className="px-5 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            className="px-5 py-2 bg-brand hover:bg-brand disabled:opacity-50 text-brand-ink text-sm font-medium rounded-lg transition-colors">
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Program'}
           </button>
         </div>

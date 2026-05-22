@@ -5,6 +5,7 @@ import { X, Dumbbell, ImagePlus, Loader2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymClass } from '@/app/dashboard/classes/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
+import { Button, Input, Modal, Select, Textarea } from '@/components/ui';
 
 export interface StaffMember {
   id: string;
@@ -174,156 +175,134 @@ export default function ClassModal({ existing, branches, defaultBranchId, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Dumbbell className="w-4 h-4 text-purple-400" />
-            <h2 className="text-base font-semibold text-white">{existing ? 'Edit Class' : 'New Class'}</h2>
+    <Modal open onClose={onClose} size="md">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2"><Dumbbell className="w-4 h-4 text-brand" /> {existing ? 'Edit Class' : 'New Class'}</span>
+      </Modal.Header>
+
+      <Modal.Body className="space-y-4">
+        {/* Branch (multi-branch only — first field) */}
+        {branches.length > 1 && (
+          <div>
+            <label className="block text-xs text-fg-muted mb-1.5">Branch <span className="text-danger">*</span></label>
+            <Select value={branchId} onChange={e => setBranchId(e.target.value)}>
+              <option value="">Select branch…</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+        )}
+
+        {/* Name */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Class Name <span className="text-danger">*</span></label>
+          <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Morning Yoga" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Branch (multi-branch only — first field) */}
-          {branches.length > 1 && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Branch <span className="text-red-400">*</span></label>
-              <select
-                value={branchId}
-                onChange={e => setBranchId(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
-              >
-                <option value="">Select branch…</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
+        {/* Type */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Class Type</label>
+          <div className="flex flex-wrap gap-2">
+            {classTypes.map(t => (
+              <div key={t.id} className={`group flex items-center gap-1 rounded-lg text-xs font-medium capitalize transition-colors ${classType === t.name ? 'bg-brand text-brand-ink' : 'bg-surface-3 text-fg-muted'}`}>
+                <button onClick={() => setClassType(t.name)} className="px-3 py-1.5">{t.name}</button>
+                <button onClick={() => handleDeleteType(t.id, t.name)}
+                  className="pr-2 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {/* Inline add */}
+            <div className="flex items-center gap-1">
+              <input
+                value={newTypeName}
+                onChange={e => setNewTypeName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddType()}
+                placeholder="New type…"
+                className="w-24 bg-surface border border-line rounded-lg px-2 py-1.5 text-xs text-fg placeholder-fg-faint focus:outline-none focus:border-brand"
+              />
+              <button onClick={handleAddType} disabled={addingType || !newTypeName.trim()}
+                className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted disabled:opacity-40 transition-colors">
+                {addingType ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              </button>
             </div>
-          )}
-
-          {/* Name */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Class Name <span className="text-red-400">*</span></label>
-            <input value={name} onChange={e => setName(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-              placeholder="e.g. Morning Yoga" />
           </div>
+        </div>
 
-          {/* Type */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Class Type</label>
-            <div className="flex flex-wrap gap-2">
-              {classTypes.map(t => (
-                <div key={t.id} className={`group flex items-center gap-1 rounded-lg text-xs font-medium capitalize transition-colors ${classType === t.name ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
-                  <button onClick={() => setClassType(t.name)} className="px-3 py-1.5">{t.name}</button>
-                  <button onClick={() => handleDeleteType(t.id, t.name)}
-                    className="pr-2 opacity-0 group-hover:opacity-100 transition-opacity text-white/60 hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {/* Inline add */}
-              <div className="flex items-center gap-1">
-                <input
-                  value={newTypeName}
-                  onChange={e => setNewTypeName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddType()}
-                  placeholder="New type…"
-                  className="w-24 bg-gray-900 border border-gray-600 rounded-lg px-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                />
-                <button onClick={handleAddType} disabled={addingType || !newTypeName.trim()}
-                  className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-40 transition-colors">
-                  {addingType ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+        {/* Specialist / Trainer — filtered by branch */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Specialist</label>
+          <Select value={trainerId ?? ''} onChange={e => setTrainerId(e.target.value || null)}>
+            <option value="">No specialist assigned</option>
+            {visibleTrainers.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </Select>
+        </div>
+
+        {/* Location */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Location / Room</label>
+          <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Studio A" />
+        </div>
+
+        {/* Color */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Color</label>
+          <div className="flex gap-2 flex-wrap">
+            {COLORS.map(c => (
+              <button key={c} onClick={() => setColor(c)}
+                style={{ backgroundColor: c }}
+                className={`w-7 h-7 rounded-full transition-all ${color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-surface-2 scale-110' : 'opacity-70 hover:opacity-100'}`} />
+            ))}
+          </div>
+        </div>
+
+        {/* Image */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">
+            Class Image
+            <span className="ml-2 text-fg-faint font-normal">Recommended: 800×500 px · JPG/PNG/WEBP · max 2 MB</span>
+          </label>
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
+          {imageUrl ? (
+            <div className="relative rounded-lg overflow-hidden border border-line" style={{ height: 120 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="Class" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 flex items-end justify-between p-2 bg-gradient-to-t from-black/60 to-transparent">
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-white bg-black/50 hover:bg-black/70 px-2 py-1 rounded-md transition-colors">
+                  Change
+                </button>
+                <button type="button" onClick={() => setImageUrl(null)}
+                  className="text-xs text-danger bg-black/50 hover:bg-black/70 px-2 py-1 rounded-md transition-colors">
+                  Remove
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Specialist / Trainer — filtered by branch */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Specialist</label>
-            <select
-              value={trainerId ?? ''}
-              onChange={e => setTrainerId(e.target.value || null)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
-            >
-              <option value="">No specialist assigned</option>
-              {visibleTrainers.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Location / Room</label>
-            <input value={location} onChange={e => setLocation(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-              placeholder="e.g. Studio A" />
-          </div>
-
-          {/* Color */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Color</label>
-            <div className="flex gap-2 flex-wrap">
-              {COLORS.map(c => (
-                <button key={c} onClick={() => setColor(c)}
-                  style={{ backgroundColor: c }}
-                  className={`w-7 h-7 rounded-full transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-800 scale-110' : 'opacity-70 hover:opacity-100'}`} />
-              ))}
-            </div>
-          </div>
-
-          {/* Image */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">
-              Class Image
-              <span className="ml-2 text-gray-500 font-normal">Recommended: 800×500 px · JPG/PNG/WEBP · max 2 MB</span>
-            </label>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageSelect} />
-            {imageUrl ? (
-              <div className="relative rounded-lg overflow-hidden border border-gray-600" style={{ height: 120 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt="Class" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 flex items-end justify-between p-2 bg-gradient-to-t from-black/60 to-transparent">
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-white bg-black/50 hover:bg-black/70 px-2 py-1 rounded-md transition-colors">
-                    Change
-                  </button>
-                  <button type="button" onClick={() => setImageUrl(null)}
-                    className="text-xs text-red-300 bg-black/50 hover:bg-black/70 px-2 py-1 rounded-md transition-colors">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                className="w-full flex flex-col items-center justify-center gap-2 py-6 rounded-lg border-2 border-dashed border-gray-600 hover:border-purple-500 text-gray-400 hover:text-purple-400 transition-colors disabled:opacity-50">
-                {uploading
-                  ? <><Loader2 className="w-5 h-5 animate-spin" /><span className="text-xs">Uploading…</span></>
-                  : <><ImagePlus className="w-5 h-5" /><span className="text-xs">Click to upload image</span></>}
-              </button>
-            )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)}
-              rows={3} placeholder="Optional description..."
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none" />
-          </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+              className="w-full flex flex-col items-center justify-center gap-2 py-6 rounded-lg border-2 border-dashed border-line hover:border-brand text-fg-muted hover:text-brand transition-colors disabled:opacity-50">
+              {uploading
+                ? <><Loader2 className="w-5 h-5 animate-spin" /><span className="text-xs">Uploading…</span></>
+                : <><ImagePlus className="w-5 h-5" /><span className="text-xs">Click to upload image</span></>}
+            </button>
+          )}
         </div>
 
-        <div className="flex gap-2 px-5 py-4 border-t border-gray-700 flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 text-sm hover:bg-gray-700 transition-colors">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving || !name.trim()}
-            className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-40">
-            {saving ? 'Saving…' : existing ? 'Save Changes' : 'Create Class'}
-          </button>
+        {/* Description */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Description</label>
+          <Textarea value={description} onChange={e => setDescription(e.target.value)}
+            rows={3} placeholder="Optional description..." className="resize-none" />
         </div>
-      </div>
-    </div>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="primary" fullWidth onClick={handleSubmit} disabled={!name.trim()} isLoading={saving}>
+          {existing ? 'Save Changes' : 'Create Class'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }

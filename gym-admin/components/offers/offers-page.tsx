@@ -7,15 +7,16 @@ import { useRefresh } from '@/lib/use-refresh';
 import OfferModal from './offer-modal';
 import type { GymOffer } from '@/app/dashboard/content/page';
 import { can, type Permission } from '@/lib/get-permissions';
+import { Badge, type BadgeProps, Button } from '@/components/ui';
 
 type SortKey = 'status' | 'expires_at' | 'created_at';
 type SortDir = 'asc' | 'desc';
 type StatusFilter = 'all' | 'draft' | 'active' | 'expired';
 
-const STATUS_STYLES: Record<string, string> = {
-  active:  'bg-emerald-400/10 text-emerald-400',
-  draft:   'bg-gray-400/10 text-gray-400',
-  expired: 'bg-red-400/10 text-red-400',
+const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
+  active:  'success',
+  draft:   'neutral',
+  expired: 'danger',
 };
 
 function fmt(iso: string) {
@@ -31,7 +32,7 @@ function SortButton({ col, sort, dir, onToggle }: {
   return (
     <button
       onClick={() => onToggle(col)}
-      className="inline-flex items-center gap-0.5 hover:text-white transition-colors"
+      className="inline-flex items-center gap-0.5 hover:text-fg transition-colors"
     >
       {active ? (
         dir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
@@ -121,7 +122,7 @@ export default function OffersPage({
     }
   };
 
-  const selectCls = 'bg-gray-700 border border-gray-600 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors';
+  const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
 
   return (
     <>
@@ -130,35 +131,28 @@ export default function OffersPage({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Offers</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage promotional offers shown on the mobile app Explore feed</p>
+            <h1 className="text-2xl font-bold text-fg">Offers</h1>
+            <p className="text-sm text-fg-muted mt-0.5">Manage promotional offers shown on the mobile app Explore feed</p>
           </div>
           {can(permissions, 'offers', 'create') && (
-            <button
-              onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Plus className="w-4 h-4" /> New Offer
-            </button>
+            <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>New Offer</Button>
           )}
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-4 gap-4">
           {([
-            { label: 'Total Offers',   value: counts.total,   color: 'text-white',         filter: 'all' as StatusFilter },
+            { label: 'Total Offers',   value: counts.total,   color: 'text-fg',         filter: 'all' as StatusFilter },
             { label: 'Active',         value: counts.active,  color: 'text-emerald-400',   filter: 'active' as StatusFilter },
-            { label: 'Draft',          value: counts.draft,   color: 'text-gray-300',      filter: 'draft' as StatusFilter },
+            { label: 'Draft',          value: counts.draft,   color: 'text-fg-muted',      filter: 'draft' as StatusFilter },
             { label: 'Expired',        value: counts.expired, color: 'text-red-400',       filter: 'expired' as StatusFilter },
           ] as const).map(s => (
             <button
               key={s.filter}
               onClick={() => setStatusFilter(statusFilter === s.filter ? 'all' : s.filter)}
-              className={`bg-gray-800 border rounded-xl p-4 text-left transition-colors ${
-                statusFilter === s.filter ? 'border-purple-500' : 'border-gray-700 hover:border-gray-600'
-              }`}
+              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}
             >
-              <p className="text-xs text-gray-400 mb-1">{s.label}</p>
+              <p className="text-xs text-fg-muted mb-1">{s.label}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
           ))}
@@ -174,15 +168,15 @@ export default function OffersPage({
         )}
 
         {/* Search + sort */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by title, description or tag…"
-              className="w-full pl-9 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div className="flex flex-wrap gap-3 items-center">
@@ -196,34 +190,29 @@ export default function OffersPage({
               <option value="draft">Draft</option>
               <option value="expired">Expired</option>
             </select>
-            <span className="ml-auto text-xs text-gray-500">{filtered.length} of {offers.length} offers</span>
+            <span className="ml-auto text-xs text-fg-faint">{filtered.length} of {offers.length} offers</span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           {filtered.length === 0 ? (
             <div className="p-12 text-center">
-              <Gift className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">
+              <Gift className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-fg-muted text-sm">
                 {offers.length === 0
                   ? 'No offers yet. Create your first offer.'
                   : 'No offers match your filters.'}
               </p>
               {offers.length === 0 && can(permissions, 'offers', 'create') && (
-                <button
-                  onClick={openCreate}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  <Plus className="w-4 h-4" /> Create your first offer
-                </button>
+                <Button variant="primary" className="mt-4" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>Create your first offer</Button>
               )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wide">
+                  <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
                     <th className="text-left px-5 py-3">Offer</th>
                     <th className="text-left px-5 py-3">Tag</th>
                     <th className="text-left px-5 py-3">
@@ -247,28 +236,29 @@ export default function OffersPage({
                     <th className="text-right px-5 py-3">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-line">
                   {filtered.map(offer => (
-                    <tr key={offer.id} className="hover:bg-gray-700/30 transition-colors">
+                    <tr key={offer.id} className="hover:bg-surface-3/30 transition-colors">
                       {/* Offer */}
                       <td className="px-5 py-3.5 max-w-xs">
                         <div className="flex items-start gap-3">
                           {offer.hero_image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- user-uploaded hero, external host
                             <img
                               src={offer.hero_image_url}
                               alt=""
-                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-700"
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-surface-3"
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
-                              <Gift className="w-5 h-5 text-gray-500" />
+                            <div className="w-12 h-12 rounded-lg bg-surface-3 flex items-center justify-center flex-shrink-0">
+                              <Gift className="w-5 h-5 text-fg-faint" />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-medium text-white truncate">{offer.title}</p>
+                            <p className="font-medium text-fg truncate">{offer.title}</p>
                             {offer.short_description && (
-                              <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[220px]">
+                              <p className="text-xs text-fg-faint mt-0.5 truncate max-w-[220px]">
                                 {offer.short_description}
                               </p>
                             )}
@@ -280,30 +270,28 @@ export default function OffersPage({
                       <td className="px-5 py-3.5">
                         {offer.tag_label ? (
                           <span
-                            className="inline-block px-2.5 py-1 rounded-full text-xs font-bold text-white"
+                            className="inline-block px-2.5 py-1 rounded-full text-xs font-bold text-fg"
                             style={{ backgroundColor: offer.tag_color ?? '#F59E0B' }}
                           >
                             {offer.tag_label}
                           </span>
                         ) : (
-                          <span className="text-gray-600">—</span>
+                          <span className="text-fg-faint">—</span>
                         )}
                       </td>
 
                       {/* Expires */}
-                      <td className="px-5 py-3.5 text-gray-300 whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-fg-muted whitespace-nowrap">
                         {fmt(offer.expires_at)}
                       </td>
 
                       {/* Status */}
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[offer.status] ?? 'bg-gray-400/10 text-gray-400'}`}>
-                          {offer.status}
-                        </span>
+                        <Badge variant={STATUS_VARIANT[offer.status] ?? 'neutral'} className="capitalize">{offer.status}</Badge>
                       </td>
 
                       {/* Created */}
-                      <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">
+                      <td className="px-5 py-3.5 text-fg-faint whitespace-nowrap text-xs">
                         {fmt(offer.created_at)}
                       </td>
 
@@ -314,7 +302,7 @@ export default function OffersPage({
                             <button
                               onClick={() => openEdit(offer)}
                               title="Edit offer"
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-purple-400/10 transition-colors"
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -324,7 +312,7 @@ export default function OffersPage({
                               onClick={() => handleDelete(offer.id)}
                               disabled={deletingId === offer.id}
                               title="Delete offer"
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-40"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

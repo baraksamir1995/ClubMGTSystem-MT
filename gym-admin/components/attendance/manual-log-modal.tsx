@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { X, Search, UserCheck, Loader2 } from 'lucide-react';
+import { Search, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { MemberOption, AttendanceLog, SessionOption } from '@/app/dashboard/attendance/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
+import { Avatar, Button, Input, Modal, Select } from '@/components/ui';
 
 interface Props {
   members: MemberOption[];
@@ -156,129 +157,114 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
     finally { setSaving(false); }
   };
 
-  const inp = 'w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500';
+  const fieldBox = 'px-3 py-2 bg-surface border border-line rounded-lg text-sm text-fg-muted';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-purple-400" />
-            <h2 className="text-base font-semibold text-white">Manual Check-in</h2>
+    <Modal open onClose={onClose} size="md">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2"><UserCheck className="w-4 h-4 text-brand" /> Manual Check-in</span>
+      </Modal.Header>
+
+      <Modal.Body className="space-y-4">
+        {/* Member search */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Member <span className="text-danger">*</span></label>
+          <div className="mb-2">
+            <Input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or ID…"
+              leftIcon={<Search className="w-4 h-4" />} />
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {filtered.length === 0 && (
+              <p className="text-xs text-fg-faint px-2 py-1">No members found</p>
+            )}
+            {filtered.map(m => (
+              <button key={m.id} type="button"
+                onClick={() => setSelectedId(m.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                  selectedId === m.id ? 'bg-brand/15 border border-brand/40' : 'hover:bg-surface-3/50 border border-transparent'
+                }`}>
+                <Avatar name={m.full_name ?? m.member_number ?? '?'} size={28} />
+                <div className="min-w-0">
+                  <p className="text-sm text-fg truncate">{m.full_name ?? '—'}</p>
+                  <p className="text-xs text-fg-faint font-mono">{m.member_number}</p>
+                </div>
+                {selectedId === m.id && (
+                  <UserCheck className="w-4 h-4 text-brand ml-auto flex-shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Member search */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Member <span className="text-red-400">*</span></label>
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name or ID…"
-                className="w-full pl-9 pr-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
-            </div>
-            <div className="space-y-1 max-h-48 overflow-y-auto">
-              {filtered.length === 0 && (
-                <p className="text-xs text-gray-500 px-2 py-1">No members found</p>
-              )}
-              {filtered.map(m => (
-                <button key={m.id} type="button"
-                  onClick={() => setSelectedId(m.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                    selectedId === m.id ? 'bg-purple-600/20 border border-purple-600/40' : 'hover:bg-gray-700/50 border border-transparent'
-                  }`}>
-                  <div className="w-7 h-7 rounded-full bg-purple-600/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-purple-400">
-                      {String(m.full_name ?? m.member_number ?? '?').slice(0, 2).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-white truncate">{m.full_name ?? '—'}</p>
-                    <p className="text-xs text-gray-500 font-mono">{m.member_number}</p>
-                  </div>
-                  {selectedId === m.id && (
-                    <UserCheck className="w-4 h-4 text-purple-400 ml-auto flex-shrink-0" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Date & time */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Check-in Date & Time <span className="text-danger">*</span></label>
+          <Input type="datetime-local" value={checkInAt} onChange={e => setCheckInAt(e.target.value)}
+            className="[color-scheme:dark]" />
+        </div>
 
-          {/* Date & time */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Check-in Date & Time <span className="text-red-400">*</span></label>
-            <input type="datetime-local" value={checkInAt} onChange={e => setCheckInAt(e.target.value)}
-              className={inp + ' [color-scheme:dark]'} />
-          </div>
-
-          {/* Entry point */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Entry Point</label>
-            <select value={accessPoint} onChange={e => handleAccessPointChange(e.target.value)}
-              className={inp}>
-              <optgroup label={`Gym Access (no session deducted)${!canAccessGym ? ' — not available on this plan' : ''}`}>
-                <option value={defaultGymEntry} disabled={!canAccessGym}>
-                  {defaultGymEntry}{!canAccessGym ? ' (plan is class-only)' : ''}
-                </option>
-                {accessPoints
-                  .filter(p => p !== defaultGymEntry && p !== 'Gym Main Entrance' && !dateEntryPoints.includes(p))
-                  .map(p => <option key={p} value={p} disabled={!canAccessGym}>{p}</option>)}
+        {/* Entry point */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Entry Point</label>
+          <Select value={accessPoint} onChange={e => handleAccessPointChange(e.target.value)}>
+            <optgroup label={`Gym Access (no session deducted)${!canAccessGym ? ' — not available on this plan' : ''}`}>
+              <option value={defaultGymEntry} disabled={!canAccessGym}>
+                {defaultGymEntry}{!canAccessGym ? ' (plan is class-only)' : ''}
+              </option>
+              {accessPoints
+                .filter(p => p !== defaultGymEntry && p !== 'Gym Main Entrance' && !dateEntryPoints.includes(p))
+                .map(p => <option key={p} value={p} disabled={!canAccessGym}>{p}</option>)}
+            </optgroup>
+            {dateEntryPoints.length > 0 && (
+              <optgroup label={`Class Session (session deducted)${!canAccessClass ? ' — not available on this plan' : ''}`}>
+                {dateEntryPoints.map(p => <option key={p} value={p} disabled={!canAccessClass}>
+                  {p}{!canAccessClass ? ' (plan is gym-only)' : ''}
+                </option>)}
               </optgroup>
-              {dateEntryPoints.length > 0 && (
-                <optgroup label={`Class Session (session deducted)${!canAccessClass ? ' — not available on this plan' : ''}`}>
-                  {dateEntryPoints.map(p => <option key={p} value={p} disabled={!canAccessClass}>
-                    {p}{!canAccessClass ? ' (plan is gym-only)' : ''}
-                  </option>)}
-                </optgroup>
-              )}
-              <option value="__custom__">Other (type below)…</option>
-            </select>
-            {accessPoint === '__custom__' && (
-              <input value={customPoint} onChange={e => setCustomPoint(e.target.value)}
-                placeholder="Enter entry point name…" className={inp + ' mt-2'} />
+            )}
+            <option value="__custom__">Other (type below)…</option>
+          </Select>
+          {accessPoint === '__custom__' && (
+            <Input value={customPoint} onChange={e => setCustomPoint(e.target.value)}
+              placeholder="Enter entry point name…" className="mt-2" />
+          )}
+        </div>
+
+        {/* Branch */}
+        {branches.length > 0 && (
+          <div>
+            <label className="block text-xs text-fg-muted mb-1.5">Branch</label>
+            {selectedSession ? (
+              <div className={fieldBox}>
+                {effectiveBranchName ?? <span className="text-fg-faint">—</span>}
+              </div>
+            ) : (
+              <Select value={branchId} onChange={e => setBranchId(e.target.value)}>
+                <option value="">— Select branch —</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </Select>
             )}
           </div>
+        )}
 
-          {/* Branch */}
-          {branches.length > 0 && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Branch</label>
-              {selectedSession ? (
-                <div className="px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-gray-300">
-                  {effectiveBranchName ?? <span className="text-gray-500">—</span>}
-                </div>
-              ) : (
-                <select value={branchId} onChange={e => setBranchId(e.target.value)} className={inp}>
-                  <option value="">— Select branch —</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              )}
+        {/* Specialist (auto-filled from selected session) */}
+        {selectedSession && (
+          <div>
+            <label className="block text-xs text-fg-muted mb-1.5">Specialist</label>
+            <div className={fieldBox}>
+              {effectiveSpecialist ?? <span className="text-fg-faint">—</span>}
             </div>
-          )}
+          </div>
+        )}
+      </Modal.Body>
 
-          {/* Specialist (auto-filled from selected session) */}
-          {selectedSession && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Specialist</label>
-              <div className="px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-gray-300">
-                {effectiveSpecialist ?? <span className="text-gray-500">—</span>}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2 px-5 py-4 border-t border-gray-700 flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 text-sm hover:bg-gray-700 transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !selectedId}
-            className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Log Check-in'}
-          </button>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer>
+        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="primary" fullWidth onClick={handleSave} disabled={!selectedId} isLoading={saving}>
+          Log Check-in
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }

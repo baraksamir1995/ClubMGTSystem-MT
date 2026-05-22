@@ -2,9 +2,10 @@
 
 import { useState, useRef, KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, CreditCard, Plus } from 'lucide-react';
+import { X, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Plan } from '@/app/dashboard/plans/page';
+import { Button, Modal } from '@/components/ui';
 
 interface Props {
   plan?: Plan;
@@ -79,8 +80,8 @@ function TagInput({
                 onClick={() => active ? onRemove(p) : onAdd(p)}
                 className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
                   active
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white'
+                    ? 'bg-brand text-brand-ink'
+                    : 'bg-surface-3 text-fg-muted hover:bg-surface-4 hover:text-fg'
                 }`}
               >
                 {active ? '✓ ' : ''}{p}
@@ -91,13 +92,13 @@ function TagInput({
       )}
       {/* Tag input */}
       <div
-        className="flex flex-wrap gap-1.5 min-h-[38px] bg-gray-900 border border-gray-700 rounded-lg px-2.5 py-1.5 cursor-text focus-within:border-purple-500 transition-colors"
+        className="flex flex-wrap gap-1.5 min-h-[38px] bg-surface border border-line rounded-lg px-2.5 py-1.5 cursor-text focus-within:border-brand transition-colors"
         onClick={() => ref.current?.focus()}
       >
         {tags.map(tag => (
-          <span key={tag} className="flex items-center gap-1 px-2 py-0.5 bg-purple-600/20 border border-purple-600/40 text-purple-300 text-xs rounded-md">
+          <span key={tag} className="flex items-center gap-1 px-2 py-0.5 bg-brand/20 border border-brand/40 text-brand text-xs rounded-md">
             {tag}
-            <button type="button" onClick={() => onRemove(tag)} className="hover:text-white">
+            <button type="button" onClick={() => onRemove(tag)} className="hover:text-fg">
               <X className="w-3 h-3" />
             </button>
           </span>
@@ -109,10 +110,10 @@ function TagInput({
           onKeyDown={handleKey}
           onBlur={() => { if (input.trim()) add(input); }}
           placeholder={tags.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[120px] bg-transparent text-sm text-white placeholder-gray-500 outline-none"
+          className="flex-1 min-w-[120px] bg-transparent text-sm text-fg placeholder-gray-500 outline-none"
         />
       </div>
-      <p className="text-xs text-gray-600">Press Enter or click a preset to add. Click a tag to remove.</p>
+      <p className="text-xs text-fg-faint">Press Enter or click a preset to add. Click a tag to remove.</p>
     </div>
   );
 }
@@ -214,29 +215,18 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
     }
   };
 
-  const inputCls = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors';
-  const labelCls = 'block text-xs text-gray-400 mb-1.5';
-  const sectionCls = 'border-t border-gray-700 pt-5';
+  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors';
+  const labelCls = 'block text-xs text-fg-muted mb-1.5';
+  const sectionCls = 'border-t border-line pt-5';
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[92vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-purple-400" />
-            <h2 className="text-base font-semibold text-white">{isEdit ? 'Edit Plan' : 'Create Plan'}</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="lg">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2"><CreditCard className="w-4 h-4 text-brand" /> {isEdit ? 'Edit Plan' : 'Create Plan'}</span>
+      </Modal.Header>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+      <Modal.Body>
+        <form id="plan-form" onSubmit={handleSubmit} className="space-y-5">
 
             {/* ── Plan Name ── */}
             <div>
@@ -251,9 +241,9 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
               <div className="grid grid-cols-2 gap-2">
                 {PLAN_TYPES.map(t => (
                   <button key={t.value} type="button" onClick={() => setPlanType(t.value)}
-                    className={`p-3 rounded-xl border text-left transition-colors ${planType === t.value ? 'border-purple-500 bg-purple-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
-                    <p className={`text-xs font-semibold ${planType === t.value ? 'text-purple-400' : 'text-gray-300'}`}>{t.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t.hint}</p>
+                    className={`p-3 rounded-xl border text-left transition-colors ${planType === t.value ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong'}`}>
+                    <p className={`text-xs font-semibold ${planType === t.value ? 'text-brand' : 'text-fg-muted'}`}>{t.label}</p>
+                    <p className="text-xs text-fg-faint mt-0.5 leading-tight">{t.hint}</p>
                   </button>
                 ))}
               </div>
@@ -264,7 +254,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
               <label className={labelCls}>Pricing</label>
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">{currency}</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">{currency}</span>
                   <input type="number" min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)}
                     placeholder="0.00" className={`${inputCls} pl-12 no-spinner`} />
                 </div>
@@ -287,8 +277,8 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                       onClick={() => { setDurationPreset(p.days ?? 'custom'); if (p.days !== null) setCustomDays(''); }}
                       className={`py-2 rounded-lg border text-xs font-medium transition-colors ${
                         (p.days === null ? durationPreset === 'custom' : durationPreset === p.days)
-                          ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                          : 'border-gray-700 hover:border-gray-600 text-gray-400'
+                          ? 'border-brand bg-brand/10 text-brand'
+                          : 'border-line hover:border-line-strong text-fg-muted'
                       }`}>{p.label}</button>
                   ))}
                 </div>
@@ -296,10 +286,10 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                   <div className="flex items-center gap-2">
                     <input type="number" min="1" value={customDays} onChange={e => setCustomDays(e.target.value)}
                       placeholder="Number of days" className={inputCls} />
-                    <span className="text-xs text-gray-500 whitespace-nowrap">days</span>
+                    <span className="text-xs text-fg-faint whitespace-nowrap">days</span>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500">Membership active for <span className="text-gray-300">{durationPreset} days</span></p>
+                  <p className="text-xs text-fg-faint">Membership active for <span className="text-fg-muted">{durationPreset} days</span></p>
                 )}
               </div>
             )}
@@ -311,26 +301,26 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                 <div className="flex items-center gap-2">
                   <input type="number" min="1" value={sessionCount} onChange={e => setSessionCount(e.target.value)}
                     placeholder="e.g. 10" className={inputCls} />
-                  <span className="text-xs text-gray-500 whitespace-nowrap">sessions</span>
+                  <span className="text-xs text-fg-faint whitespace-nowrap">sessions</span>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Leave empty for unlimited sessions.</p>
+                <p className="text-xs text-fg-faint mt-1">Leave empty for unlimited sessions.</p>
               </div>
             )}
             {planType === 'sessions' && !!sessionCount && (
               <div>
-                <label className={labelCls}>Expiry <span className="text-gray-600">(optional)</span></label>
+                <label className={labelCls}>Expiry <span className="text-fg-faint">(optional)</span></label>
                 <div className="flex items-center gap-2">
                   <input type="number" min="1" value={sessionExpiryDays} onChange={e => setSessionExpiryDays(e.target.value)}
                     placeholder="e.g. 60" className={inputCls} />
-                  <span className="text-xs text-gray-500 whitespace-nowrap">days from start</span>
+                  <span className="text-xs text-fg-faint whitespace-nowrap">days from start</span>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Sessions expire after this many days even if not all used. Leave blank for no expiry.</p>
+                <p className="text-xs text-fg-faint mt-1">Sessions expire after this many days even if not all used. Leave blank for no expiry.</p>
               </div>
             )}
 
             {/* ══ BENEFITS & ACCESS ══ */}
             <div className={sectionCls}>
-              <p className="text-xs font-semibold text-gray-300 uppercase tracking-widest mb-4">Benefits & Access</p>
+              <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4">Benefits & Access</p>
 
               {/* Facilities */}
               <div className="mb-4">
@@ -350,7 +340,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
             {/* ══ BRANCH ACCESS ══ */}
             {branches.length > 1 && (
               <div className={sectionCls}>
-                <p className="text-xs font-semibold text-gray-300 uppercase tracking-widest mb-4">Branch Access</p>
+                <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4">Branch Access</p>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {[
                     { value: 'all_branches',      label: 'All Branches',      hint: 'Access any branch' },
@@ -358,9 +348,9 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                   ].map(opt => (
                     <button key={opt.value} type="button"
                       onClick={() => setAccessScope(opt.value as 'all_branches' | 'specific_branches')}
-                      className={`p-3 rounded-xl border text-left transition-colors ${accessScope === opt.value ? 'border-purple-500 bg-purple-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
-                      <p className={`text-xs font-semibold ${accessScope === opt.value ? 'text-purple-400' : 'text-gray-300'}`}>{opt.label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+                      className={`p-3 rounded-xl border text-left transition-colors ${accessScope === opt.value ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong'}`}>
+                      <p className={`text-xs font-semibold ${accessScope === opt.value ? 'text-brand' : 'text-fg-muted'}`}>{opt.label}</p>
+                      <p className="text-xs text-fg-faint mt-0.5">{opt.hint}</p>
                     </button>
                   ))}
                 </div>
@@ -371,11 +361,11 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                       return (
                         <button key={b.id} type="button"
                           onClick={() => setSelectedBranchIds(prev => selected ? prev.filter(id => id !== b.id) : [...prev, b.id])}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${selected ? 'border-purple-500 bg-purple-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
-                          <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center ${selected ? 'border-purple-500 bg-purple-500' : 'border-gray-600'}`}>
-                            {selected && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${selected ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong'}`}>
+                          <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center ${selected ? 'border-brand bg-brand' : 'border-line'}`}>
+                            {selected && <svg className="w-2.5 h-2.5 text-fg" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           </div>
-                          <span className={`text-sm ${selected ? 'text-white' : 'text-gray-400'}`}>{b.name}</span>
+                          <span className={`text-sm ${selected ? 'text-fg' : 'text-fg-muted'}`}>{b.name}</span>
                         </button>
                       );
                     })}
@@ -386,7 +376,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
 
             {/* ── Description ── */}
             <div className={sectionCls}>
-              <label className={labelCls}>Description <span className="text-gray-600">(optional)</span></label>
+              <label className={labelCls}>Description <span className="text-fg-faint">(optional)</span></label>
               <textarea value={description} onChange={e => setDescription(e.target.value)}
                 placeholder="What's included in this plan…" rows={2} className={`${inputCls} resize-none`} />
             </div>
@@ -396,8 +386,8 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
               <div className={sectionCls}>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-xs font-semibold text-gray-300 uppercase tracking-widest">Freeze Plan</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Allow members to pause their plan for a set number of days</p>
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest">Freeze Plan</p>
+                    <p className="text-xs text-fg-faint mt-0.5">Allow members to pause their plan for a set number of days</p>
                   </div>
                   <button
                     type="button"
@@ -410,11 +400,11 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                 {freezeEnabled && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>Max freeze days <span className="text-gray-600">(total)</span></label>
+                      <label className={labelCls}>Max freeze days <span className="text-fg-faint">(total)</span></label>
                       <div className="flex items-center gap-2">
                         <input type="number" min="1" value={freezeMaxDays} onChange={e => setFreezeMaxDays(e.target.value)}
                           placeholder="e.g. 14" className={inputCls} />
-                        <span className="text-xs text-gray-500 whitespace-nowrap">days</span>
+                        <span className="text-xs text-fg-faint whitespace-nowrap">days</span>
                       </div>
                     </div>
                     <div>
@@ -422,7 +412,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                       <div className="flex items-center gap-2">
                         <input type="number" min="1" value={freezeMaxCount} onChange={e => setFreezeMaxCount(e.target.value)}
                           placeholder="e.g. 2" className={inputCls} />
-                        <span className="text-xs text-gray-500 whitespace-nowrap">times</span>
+                        <span className="text-xs text-fg-faint whitespace-nowrap">times</span>
                       </div>
                     </div>
                   </div>
@@ -434,8 +424,8 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
             <div className={sectionCls}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs font-semibold text-gray-300 uppercase tracking-widest">Guest Invitations</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Allow members to invite guests with limited passes</p>
+                  <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest">Guest Invitations</p>
+                  <p className="text-xs text-fg-faint mt-0.5">Allow members to invite guests with limited passes</p>
                 </div>
                 <button
                   type="button"
@@ -453,7 +443,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                     <div className="flex items-center gap-2">
                       <input type="number" min="1" value={invitationsPerCycle} onChange={e => setInvitationsPerCycle(e.target.value)}
                         placeholder="e.g. 3" className={inputCls} />
-                      <span className="text-xs text-gray-500 whitespace-nowrap">invites</span>
+                      <span className="text-xs text-fg-faint whitespace-nowrap">invites</span>
                     </div>
                   </div>
 
@@ -467,9 +457,9 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                       ].map(opt => (
                         <button key={opt.value} type="button"
                           onClick={() => setInviteDurationType(opt.value as 'per_visit' | 'time_based')}
-                          className={`p-3 rounded-xl border text-left transition-colors ${inviteDurationType === opt.value ? 'border-green-500 bg-green-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
-                          <p className={`text-xs font-semibold ${inviteDurationType === opt.value ? 'text-green-400' : 'text-gray-300'}`}>{opt.label}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
+                          className={`p-3 rounded-xl border text-left transition-colors ${inviteDurationType === opt.value ? 'border-green-500 bg-green-500/10' : 'border-line hover:border-line-strong'}`}>
+                          <p className={`text-xs font-semibold ${inviteDurationType === opt.value ? 'text-green-400' : 'text-fg-muted'}`}>{opt.label}</p>
+                          <p className="text-xs text-fg-faint mt-0.5">{opt.hint}</p>
                         </button>
                       ))}
                     </div>
@@ -482,7 +472,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                       <div className="flex items-center gap-2">
                         <input type="number" min="1" value={inviteDurationDays} onChange={e => setInviteDurationDays(e.target.value)}
                           placeholder="e.g. 3" className={inputCls} />
-                        <span className="text-xs text-gray-500 whitespace-nowrap">days</span>
+                        <span className="text-xs text-fg-faint whitespace-nowrap">days</span>
                       </div>
                     </div>
                   )}
@@ -493,29 +483,24 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                     <div className="flex items-center gap-2">
                       <input type="number" min="1" max="30" value={inviteValidityDays} onChange={e => setInviteValidityDays(e.target.value)}
                         placeholder="e.g. 7" className={inputCls} />
-                      <span className="text-xs text-gray-500 whitespace-nowrap">days to accept</span>
+                      <span className="text-xs text-fg-faint whitespace-nowrap">days to accept</span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">Invitation expires if not accepted within this window. Unused invite is returned to the member.</p>
+                    <p className="text-xs text-fg-faint mt-1">Invitation expires if not accepted within this window. Unused invite is returned to the member.</p>
                   </div>
                 </div>
               )}
             </div>
 
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-700 flex gap-3 flex-shrink-0">
-            <button type="button" onClick={onClose} disabled={loading}
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50">
-              Cancel
-            </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-medium text-white transition-colors disabled:opacity-50">
-              {loading ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Plan'}
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+      </Modal.Body>
+
+      {/* Footer */}
+      <Modal.Footer>
+        <Button type="button" variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button type="submit" form="plan-form" variant="primary" fullWidth isLoading={loading}>
+          {isEdit ? 'Save Changes' : 'Create Plan'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }

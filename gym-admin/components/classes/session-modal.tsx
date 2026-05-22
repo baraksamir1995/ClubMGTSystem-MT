@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, CalendarDays, Zap, Repeat, Copy, type LucideIcon } from 'lucide-react'; // Copy used in parallel toggle
+import { CalendarDays, Zap, Repeat, Copy, type LucideIcon } from 'lucide-react'; // Copy used in parallel toggle
 import toast from 'react-hot-toast';
 import type { GymClass, ClassSession, GymBranch, GymStudio } from '@/app/dashboard/classes/page';
+import { Button, Input, Modal, Select } from '@/components/ui';
 
 
 type SessionType = 'popup' | 'recurring';
@@ -274,265 +275,246 @@ export default function SessionModal({ classes, branches, studios, existing, def
     finally { setSaving(false); }
   };
 
-  const inputCls = 'w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 [color-scheme:dark]';
+  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand [color-scheme:dark]';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-purple-400" />
-            <h2 className="text-base font-semibold text-white">{existing ? 'Edit Session' : 'Schedule Session'}</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="md">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2"><CalendarDays className="w-4 h-4 text-brand" /> {existing ? 'Edit Session' : 'Schedule Session'}</span>
+      </Modal.Header>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {isRecurringSeriesEdit && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 space-y-2">
-              <p className="text-xs text-purple-300 font-medium uppercase tracking-wide flex items-center gap-1.5">
-                <Repeat className="w-3.5 h-3.5" />
-                Recurring Series
-              </p>
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input type="radio" checked={applyToSeries} onChange={() => setApplyToSeries(true)}
-                  className="mt-0.5 accent-purple-500" />
-                <div>
-                  <p className="text-sm text-white">Apply to this and all upcoming sessions</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Date changes shift the whole series by the same number of days.</p>
-                </div>
-              </label>
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input type="radio" checked={!applyToSeries} onChange={() => setApplyToSeries(false)}
-                  className="mt-0.5 accent-purple-500" />
-                <div>
-                  <p className="text-sm text-white">Apply to this session only</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Detaches this instance from the rest of the series.</p>
-                </div>
-              </label>
-            </div>
-          )}
-
-          {/* Branch picker — first, filters classes below */}
-          {branches.length > 1 && (
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Branch <span className="text-red-400">*</span></label>
-              <select value={branchId} onChange={e => setBranchId(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
-                <option value="">Select branch…</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Class picker — filtered by selected branch */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Class <span className="text-red-400">*</span></label>
-            <select value={classId} onChange={e => setClassId(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
-              {visibleClasses.length === 0
-                ? <option value="">{branches.length > 1 && !branchId ? 'Select a branch first' : 'No classes for this branch'}</option>
-                : visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-              }
-            </select>
-          </div>
-
-          {/* Session Type — required */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Session Type <span className="text-red-400">*</span></label>
-            <div className="grid grid-cols-2 gap-2">
-              {SESSION_TYPES.map(({ value, label, icon: Icon, desc }) => (
-                <button key={value} type="button"
-                  onClick={() => setSessionType(value)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors ${
-                    sessionType === value
-                      ? 'border-purple-500 bg-purple-500/10 text-purple-300'
-                      : 'border-gray-600 bg-gray-700/40 text-gray-400 hover:border-gray-500 hover:text-gray-300'
-                  }`}>
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                  <div className="text-left">
-                    <p>{label}</p>
-                    <p className="text-gray-600 font-normal mt-0.5">{desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Date <span className="text-red-400">*</span></label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              min={existing ? undefined : todayLocal} className={inputCls} />
-          </div>
-
-          {/* Times */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Start Time <span className="text-red-400">*</span></label>
-              <TimeWithAmPm value={startTime} onChange={setStartTime} inputCls={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1.5">End Time <span className="text-red-400">*</span></label>
-              <TimeWithAmPm value={endTime} onChange={setEndTime} inputCls={inputCls} />
-            </div>
-          </div>
-
-          {/* Capacity — disabled when this is a walk-in session (no booking
-              means no enforced cap). State stays in `capacity` so toggling
-              back to booking-required preserves whatever the admin typed. */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">
-              Capacity <span className="text-gray-500">(optional)</span>
-              {walkInAllowed && (
-                <span className="ml-2 text-[10px] uppercase tracking-wider text-gray-500">
-                  Not enforced for walk-in
-                </span>
-              )}
+      <Modal.Body className="space-y-4">
+        {isRecurringSeriesEdit && (
+          <div className="bg-brand/10 border border-brand/30 rounded-xl p-3 space-y-2">
+            <p className="text-xs text-brand font-medium uppercase tracking-wide flex items-center gap-1.5">
+              <Repeat className="w-3.5 h-3.5" />
+              Recurring Series
+            </p>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input type="radio" checked={applyToSeries} onChange={() => setApplyToSeries(true)}
+                className="mt-0.5 accent-brand" />
+              <div>
+                <p className="text-sm text-fg">Apply to this and all upcoming sessions</p>
+                <p className="text-xs text-fg-muted mt-0.5">Date changes shift the whole series by the same number of days.</p>
+              </div>
             </label>
-            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)}
-              min="1" placeholder={walkInAllowed ? 'Not enforced' : 'Unlimited'}
-              disabled={walkInAllowed}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 disabled:opacity-40 disabled:cursor-not-allowed" />
-          </div>
-
-          {/* Studio — filtered by selected branch */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Studio <span className="text-red-400">*</span></label>
-            <select value={studioId} onChange={e => setStudioId(e.target.value)}
-              disabled={branches.length > 1 && !branchId}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 disabled:opacity-50">
-              <option value="">
-                {branches.length > 1 && !branchId
-                  ? 'Select a branch first'
-                  : branchStudios.length === 0
-                    ? 'No studios for this branch'
-                    : 'No studio assigned'}
-              </option>
-              {branchStudios.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Booking requirement — only relevant when a studio is selected.
-              Displayed state is the inverse of the stored flag: the column
-              is `walk_in_allowed` (true = no booking needed), but admins
-              think in terms of "does this class need booking?" so the
-              toggle is labelled the other way around. ON = booking
-              required (today's default), OFF = walk-in. */}
-          {studioId && (
-            <div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                {(() => {
-                  const needsBooking = !walkInAllowed;
-                  return (
-                    <>
-                      <div onClick={() => setWalkInAllowed(p => !p)}
-                        className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${needsBooking ? 'bg-purple-600' : 'bg-gray-600'}`}>
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${needsBooking ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-300">Needs booking</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {needsBooking
-                            ? 'Members must book a spot before attending.'
-                            : 'Members attend by scanning the studio QR — no booking needed.'}
-                        </p>
-                      </div>
-                    </>
-                  );
-                })()}
-              </label>
-            </div>
-          )}
-
-          {/* Trainer — dropdown fetched from branch trainers, defaults to class trainer */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">
-              Trainer
-              {selectedClass?.instructor && instructor && instructor !== selectedClass.instructor && (
-                <button type="button" onClick={() => setInstructor(selectedClass.instructor ?? '')}
-                  className="ml-2 text-purple-400 hover:text-purple-300 text-xs underline">
-                  Reset to default
-                </button>
-              )}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input type="radio" checked={!applyToSeries} onChange={() => setApplyToSeries(false)}
+                className="mt-0.5 accent-brand" />
+              <div>
+                <p className="text-sm text-fg">Apply to this session only</p>
+                <p className="text-xs text-fg-muted mt-0.5">Detaches this instance from the rest of the series.</p>
+              </div>
             </label>
-            <select
-              value={instructor}
-              onChange={e => setInstructor(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
-            >
-              <option value="">No trainer assigned</option>
-              {trainers.map(t => (
-                <option key={t.id} value={t.name}>{t.name}</option>
-              ))}
-              {/* Keep class default visible even if not in branch trainer list */}
-              {selectedClass?.instructor && !trainers.some(t => t.name === selectedClass.instructor) && (
-                <option value={selectedClass.instructor}>{selectedClass.instructor} (class default)</option>
-              )}
-              {/* Keep current session value visible if it doesn't match any trainer */}
-              {instructor && instructor !== selectedClass?.instructor && !trainers.some(t => t.name === instructor) && (
-                <option value={instructor}>{instructor}</option>
-              )}
-            </select>
           </div>
+        )}
 
-          {/* Parallel session toggle (new sessions only) */}
-          {!existing && (
-            <div className="border-t border-gray-700 pt-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div onClick={() => setShowParallel(p => !p)}
-                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${showParallel ? 'bg-purple-600' : 'bg-gray-600'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${showParallel ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        {/* Branch picker — first, filters classes below */}
+        {branches.length > 1 && (
+          <div>
+            <label className="block text-xs text-fg-muted mb-1.5">Branch <span className="text-danger">*</span></label>
+            <Select value={branchId} onChange={e => setBranchId(e.target.value)}>
+              <option value="">Select branch…</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          </div>
+        )}
+
+        {/* Class picker — filtered by selected branch */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Class <span className="text-danger">*</span></label>
+          <Select value={classId} onChange={e => setClassId(e.target.value)}>
+            {visibleClasses.length === 0
+              ? <option value="">{branches.length > 1 && !branchId ? 'Select a branch first' : 'No classes for this branch'}</option>
+              : visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+            }
+          </Select>
+        </div>
+
+        {/* Session Type — required */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Session Type <span className="text-danger">*</span></label>
+          <div className="grid grid-cols-2 gap-2">
+            {SESSION_TYPES.map(({ value, label, icon: Icon, desc }) => (
+              <button key={value} type="button"
+                onClick={() => setSessionType(value)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors ${
+                  sessionType === value
+                    ? 'border-brand bg-brand/10 text-brand'
+                    : 'border-line bg-surface-3/40 text-fg-muted hover:border-line-strong hover:text-fg'
+                }`}>
+                <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                <div className="text-left">
+                  <p>{label}</p>
+                  <p className="text-fg-faint font-normal mt-0.5">{desc}</p>
                 </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Date */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Date <span className="text-danger">*</span></label>
+          <Input type="date" value={date} onChange={e => setDate(e.target.value)}
+            min={existing ? undefined : todayLocal} className="[color-scheme:dark]" />
+        </div>
+
+        {/* Times */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-fg-muted mb-1.5">Start Time <span className="text-danger">*</span></label>
+            <TimeWithAmPm value={startTime} onChange={setStartTime} inputCls={inputCls} />
+          </div>
+          <div>
+            <label className="block text-xs text-fg-muted mb-1.5">End Time <span className="text-danger">*</span></label>
+            <TimeWithAmPm value={endTime} onChange={setEndTime} inputCls={inputCls} />
+          </div>
+        </div>
+
+        {/* Capacity — disabled when this is a walk-in session (no booking
+            means no enforced cap). State stays in `capacity` so toggling
+            back to booking-required preserves whatever the admin typed. */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">
+            Capacity <span className="text-fg-faint">(optional)</span>
+            {walkInAllowed && (
+              <span className="ml-2 text-[10px] uppercase tracking-wider text-fg-faint">
+                Not enforced for walk-in
+              </span>
+            )}
+          </label>
+          <Input type="number" value={capacity} onChange={e => setCapacity(e.target.value)}
+            min="1" placeholder={walkInAllowed ? 'Not enforced' : 'Unlimited'}
+            disabled={walkInAllowed} />
+        </div>
+
+        {/* Studio — filtered by selected branch */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">Studio <span className="text-danger">*</span></label>
+          <Select value={studioId} onChange={e => setStudioId(e.target.value)}
+            disabled={branches.length > 1 && !branchId}>
+            <option value="">
+              {branches.length > 1 && !branchId
+                ? 'Select a branch first'
+                : branchStudios.length === 0
+                  ? 'No studios for this branch'
+                  : 'No studio assigned'}
+            </option>
+            {branchStudios.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </Select>
+        </div>
+
+        {/* Booking requirement — only relevant when a studio is selected.
+            Displayed state is the inverse of the stored flag: the column
+            is `walk_in_allowed` (true = no booking needed), but admins
+            think in terms of "does this class need booking?" so the
+            toggle is labelled the other way around. ON = booking
+            required (today's default), OFF = walk-in. */}
+        {studioId && (
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              {(() => {
+                const needsBooking = !walkInAllowed;
+                return (
+                  <>
+                    <div onClick={() => setWalkInAllowed(p => !p)}
+                      className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${needsBooking ? 'bg-brand' : 'bg-surface-4'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${needsBooking ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-fg-muted">Needs booking</p>
+                      <p className="text-xs text-fg-faint mt-0.5">
+                        {needsBooking
+                          ? 'Members must book a spot before attending.'
+                          : 'Members attend by scanning the studio QR — no booking needed.'}
+                      </p>
+                    </div>
+                  </>
+                );
+              })()}
+            </label>
+          </div>
+        )}
+
+        {/* Trainer — dropdown fetched from branch trainers, defaults to class trainer */}
+        <div>
+          <label className="block text-xs text-fg-muted mb-1.5">
+            Trainer
+            {selectedClass?.instructor && instructor && instructor !== selectedClass.instructor && (
+              <button type="button" onClick={() => setInstructor(selectedClass.instructor ?? '')}
+                className="ml-2 text-brand hover:text-brand-dim text-xs underline">
+                Reset to default
+              </button>
+            )}
+          </label>
+          <Select value={instructor} onChange={e => setInstructor(e.target.value)}>
+            <option value="">No trainer assigned</option>
+            {trainers.map(t => (
+              <option key={t.id} value={t.name}>{t.name}</option>
+            ))}
+            {/* Keep class default visible even if not in branch trainer list */}
+            {selectedClass?.instructor && !trainers.some(t => t.name === selectedClass.instructor) && (
+              <option value={selectedClass.instructor}>{selectedClass.instructor} (class default)</option>
+            )}
+            {/* Keep current session value visible if it doesn't match any trainer */}
+            {instructor && instructor !== selectedClass?.instructor && !trainers.some(t => t.name === instructor) && (
+              <option value={instructor}>{instructor}</option>
+            )}
+          </Select>
+        </div>
+
+        {/* Parallel session toggle (new sessions only) */}
+        {!existing && (
+          <div className="border-t border-line pt-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div onClick={() => setShowParallel(p => !p)}
+                className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${showParallel ? 'bg-brand' : 'bg-surface-4'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${showParallel ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+              <div>
+                <p className="text-sm text-fg-muted flex items-center gap-1.5">
+                  <Copy className="w-3.5 h-3.5" />
+                  Add parallel session at the same time
+                </p>
+                <p className="text-xs text-fg-faint mt-0.5">Same class, same time — different studio</p>
+              </div>
+            </label>
+
+            {showParallel && (
+              <div className="mt-4 space-y-3 bg-surface-3/30 border border-line rounded-xl p-4">
+                <p className="text-xs text-fg-muted font-medium uppercase tracking-wide">Parallel Session</p>
+
                 <div>
-                  <p className="text-sm text-gray-300 flex items-center gap-1.5">
-                    <Copy className="w-3.5 h-3.5" />
-                    Add parallel session at the same time
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">Same class, same time — different studio</p>
+                  <label className="block text-xs text-fg-muted mb-1.5">Studio <span className="text-danger">*</span></label>
+                  <Select value={parallelStudioId} onChange={e => setParallelStudioId(e.target.value)}>
+                    <option value="">Select studio…</option>
+                    {branchStudios.filter(s => s.id !== studioId).map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </Select>
                 </div>
-              </label>
 
-              {showParallel && (
-                <div className="mt-4 space-y-3 bg-gray-700/30 border border-gray-700 rounded-xl p-4">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Parallel Session</p>
-
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Studio <span className="text-red-400">*</span></label>
-                    <select value={parallelStudioId} onChange={e => setParallelStudioId(e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
-                      <option value="">Select studio…</option>
-                      {branchStudios.filter(s => s.id !== studioId).map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1.5">Capacity <span className="text-gray-600">(optional — defaults to main)</span></label>
-                    <input type="number" min="1" value={parallelCapacity} onChange={e => setParallelCapacity(e.target.value)}
-                      placeholder={capacity || 'Same as main session'}
-                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500" />
-                  </div>
+                <div>
+                  <label className="block text-xs text-fg-muted mb-1.5">Capacity <span className="text-fg-faint">(optional — defaults to main)</span></label>
+                  <Input type="number" min="1" value={parallelCapacity} onChange={e => setParallelCapacity(e.target.value)}
+                    placeholder={capacity || 'Same as main session'} />
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal.Body>
 
-        <div className="flex gap-2 px-5 py-4 border-t border-gray-700 flex-shrink-0">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 text-sm hover:bg-gray-700 transition-colors">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving || !classId || !date}
-            className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-40">
-            {saving ? 'Saving…' : existing ? 'Save Changes' : showParallel ? 'Schedule Both' : 'Schedule'}
-          </button>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer>
+        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="primary" fullWidth onClick={handleSubmit} disabled={!classId || !date} isLoading={saving}>
+          {existing ? 'Save Changes' : showParallel ? 'Schedule Both' : 'Schedule'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }
 

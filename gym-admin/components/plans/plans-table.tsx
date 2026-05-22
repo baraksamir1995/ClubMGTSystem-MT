@@ -8,6 +8,7 @@ import PlanModal from './plan-modal';
 import DeactivatePlanModal from './deactivate-plan-modal';
 import type { Plan, PageMeta, PlanStatusFilter, PlanTypeFilter } from '@/app/dashboard/plans/page';
 import { can, type Permission } from '@/lib/get-permissions';
+import { Badge, Button } from '@/components/ui';
 
 interface Filters {
   search: string;
@@ -21,7 +22,7 @@ const fmt = (amount: number, currency = 'EGP') =>
 const planTypeColor: Record<string, string> = {
   duration:         'bg-blue-400/10 text-blue-400',
   sessions:         'bg-amber-400/10 text-amber-400',
-  duration_session: 'bg-purple-400/10 text-purple-400',
+  duration_session: 'bg-brand/10 text-brand',
   // legacy
   monthly:          'bg-blue-400/10 text-blue-400',
   annual:           'bg-blue-400/10 text-blue-400',
@@ -114,7 +115,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
     }
   };
 
-  const selectCls = 'bg-gray-700 border border-gray-600 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors';
+  const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
 
   return (
     <>
@@ -122,49 +123,44 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Subscription Plans</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage membership plan types for your gym</p>
+            <h1 className="text-2xl font-bold text-fg">Subscription Plans</h1>
+            <p className="text-sm text-fg-muted mt-0.5">Manage membership plan types for your gym</p>
           </div>
           {can(permissions, 'members', 'create') && (
-            <button onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> New Plan
-            </button>
+            <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>New Plan</Button>
           )}
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
           {([
-            { label: 'Total Plans',    value: totalCount,    color: 'text-white',       filter: 'all' as const },
+            { label: 'Total Plans',    value: totalCount,    color: 'text-fg',       filter: 'all' as const },
             { label: 'Active Plans',   value: totalActive,   color: 'text-emerald-400', filter: 'active' as const },
-            { label: 'Inactive Plans', value: totalInactive, color: 'text-gray-400',    filter: 'inactive' as const },
+            { label: 'Inactive Plans', value: totalInactive, color: 'text-fg-muted',    filter: 'inactive' as const },
           ]).map(s => (
             <button
               key={s.filter}
               onClick={() => pushFilters({ status: statusFilter === s.filter ? 'all' : s.filter, page: 1 })}
-              className={`bg-gray-800 border rounded-xl p-4 text-left transition-colors ${
-                statusFilter === s.filter ? 'border-purple-500' : 'border-gray-700 hover:border-gray-600'
-              }`}
+              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}
             >
-              <p className="text-xs text-gray-400 mb-1">{s.label}</p>
+              <p className="text-xs text-fg-muted mb-1">{s.label}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
           ))}
         </div>
 
         {/* Search + Filters */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input
               type="text"
               value={searchDraft}
               onChange={e => setSearchDraft(e.target.value)}
               placeholder="Search by plan name or description…"
-              className="w-full pl-9 pr-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
             />
-            {isPending && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 animate-spin" />}
+            {isPending && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint animate-spin" />}
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <select value={statusFilter} onChange={e => pushFilters({ status: e.target.value as PlanStatusFilter, page: 1 })} className={selectCls}>
@@ -178,31 +174,29 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
               <option value="sessions">Sessions Only</option>
               <option value="duration_session">Duration + Sessions</option>
             </select>
-            <span className="ml-auto text-xs text-gray-500">
+            <span className="ml-auto text-xs text-fg-faint">
               {meta ? `${meta.total} result${meta.total === 1 ? '' : 's'}` : `${plans.length} plans`}
             </span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           {plans.length === 0 ? (
             <div className="p-12 text-center">
-              <CreditCard className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">
+              <CreditCard className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-fg-muted text-sm">
                 {totalCount === 0 ? 'No plans yet. Create your first plan.' : 'No plans match your filters'}
               </p>
               {totalCount === 0 && can(permissions, 'members', 'create') && (
-                <button onClick={openCreate} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
-                  <Plus className="w-4 h-4" /> Create your first plan
-                </button>
+                <Button variant="primary" className="mt-4" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>Create your first plan</Button>
               )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wide">
+                  <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
                     <th className="text-left px-5 py-3">Plan</th>
                     <th className="text-left px-5 py-3">Type</th>
                     <th className="text-left px-5 py-3">Price</th>
@@ -212,21 +206,21 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                     <th className="text-right px-5 py-3">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-line">
                   {plans.map(plan => (
-                    <tr key={plan.id} className="hover:bg-gray-700/30 transition-colors">
+                    <tr key={plan.id} className="hover:bg-surface-3/30 transition-colors">
                       <td className="px-5 py-3.5">
-                        <p className={`font-medium ${plan.is_active ? 'text-white' : 'text-gray-500'}`}>{plan.name}</p>
+                        <p className={`font-medium ${plan.is_active ? 'text-fg' : 'text-fg-faint'}`}>{plan.name}</p>
                         {plan.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 max-w-xs truncate">{plan.description}</p>
+                          <p className="text-xs text-fg-faint mt-0.5 max-w-xs truncate">{plan.description}</p>
                         )}
                         {/* Benefits summary */}
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           {(plan.facilities ?? []).slice(0, 3).map(f => (
-                            <span key={f} className="px-1.5 py-0.5 bg-gray-700/60 text-gray-400 text-xs rounded">{f}</span>
+                            <span key={f} className="px-1.5 py-0.5 bg-surface-3/60 text-fg-muted text-xs rounded">{f}</span>
                           ))}
                           {(plan.facilities ?? []).length > 3 && (
-                            <span className="px-1.5 py-0.5 bg-gray-700/60 text-gray-500 text-xs rounded">+{(plan.facilities ?? []).length - 3} more</span>
+                            <span className="px-1.5 py-0.5 bg-surface-3/60 text-fg-faint text-xs rounded">+{(plan.facilities ?? []).length - 3} more</span>
                           )}
                           {plan.visits_per_week && (
                             <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{plan.visits_per_week}×/wk</span>
@@ -240,14 +234,14 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${planTypeColor[plan.plan_type] ?? 'bg-gray-400/10 text-gray-400'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${planTypeColor[plan.plan_type] ?? 'bg-gray-400/10 text-fg-muted'}`}>
                           {plan.plan_type}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-white font-medium">
+                      <td className="px-5 py-3.5 text-fg font-medium">
                         {fmt(plan.price, plan.currency)}
                       </td>
-                      <td className="px-5 py-3.5 text-gray-400">
+                      <td className="px-5 py-3.5 text-fg-muted">
                         {plan.plan_type === 'sessions'
                           ? plan.session_count ? `${plan.session_count} sessions` : '—'
                           : plan.duration_days
@@ -262,21 +256,17 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                         ) : plan.allowed_branch_ids && plan.allowed_branch_ids.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {plan.allowed_branch_ids.map(bid => (
-                              <span key={bid} className="text-xs px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400">
+                              <span key={bid} className="text-xs px-2 py-0.5 rounded-full bg-brand/10 text-brand">
                                 {branchMap[bid] ?? 'Unknown'}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-gray-600 text-xs">—</span>
+                          <span className="text-fg-faint text-xs">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          plan.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-400/10 text-gray-400'
-                        }`}>
-                          {plan.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                        <Badge variant={plan.is_active ? 'success' : 'neutral'}>{plan.is_active ? 'Active' : 'Inactive'}</Badge>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
@@ -284,7 +274,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                             <button
                               onClick={() => openEdit(plan)}
                               title="Edit plan"
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-purple-400/10 transition-colors"
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
@@ -296,8 +286,8 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                               title={plan.is_active ? 'Deactivate' : 'Activate'}
                               className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
                                 plan.is_active
-                                  ? 'text-gray-500 hover:text-amber-400 hover:bg-amber-400/10'
-                                  : 'text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10'
+                                  ? 'text-fg-faint hover:text-amber-400 hover:bg-amber-400/10'
+                                  : 'text-fg-faint hover:text-emerald-400 hover:bg-emerald-400/10'
                               }`}
                             >
                               {plan.is_active
@@ -315,8 +305,8 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
           )}
 
           {meta && meta.last_page > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-700">
-              <p className="text-xs text-gray-500">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-line">
+              <p className="text-xs text-fg-faint">
                 Showing {(meta.current_page - 1) * meta.per_page + 1}–
                 {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total}
               </p>
@@ -324,30 +314,30 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                 {meta.current_page > 1 ? (
                   <button
                     onClick={() => pushFilters({ page: meta.current_page - 1 })}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-muted hover:text-fg bg-surface-3 hover:bg-surface-4 rounded-md transition-colors"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Prev
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800 rounded-md cursor-not-allowed">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-faint bg-surface-2 rounded-md cursor-not-allowed">
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Prev
                   </span>
                 )}
-                <span className="text-xs text-gray-400 px-2">
+                <span className="text-xs text-fg-muted px-2">
                   Page {meta.current_page} of {meta.last_page}
                 </span>
                 {meta.current_page < meta.last_page ? (
                   <button
                     onClick={() => pushFilters({ page: meta.current_page + 1 })}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-muted hover:text-fg bg-surface-3 hover:bg-surface-4 rounded-md transition-colors"
                   >
                     Next
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-800 rounded-md cursor-not-allowed">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-faint bg-surface-2 rounded-md cursor-not-allowed">
                     Next
                     <ChevronRight className="w-3.5 h-3.5" />
                   </span>

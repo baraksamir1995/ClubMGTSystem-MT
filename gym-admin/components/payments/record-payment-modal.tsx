@@ -6,6 +6,7 @@ import { X, DollarSign, Search, Link2, Copy, Check, MessageCircle } from 'lucide
 import toast from 'react-hot-toast';
 import type { MemberOption, ServiceOption, TrainerOption, PromoCode } from '@/app/dashboard/payments/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
+import { Button, Modal } from '@/components/ui';
 
 const TRAINER_TYPE_LABELS: Record<string, string> = {
   personal_trainer: 'Personal Trainer',
@@ -216,73 +217,66 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
     }
   };
 
-  const inputCls = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors';
-  const labelCls = 'block text-xs text-gray-400 mb-1.5';
+  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors';
+  const labelCls = 'block text-xs text-fg-muted mb-1.5';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+    <Modal open onClose={onClose} size="md">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2.5">
+          <span className="w-8 h-8 rounded-lg bg-success-soft flex items-center justify-center">
+            <DollarSign className="w-4 h-4 text-success" />
+          </span>
+          Create Payment
+        </span>
+      </Modal.Header>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-            </div>
-            <h2 className="text-base font-semibold text-white">Create Payment</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+      <Modal.Body>
+        <form id="record-payment-form" onSubmit={handleSubmit} className="space-y-4">
 
             {/* Member selector */}
             <div>
               <label className={labelCls}>Member *</label>
               {selectedMember ? (
-                <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-xl border border-purple-500/40">
-                  <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-xs font-bold text-purple-400 flex-shrink-0">
+                <div className="flex items-center gap-3 p-3 bg-surface-3/50 rounded-xl border border-brand/40">
+                  <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
                     {String(selectedMember.full_name ?? selectedMember.member_number ?? '?').slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">{selectedMember.full_name ?? '—'}</p>
-                    <p className="text-xs text-gray-400">{selectedMember.email ?? selectedMember.member_number}</p>
+                    <p className="text-sm font-medium text-fg">{selectedMember.full_name ?? '—'}</p>
+                    <p className="text-xs text-fg-muted">{selectedMember.email ?? selectedMember.member_number}</p>
                     {selectedMember.plan_name && (
-                      <p className="text-xs text-purple-400 mt-0.5">{selectedMember.plan_name} · {fmt(selectedMember.plan_price ?? 0, selectedMember.currency ?? 'EGP')}</p>
+                      <p className="text-xs text-brand mt-0.5">{selectedMember.plan_name} · {fmt(selectedMember.plan_price ?? 0, selectedMember.currency ?? 'EGP')}</p>
                     )}
                   </div>
-                  <button type="button" onClick={() => setSelectedMember(null)} className="text-gray-500 hover:text-white transition-colors">
+                  <button type="button" onClick={() => setSelectedMember(null)} className="text-fg-faint hover:text-fg transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <div>
                   <div className="relative mb-2">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
                     <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                       placeholder="Search by name, email, or member #…"
-                      className="w-full pl-9 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      className="w-full pl-9 pr-3 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
                     />
                   </div>
                   {search && (
-                    <div className="max-h-40 overflow-y-auto bg-gray-900 border border-gray-700 rounded-xl">
+                    <div className="max-h-40 overflow-y-auto bg-surface border border-line rounded-xl">
                       {filtered.length === 0 ? (
-                        <p className="text-sm text-gray-500 px-3 py-3 text-center">No members found</p>
+                        <p className="text-sm text-fg-faint px-3 py-3 text-center">No members found</p>
                       ) : filtered.slice(0, 8).map(m => (
                         <button key={m.id} type="button" onClick={() => handleSelectMember(m)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-800 transition-colors text-left">
-                          <div className="w-7 h-7 rounded-full bg-purple-600/20 flex items-center justify-center text-xs font-bold text-purple-400 flex-shrink-0">
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-3 transition-colors text-left">
+                          <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
                             {String(m.full_name ?? m.member_number ?? '?').slice(0, 2).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{m.full_name ?? '—'}</p>
-                            <p className="text-xs text-gray-500 truncate">{m.email ?? m.member_number}</p>
+                            <p className="text-sm text-fg truncate">{m.full_name ?? '—'}</p>
+                            <p className="text-xs text-fg-faint truncate">{m.email ?? m.member_number}</p>
                           </div>
-                          {m.plan_name && <span className="text-xs text-purple-400 flex-shrink-0">{m.plan_name}</span>}
+                          {m.plan_name && <span className="text-xs text-brand flex-shrink-0">{m.plan_name}</span>}
                         </button>
                       ))}
                     </div>
@@ -293,7 +287,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
             {/* Service selector */}
             <div>
-              <label className={labelCls}>Service / Item <span className="text-gray-600">(optional)</span></label>
+              <label className={labelCls}>Service / Item <span className="text-fg-faint">(optional)</span></label>
               <select
                 value={isOther ? '__other__' : (selectedService?.id ?? '')}
                 onChange={e => handleSelectService(e.target.value)}
@@ -318,11 +312,11 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               {selectedService && !isOther && (
                 <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
                   <span className="text-xs font-medium text-indigo-400">{TYPE_LABELS[selectedService.type] ?? selectedService.type}</span>
-                  <span className="text-xs text-gray-300 flex-1 truncate">{selectedService.name}</span>
+                  <span className="text-xs text-fg-muted flex-1 truncate">{selectedService.name}</span>
                   {selectedService.price != null && (
-                    <span className="text-xs font-semibold text-white flex-shrink-0">{selectedService.price} {selectedService.currency}</span>
+                    <span className="text-xs font-semibold text-fg flex-shrink-0">{selectedService.price} {selectedService.currency}</span>
                   )}
-                  <button type="button" onClick={() => handleSelectService('')} className="text-gray-500 hover:text-white transition-colors flex-shrink-0">
+                  <button type="button" onClick={() => handleSelectService('')} className="text-fg-faint hover:text-fg transition-colors flex-shrink-0">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -331,7 +325,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               {/* Trainer picker — shown for service packages that create an assignment */}
               {selectedService?.creates_assignment && (
                 <div className="mt-2">
-                  <label className="block text-xs text-gray-500 mb-1">Specialist <span className="text-gray-600">(optional)</span></label>
+                  <label className="block text-xs text-fg-faint mb-1">Specialist <span className="text-fg-faint">(optional)</span></label>
                   <select
                     value={selectedTrainer?.id ?? ''}
                     onChange={e => setSelectedTrainer(trainerOptions.find(t => t.id === e.target.value) ?? null)}
@@ -357,7 +351,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     placeholder="Describe the service or item…"
                     className={`${inputCls} flex-1`}
                   />
-                  <button type="button" onClick={() => handleSelectService('')} className="p-2 text-gray-500 hover:text-white transition-colors flex-shrink-0">
+                  <button type="button" onClick={() => handleSelectService('')} className="p-2 text-fg-faint hover:text-fg transition-colors flex-shrink-0">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -373,9 +367,9 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-emerald-400">Active Promotion</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-fg-muted mt-0.5">
                           Discounted: {selectedService.price} {selectedService.currency}
-                          <span className="line-through ml-2 text-gray-600">{selectedService.original_price}</span>
+                          <span className="line-through ml-2 text-fg-faint">{selectedService.original_price}</span>
                         </p>
                       </div>
                       <button
@@ -387,7 +381,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                         }}
                         className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                           useOriginalPrice
-                            ? 'bg-gray-700 text-gray-300'
+                            ? 'bg-surface-3 text-fg-muted'
                             : 'bg-emerald-600/20 text-emerald-400'
                         }`}
                       >
@@ -447,7 +441,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     {filteredBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                   {allowedIds && (
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-fg-faint">
                       This plan is limited to {filteredBranches.map(b => b.name).join(', ')}
                     </p>
                   )}
@@ -460,7 +454,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               <label className={labelCls}>Amount *</label>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">{currency}</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">{currency}</span>
                   <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
                     placeholder="0.00" className={`${inputCls} pl-12`} required />
                 </div>
@@ -481,8 +475,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                       method === m
                         ? m === 'payment_link'
                           ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                          : 'border-purple-500 bg-purple-500/10 text-purple-400'
-                        : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                          : 'border-brand bg-brand/10 text-brand'
+                        : 'border-line text-fg-muted hover:border-line-strong'
                     }`}>
                     {METHOD_LABELS[m]}
                   </button>
@@ -508,7 +502,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   className={inputCls}
                   required={isPaymentLink}
                 />
-                <p className="mt-1 text-xs text-gray-500">Include country code — e.g. +201001234567</p>
+                <p className="mt-1 text-xs text-fg-faint">Include country code — e.g. +201001234567</p>
               </div>
             )}
 
@@ -529,10 +523,10 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                       isPaymentLink
                         ? s.value === 'pending'
                           ? 'border-amber-500/40 bg-amber-500/5 text-amber-400/50 cursor-not-allowed'
-                          : 'border-gray-800 text-gray-600 cursor-not-allowed opacity-40'
+                          : 'border-line text-fg-faint cursor-not-allowed opacity-40'
                         : status === s.value
                           ? `border-current bg-current/10 ${s.color}`
-                          : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                          : 'border-line text-fg-muted hover:border-line-strong'
                     }`}>
                     {s.label}
                   </button>
@@ -540,61 +534,45 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               </div>
             </div>
 
-            {/* Notes */}
-            <div>
-              <label className={labelCls}>Notes <span className="text-gray-600">(optional)</span></label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="e.g. Cash received at front desk…" rows={2}
-                className={`${inputCls} resize-none`} />
-            </div>
-
+          {/* Notes */}
+          <div>
+            <label className={labelCls}>Notes <span className="text-fg-faint">(optional)</span></label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="e.g. Cash received at front desk…" rows={2}
+              className={`${inputCls} resize-none`} />
           </div>
-
-          {/* Footer */}
-          {generatedLink ? (
-            <div className="px-6 py-4 border-t border-gray-700 space-y-3 flex-shrink-0">
-              <p className="text-xs text-gray-400">Payment link generated — share it with the customer:</p>
-              <div className="flex items-center gap-2 p-3 bg-gray-900 border border-blue-500/30 rounded-xl">
-                <Link2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                <p className="text-xs text-blue-300 truncate flex-1">{generatedLink}</p>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={handleCopy}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition-colors">
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  {copied ? 'Copied!' : 'Copy Link'}
-                </button>
-                <button type="button" onClick={handleWhatsApp}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium text-white transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                  Send via WhatsApp
-                </button>
-              </div>
-              <button type="button" onClick={() => { onClose(); router.refresh(); }}
-                className="w-full py-2 rounded-lg text-sm text-gray-500 hover:text-gray-300 transition-colors">
-                Done
-              </button>
-            </div>
-          ) : (
-            <div className="px-6 py-4 border-t border-gray-700 flex gap-3 flex-shrink-0">
-              <button type="button" onClick={onClose} disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50">
-                Cancel
-              </button>
-              <button type="submit" disabled={loading || !selectedMember}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-40 ${
-                  isPaymentLink
-                    ? 'bg-blue-600 hover:bg-blue-500'
-                    : 'bg-emerald-600 hover:bg-emerald-500'
-                }`}>
-                {loading
-                  ? isPaymentLink ? 'Generating…' : 'Creating…'
-                  : isPaymentLink ? 'Generate Payment Link' : 'Create Payment'}
-              </button>
-            </div>
-          )}
         </form>
-      </div>
-    </div>
+      </Modal.Body>
+
+      {/* Footer */}
+      {generatedLink ? (
+        <Modal.Footer className="flex-col items-stretch gap-3">
+          <p className="text-xs text-fg-muted">Payment link generated — share it with the customer:</p>
+          <div className="flex items-center gap-2 p-3 bg-surface border border-blue-500/30 rounded-xl">
+            <Link2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <p className="text-xs text-blue-300 truncate flex-1">{generatedLink}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" fullWidth onClick={handleCopy}
+              leftIcon={copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}>
+              {copied ? 'Copied!' : 'Copy Link'}
+            </Button>
+            <button type="button" onClick={handleWhatsApp}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium text-fg transition-colors">
+              <MessageCircle className="w-4 h-4" />
+              Send via WhatsApp
+            </button>
+          </div>
+          <Button variant="ghost" fullWidth onClick={() => { onClose(); router.refresh(); }}>Done</Button>
+        </Modal.Footer>
+      ) : (
+        <Modal.Footer>
+          <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button type="submit" form="record-payment-form" variant="primary" fullWidth disabled={!selectedMember} isLoading={loading}>
+            {isPaymentLink ? 'Generate Payment Link' : 'Create Payment'}
+          </Button>
+        </Modal.Footer>
+      )}
+    </Modal>
   );
 }

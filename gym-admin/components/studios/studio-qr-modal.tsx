@@ -51,15 +51,15 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl">
+      <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div className="flex items-center gap-2">
-            <QrCode className="w-4 h-4 text-purple-400" />
-            <h2 className="text-base font-semibold text-white">Studio QR Code</h2>
+            <QrCode className="w-4 h-4 text-brand" />
+            <h2 className="text-base font-semibold text-fg">Studio QR Code</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -67,9 +67,9 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
         <div className="p-6">
           {/* Studio info */}
           <div className="mb-5">
-            <p className="text-white font-semibold text-lg">{studio.name}</p>
+            <p className="text-fg font-semibold text-lg">{studio.name}</p>
             {studio.capacity && (
-              <p className="text-sm text-gray-400 mt-1 flex items-center gap-1">
+              <p className="text-sm text-fg-muted mt-1 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" /> Capacity: {studio.capacity}
               </p>
             )}
@@ -86,15 +86,15 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
           </div>
 
           {/* Info */}
-          <div className="bg-gray-700/40 rounded-xl px-4 py-3 mb-5">
-            <p className="text-xs text-gray-400 text-center leading-relaxed">
-              This is a <span className="text-white font-medium">permanent</span> studio QR code. Members scan it to be
+          <div className="bg-surface-3/40 rounded-xl px-4 py-3 mb-5">
+            <p className="text-xs text-fg-muted text-center leading-relaxed">
+              This is a <span className="text-fg font-medium">permanent</span> studio QR code. Members scan it to be
               validated against their booked session for this studio. Print and mount it at the studio entrance.
             </p>
           </div>
 
           <button onClick={handlePrint}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors">
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium transition-colors">
             <Printer className="w-4 h-4" /> Print
           </button>
         </div>

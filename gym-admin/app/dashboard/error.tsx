@@ -16,12 +16,12 @@ export default function DashboardError({
   return (
     <div className="flex flex-col items-center justify-center h-64 gap-4">
       <p className="text-red-400 font-semibold">Something went wrong</p>
-      <p className="text-gray-400 text-sm font-mono bg-gray-800 px-4 py-2 rounded-lg max-w-xl break-all">
+      <p className="text-fg-muted text-sm font-mono bg-surface-2 px-4 py-2 rounded-lg max-w-xl break-all">
         Something went wrong. Please try again.{error.digest ? ` (ref: ${error.digest})` : ''}
       </p>
       <button
         onClick={reset}
-        className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+        className="px-4 py-2 bg-brand text-brand-ink text-sm rounded-lg hover:bg-brand-dim"
       >
         Try again
       </button>

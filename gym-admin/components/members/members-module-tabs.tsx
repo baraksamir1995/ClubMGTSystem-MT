@@ -18,7 +18,7 @@ export default function MembersModuleTabs() {
   const current = params.get('view') === 'memberships' ? 'memberships' : 'members';
 
   return (
-    <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
+    <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit">
       {TABS.map(tab => {
         const Icon = tab.icon;
         const active = current === tab.id;
@@ -36,7 +36,7 @@ export default function MembersModuleTabs() {
             key={tab.id}
             href={href}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              active ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+              active ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'
             }`}
           >
             <Icon className="w-4 h-4" />

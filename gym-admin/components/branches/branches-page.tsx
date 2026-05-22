@@ -8,6 +8,7 @@ import type { GymBranch } from '@/app/dashboard/branches/page';
 import type { GymStudio } from '@/app/dashboard/classes/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import StudiosPageClient from '@/components/studios/studios-page';
+import { Badge, Tabs } from '@/components/ui';
 
 interface Props {
   initialBranches: GymBranch[];
@@ -194,7 +195,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
     }
   };
 
-  const inputCls = 'bg-gray-900 border border-gray-600 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-purple-500 transition-colors';
+  const inputCls = 'bg-surface border border-line text-fg text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-brand transition-colors';
 
   return (
     <div className="space-y-5">
@@ -203,13 +204,13 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       {!hideHeader && (
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Branches & Studios</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage your gym locations and studio spaces</p>
+            <h1 className="text-2xl font-bold text-fg">Branches & Studios</h1>
+            <p className="text-sm text-fg-muted mt-0.5">Manage your gym locations and studio spaces</p>
           </div>
           {activeTab === 'branches' && can(permissions, 'branches', 'create') && !atLimit && (
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" /> Add Branch
             </button>
@@ -220,7 +221,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
         <div className="flex justify-end">
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" /> Add Branch
           </button>
@@ -228,18 +229,18 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       )}
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
-        <button onClick={() => setActiveTab('branches')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'branches' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>
-          <GitBranch className="w-4 h-4" /> Branches
-          <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">{initialBranches.length}</span>
-        </button>
-        <button onClick={() => setActiveTab('studios')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'studios' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}>
-          <Building2 className="w-4 h-4" /> Studios
-          <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">{initialStudios.length}</span>
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'branches' | 'studios')}>
+        <Tabs.List>
+          <Tabs.Trigger value="branches" icon={GitBranch}>
+            Branches
+            <Badge variant="neutral" size="sm" className="ml-1">{initialBranches.length}</Badge>
+          </Tabs.Trigger>
+          <Tabs.Trigger value="studios" icon={Building2}>
+            Studios
+            <Badge variant="neutral" size="sm" className="ml-1">{initialStudios.length}</Badge>
+          </Tabs.Trigger>
+        </Tabs.List>
+      </Tabs>
 
       {/* Studios tab */}
       {activeTab === 'studios' && (
@@ -256,22 +257,22 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       {activeTab === 'branches' && (<>
 
       {/* Usage bar */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
-        <GitBranch className="w-5 h-5 text-purple-400 flex-shrink-0" />
+      <div className="bg-surface-2 border border-line rounded-xl p-4 flex items-center gap-4">
+        <GitBranch className="w-5 h-5 text-brand flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between mb-1.5">
-            <span className="text-sm font-medium text-white">Branch usage</span>
-            <span className="text-sm text-gray-400">{branches.length} / {maxBranches}</span>
+            <span className="text-sm font-medium text-fg">Branch usage</span>
+            <span className="text-sm text-fg-muted">{branches.length} / {maxBranches}</span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-1.5">
+          <div className="w-full bg-surface-3 rounded-full h-1.5">
             <div
-              className={`h-1.5 rounded-full transition-all ${atLimit ? 'bg-red-500' : 'bg-purple-500'}`}
+              className={`h-1.5 rounded-full transition-all ${atLimit ? 'bg-red-500' : 'bg-brand'}`}
               style={{ width: `${Math.min(100, (branches.length / maxBranches) * 100)}%` }}
             />
           </div>
         </div>
         {pricePerBranch != null && (
-          <span className="text-xs text-gray-500 flex-shrink-0">
+          <span className="text-xs text-fg-faint flex-shrink-0">
             +${pricePerBranch}/mo per extra branch
           </span>
         )}
@@ -289,11 +290,11 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-gray-800 border border-purple-500/50 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-medium text-white">New Branch</p>
+        <div className="bg-surface-2 border border-brand/50 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-medium text-fg">New Branch</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">Name *</label>
+              <label className="text-xs text-fg-muted">Name *</label>
               <input
                 autoFocus
                 type="text"
@@ -305,7 +306,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-gray-400">Address (optional)</label>
+              <label className="text-xs text-fg-muted">Address (optional)</label>
               <input
                 type="text"
                 value={createAddress}
@@ -317,7 +318,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-gray-400 flex items-center gap-1">
+            <label className="text-xs text-fg-muted flex items-center gap-1">
               <MapPin className="w-3 h-3" /> Google Maps Link (optional)
             </label>
             <input
@@ -331,14 +332,14 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
           <div className="flex items-center gap-2 justify-end">
             <button
               onClick={() => { setShowCreate(false); setCreateName(''); setCreateAddress(''); setCreateMapsUrl(''); }}
-              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+              className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
             >
               {creating ? 'Creating…' : <><Check className="w-3.5 h-3.5" /> Create</>}
             </button>
@@ -348,13 +349,13 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
 
       {/* Cards grid */}
       {branches.length === 0 ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <GitBranch className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">No branches yet. Add your first branch to get started.</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+          <GitBranch className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <p className="text-fg-muted text-sm">No branches yet. Add your first branch to get started.</p>
           {can(permissions, 'branches', 'create') && (
             <button
               onClick={() => setShowCreate(true)}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" /> Add Branch
             </button>
@@ -365,18 +366,19 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
           {branches.map(b => {
             const isEditing = editingId === b.id;
             return (
-              <div key={b.id} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+              <div key={b.id} className="bg-surface-2 border border-line rounded-xl overflow-hidden">
 
                 {/* Image area */}
-                <div className="relative h-40 bg-gray-900 group">
+                <div className="relative h-40 bg-surface group">
                   {b.image_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={b.image_url}
                       alt={b.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-600">
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-fg-faint">
                       <ImageIcon className="w-8 h-8" />
                       <span className="text-xs">No image</span>
                     </div>
@@ -399,7 +401,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                       <button
                         onClick={() => fileInputRefs.current[b.id]?.click()}
                         disabled={uploadingId === b.id}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-sm font-medium"
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-fg text-sm font-medium"
                       >
                         {uploadingId === b.id ? (
                           <span className="text-xs">Uploading…</span>
@@ -414,11 +416,9 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   )}
 
                   {/* Status badge */}
-                  <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    b.is_active ? 'bg-emerald-400/20 text-emerald-400' : 'bg-gray-400/20 text-gray-400'
-                  }`}>
+                  <Badge variant={b.is_active ? 'success' : 'neutral'} size="sm" className="absolute top-2 right-2">
                     {b.is_active ? 'Active' : 'Inactive'}
-                  </span>
+                  </Badge>
                 </div>
 
                 {/* Body */}
@@ -426,7 +426,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   {isEditing ? (
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <label className="text-xs text-gray-500">Name *</label>
+                        <label className="text-xs text-fg-faint">Name *</label>
                         <input
                           autoFocus
                           type="text"
@@ -437,7 +437,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-gray-500">Address</label>
+                        <label className="text-xs text-fg-faint">Address</label>
                         <input
                           type="text"
                           value={editAddress}
@@ -448,7 +448,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-gray-500 flex items-center gap-1">
+                        <label className="text-xs text-fg-faint flex items-center gap-1">
                           <MapPin className="w-3 h-3" /> Google Maps Link
                         </label>
                         <input
@@ -463,7 +463,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                       <div className="flex items-center gap-2 justify-end pt-1">
                         <button
                           onClick={cancelEdit}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 transition-colors"
+                          className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -479,13 +479,13 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   ) : (
                     <>
                       <div>
-                        <p className="font-semibold text-white text-base">{b.name}</p>
+                        <p className="font-semibold text-fg text-base">{b.name}</p>
                         {b.address && (
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">{b.address}</p>
+                          <p className="text-xs text-fg-muted mt-0.5 truncate">{b.address}</p>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-end text-xs text-gray-500">
+                      <div className="flex items-center justify-end text-xs text-fg-faint">
                         <span>{fmt(b.created_at)}</span>
                       </div>
 
@@ -495,7 +495,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                           href={b.maps_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors truncate"
+                          className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dim transition-colors truncate"
                         >
                           <MapPin className="w-3 h-3 flex-shrink-0" />
                           <span className="truncate">Google Maps</span>
@@ -504,14 +504,14 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                       )}
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1 pt-1 border-t border-gray-700">
+                      <div className="flex items-center gap-1 pt-1 border-t border-line">
                         {can(permissions, 'branches', 'edit') && (
                           <>
                             <button
                               onClick={() => toggleActive(b)}
                               disabled={togglingId === b.id}
                               title={b.is_active ? 'Deactivate' : 'Activate'}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors disabled:opacity-40"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors disabled:opacity-40"
                             >
                               {b.is_active
                                 ? <><ToggleRight className="w-3.5 h-3.5" /> Deactivate</>
@@ -521,7 +521,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                             <button
                               onClick={() => startEdit(b)}
                               title="Edit"
-                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors"
                             >
                               <Pencil className="w-3.5 h-3.5" /> Edit
                             </button>
@@ -532,7 +532,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                             onClick={() => handleDelete(b)}
                             disabled={deletingId === b.id}
                             title="Delete"
-                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-40"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors disabled:opacity-40"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>

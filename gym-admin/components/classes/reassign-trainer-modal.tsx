@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, User, Loader2 } from 'lucide-react';
+import { User, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymClass } from '@/app/dashboard/classes/page';
 import type { StaffMember } from './class-modal';
+import { Button, Input, Modal, Select } from '@/components/ui';
 
 interface Props {
   cls: GymClass;
@@ -33,6 +34,7 @@ export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Pro
       })
       .catch(() => setStaff([]))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = async () => {
@@ -58,90 +60,78 @@ export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Pro
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-purple-400" />
-            <h2 className="text-base font-semibold text-white">Assign Trainer</h2>
+    <Modal open onClose={onClose} size="sm">
+      <Modal.Header>
+        <span className="inline-flex items-center gap-2"><User className="w-4 h-4 text-brand" /> Assign Trainer</span>
+      </Modal.Header>
+
+      <Modal.Body className="space-y-4">
+        {/* Class info */}
+        <div className="flex items-center gap-2.5 bg-surface-3/40 rounded-xl px-4 py-3">
+          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cls.color }} />
+          <div>
+            <p className="text-sm text-fg font-medium">{cls.name}</p>
+            <p className="text-xs text-fg-muted capitalize">{cls.class_type}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Class info */}
-          <div className="flex items-center gap-2.5 bg-gray-700/40 rounded-xl px-4 py-3">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cls.color }} />
-            <div>
-              <p className="text-sm text-white font-medium">{cls.name}</p>
-              <p className="text-xs text-gray-400 capitalize">{cls.class_type}</p>
-            </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 animate-spin text-fg-muted" />
           </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-gray-400">Select Trainer</label>
-                {staff.length > 0 && (
-                  <button onClick={() => { setUseCustom(c => !c); setSelected(''); setCustom(''); }}
-                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                    {useCustom ? '← From staff list' : 'Custom name'}
-                  </button>
-                )}
-              </div>
-
-              {staff.length === 0 || useCustom ? (
-                <input value={custom} onChange={e => setCustom(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                  placeholder="Trainer name" />
-              ) : (
-                <select value={selected} onChange={e => setSelected(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
-                  <option value="">— Remove trainer —</option>
-                  {staff.map(s => (
-                    <option key={s.id} value={s.full_name}>
-                      {s.full_name}{s.role && s.role !== 'staff' ? ` · ${s.role}` : ''}
-                    </option>
-                  ))}
-                </select>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-fg-muted">Select Trainer</label>
+              {staff.length > 0 && (
+                <button onClick={() => { setUseCustom(c => !c); setSelected(''); setCustom(''); }}
+                  className="text-xs text-brand hover:text-brand-dim transition-colors">
+                  {useCustom ? '← From staff list' : 'Custom name'}
+                </button>
               )}
+            </div>
 
-              {/* Preview */}
-              {((!useCustom && selected) || (useCustom && custom.trim())) && (
-                <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-                  <User className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-white font-medium">{useCustom ? custom : selected}</p>
-                    {!useCustom && <p className="text-xs text-gray-500">{staff.find(s => s.full_name === selected)?.email ?? ''}</p>}
-                  </div>
-                  <span className="ml-auto text-xs text-purple-400 font-medium">Assigned</span>
+            {staff.length === 0 || useCustom ? (
+              <Input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Trainer name" />
+            ) : (
+              <Select value={selected} onChange={e => setSelected(e.target.value)}>
+                <option value="">— Remove trainer —</option>
+                {staff.map(s => (
+                  <option key={s.id} value={s.full_name}>
+                    {s.full_name}{s.role && s.role !== 'staff' ? ` · ${s.role}` : ''}
+                  </option>
+                ))}
+              </Select>
+            )}
+
+            {/* Preview */}
+            {((!useCustom && selected) || (useCustom && custom.trim())) && (
+              <div className="flex items-center gap-2 bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
+                <User className="w-3.5 h-3.5 text-brand flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-fg font-medium">{useCustom ? custom : selected}</p>
+                  {!useCustom && <p className="text-xs text-fg-faint">{staff.find(s => s.full_name === selected)?.email ?? ''}</p>}
                 </div>
-              )}
+                <span className="ml-auto text-xs text-brand font-medium">Assigned</span>
+              </div>
+            )}
 
-              {/* Current */}
-              {cls.instructor && (
-                <p className="text-xs text-gray-500">
-                  Current: <span className="text-gray-400">{cls.instructor}</span>
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+            {/* Current */}
+            {cls.instructor && (
+              <p className="text-xs text-fg-faint">
+                Current: <span className="text-fg-muted">{cls.instructor}</span>
+              </p>
+            )}
+          </div>
+        )}
+      </Modal.Body>
 
-        <div className="flex gap-2 px-5 py-4 border-t border-gray-700">
-          <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-300 text-sm hover:bg-gray-700 transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving || loading}
-            className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Assign Trainer'}
-          </button>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer>
+        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="primary" fullWidth onClick={handleSave} disabled={loading} isLoading={saving}>
+          Assign Trainer
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }

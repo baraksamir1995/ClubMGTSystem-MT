@@ -9,6 +9,7 @@ import TransferModal from './transfer-modal';
 import ExtendMembershipModal from './extend-membership-modal';
 import AddSessionsModal from './add-sessions-modal';
 import FreezeMembershipModal from './freeze-membership-modal';
+import { Button } from '@/components/ui';
 
 interface Plan {
   id: string;
@@ -103,22 +104,14 @@ export default function MemberDetailActions({
     <>
       <div className="flex items-center gap-2 flex-wrap">
         {hasSessions && (
-          <button
-            onClick={() => setAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
+          <Button variant="secondary" onClick={() => setAddModal(true)} leftIcon={<Plus className="w-4 h-4" />}>
             Add Sessions
-          </button>
+          </Button>
         )}
         {hasDuration && (
-          <button
-            onClick={() => setExtendModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <CalendarPlus className="w-4 h-4" />
+          <Button variant="secondary" onClick={() => setExtendModal(true)} leftIcon={<CalendarPlus className="w-4 h-4" />}>
             Extend
-          </button>
+          </Button>
         )}
         {freezeEnabled && isFrozen && (
           <button
@@ -144,49 +137,33 @@ export default function MemberDetailActions({
             Freeze
           </button>
         )}
-        <button
-          onClick={() => setTransferModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <ArrowLeftRight className="w-4 h-4" />
+        <Button variant="secondary" onClick={() => setTransferModal(true)} leftIcon={<ArrowLeftRight className="w-4 h-4" />}>
           Transfer
-        </button>
+        </Button>
         {activeMembership && (
           detachConfirm ? (
             <div className="flex items-center gap-1">
-              <span className="text-xs text-red-400 font-medium">Remove plan?</span>
-              <button
-                onClick={detachPlan}
-                disabled={detaching}
-                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
-              >
-                {detaching ? 'Removing…' : 'Confirm'}
-              </button>
-              <button
-                onClick={() => setDetachConfirm(false)}
-                disabled={detaching}
-                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-medium rounded-lg transition-colors"
-              >
+              <span className="text-xs text-danger font-medium">Remove plan?</span>
+              <Button variant="danger" size="sm" onClick={detachPlan} isLoading={detaching}>
+                Confirm
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setDetachConfirm(false)} disabled={detaching}>
                 Cancel
-              </button>
+              </Button>
             </div>
           ) : (
             <button
               onClick={() => setDetachConfirm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600/15 hover:bg-red-600/25 text-red-400 border border-red-500/30 text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-danger-soft hover:bg-danger/25 text-danger border border-danger/30 text-sm font-medium rounded-lg transition-colors"
             >
               <Unlink className="w-4 h-4" />
               Detach Plan
             </button>
           )
         )}
-        <button
-          onClick={() => setplanModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <CreditCard className="w-4 h-4" />
+        <Button variant="primary" onClick={() => setplanModal(true)} leftIcon={<CreditCard className="w-4 h-4" />}>
           {currentPlanId ? 'Change Plan' : 'Assign Plan'}
-        </button>
+        </Button>
       </div>
 
       {planModal && (

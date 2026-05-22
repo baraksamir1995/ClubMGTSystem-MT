@@ -1,0 +1,65 @@
+'use client';
+
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import { cn } from '@/lib/cn';
+
+/**
+ * Input — single-line text input styled to the design system.
+ *
+ *   <Input type="email" value={…} onChange={…} placeholder="you@gym.com" />
+ *   <Input leftIcon={<Mail className="w-4 h-4" />} placeholder="Mobile number" />
+ *
+ * When wrapped in `<Field>`, `id` / `aria-*` / `invalid` are injected
+ * automatically.
+ */
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** Leading adornment, rendered inside the input pill on the left. */
+  leftIcon?: ReactNode;
+  /** Trailing adornment — icons or interactive buttons (e.g. show/hide). */
+  rightIcon?: ReactNode;
+  /** Visual error state — red border. `Field` flips this for you. */
+  invalid?: boolean;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { leftIcon, rightIcon, invalid, className, type = 'text', ...rest },
+  ref,
+) {
+  return (
+    <div
+      className={cn(
+        'group relative flex items-center w-full',
+        'bg-surface-2 border border-line rounded-lg',
+        'focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/30',
+        'transition-colors duration-150',
+        invalid && 'border-danger focus-within:border-danger focus-within:ring-danger/30',
+        className,
+      )}
+    >
+      {leftIcon && (
+        <span className="pl-3 pr-1 text-fg-muted flex items-center" aria-hidden>
+          {leftIcon}
+        </span>
+      )}
+      <input
+        ref={ref}
+        type={type}
+        className={cn(
+          'peer flex-1 min-w-0 bg-transparent outline-none',
+          'px-3 py-2.5 text-sm text-fg placeholder:text-fg-faint',
+          // Trim left padding when an icon is present (icon block has px).
+          leftIcon  && 'pl-1',
+          rightIcon && 'pr-1',
+          // Hide the browser's password reveal — we ship `<PasswordInput>` for that.
+          '[&::-ms-reveal]:hidden [&::-ms-clear]:hidden',
+        )}
+        {...rest}
+      />
+      {rightIcon && (
+        <span className="pr-2 pl-1 text-fg-muted flex items-center">
+          {rightIcon}
+        </span>
+      )}
+    </div>
+  );
+});

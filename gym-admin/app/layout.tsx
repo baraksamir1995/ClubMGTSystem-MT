@@ -19,8 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="font-sans">
+    <html lang="en" className="bg-clby-bg">
+      {/* Brand background lives on <html> AND <body> so every page —
+          including ones that forget to set their own bg — defaults to
+          the near-black brand surface instead of the browser's white. */}
+      <body className="font-sans bg-clby-bg text-clby-fg">
         <Toaster position="top-right" />
         {children}
       </body>

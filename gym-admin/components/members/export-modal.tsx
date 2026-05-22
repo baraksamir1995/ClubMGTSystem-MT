@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { X, Download, FileText, Table2, CheckSquare, Square } from 'lucide-react';
+import { useState } from 'react';
+import { Download, FileText, Table2, CheckSquare, Square } from 'lucide-react';
+import { Avatar, Badge, type BadgeProps, Button, Modal } from '@/components/ui';
 
 interface MemberWithProfile {
   id: string;
@@ -25,6 +26,11 @@ interface Props {
 }
 
 type Format = 'csv' | 'excel';
+
+const statusVariant: Record<string, BadgeProps['variant']> = {
+  active:    'success',
+  suspended: 'danger',
+};
 
 function toRow(m: MemberWithProfile) {
   return {
@@ -72,7 +78,6 @@ export default function ExportModal({ members, onClose }: Props) {
   const [loading, setLoading] = useState(false);
 
   const allSelected = selected.size === members.length;
-  const someSelected = selected.size > 0 && !allSelected;
 
   const toggleAll = () => {
     if (allSelected) setSelected(new Set());
@@ -102,22 +107,15 @@ export default function ExportModal({ members, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-shrink-0">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Export Members</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{members.length} members available to export</p>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="lg">
+      <Modal.Header>Export Members</Modal.Header>
+
+      <Modal.Body className="space-y-5">
+        <p className="text-xs text-fg-muted -mt-1">{members.length} members available to export</p>
 
         {/* Format picker */}
-        <div className="px-6 py-4 border-b border-gray-700 flex-shrink-0">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Export Format</p>
+        <div>
+          <p className="text-xs text-fg-muted uppercase tracking-wide mb-3">Export Format</p>
           <div className="grid grid-cols-2 gap-3">
             {([
               { value: 'csv',   icon: FileText, label: 'CSV', desc: 'Comma-separated values' },
@@ -128,14 +126,14 @@ export default function ExportModal({ members, onClose }: Props) {
                 onClick={() => setFormat(value)}
                 className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
                   format === value
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-gray-700 hover:border-gray-600'
+                    ? 'border-brand bg-brand/10'
+                    : 'border-line hover:border-line-strong'
                 }`}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${format === value ? 'text-purple-400' : 'text-gray-500'}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${format === value ? 'text-brand' : 'text-fg-faint'}`} />
                 <div>
-                  <p className={`text-sm font-medium ${format === value ? 'text-white' : 'text-gray-300'}`}>{label}</p>
-                  <p className="text-xs text-gray-500">{desc}</p>
+                  <p className={`text-sm font-medium ${format === value ? 'text-fg' : 'text-fg-muted'}`}>{label}</p>
+                  <p className="text-xs text-fg-faint">{desc}</p>
                 </div>
               </button>
             ))}
@@ -143,12 +141,12 @@ export default function ExportModal({ members, onClose }: Props) {
         </div>
 
         {/* Member selection */}
-        <div className="flex-1 overflow-hidden flex flex-col px-6 py-4">
+        <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Select Members</p>
+            <p className="text-xs text-fg-muted uppercase tracking-wide">Select Members</p>
             <button
               onClick={toggleAll}
-              className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dim transition-colors"
             >
               {allSelected ? (
                 <><CheckSquare className="w-3.5 h-3.5" /> Deselect all</>
@@ -157,62 +155,52 @@ export default function ExportModal({ members, onClose }: Props) {
               )}
             </button>
           </div>
-          <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+          <div className="max-h-[40vh] overflow-y-auto space-y-1 pr-1">
             {members.map(m => {
               const isChecked = selected.has(m.id);
               return (
                 <label
                   key={m.id}
                   className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
-                    isChecked ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+                    isChecked ? 'bg-surface-3' : 'hover:bg-surface-3/50'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => toggle(m.id)}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-purple-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-purple-600"
+                    className="w-4 h-4 rounded border-line bg-surface-3 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-brand"
                   />
-                  <div className="w-7 h-7 rounded-full bg-purple-600/20 flex items-center justify-center text-xs font-bold text-purple-400 flex-shrink-0">
-                    {(m.profile?.full_name ?? m.member_number ?? '?').slice(0, 2).toUpperCase()}
-                  </div>
+                  <Avatar name={m.profile?.full_name ?? m.member_number ?? '?'} size={28} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate">{m.profile?.full_name ?? '—'}</p>
-                    <p className="text-xs text-gray-500 truncate">{m.profile?.email ?? m.member_number}</p>
+                    <p className="text-sm text-fg truncate">{m.profile?.full_name ?? '—'}</p>
+                    <p className="text-xs text-fg-faint truncate">{m.profile?.email ?? m.member_number}</p>
                   </div>
-                  <span className={`text-xs capitalize px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    m.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' :
-                    m.status === 'suspended' ? 'bg-red-400/10 text-red-400' :
-                    'bg-gray-400/10 text-gray-400'
-                  }`}>
-                    {m.status}
-                  </span>
+                  <Badge variant={statusVariant[m.status] ?? 'neutral'} size="sm" className="capitalize">{m.status}</Badge>
                 </label>
               );
             })}
           </div>
         </div>
+      </Modal.Body>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between flex-shrink-0">
-          <p className="text-sm text-gray-400">
-            <span className="text-white font-medium">{selected.size}</span> member{selected.size !== 1 ? 's' : ''} selected
-          </p>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
-              Cancel
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={selected.size === 0 || loading}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              {loading ? 'Exporting…' : `Export ${format.toUpperCase()}`}
-            </button>
-          </div>
+      <Modal.Footer className="items-center justify-between">
+        <p className="text-sm text-fg-muted">
+          <span className="text-fg font-medium">{selected.size}</span> member{selected.size !== 1 ? 's' : ''} selected
+        </p>
+        <div className="flex gap-3">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={handleExport}
+            disabled={selected.size === 0}
+            isLoading={loading}
+            leftIcon={<Download className="w-4 h-4" />}
+          >
+            Export {format.toUpperCase()}
+          </Button>
         </div>
-      </div>
-    </div>
+      </Modal.Footer>
+    </Modal>
   );
 }

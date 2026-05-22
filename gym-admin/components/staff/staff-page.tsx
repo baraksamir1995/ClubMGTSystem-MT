@@ -72,7 +72,7 @@ function actionColor(t: string) {
   if (t === 'create' || t === 'reactivate') return 'text-emerald-400';
   if (t === 'delete' || t === 'deactivate') return 'text-red-400';
   if (t === 'update') return 'text-blue-400';
-  return 'text-gray-400';
+  return 'text-fg-muted';
 }
 
 /* ─── Component ──────────────────────────────────────────────────────── */
@@ -168,6 +168,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
   }, [logFilter]);
 
   // Only fetch activity logs lazily when the tab is opened
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (activeTab === 'activity') fetchLogs(); }, [activeTab]);
 
   // Refresh overview + activity after any mutation
@@ -296,19 +297,19 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
   /* ── tab class ───────────────────────────────────────────── */
   const tabCls = (t: string) =>
-    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`;
-  const inp = 'bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500';
+    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === t ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`;
+  const inp = 'bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand';
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">User & Role Management</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage staff accounts, roles, permissions, and access logs</p>
+        <h1 className="text-2xl font-bold text-fg">User & Role Management</h1>
+        <p className="text-sm text-fg-muted mt-0.5">Manage staff accounts, roles, permissions, and access logs</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit flex-wrap">
+      <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit flex-wrap">
         <button onClick={() => setActiveTab('overview')} className={tabCls('overview')}>
           <LayoutDashboard className="w-4 h-4" /> Overview
         </button>
@@ -328,72 +329,72 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
         <div className="space-y-5">
           {overviewLoad ? (
             <div className="flex items-center justify-center py-20">
-              <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+              <RefreshCw className="w-6 h-6 text-brand animate-spin" />
             </div>
           ) : overview ? (
             <>
               {/* Stat cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-purple-600/15 flex items-center justify-center">
-                      <Users className="w-4.5 h-4.5 text-purple-400" />
+                    <div className="w-9 h-9 rounded-lg bg-brand/15 flex items-center justify-center">
+                      <Users className="w-4.5 h-4.5 text-brand" />
                     </div>
-                    <p className="text-xs text-gray-400">Total Staff</p>
+                    <p className="text-xs text-fg-muted">Total Staff</p>
                   </div>
-                  <p className="text-2xl font-bold text-white">{overview.totalStaff}</p>
+                  <p className="text-2xl font-bold text-fg">{overview.totalStaff}</p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-lg bg-emerald-600/15 flex items-center justify-center">
                       <UserCheck2 className="w-4.5 h-4.5 text-emerald-400" />
                     </div>
-                    <p className="text-xs text-gray-400">Active</p>
+                    <p className="text-xs text-fg-muted">Active</p>
                   </div>
                   <p className="text-2xl font-bold text-emerald-400">{overview.activeStaff}</p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-lg bg-red-600/15 flex items-center justify-center">
                       <UserX2 className="w-4.5 h-4.5 text-red-400" />
                     </div>
-                    <p className="text-xs text-gray-400">Inactive</p>
+                    <p className="text-xs text-fg-muted">Inactive</p>
                   </div>
                   <p className="text-2xl font-bold text-red-400">{overview.inactiveStaff}</p>
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-lg bg-blue-600/15 flex items-center justify-center">
                       <Shield className="w-4.5 h-4.5 text-blue-400" />
                     </div>
-                    <p className="text-xs text-gray-400">Roles</p>
+                    <p className="text-xs text-fg-muted">Roles</p>
                   </div>
-                  <p className="text-2xl font-bold text-white">{overview.totalRoles}</p>
+                  <p className="text-2xl font-bold text-fg">{overview.totalRoles}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-5">
                 {/* Role breakdown */}
-                <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-gray-700">
-                    <h3 className="text-sm font-semibold text-white">Roles & Members</h3>
+                <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-line">
+                    <h3 className="text-sm font-semibold text-fg">Roles & Members</h3>
                   </div>
                   {overview.roleBreakdown.length === 0 ? (
                     <div className="p-8 text-center">
-                      <Shield className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">No roles created yet</p>
+                      <Shield className="w-8 h-8 text-fg-faint mx-auto mb-2" />
+                      <p className="text-sm text-fg-muted">No roles created yet</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-700/50">
                       {overview.roleBreakdown.map(r => (
                         <div key={r.id} className="flex items-center justify-between px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-purple-600/15 flex items-center justify-center">
-                              <ShieldCheck className="w-4 h-4 text-purple-400" />
+                            <div className="w-8 h-8 rounded-lg bg-brand/15 flex items-center justify-center">
+                              <ShieldCheck className="w-4 h-4 text-brand" />
                             </div>
-                            <span className="text-sm font-medium text-white">{r.name}</span>
+                            <span className="text-sm font-medium text-fg">{r.name}</span>
                           </div>
-                          <span className="text-xs text-gray-400">{r.memberCount} member{r.memberCount !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-fg-muted">{r.memberCount} member{r.memberCount !== 1 ? 's' : ''}</span>
                         </div>
                       ))}
                     </div>
@@ -403,9 +404,9 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               </div>
             </>
           ) : (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-              <LayoutDashboard className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Failed to load overview data</p>
+            <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+              <LayoutDashboard className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-sm text-fg-muted">Failed to load overview data</p>
             </div>
           )}
         </div>
@@ -415,10 +416,10 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {activeTab === 'accounts' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-400">{staff.length} staff member{staff.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-fg-muted">{staff.length} staff member{staff.length !== 1 ? 's' : ''}</p>
             {can(permissions, 'staff', 'create') && (
               <button onClick={openAddStaff}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
                 <Plus className="w-4 h-4" /> Add Staff
               </button>
             )}
@@ -426,24 +427,24 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
           {staffLoad ? (
             <div className="flex items-center justify-center py-20">
-              <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+              <RefreshCw className="w-6 h-6 text-brand animate-spin" />
             </div>
           ) : staff.length === 0 ? (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-              <Users className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400 mb-4">No staff members yet</p>
+            <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+              <Users className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-sm text-fg-muted mb-4">No staff members yet</p>
               {can(permissions, 'staff', 'create') && (
                 <button onClick={openAddStaff}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                  className="px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
                   Add First Staff Member
                 </button>
               )}
             </div>
           ) : (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+            <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wider">
+                  <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wider">
                     <th className="px-5 py-3 text-left">Name</th>
                     <th className="px-5 py-3 text-left">Email</th>
                     <th className="px-5 py-3 text-left">Phone</th>
@@ -454,26 +455,26 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 </thead>
                 <tbody className="divide-y divide-gray-700/50">
                   {staff.map(s => (
-                    <tr key={s.id} className="hover:bg-gray-700/30 transition-colors">
+                    <tr key={s.id} className="hover:bg-surface-3/30 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-semibold text-purple-400">
+                          <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-semibold text-brand">
                               {s.full_name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
                             </span>
                           </div>
-                          <span className="font-medium text-white">{s.full_name}</span>
+                          <span className="font-medium text-fg">{s.full_name}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-gray-400">{s.email}</td>
-                      <td className="px-5 py-3.5 text-gray-400">{s.phone || '—'}</td>
+                      <td className="px-5 py-3.5 text-fg-muted">{s.email}</td>
+                      <td className="px-5 py-3.5 text-fg-muted">{s.phone || '—'}</td>
                       <td className="px-5 py-3.5">
                         {s.roles.length === 0 ? (
-                          <span className="text-xs text-gray-500">No roles</span>
+                          <span className="text-xs text-fg-faint">No roles</span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {s.roles.map(r => (
-                              <span key={r.id} className="px-2 py-0.5 rounded-full text-xs bg-purple-600/20 text-purple-300 border border-purple-600/30">
+                              <span key={r.id} className="px-2 py-0.5 rounded-full text-xs bg-brand/20 text-brand border border-brand/30">
                                 {r.name}
                               </span>
                             ))}
@@ -482,7 +483,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          s.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-600/40 text-gray-400'
+                          s.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-surface-4/40 text-fg-muted'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'active' ? 'bg-emerald-400' : 'bg-gray-500'}`} />
                           {s.status === 'active' ? 'Active' : 'Inactive'}
@@ -492,25 +493,25 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                         <div className="flex items-center justify-end gap-1">
                           {can(permissions, 'staff', 'edit') && (
                             <button onClick={() => openEditStaff(s)} title="Edit"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {can(permissions, 'staff', 'edit') && (
                             <button onClick={() => resetStaffPassword(s.id)} title="Reset Password"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
                               <KeyRound className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {s.status === 'active' && can(permissions, 'staff', 'edit') && (
                             <button onClick={() => setConfirmDeactivate(s)} title="Deactivate"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-amber-400 hover:bg-amber-400/10 transition-colors">
                               <UserX className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {s.status !== 'active' && can(permissions, 'staff', 'edit') && (
                             <button onClick={() => toggleStatus(s)} title="Reactivate"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
                               <UserCheck className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -532,17 +533,17 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           <div className="space-y-3">
             {can(permissions, 'staff', 'create') && (
               <button onClick={openAddRole}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
                 <Plus className="w-4 h-4" /> Create Role
               </button>
             )}
 
             {rolesLoad ? (
-              <div className="flex justify-center py-10"><RefreshCw className="w-5 h-5 text-purple-400 animate-spin" /></div>
+              <div className="flex justify-center py-10"><RefreshCw className="w-5 h-5 text-brand animate-spin" /></div>
             ) : roles.length === 0 ? (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-8 text-center">
-                <ShieldCheck className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">No roles yet</p>
+              <div className="bg-surface-2 border border-line rounded-xl p-8 text-center">
+                <ShieldCheck className="w-8 h-8 text-fg-faint mx-auto mb-2" />
+                <p className="text-sm text-fg-muted">No roles yet</p>
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -550,17 +551,17 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                   <button key={r.id} onClick={() => setSelectedRole(r)}
                     className={`w-full text-left px-4 py-3.5 rounded-xl border transition-colors ${
                       selectedRole?.id === r.id
-                        ? 'bg-purple-600/10 border-purple-600/40 text-white'
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
+                        ? 'bg-brand/10 border-brand/40 text-fg'
+                        : 'bg-surface-2 border-line text-fg-muted hover:border-line'
                     }`}>
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">
                         <p className="font-medium truncate">{r.name}</p>
-                        {r.description && <p className="text-xs text-gray-500 truncate mt-0.5">{r.description}</p>}
+                        {r.description && <p className="text-xs text-fg-faint truncate mt-0.5">{r.description}</p>}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <span className="text-xs text-gray-500">{r.memberCount} member{r.memberCount !== 1 ? 's' : ''}</span>
-                        <ChevronRight className="w-4 h-4 text-gray-600" />
+                        <span className="text-xs text-fg-faint">{r.memberCount} member{r.memberCount !== 1 ? 's' : ''}</span>
+                        <ChevronRight className="w-4 h-4 text-fg-faint" />
                       </div>
                     </div>
                   </button>
@@ -572,21 +573,21 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           {/* Right: permissions matrix */}
           <div className="lg:col-span-2">
             {!selectedRole ? (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center h-full flex flex-col items-center justify-center">
-                <ShieldCheck className="w-10 h-10 text-gray-600 mb-3" />
-                <p className="text-sm text-gray-400">Select a role to view its permissions</p>
+              <div className="bg-surface-2 border border-line rounded-xl p-12 text-center h-full flex flex-col items-center justify-center">
+                <ShieldCheck className="w-10 h-10 text-fg-faint mb-3" />
+                <p className="text-sm text-fg-muted">Select a role to view its permissions</p>
               </div>
             ) : (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between">
+              <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-line flex items-center justify-between">
                   <div>
-                    <h2 className="font-semibold text-white">{selectedRole.name}</h2>
-                    {selectedRole.description && <p className="text-xs text-gray-400 mt-0.5">{selectedRole.description}</p>}
+                    <h2 className="font-semibold text-fg">{selectedRole.name}</h2>
+                    {selectedRole.description && <p className="text-xs text-fg-muted mt-0.5">{selectedRole.description}</p>}
                   </div>
                   <div className="flex gap-2">
                     {can(permissions, 'staff', 'edit') && (
                       <button onClick={() => openEditRole(selectedRole)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium rounded-lg transition-colors">
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-3 hover:bg-surface-4 text-fg text-xs font-medium rounded-lg transition-colors">
                         <Edit2 className="w-3.5 h-3.5" /> Edit
                       </button>
                     )}
@@ -603,7 +604,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wider">
+                      <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wider">
                         <th className="px-5 py-3 text-left">Module</th>
                         {ACTIONS.map(a => (
                           <th key={a} className="px-4 py-3 text-center">{ACTION_LABELS[a]}</th>
@@ -614,15 +615,15 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       {MODULES.map(m => {
                         const permsForMod = selectedRole.permissions.filter(p => p.module === m.key).map(p => p.action);
                         return (
-                          <tr key={m.key} className="hover:bg-gray-700/20">
-                            <td className="px-5 py-3 text-gray-300 font-medium">{m.label}</td>
+                          <tr key={m.key} className="hover:bg-surface-3/20">
+                            <td className="px-5 py-3 text-fg-muted font-medium">{m.label}</td>
                             {ACTIONS.map(a => (
                               <td key={a} className="px-4 py-3 text-center">
                                 {permsForMod.includes(a) ? (
                                   <Check className="w-4 h-4 text-emerald-400 mx-auto" />
                                 ) : (
                                   <span className="w-4 h-4 flex items-center justify-center mx-auto">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-700 block" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-surface-3 block" />
                                   </span>
                                 )}
                               </td>
@@ -633,8 +634,8 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     </tbody>
                   </table>
                 </div>
-                <div className="px-5 py-3 border-t border-gray-700">
-                  <p className="text-xs text-gray-500">
+                <div className="px-5 py-3 border-t border-line">
+                  <p className="text-xs text-fg-faint">
                     {selectedRole.permissions.length} permission{selectedRole.permissions.length !== 1 ? 's' : ''} granted
                     · {selectedRole.memberCount} staff member{selectedRole.memberCount !== 1 ? 's' : ''} assigned
                   </p>
@@ -649,28 +650,28 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {activeTab === 'activity' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex flex-wrap items-end gap-3">
+          <div className="bg-surface-2 border border-line rounded-xl p-4 flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Staff</label>
+              <label className="text-xs text-fg-muted">Staff</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-fg-faint" />
                 <input type="text" placeholder="Filter by name…" value={logFilter.staff_name}
                   onChange={e => setLogFilter(p => ({ ...p, staff_name: e.target.value }))}
                   className={`${inp} pl-8 w-44`} />
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">From</label>
+              <label className="text-xs text-fg-muted">From</label>
               <input type="date" value={logFilter.from} onChange={e => setLogFilter(p => ({ ...p, from: e.target.value }))}
                 className={`${inp} [color-scheme:dark]`} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">To</label>
+              <label className="text-xs text-fg-muted">To</label>
               <input type="date" value={logFilter.to} onChange={e => setLogFilter(p => ({ ...p, to: e.target.value }))}
                 className={`${inp} [color-scheme:dark]`} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Action</label>
+              <label className="text-xs text-fg-muted">Action</label>
               <select value={logFilter.action_type} onChange={e => setLogFilter(p => ({ ...p, action_type: e.target.value }))}
                 className={inp}>
                 <option value="">All actions</option>
@@ -682,48 +683,48 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               </select>
             </div>
             <button onClick={() => fetchLogs(1)} disabled={logsLoad}
-              className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
               {logsLoad ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Filter className="w-3.5 h-3.5" />}
               Apply
             </button>
             <button onClick={exportLogs} disabled={logsLoad || logs.length === 0}
-              className="flex items-center gap-1.5 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-40 ml-auto">
+              className="flex items-center gap-1.5 px-4 py-2 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors disabled:opacity-40 ml-auto">
               <Download className="w-3.5 h-3.5" /> Export CSV
             </button>
           </div>
 
           {logsLoad ? (
             <div className="flex items-center justify-center py-20">
-              <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+              <RefreshCw className="w-6 h-6 text-brand animate-spin" />
             </div>
           ) : logs.length === 0 ? (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-              <ClipboardList className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">No activity logs found</p>
+            <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+              <ClipboardList className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <p className="text-sm text-fg-muted">No activity logs found</p>
             </div>
           ) : (
-            <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-700 flex items-center justify-between">
-                <p className="text-xs text-gray-400">{logTotal} log entr{logTotal !== 1 ? 'ies' : 'y'}</p>
+            <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-line flex items-center justify-between">
+                <p className="text-xs text-fg-muted">{logTotal} log entr{logTotal !== 1 ? 'ies' : 'y'}</p>
               </div>
               <div className="divide-y divide-gray-700/50">
                 {logs.map(log => (
                   <div key={log.id} className="flex items-start gap-4 px-5 py-3.5">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-white">{log.staff_name}</span>
+                        <span className="text-sm font-medium text-fg">{log.staff_name}</span>
                         <span className={`text-xs font-medium capitalize ${actionColor(log.action_type)}`}>
                           {log.action_type}
                         </span>
                         {log.module && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 capitalize">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-surface-3 text-fg-muted capitalize">
                             {log.module}
                           </span>
                         )}
                       </div>
-                      {log.description && <p className="text-xs text-gray-400 mt-0.5">{log.description}</p>}
+                      {log.description && <p className="text-xs text-fg-muted mt-0.5">{log.description}</p>}
                     </div>
-                    <span className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap">
+                    <span className="text-xs text-fg-faint flex-shrink-0 whitespace-nowrap">
                       {fmtDate(log.created_at)}
                     </span>
                   </div>
@@ -731,15 +732,15 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               </div>
               {/* Pagination */}
               {logPages > 1 && (
-                <div className="px-5 py-3 border-t border-gray-700 flex items-center justify-between">
-                  <p className="text-xs text-gray-500">Page {logPage} of {logPages}</p>
+                <div className="px-5 py-3 border-t border-line flex items-center justify-between">
+                  <p className="text-xs text-fg-faint">Page {logPage} of {logPages}</p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => fetchLogs(logPage - 1)} disabled={logPage <= 1 || logsLoad}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-40 transition-colors">
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 text-fg-muted hover:bg-surface-4 disabled:opacity-40 transition-colors">
                       Previous
                     </button>
                     <button onClick={() => fetchLogs(logPage + 1)} disabled={logPage >= logPages || logsLoad}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-40 transition-colors">
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 text-fg-muted hover:bg-surface-4 disabled:opacity-40 transition-colors">
                       Next
                     </button>
                   </div>
@@ -753,13 +754,13 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {/* ── STAFF MODAL ──────────────────────────────────────── */}
       {staffModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+              <h2 className="text-lg font-semibold text-fg">
                 {createdCreds ? 'Staff Created' : staffModal.editing ? 'Edit Staff Member' : 'Add Staff Member'}
               </h2>
               <button onClick={() => { setStaffModal({ open: false, editing: null }); setCreatedCreds(null); }}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700">
+                className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -774,52 +775,52 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               <>
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="text-xs font-medium text-gray-400 mb-1.5 block">Full Name *</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Full Name *</label>
                     <input type="text" value={sf.full_name} onChange={e => setSf(p => ({ ...p, full_name: e.target.value }))}
                       placeholder="e.g. Jane Smith" className={`${inp} w-full`} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-400 mb-1.5 block">Email *</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Email *</label>
                     <input type="email" value={sf.email} onChange={e => setSf(p => ({ ...p, email: e.target.value }))}
                       placeholder="jane@example.com" className={`${inp} w-full`} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-400 mb-1.5 block">Phone</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Phone</label>
                     <input type="tel" value={sf.phone} onChange={e => setSf(p => ({ ...p, phone: e.target.value }))}
                       placeholder="+1 555 000 0000" className={`${inp} w-full`} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-400 mb-1.5 block">Assign Roles</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Assign Roles</label>
                     {roles.length === 0 ? (
-                      <p className="text-xs text-gray-500">No roles created yet. Create roles first in the Roles & Permissions tab.</p>
+                      <p className="text-xs text-fg-faint">No roles created yet. Create roles first in the Roles & Permissions tab.</p>
                     ) : (
                       <div className="space-y-1.5">
                         {roles.map(r => (
-                          <label key={r.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer transition-colors">
+                          <label key={r.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-line hover:border-line cursor-pointer transition-colors">
                             <input type="checkbox" checked={sf.role_ids.includes(r.id)}
                               onChange={e => setSf(p => ({
                                 ...p,
                                 role_ids: e.target.checked ? [...p.role_ids, r.id] : p.role_ids.filter(id => id !== r.id),
                               }))}
-                              className="w-4 h-4 accent-purple-500" />
+                              className="w-4 h-4 accent-brand" />
                             <div>
-                              <p className="text-sm text-white">{r.name}</p>
-                              {r.description && <p className="text-xs text-gray-500">{r.description}</p>}
+                              <p className="text-sm text-fg">{r.name}</p>
+                              {r.description && <p className="text-xs text-fg-faint">{r.description}</p>}
                             </div>
                           </label>
                         ))}
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">A temporary password will be auto-generated. The staff member must change it on first login.</p>
+                  <p className="text-xs text-fg-faint">A temporary password will be auto-generated. The staff member must change it on first login.</p>
                 </div>
                 <div className="flex gap-3 px-6 pb-6">
                   <button onClick={() => setStaffModal({ open: false, editing: null })}
-                    className="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors">
+                    className="flex-1 py-2.5 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors">
                     Cancel
                   </button>
                   <button onClick={saveStaff}
-                    className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                    className="flex-1 py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
                     {staffModal.editing ? 'Save Changes' : 'Create Staff'}
                   </button>
                 </div>
@@ -832,25 +833,25 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {/* ── ROLE MODAL ───────────────────────────────────────── */}
       {roleModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+              <h2 className="text-lg font-semibold text-fg">
                 {roleModal.editing ? 'Edit Role' : 'Create Role'}
               </h2>
               <button onClick={() => setRoleModal({ open: false, editing: null })}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700">
+                className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-gray-400 mb-1.5 block">Role Name *</label>
+                  <label className="text-xs font-medium text-fg-muted mb-1.5 block">Role Name *</label>
                   <input type="text" value={rf.name} onChange={e => setRf(p => ({ ...p, name: e.target.value }))}
                     placeholder="e.g. Manager, Trainer" className={`${inp} w-full`} />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-400 mb-1.5 block">Description</label>
+                  <label className="text-xs font-medium text-fg-muted mb-1.5 block">Description</label>
                   <input type="text" value={rf.description} onChange={e => setRf(p => ({ ...p, description: e.target.value }))}
                     placeholder="Brief description…" className={`${inp} w-full`} />
                 </div>
@@ -858,11 +859,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
               {/* Permissions matrix */}
               <div>
-                <label className="text-xs font-medium text-gray-400 mb-2 block">Permissions</label>
-                <div className="border border-gray-700 rounded-xl overflow-hidden">
+                <label className="text-xs font-medium text-fg-muted mb-2 block">Permissions</label>
+                <div className="border border-line rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-700/50 text-xs text-gray-400 uppercase tracking-wider">
+                      <tr className="bg-surface-3/50 text-xs text-fg-muted uppercase tracking-wider">
                         <th className="px-4 py-2.5 text-left">Module</th>
                         {ACTIONS.map(a => (
                           <th key={a} className="px-3 py-2.5 text-center">{ACTION_LABELS[a]}</th>
@@ -874,19 +875,19 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       {MODULES.map(m => {
                         const allChecked = ACTIONS.every(a => rfPerms[m.key]?.has(a));
                         return (
-                          <tr key={m.key} className="hover:bg-gray-700/20">
-                            <td className="px-4 py-2.5 text-gray-300">{m.label}</td>
+                          <tr key={m.key} className="hover:bg-surface-3/20">
+                            <td className="px-4 py-2.5 text-fg-muted">{m.label}</td>
                             {ACTIONS.map(a => (
                               <td key={a} className="px-3 py-2.5 text-center">
                                 <input type="checkbox" checked={rfPerms[m.key]?.has(a) ?? false}
                                   onChange={() => togglePerm(m.key, a)}
-                                  className="w-4 h-4 accent-purple-500 cursor-pointer" />
+                                  className="w-4 h-4 accent-brand cursor-pointer" />
                               </td>
                             ))}
                             <td className="px-3 py-2.5 text-center">
                               <input type="checkbox" checked={allChecked}
                                 onChange={() => toggleModule(m.key, allChecked)}
-                                className="w-4 h-4 accent-purple-500 cursor-pointer" />
+                                className="w-4 h-4 accent-brand cursor-pointer" />
                             </td>
                           </tr>
                         );
@@ -898,11 +899,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             </div>
             <div className="flex gap-3 px-6 pb-6 pt-2">
               <button onClick={() => setRoleModal({ open: false, editing: null })}
-                className="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex-1 py-2.5 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors">
                 Cancel
               </button>
               <button onClick={saveRole}
-                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex-1 py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
                 {roleModal.editing ? 'Save Changes' : 'Create Role'}
               </button>
             </div>
@@ -913,27 +914,27 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {/* ── DEACTIVATE CONFIRM ──────────────────────────────── */}
       {confirmDeactivate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
+          <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h2 className="font-semibold text-white">Deactivate Account</h2>
-                <p className="text-xs text-gray-400 mt-0.5">This will revoke their access immediately</p>
+                <h2 className="font-semibold text-fg">Deactivate Account</h2>
+                <p className="text-xs text-fg-muted mt-0.5">This will revoke their access immediately</p>
               </div>
             </div>
-            <p className="text-sm text-gray-300">
-              Are you sure you want to deactivate <span className="text-white font-medium">{confirmDeactivate.full_name}</span>?
+            <p className="text-sm text-fg-muted">
+              Are you sure you want to deactivate <span className="text-fg font-medium">{confirmDeactivate.full_name}</span>?
               You can reactivate them at any time.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDeactivate(null)}
-                className="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex-1 py-2.5 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors">
                 Cancel
               </button>
               <button onClick={() => toggleStatus(confirmDeactivate)}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-fg text-sm font-medium rounded-lg transition-colors">
                 Deactivate
               </button>
             </div>
@@ -944,23 +945,23 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {/* ── RESET PASSWORD RESULT ───────────────────────────── */}
       {resetPwResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
+          <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-base font-semibold text-white">Password Reset</h2>
+                <h2 className="text-base font-semibold text-fg">Password Reset</h2>
               </div>
-              <button onClick={() => setResetPwResult(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700">
+              <button onClick={() => setResetPwResult(null)} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-gray-400">Share this temporary password with the staff member. They must change it on next login.</p>
+            <p className="text-xs text-fg-muted">Share this temporary password with the staff member. They must change it on next login.</p>
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 flex items-center gap-3 overflow-hidden">
-              <span className="text-base font-bold text-white tracking-wide flex-1 break-all">{resetPwResult.password}</span>
+              <span className="text-base font-bold text-fg tracking-wide flex-1 break-all">{resetPwResult.password}</span>
               <CopyButton text={resetPwResult.password} />
             </div>
             <button onClick={() => setResetPwResult(null)}
-              className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+              className="w-full py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
               Done
             </button>
           </div>
@@ -975,7 +976,7 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
-    <button onClick={copy} className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors flex-shrink-0">
+    <button onClick={copy} className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors flex-shrink-0">
       {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
     </button>
   );
@@ -986,22 +987,22 @@ function StaffCreatedCard({ email, password, onDone }: { email: string; password
     <div className="p-6 space-y-4">
       <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
         <p className="text-green-400 font-semibold text-sm mb-1">Staff member created!</p>
-        <p className="text-gray-400 text-xs">Share these credentials. They must change their password on first login.</p>
+        <p className="text-fg-muted text-xs">Share these credentials. They must change their password on first login.</p>
       </div>
-      <div className="bg-gray-700/50 rounded-xl p-4 space-y-3">
+      <div className="bg-surface-3/50 rounded-xl p-4 space-y-3">
         <div>
-          <p className="text-xs text-gray-400 mb-1">Email</p>
-          <p className="text-sm text-white font-medium">{email}</p>
+          <p className="text-xs text-fg-muted mb-1">Email</p>
+          <p className="text-sm text-fg font-medium">{email}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-400 mb-1">Temporary password</p>
+          <p className="text-xs text-fg-muted mb-1">Temporary password</p>
           <div className="flex items-center gap-2 overflow-hidden">
-            <span className="text-base font-bold text-white tracking-wide break-all flex-1">{password}</span>
+            <span className="text-base font-bold text-fg tracking-wide break-all flex-1">{password}</span>
             <CopyButton text={password} />
           </div>
         </div>
       </div>
-      <button onClick={onDone} className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+      <button onClick={onDone} className="w-full py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
         Done
       </button>
     </div>

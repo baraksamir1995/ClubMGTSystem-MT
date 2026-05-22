@@ -66,7 +66,7 @@ function StarRating({ value, max = 5 }: { value: number; max?: number }) {
       {Array.from({ length: max }).map((_, i) => (
         <Star
           key={i}
-          className={`w-3.5 h-3.5 ${i < value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+          className={`w-3.5 h-3.5 ${i < value ? 'text-yellow-400 fill-yellow-400' : 'text-fg-faint'}`}
         />
       ))}
     </span>
@@ -76,28 +76,28 @@ function StarRating({ value, max = 5 }: { value: number; max?: number }) {
 function Avatar({ name }: { name: string }) {
   const letter = name?.charAt(0)?.toUpperCase() ?? '?';
   return (
-    <div className="w-9 h-9 rounded-full bg-purple-600/30 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
-      <span className="text-sm font-semibold text-purple-300">{letter}</span>
+    <div className="w-9 h-9 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center flex-shrink-0">
+      <span className="text-sm font-semibold text-brand">{letter}</span>
     </div>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 animate-pulse">
+    <div className="bg-surface-2 border border-line rounded-xl p-5 animate-pulse">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-gray-700 flex-shrink-0" />
+        <div className="w-9 h-9 rounded-full bg-surface-3 flex-shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-gray-700 rounded w-1/3" />
-          <div className="h-3 bg-gray-700 rounded w-1/4" />
-          <div className="h-3 bg-gray-700 rounded w-2/3 mt-2" />
+          <div className="h-4 bg-surface-3 rounded w-1/3" />
+          <div className="h-3 bg-surface-3 rounded w-1/4" />
+          <div className="h-3 bg-surface-3 rounded w-2/3 mt-2" />
         </div>
       </div>
     </div>
   );
 }
 
-const selectCls = 'bg-gray-700 border border-gray-600 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 transition-colors appearance-none pr-8';
+const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors appearance-none pr-8';
 
 export default function ReviewsTab({ gymId, classes }: Props) {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -184,56 +184,56 @@ export default function ReviewsTab({ gymId, classes }: Props) {
     <div className="space-y-5">
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" /> Avg Session Rating
           </p>
           {loading ? (
-            <div className="h-8 bg-gray-700 rounded w-16 animate-pulse mt-1" />
+            <div className="h-8 bg-surface-3 rounded w-16 animate-pulse mt-1" />
           ) : (
             <div className="flex items-end gap-2">
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-fg">
                 {stats.total > 0 ? stats.avgSession.toFixed(1) : '—'}
               </p>
               {stats.total > 0 && (
-                <p className="text-sm text-gray-400 mb-0.5">/ 5</p>
+                <p className="text-sm text-fg-muted mb-0.5">/ 5</p>
               )}
             </div>
           )}
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
             <Star className="w-3.5 h-3.5" /> Avg Trainer Rating
           </p>
           {loading ? (
-            <div className="h-8 bg-gray-700 rounded w-16 animate-pulse mt-1" />
+            <div className="h-8 bg-surface-3 rounded w-16 animate-pulse mt-1" />
           ) : (
             <div className="flex items-end gap-2">
               <p className="text-2xl font-bold text-yellow-400">
                 {stats.trainerCount && stats.trainerCount > 0 ? stats.avgTrainer.toFixed(1) : '—'}
               </p>
               {stats.trainerCount && stats.trainerCount > 0 && (
-                <p className="text-sm text-gray-400 mb-0.5">/ 5</p>
+                <p className="text-sm text-fg-muted mb-0.5">/ 5</p>
               )}
             </div>
           )}
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-          <p className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" /> Total Reviews
           </p>
           {loading ? (
-            <div className="h-8 bg-gray-700 rounded w-12 animate-pulse mt-1" />
+            <div className="h-8 bg-surface-3 rounded w-12 animate-pulse mt-1" />
           ) : (
-            <p className="text-2xl font-bold text-purple-400">{stats.total}</p>
+            <p className="text-2xl font-bold text-brand">{stats.total}</p>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+      <div className="bg-surface-2 border border-line rounded-xl p-4">
         <div className="flex flex-wrap gap-3 items-center">
           {/* Class filter */}
           <div className="relative">
@@ -247,7 +247,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           {/* Trainer filter */}
@@ -262,7 +262,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           {/* Rating filter */}
@@ -276,10 +276,10 @@ export default function ReviewsTab({ gymId, classes }: Props) {
               <option value="positive">Positive (4–5)</option>
               <option value="negative">Negative (1–2)</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
-          <span className="ml-auto text-xs text-gray-500">
+          <span className="ml-auto text-xs text-fg-faint">
             {loading ? '...' : `${filtered.length} review${filtered.length !== 1 ? 's' : ''}`}
           </span>
         </div>
@@ -291,9 +291,9 @@ export default function ReviewsTab({ gymId, classes }: Props) {
           {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <MessageSquare className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">
+        <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+          <MessageSquare className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <p className="text-fg-muted text-sm">
             {reviews.length === 0 ? 'No reviews yet' : 'No reviews match your filters'}
           </p>
         </div>
@@ -318,7 +318,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
             return (
               <button key={review.id} type="button"
                 onClick={() => setExpandedId(isExpanded ? null : review.id)}
-                className="w-full text-left bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-gray-600 transition-colors">
+                className="w-full text-left bg-surface-2 border border-line rounded-xl p-5 hover:border-line-strong transition-colors">
 
                 {/* Collapsed: member name, class, rating, time */}
                 <div className="flex items-center gap-3">
@@ -326,16 +326,16 @@ export default function ReviewsTab({ gymId, classes }: Props) {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-white font-semibold text-sm">{memberName}</p>
+                      <p className="text-fg font-semibold text-sm">{memberName}</p>
                       {memberNumber && (
-                        <span className="text-xs text-gray-500 font-mono bg-gray-700 px-1.5 py-0.5 rounded">
+                        <span className="text-xs text-fg-faint font-mono bg-surface-3 px-1.5 py-0.5 rounded">
                           #{memberNumber}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: classColor }} />
-                      <span className="text-xs text-gray-400">{className}</span>
+                      <span className="text-xs text-fg-muted">{className}</span>
                     </div>
                   </div>
 
@@ -343,23 +343,23 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ratingCfg.bgColor} ${ratingCfg.color}`}>
                       {ratingCfg.emoji} {review.session_rating}/5
                     </span>
-                    <span className="text-xs text-gray-500">{relativeTime(review.created_at)}</span>
+                    <span className="text-xs text-fg-faint">{relativeTime(review.created_at)}</span>
                     {isExpanded
-                      ? <ChevronUp className="w-4 h-4 text-gray-500" />
-                      : <ChevronDown className="w-4 h-4 text-gray-500" />
+                      ? <ChevronUp className="w-4 h-4 text-fg-faint" />
+                      : <ChevronDown className="w-4 h-4 text-fg-faint" />
                     }
                   </div>
                 </div>
 
                 {/* Expanded: full details */}
                 {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-gray-700 space-y-2.5" onClick={e => e.stopPropagation()}>
+                  <div className="mt-3 pt-3 border-t border-line space-y-2.5" onClick={e => e.stopPropagation()}>
                     {/* Session info */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: classColor }} />
-                      <span className="text-xs text-gray-300 font-medium">{className}</span>
+                      <span className="text-xs text-fg-muted font-medium">{className}</span>
                       {sessionDate && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-fg-faint">
                           {sessionDate}{startTime ? ` · ${startTime}` : ''}
                         </span>
                       )}
@@ -368,20 +368,20 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                     {/* Trainer */}
                     {instructor && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-500">Trainer:</span>
-                        <span className="text-xs text-gray-300 font-medium">{instructor}</span>
+                        <span className="text-xs text-fg-faint">Trainer:</span>
+                        <span className="text-xs text-fg-muted font-medium">{instructor}</span>
                       </div>
                     )}
 
                     {/* Ratings */}
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-400">Session:</span>
+                        <span className="text-xs text-fg-muted">Session:</span>
                         <StarRating value={review.session_rating} />
                       </div>
                       {review.trainer_rating != null && (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-gray-400">Trainer:</span>
+                          <span className="text-xs text-fg-muted">Trainer:</span>
                           <StarRating value={review.trainer_rating} />
                         </div>
                       )}
@@ -389,8 +389,8 @@ export default function ReviewsTab({ gymId, classes }: Props) {
 
                     {/* Review text */}
                     {review.review && review.review.trim() && (
-                      <p className="text-sm text-gray-300 leading-relaxed bg-gray-900/50 rounded-lg px-3 py-2">
-                        "{review.review}"
+                      <p className="text-sm text-fg-muted leading-relaxed bg-surface/50 rounded-lg px-3 py-2">
+                        &quot;{review.review}&quot;
                       </p>
                     )}
                   </div>
@@ -403,22 +403,22 @@ export default function ReviewsTab({ gymId, classes }: Props) {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-fg-faint">
               Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                 <button key={n} onClick={() => setPage(n)}
-                  className={`w-8 h-8 text-xs rounded-lg transition-colors ${n === page ? 'bg-purple-600 text-white font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}>
+                  className={`w-8 h-8 text-xs rounded-lg transition-colors ${n === page ? 'bg-brand text-brand-ink font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>
                   {n}
                 </button>
               ))}
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

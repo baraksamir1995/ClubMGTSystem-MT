@@ -160,22 +160,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const sidebarLabel = me?.is_staff ? 'Staff Portal' : 'Admin Panel';
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
-      {/* Sidebar */}
-      <aside className="w-60 flex-shrink-0 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div className="min-h-screen bg-clby-bg flex">
+      {/* Sidebar — brand near-black with a hairline `clby-border` so it
+          still reads as a distinct rail against the main content area. */}
+      <aside className="w-60 flex-shrink-0 bg-clby-bg border-r border-clby-border flex flex-col">
         {/* Gym Identity */}
-        <div className="p-5 border-b border-gray-700">
+        <div className="p-5 border-b border-clby-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="w-10 h-10 bg-clby-surface rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
               {gym?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- gym logo on external host
                 <img src={gym.logo_url} alt={gym.name} className="w-full h-full object-cover" />
               ) : (
-                <Dumbbell className="w-5 h-5 text-purple-400" />
+                <Dumbbell className="w-5 h-5 text-clby-green" />
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{gym?.name ?? 'My Gym'}</p>
-              <p className="text-xs text-gray-400 truncate">{sidebarLabel}</p>
+              <p className="text-sm font-semibold text-fg truncate">{gym?.name ?? 'My Gym'}</p>
+              <p className="text-xs text-fg-muted truncate">{sidebarLabel}</p>
             </div>
           </div>
         </div>
@@ -188,20 +190,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </nav>
 
         {/* User + Sign out */}
-        <div className="p-3 border-t border-gray-700">
+        <div className="p-3 border-t border-clby-border">
           <div className="px-3 py-2 mb-1">
-            <p className="text-xs font-medium text-white truncate">{displayName}</p>
-            <p className="text-xs text-gray-500 truncate">{me?.email}</p>
+            <p className="text-xs font-medium text-fg truncate">{displayName}</p>
+            <p className="text-xs text-fg-faint truncate">{me?.email}</p>
           </div>
           <SignOutButton />
         </div>
       </aside>
 
       {/* Main */}
-      <main className="flex-1 min-w-0 p-6 overflow-auto">
+      <main className="flex-1 min-w-0 overflow-auto flex flex-col">
         <GymTimezoneProvider timezone={settings?.timezone ?? 'Africa/Cairo'} />
         <MutationListener />
-        {children}
+        <div className="flex-1 p-6">{children}</div>
+        {/* Brand footer — pinned to the bottom of the scroll container
+            so it sits below page content regardless of length. */}
+        <footer className="px-6 py-3 text-[11px] text-fg-faint border-t border-line tracking-wide">
+          Powered by <span className="text-clby-green font-semibold">CLBY</span>
+        </footer>
       </main>
     </div>
   );

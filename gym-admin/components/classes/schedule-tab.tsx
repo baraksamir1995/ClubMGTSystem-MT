@@ -166,14 +166,14 @@ export default function ScheduleTab({
     <div className="space-y-4">
       {/* ── Publish banner ── */}
       {loadingSettings ? (
-        <div className="h-16 bg-gray-800 border border-gray-700 rounded-xl animate-pulse" />
+        <div className="h-16 bg-surface-2 border border-line rounded-xl animate-pulse" />
       ) : (
         <div className={`flex items-center justify-between px-5 py-4 rounded-xl border ${
           isPublished
             ? hasUnpublishedChanges
               ? 'bg-amber-400/5 border-amber-400/30'
               : 'bg-emerald-400/5 border-emerald-400/30'
-            : 'bg-gray-800 border-gray-700'
+            : 'bg-surface-2 border-line'
         }`}>
           <div className="flex items-center gap-3">
             {isPublished ? (
@@ -182,7 +182,7 @@ export default function ScheduleTab({
                   <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-amber-300">Unpublished changes</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Re-publish to push updates to the member app</p>
+                    <p className="text-xs text-fg-muted mt-0.5">Re-publish to push updates to the member app</p>
                   </div>
                 </>
               ) : (
@@ -191,7 +191,7 @@ export default function ScheduleTab({
                   <div>
                     <p className="text-sm font-medium text-emerald-300">Schedule is live</p>
                     {settings?.published_at && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-fg-muted mt-0.5">
                         Published {new Date(settings.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                     )}
@@ -200,10 +200,10 @@ export default function ScheduleTab({
               )
             ) : (
               <>
-                <EyeOff className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <EyeOff className="w-4 h-4 text-fg-muted flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-gray-300">Schedule not published</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Members cannot see sessions until you publish</p>
+                  <p className="text-sm font-medium text-fg-muted">Schedule not published</p>
+                  <p className="text-xs text-fg-faint mt-0.5">Members cannot see sessions until you publish</p>
                 </div>
               </>
             )}
@@ -211,7 +211,7 @@ export default function ScheduleTab({
           <div className="flex items-center gap-2">
             {isPublished && (
               <button onClick={() => handlePublish(false)} disabled={publishing}
-                className="px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 text-xs hover:bg-gray-700 transition-colors disabled:opacity-40">
+                className="px-3 py-1.5 rounded-lg border border-line text-fg-muted text-xs hover:bg-surface-3 transition-colors disabled:opacity-40">
                 Unpublish
               </button>
             )}
@@ -225,8 +225,8 @@ export default function ScheduleTab({
               title={!isPublished && !hasPublishableContent ? 'Add at least one session to publish' : undefined}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 ${
                 (isPublished && !hasUnpublishedChanges) || (!isPublished && !hasPublishableContent)
-                  ? 'bg-gray-700 text-gray-500 cursor-default'
-                  : 'bg-purple-600 hover:bg-purple-500 text-white'
+                  ? 'bg-surface-3 text-fg-faint cursor-default'
+                  : 'bg-brand hover:bg-brand-dim text-brand-ink'
               }`}>
               {publishing
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -242,7 +242,7 @@ export default function ScheduleTab({
         <div className="flex items-center justify-end">
           <button
             onClick={() => setShowCopyMonth(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 hover:border-purple-500/50 hover:bg-purple-500/5 text-gray-400 hover:text-purple-300 text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line hover:border-brand/50 hover:bg-brand/5 text-fg-muted hover:text-brand-dim text-xs font-medium transition-colors"
           >
             <CalendarPlus className="w-3.5 h-3.5" />
             Copy this month to next month
@@ -252,15 +252,15 @@ export default function ScheduleTab({
 
       {/* ── Branch tabs (multi-branch only) ── */}
       {branches.length > 1 && (
-        <div className="flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-xl p-1 w-fit">
+        <div className="flex items-center gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit">
           {branches.map(b => (
             <button
               key={b.id}
               onClick={() => setActiveBranchId(b.id)}
               className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeBranchId === b.id
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-surface-3 text-fg'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
               {b.name}
@@ -273,32 +273,32 @@ export default function ScheduleTab({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekOffset(w => w - 1)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+            className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm font-medium text-white min-w-[200px] text-center">
+          <span className="text-sm font-medium text-fg min-w-[200px] text-center">
             {formatWeekRange(weekDates)}
           </span>
           <button onClick={() => setWeekOffset(w => w + 1)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+            className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
         {weekOffset !== 0 && (
           <button onClick={() => setWeekOffset(0)}
-            className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+            className="text-xs text-brand hover:text-brand-dim transition-colors">
             Today
           </button>
         )}
       </div>
 
       {/* ── Legend ── */}
-      <div className="flex items-center gap-4 text-xs text-gray-500">
+      <div className="flex items-center gap-4 text-xs text-fg-faint">
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Pop-up (one-off)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" /> Recurring (every week)
+          <span className="w-2 h-2 rounded-full bg-brand inline-block" /> Recurring (every week)
         </span>
       </div>
 
@@ -313,12 +313,12 @@ export default function ScheduleTab({
           return (
             <div key={dateStr}>
               {/* Column header */}
-              <div className={`flex items-center justify-between mb-2 pb-2 border-b ${isToday ? 'border-purple-500' : 'border-gray-700'}`}>
+              <div className={`flex items-center justify-between mb-2 pb-2 border-b ${isToday ? 'border-brand' : 'border-line'}`}>
                 <div>
-                  <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-purple-400' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-brand' : isPast ? 'text-fg-faint' : 'text-fg-muted'}`}>
                     {DAY_LABELS[idx]}
                   </p>
-                  <p className={`text-sm font-bold leading-none mt-0.5 ${isToday ? 'text-purple-300' : isPast ? 'text-gray-600' : 'text-white'}`}>
+                  <p className={`text-sm font-bold leading-none mt-0.5 ${isToday ? 'text-brand' : isPast ? 'text-fg-faint' : 'text-fg'}`}>
                     {date.getDate()}
                   </p>
                 </div>
@@ -326,7 +326,7 @@ export default function ScheduleTab({
                   <button
                     onClick={() => onCreateSession(dateStr, activeBranchId ?? undefined)}
                     title={`Add session on ${DAY_FULL[idx]}`}
-                    className="p-0.5 rounded text-gray-600 hover:text-purple-400 hover:bg-purple-400/10 transition-colors">
+                    className="p-0.5 rounded text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -338,11 +338,11 @@ export default function ScheduleTab({
                   can(permissions, 'classes', 'create') ? (
                     <button
                       onClick={() => onCreateSession(dateStr, activeBranchId ?? undefined)}
-                      className="w-full border border-dashed border-gray-700 rounded-lg py-5 flex items-center justify-center text-gray-600 hover:text-gray-500 hover:border-gray-600 transition-colors">
+                      className="w-full border border-dashed border-line rounded-lg py-5 flex items-center justify-center text-fg-faint hover:text-fg-faint hover:border-gray-600 transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                   ) : (
-                    <div className="w-full border border-dashed border-gray-800 rounded-lg py-5" />
+                    <div className="w-full border border-dashed border-line rounded-lg py-5" />
                   )
                 ) : (
                   <>
@@ -367,7 +367,7 @@ export default function ScheduleTab({
                     {can(permissions, 'classes', 'create') && (
                       <button
                         onClick={() => onCreateSession(dateStr)}
-                        className="w-full py-1.5 text-xs text-gray-600 hover:text-gray-400 rounded-lg border border-dashed border-gray-700/50 hover:border-gray-700 transition-colors flex items-center justify-center gap-1">
+                        className="w-full py-1.5 text-xs text-fg-faint hover:text-fg-muted rounded-lg border border-dashed border-line/50 hover:border-line transition-colors flex items-center justify-center gap-1">
                         <Plus className="w-3 h-3" /> Add
                       </button>
                     )}
@@ -415,8 +415,8 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
   return (
     <div className={`rounded-lg p-2.5 group border transition-colors ${
       isUnpublished
-        ? 'bg-gray-800/60 border-dashed border-amber-500/40 hover:border-amber-500/60'
-        : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+        ? 'bg-surface-2/60 border-dashed border-warning/40 hover:border-warning/60'
+        : 'bg-surface-2 border-line hover:border-line-strong'
     }`}>
       {/* Unpublished badge */}
       {isUnpublished && (
@@ -429,61 +429,61 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
       <div className="flex items-start gap-1.5 mb-1.5">
         <div className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: session.color }} />
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-white leading-tight line-clamp-2">{session.class_name}</p>
+          <p className="text-xs font-semibold text-fg leading-tight line-clamp-2">{session.class_name}</p>
           {isPopup && (
             <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-medium mt-1 inline-block">Pop-up</span>
           )}
           {isRecurring && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-400/10 text-purple-400 font-medium mt-1 inline-block">Recurring</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-medium mt-1 inline-block">Recurring</span>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+      <div className="flex items-center gap-1 text-xs text-fg-faint mb-1">
         <Clock className="w-2.5 h-2.5 flex-shrink-0" />
         <span className="truncate">{fmt12(session.start_time)}–{fmt12(session.end_time)}</span>
       </div>
 
       {session.location && (
-        <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+        <div className="flex items-center gap-1 text-xs text-fg-faint mb-1">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{session.location}</span>
         </div>
       )}
 
       {session.instructor && (
-        <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+        <div className="flex items-center gap-1 text-xs text-fg-faint mb-1">
           <User className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{session.instructor}</span>
         </div>
       )}
 
-      <div className="flex items-center gap-1 text-xs text-gray-600">
+      <div className="flex items-center gap-1 text-xs text-fg-faint">
         <Users className="w-2.5 h-2.5 flex-shrink-0" />
         <span>{session.booked_count}{session.capacity ? `/${session.capacity}` : ''} booked</span>
       </div>
 
       {/* Hover actions */}
-      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-line opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={onBookings} title="Bookings"
-          className="flex-1 flex items-center justify-center py-1 rounded text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
+          className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
           <Users className="w-3 h-3" />
         </button>
         {can(permissions, 'classes', 'edit') && (
           <button onClick={onEdit} title="Edit this session"
-            className="flex-1 flex items-center justify-center py-1 rounded text-gray-500 hover:text-purple-400 hover:bg-purple-400/10 transition-colors">
+            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
             <Pencil className="w-3 h-3" />
           </button>
         )}
         {can(permissions, 'classes', 'delete') && (
           <button onClick={onCancel} title="Cancel this session"
-            className="flex-1 flex items-center justify-center py-1 rounded text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors">
             <XCircle className="w-3 h-3" />
           </button>
         )}
         {isRecurring && onStopRecurring && can(permissions, 'classes', 'delete') && (
           <button onClick={onStopRecurring} title="Stop this recurring series"
-            className="flex-1 flex items-center justify-center py-1 rounded text-gray-500 hover:text-orange-400 hover:bg-orange-400/10 transition-colors">
+            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-orange-400 hover:bg-orange-400/10 transition-colors">
             <StopCircle className="w-3 h-3" />
           </button>
         )}

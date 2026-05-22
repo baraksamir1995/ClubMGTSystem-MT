@@ -121,25 +121,25 @@ export default function LeadsPage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Landing Page Leads</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <h1 className="text-2xl font-bold text-fg">Landing Page Leads</h1>
+          <p className="text-sm text-fg-muted mt-0.5">
             {leads.length} total · <span className="text-amber-400">{uncontactedCount} new</span>
           </p>
         </div>
         <div className="relative">
           <button onClick={() => setShowExport(v => !v)}
             disabled={leads.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            className="flex items-center gap-2 px-4 py-2 bg-surface-2 border border-line hover:bg-surface-3 text-fg-muted text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <Download className="w-4 h-4" /> Export
           </button>
           {showExport && (
-            <div className="absolute right-0 top-full mt-1 z-20 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[180px]">
+            <div className="absolute right-0 top-full mt-1 z-20 bg-surface-2 border border-line rounded-xl shadow-xl overflow-hidden min-w-[180px]">
               <button onClick={() => { setShowExport(false); exportToExcel(); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
                 <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Excel (.xlsx)
               </button>
               <button onClick={() => { setShowExport(false); exportToCsv(); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
                 <Download className="w-4 h-4 text-blue-400" /> CSV
               </button>
             </div>
@@ -150,18 +150,18 @@ export default function LeadsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, phone, gym…"
-            className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+            className="w-full pl-9 pr-3 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
+          <Filter className="w-4 h-4 text-fg-muted" />
           <select value={filterContacted} onChange={e => setFilterContacted(e.target.value as any)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
+            className="bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
             <option value="">All</option>
             <option value="false">Uncontacted</option>
             <option value="true">Contacted</option>
@@ -171,75 +171,75 @@ export default function LeadsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
+          <RefreshCw className="w-6 h-6 text-brand animate-spin" />
         </div>
       ) : leads.length === 0 ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <Inbox className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No leads yet</p>
+        <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+          <Inbox className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <p className="text-sm text-fg-muted">No leads yet</p>
         </div>
       ) : (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left text-xs text-gray-400 font-medium px-5 py-3 w-8"></th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">NAME</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">GYM</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">BRANCHES</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">PHONE</th>
-                  <th className="text-left text-xs text-gray-400 font-medium px-5 py-3">SUBMITTED</th>
-                  <th className="text-right text-xs text-gray-400 font-medium px-5 py-3">ACTIONS</th>
+                <tr className="border-b border-line">
+                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3 w-8"></th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">NAME</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">GYM</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">BRANCHES</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PHONE</th>
+                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">SUBMITTED</th>
+                  <th className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-700/50">
+              <tbody className="divide-y divide-line">
                 {leads.map(lead => (
                   <>
-                    <tr key={lead.id} className={`hover:bg-gray-700/20 transition-colors ${!lead.contacted ? 'bg-amber-400/[0.02]' : ''}`}>
+                    <tr key={lead.id} className={`hover:bg-surface-3/20 transition-colors ${!lead.contacted ? 'bg-amber-400/[0.02]' : ''}`}>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleContacted(lead)} disabled={togglingId === lead.id}
                           title={lead.contacted ? 'Mark as new' : 'Mark as contacted'}
-                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${lead.contacted ? 'bg-emerald-400 border-emerald-400' : 'border-gray-600 hover:border-gray-400'}`}>
-                          {lead.contacted && <Check className="w-3 h-3 text-gray-900" strokeWidth={3} />}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${lead.contacted ? 'bg-emerald-400 border-emerald-400' : 'border-line hover:border-gray-400'}`}>
+                          {lead.contacted && <Check className="w-3 h-3 text-brand-ink" strokeWidth={3} />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">
-                        <p className="text-white font-medium">{lead.name}</p>
+                        <p className="text-fg font-medium">{lead.name}</p>
                         {!lead.contacted && <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-400/20 text-amber-400">NEW</span>}
                       </td>
-                      <td className="px-5 py-3.5 text-gray-300">{lead.gym_name}</td>
-                      <td className="px-5 py-3.5 text-gray-400">{lead.branches}</td>
-                      <td className="px-5 py-3.5 text-gray-300 font-mono text-xs">{fmtPhone(lead.phone)}</td>
-                      <td className="px-5 py-3.5 text-gray-500 text-xs">{fmtDate(lead.created_at)}</td>
+                      <td className="px-5 py-3.5 text-fg-muted">{lead.gym_name}</td>
+                      <td className="px-5 py-3.5 text-fg-muted">{lead.branches}</td>
+                      <td className="px-5 py-3.5 text-fg-muted font-mono text-xs">{fmtPhone(lead.phone)}</td>
+                      <td className="px-5 py-3.5 text-fg-faint text-xs">{fmtDate(lead.created_at)}</td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <a href={whatsappLink(lead.phone)} target="_blank" rel="noopener noreferrer"
                             title="WhatsApp"
-                            className="p-1.5 text-gray-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors">
+                            className="p-1.5 text-fg-muted hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors">
                             <MessageCircle className="w-3.5 h-3.5" />
                           </a>
                           <a href={`tel:${fmtPhone(lead.phone)}`} title="Call"
-                            className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors">
+                            className="p-1.5 text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors">
                             <Phone className="w-3.5 h-3.5" />
                           </a>
                           {lead.notes && (
                             <button onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
-                              className={`px-2 py-1 rounded-lg text-xs transition-colors ${expandedId === lead.id ? 'bg-purple-400/20 text-purple-400' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}>
+                              className={`px-2 py-1 rounded-lg text-xs transition-colors ${expandedId === lead.id ? 'bg-brand/20 text-brand' : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>
                               Notes
                             </button>
                           )}
                           <button onClick={() => deleteLead(lead)} title="Delete"
-                            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
+                            className="p-1.5 text-fg-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
                     </tr>
                     {expandedId === lead.id && lead.notes && (
-                      <tr key={`${lead.id}-notes`} className="bg-gray-900/50">
-                        <td colSpan={7} className="px-5 py-3 text-sm text-gray-300">
-                          <p className="text-xs text-gray-500 mb-1">Notes:</p>
+                      <tr key={`${lead.id}-notes`} className="bg-surface/50">
+                        <td colSpan={7} className="px-5 py-3 text-sm text-fg-muted">
+                          <p className="text-xs text-fg-faint mb-1">Notes:</p>
                           <p className="whitespace-pre-wrap">{lead.notes}</p>
                         </td>
                       </tr>

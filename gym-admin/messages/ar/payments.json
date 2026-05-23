@@ -1,0 +1,247 @@
+{
+  "title": "المدفوعات",
+  "subtitle": "تسجيل ومتابعة مدفوعات الأعضاء",
+
+  "recordPayment": "تسجيل دفعة",
+  "createPayment": "إنشاء دفعة",
+  "sendReminders": "إرسال تذكيرات",
+
+  "summary": {
+    "totalRevenue": "إجمالي الإيرادات",
+    "paid": "مدفوع",
+    "pending": "قيد الانتظار",
+    "overdue": "متأخر"
+  },
+
+  "status": {
+    "paid": "مدفوع",
+    "pending": "قيد الانتظار",
+    "overdue": "متأخر",
+    "refunded": "مُسترَد",
+    "partialRefund": "استرداد جزئي",
+    "allStatuses": "كل الحالات",
+    "partialRefundFull": "استرداد جزئي"
+  },
+
+  "method": {
+    "cash": "نقداً",
+    "bankTransfer": "تحويل بنكي",
+    "card": "بطاقة",
+    "other": "أخرى",
+    "paymentLink": "رابط دفع",
+    "allMethods": "كل الطرق"
+  },
+
+  "source": {
+    "mobileApp": "تطبيق الجوال",
+    "admin": "الإدارة"
+  },
+
+  "filters": {
+    "searchPlaceholder": "البحث باسم العضو أو البريد أو رقم العضوية…",
+    "from": "من",
+    "to": "إلى",
+    "clearAll": "مسح الكل",
+    "allSpecialists": "كل المتخصصين",
+    "allServices": "كل الخدمات",
+    "allBranches": "كل الفروع",
+    "branches": "{count} فرع",
+    "branchesPlural": "{count} فروع",
+    "countOfTotal": "{count} من {total} دفعة"
+  },
+
+  "table": {
+    "member": "العضو",
+    "amount": "المبلغ",
+    "serviceItem": "الخدمة / البند",
+    "branch": "الفرع",
+    "specialist": "المتخصص",
+    "method": "طريقة الدفع",
+    "source": "المصدر",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "actions": "الإجراءات"
+  },
+
+  "empty": {
+    "noPayments": "لا توجد مدفوعات مسجلة بعد",
+    "noMatch": "لا توجد مدفوعات تطابق الفلاتر",
+    "recordFirst": "تسجيل أول دفعة"
+  },
+
+  "pagination": {
+    "showing": "عرض {from}–{to} من {total}"
+  },
+
+  "tooltips": {
+    "viewReceipt": "عرض الإيصال",
+    "viewInvoice": "عرض الفاتورة",
+    "processRefund": "معالجة الاسترداد",
+    "markAsPaid": "تحديد كمدفوع",
+    "markAsOverdue": "تحديد كمتأخر",
+    "markAsPending": "تحديد كقيد الانتظار"
+  },
+
+  "toast": {
+    "updateFailed": "فشل التحديث",
+    "networkError": "خطأ في الشبكة",
+    "markedAs": "تم التحديد كـ {status}"
+  },
+
+  "recordModal": {
+    "title": "إنشاء دفعة",
+    "member": "العضو",
+    "memberSearchPlaceholder": "البحث بالاسم أو البريد أو رقم العضوية…",
+    "noMembersFound": "لا يوجد أعضاء",
+    "serviceItem": "الخدمة / البند",
+    "serviceOptional": "اختياري",
+    "selectService": "— اختر خدمة —",
+    "otherCustom": "أخرى (وصف مخصص)",
+    "otherDescribePlaceholder": "صف الخدمة أو البند…",
+    "specialist": "المتخصص",
+    "specialistOptional": "اختياري",
+    "noSpecialistAssigned": "— بدون متخصص —",
+    "activePromotion": "عرض ترويجي نشط",
+    "discounted": "السعر المخفض:",
+    "usingOriginalPrice": "استخدام السعر الأصلي",
+    "usingPromoPrice": "استخدام سعر العرض",
+    "promoCode": "كود خصم",
+    "noPromoCode": "— بدون كود خصم —",
+    "promoOff": "خصم {value}",
+    "branch": "الفرع",
+    "selectBranch": "— اختر الفرع —",
+    "planLimitedTo": "هذه الخطة مقتصرة على {branches}",
+    "amount": "المبلغ",
+    "paymentMethod": "طريقة الدفع",
+    "paymentLinkNote": "سيتم إنشاء رابط دفع Paymob آمن ومشاركته مع العميل.",
+    "customerMobile": "رقم الجوال للعميل",
+    "mobileHint": "أدخل كود الدولة — مثال: +201001234567",
+    "statusLabel": "الحالة",
+    "statusAutomatic": "— تُحدَّد تلقائياً عند الدفع",
+    "notes": "ملاحظات",
+    "notesOptional": "اختياري",
+    "notesPlaceholder": "مثال: استُلم نقداً عند المدخل…",
+    "generateLink": "إنشاء رابط الدفع",
+    "linkGenerated": "تم إنشاء رابط الدفع — شاركه مع العميل:",
+    "copyLink": "نسخ الرابط",
+    "copied": "تم النسخ!",
+    "sendWhatsApp": "إرسال عبر واتساب",
+    "done": "تم",
+    "cancel": "إلغاء",
+    "selectMemberError": "اختر عضواً",
+    "invalidAmountError": "أدخل مبلغاً صحيحاً",
+    "otherDescriptionError": "أدخل وصفاً للبند الآخر",
+    "mobileRequiredError": "رقم الجوال مطلوب لروابط الدفع",
+    "linkGeneratedSuccess": "تم إنشاء رابط الدفع!",
+    "paymentRecorded": "تم تسجيل الدفعة",
+    "failedToRecord": "فشل تسجيل الدفعة",
+    "failedToGenerateLink": "فشل إنشاء الرابط",
+    "whatsAppMessage": "مرحباً! إليك رابط الدفع لإتمام عملية الدفع:\n\n{link}"
+  },
+
+  "serviceTypes": {
+    "membership": "اشتراك",
+    "session_package": "باقة جلسات",
+    "program": "برنامج",
+    "offer": "عرض",
+    "other": "أخرى"
+  },
+
+  "trainerTypes": {
+    "personal_trainer": "مدرب شخصي",
+    "nutritionist": "أخصائي تغذية",
+    "physiotherapist": "أخصائي علاج طبيعي",
+    "coach": "مدرب"
+  },
+
+  "billingCycles": {
+    "monthly": "/ شهر",
+    "yearly": "/ سنة",
+    "quarterly": "/ ربع سنة",
+    "one_time": "مرة واحدة"
+  },
+
+  "trainerTypeShort": {
+    "personal_trainer": "تدريب شخصي",
+    "physiotherapist": "علاج طبيعي",
+    "nutritionist": "تغذية"
+  },
+
+  "subtitles": {
+    "sessions": "{count} جلسات",
+    "programme": "برنامج",
+    "offer": "عرض",
+    "was": "كان {price}"
+  },
+
+  "invoice": {
+    "receipt": "إيصال",
+    "invoice": "فاتورة",
+    "sendEmail": "إرسال بريد",
+    "sending": "جارٍ الإرسال…",
+    "print": "طباعة / PDF",
+    "billTo": "فاتورة إلى",
+    "issueDate": "تاريخ الإصدار",
+    "paidDate": "تاريخ الدفع",
+    "description": "الوصف",
+    "method": "طريقة الدفع",
+    "amount": "المبلغ",
+    "offerDiscount": "خصم العرض مطبق",
+    "offerPrice": "سعر العرض",
+    "totalPaid": "الإجمالي المدفوع",
+    "notes": "ملاحظات",
+    "thankYou": "شكراً لعضويتك في {gym}",
+    "noEmail": "لا يوجد بريد إلكتروني لهذا العضو",
+    "sendFailed": "فشل إرسال البريد",
+    "payment": "دفعة",
+    "specialist": "المتخصص: {name}",
+    "source": "المصدر: {source}",
+    "mobileApp": "تطبيق الجوال",
+    "admin": "الإدارة",
+    "paidStamp": "مدفوع"
+  },
+
+  "refund": {
+    "title": "معالجة الاسترداد",
+    "originalPayment": "الدفعة الأصلية",
+    "refundType": "نوع الاسترداد",
+    "fullRefund": "استرداد كامل ({amount})",
+    "partialRefund": "استرداد جزئي",
+    "refundAmount": "مبلغ الاسترداد",
+    "maxAmount": "الحد الأقصى {amount}",
+    "exceedsMax": "لا يمكن تجاوز المبلغ القابل للاسترداد وهو {amount}",
+    "alreadyRefunded": "تم استرداده مسبقاً",
+    "reason": "السبب",
+    "reasonPlaceholder": "أدخل سبب الاسترداد...",
+    "paymobWarning": "سيتم إرسال طلب استرداد حقيقي إلى Paymob بمبلغ {amount}. سيُعاد المبلغ إلى طريقة الدفع الأصلية للعضو.",
+    "manualWarning": "سيتم تحديد الدفعة كـ {status} وتسجيل السبب في سجل الدفعة.",
+    "fullyRefunded": "مُسترَد بالكامل",
+    "partiallyRefunded": "مُسترَد جزئياً",
+    "refundButton": "استرداد {amount}",
+    "processedSuccess": "تمت معالجة الاسترداد بنجاح",
+    "failed": "فشل معالجة الاسترداد",
+    "cancel": "إلغاء"
+  },
+
+  "reminder": {
+    "title": "إرسال تذكيرات التأخر",
+    "complete": "اكتمل إرسال التذكيرات:",
+    "overdueCount": "عضو {count} لديه مدفوعات متأخرة.",
+    "overdueCountPlural": "{count} أعضاء لديهم مدفوعات متأخرة.",
+    "noEmailCount": " {count} ليس لديهم بريد إلكتروني.",
+    "selected": "{count} محدد",
+    "deselectAll": "إلغاء تحديد الكل",
+    "selectAll": "تحديد الكل",
+    "noEmail": "لا يوجد بريد إلكتروني",
+    "overdue": "متأخر",
+    "sent": "تم الإرسال",
+    "failed": "فشل",
+    "sendButton": "إرسال {count} تذكير",
+    "sendButtonPlural": "إرسال {count} تذكيرات",
+    "close": "إغلاق",
+    "cancel": "إلغاء",
+    "sendFailed": "فشل الإرسال",
+    "sentSuccess": "تم إرسال تذكير إلى {count} عضو",
+    "sentSuccessPlural": "تم إرسال تذكيرات إلى {count} أعضاء"
+  }
+}

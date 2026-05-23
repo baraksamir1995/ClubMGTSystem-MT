@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, Users, Loader2, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { Plan } from '@/app/dashboard/plans/page';
@@ -23,6 +24,8 @@ interface Props {
 }
 
 export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props) {
+  const t = useTranslations('plans');
+  const tc = useTranslations('common');
   const [members, setMembers]   = useState<ActiveMember[]>([]);
   const [fetching, setFetching] = useState(true);
   const [loading, setLoading]   = useState(false);
@@ -47,7 +50,7 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
           <span className="w-8 h-8 rounded-lg bg-warning-soft flex items-center justify-center">
             <AlertTriangle className="w-4 h-4 text-warning" />
           </span>
-          Deactivate Plan
+          {t('deactivateModal.title')}
         </span>
       </Modal.Header>
 
@@ -60,12 +63,12 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
 
         {/* What happens */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">What this means</p>
+          <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">{t('deactivateModal.whatThisMeans')}</p>
           <div className="space-y-2">
             {[
-              { icon: '🚫', text: 'This plan will no longer appear when assigning plans to new members.' },
-              { icon: '✅', text: 'Existing members already on this plan will not be affected — their membership continues normally.' },
-              { icon: '↩️', text: 'You can reactivate this plan at any time.' },
+              { icon: '🚫', text: t('deactivateModal.bullet1') },
+              { icon: '✅', text: t('deactivateModal.bullet2') },
+              { icon: '↩️', text: t('deactivateModal.bullet3') },
             ].map((item, i) => (
               <div key={i} className="flex gap-2.5 text-sm text-fg-muted">
                 <span className="flex-shrink-0">{item.icon}</span>
@@ -80,7 +83,7 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-4 h-4 text-fg-muted" />
             <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">
-              Members currently on this plan
+              {t('deactivateModal.membersOnPlan')}
             </p>
           </div>
 
@@ -91,14 +94,16 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
           ) : members.length === 0 ? (
             <div className="flex items-center gap-2.5 p-3 bg-surface-3/30 rounded-xl">
               <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-              <p className="text-sm text-fg-muted">No members are currently assigned to this plan.</p>
+              <p className="text-sm text-fg-muted">{t('deactivateModal.noMembers')}</p>
             </div>
           ) : (
             <div className="space-y-1.5">
               <p className="text-xs text-warning mb-2">
-                ⚠ {members.length} member{members.length > 1 ? 's are' : ' is'} on this plan — their access will continue uninterrupted.
+                {members.length === 1
+                  ? t('deactivateModal.membersWarningOne', { count: members.length })
+                  : t('deactivateModal.membersWarningMany', { count: members.length })}
               </p>
-              <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+              <div className="max-h-44 overflow-y-auto space-y-1 pe-1">
                 {members.map(m => (
                   <Link
                     key={m.member_id}
@@ -112,12 +117,12 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
                     </div>
                     {m.end_date && (
                       <span className="text-xs text-fg-faint flex-shrink-0">
-                        until {new Date(m.end_date).toLocaleDateString('en-GB')}
+                        {t('deactivateModal.until', { date: new Date(m.end_date).toLocaleDateString('en-GB') })}
                       </span>
                     )}
                     {m.sessions_remaining != null && (
                       <span className="text-xs text-fg-faint flex-shrink-0">
-                        {m.sessions_remaining} sessions left
+                        {t('deactivateModal.sessionsLeft', { count: m.sessions_remaining })}
                       </span>
                     )}
                   </Link>
@@ -129,8 +134,8 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
-        <Button variant="primary" fullWidth onClick={handleConfirm} isLoading={loading}>Deactivate Plan</Button>
+        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{tc('cancel')}</Button>
+        <Button variant="primary" fullWidth onClick={handleConfirm} isLoading={loading}>{t('deactivateModal.deactivateButton')}</Button>
       </Modal.Footer>
     </Modal>
   );

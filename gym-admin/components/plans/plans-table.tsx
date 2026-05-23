@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Plus, Pencil, ToggleLeft, ToggleRight, CreditCard, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PlanModal from './plan-modal';
@@ -28,14 +29,9 @@ const planTypeColor: Record<string, string> = {
   annual:           'bg-blue-400/10 text-blue-400',
 };
 
-const billingCycleLabel: Record<string, string> = {
-  'one-time':  'One-Time',
-  'monthly':   'Monthly',
-  'quarterly': 'Quarterly',
-  'annual':    'Annual',
-};
-
 export default function PlansTable({ plans: initialPlans, branches, permissions, meta, filters }: { plans: Plan[]; branches: { id: string; name: string }[]; permissions: Permission[] | null; meta?: PageMeta | null; filters: Filters }) {
+  const t = useTranslations('plans');
+  const tc = useTranslations('common');
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
@@ -74,8 +70,8 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
   // Debounce search — push to URL 400ms after the user stops typing.
   useEffect(() => {
     if (searchDraft === filters.search) return;
-    const t = setTimeout(() => pushFilters({ search: searchDraft, page: 1 }), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => pushFilters({ search: searchDraft, page: 1 }), 400);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchDraft]);
 
@@ -94,12 +90,12 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: newActive }),
       });
-      if (!res.ok) { toast.error('Failed to update plan'); return; }
+      if (!res.ok) { toast.error(t('deactivateModal.toastFailed')); return; }
       setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: newActive } : p));
-      toast.success(newActive ? 'Plan activated' : 'Plan deactivated');
+      toast.success(newActive ? t('deactivateModal.toastActivated') : t('deactivateModal.toastDeactivated'));
       setDeactivatingPlan(null);
     } catch {
-      toast.error('Network error');
+      toast.error(t('deactivateModal.toastNetwork'));
     } finally {
       setTogglingId(null);
     }
@@ -115,6 +111,14 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
     }
   };
 
+  const planTypeLabel: Record<string, string> = {
+    duration:         t('typeDuration'),
+    sessions:         t('typeSessions'),
+    duration_session: t('typeDurationSession'),
+    monthly:          t('typeDuration'),
+    annual:           t('typeDuration'),
+  };
+
   const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
 
   return (
@@ -123,27 +127,27 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Subscription Plans</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Manage membership plan types for your gym</p>
+            <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
           </div>
           {can(permissions, 'members', 'create') && (
-            <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>New Plan</Button>
+            <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('newPlan')}</Button>
           )}
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
           {([
-            { label: 'Total Plans',    value: totalCount,    color: 'text-fg',       filter: 'all' as const },
-            { label: 'Active Plans',   value: totalActive,   color: 'text-emerald-400', filter: 'active' as const },
-            { label: 'Inactive Plans', value: totalInactive, color: 'text-fg-muted',    filter: 'inactive' as const },
+            { labelKey: 'totalPlans',    value: totalCount,    color: 'text-fg',          filter: 'all' as const },
+            { labelKey: 'activePlans',   value: totalActive,   color: 'text-emerald-400', filter: 'active' as const },
+            { labelKey: 'inactivePlans', value: totalInactive, color: 'text-fg-muted',    filter: 'inactive' as const },
           ]).map(s => (
             <button
               key={s.filter}
               onClick={() => pushFilters({ status: statusFilter === s.filter ? 'all' : s.filter, page: 1 })}
-              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}
+              className={`bg-surface-2 border rounded-xl p-4 text-start transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}
             >
-              <p className="text-xs text-fg-muted mb-1">{s.label}</p>
+              <p className="text-xs text-fg-muted mb-1">{t(s.labelKey as Parameters<typeof t>[0])}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
           ))}
@@ -152,30 +156,32 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         {/* Search + Filters */}
         <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input
               type="text"
               value={searchDraft}
               onChange={e => setSearchDraft(e.target.value)}
-              placeholder="Search by plan name or description…"
-              className="w-full pl-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
+              placeholder={t('searchPlaceholder')}
+              className="w-full ps-9 pe-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
             />
-            {isPending && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint animate-spin" />}
+            {isPending && <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint animate-spin" />}
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <select value={statusFilter} onChange={e => pushFilters({ status: e.target.value as PlanStatusFilter, page: 1 })} className={selectCls}>
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t('allStatusesOpt')}</option>
+              <option value="active">{tc('active')}</option>
+              <option value="inactive">{tc('inactive')}</option>
             </select>
             <select value={typeFilter} onChange={e => pushFilters({ type: e.target.value as PlanTypeFilter, page: 1 })} className={selectCls}>
-              <option value="all">All Types</option>
-              <option value="duration">Duration</option>
-              <option value="sessions">Sessions Only</option>
-              <option value="duration_session">Duration + Sessions</option>
+              <option value="all">{t('allTypesOpt')}</option>
+              <option value="duration">{t('durationType')}</option>
+              <option value="sessions">{t('sessionsType')}</option>
+              <option value="duration_session">{t('durationSessionType')}</option>
             </select>
-            <span className="ml-auto text-xs text-fg-faint">
-              {meta ? `${meta.total} result${meta.total === 1 ? '' : 's'}` : `${plans.length} plans`}
+            <span className="ms-auto text-xs text-fg-faint">
+              {meta
+                ? (meta.total === 1 ? t('results', { count: meta.total }) : t('resultsPlural', { count: meta.total }))
+                : t('plansCount', { count: plans.length })}
             </span>
           </div>
         </div>
@@ -186,10 +192,10 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
             <div className="p-12 text-center">
               <CreditCard className="w-10 h-10 text-fg-faint mx-auto mb-3" />
               <p className="text-fg-muted text-sm">
-                {totalCount === 0 ? 'No plans yet. Create your first plan.' : 'No plans match your filters'}
+                {totalCount === 0 ? t('noPlansYet') : t('noPlansMatch')}
               </p>
               {totalCount === 0 && can(permissions, 'members', 'create') && (
-                <Button variant="primary" className="mt-4" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>Create your first plan</Button>
+                <Button variant="primary" className="mt-4" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('createFirstPlan')}</Button>
               )}
             </div>
           ) : (
@@ -197,13 +203,13 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-left px-5 py-3">Plan</th>
-                    <th className="text-left px-5 py-3">Type</th>
-                    <th className="text-left px-5 py-3">Price</th>
-                    <th className="text-left px-5 py-3">Duration / Sessions</th>
-                    <th className="text-left px-5 py-3">Branches</th>
-                    <th className="text-left px-5 py-3">Status</th>
-                    <th className="text-right px-5 py-3">Actions</th>
+                    <th className="text-start px-5 py-3">{t('colPlan')}</th>
+                    <th className="text-start px-5 py-3">{t('colType')}</th>
+                    <th className="text-start px-5 py-3">{tc('price')}</th>
+                    <th className="text-start px-5 py-3">{t('colDurationSessions')}</th>
+                    <th className="text-start px-5 py-3">{t('colBranches')}</th>
+                    <th className="text-start px-5 py-3">{tc('status')}</th>
+                    <th className="text-end px-5 py-3">{tc('actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -220,22 +226,26 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                             <span key={f} className="px-1.5 py-0.5 bg-surface-3/60 text-fg-muted text-xs rounded">{f}</span>
                           ))}
                           {(plan.facilities ?? []).length > 3 && (
-                            <span className="px-1.5 py-0.5 bg-surface-3/60 text-fg-faint text-xs rounded">+{(plan.facilities ?? []).length - 3} more</span>
+                            <span className="px-1.5 py-0.5 bg-surface-3/60 text-fg-faint text-xs rounded">{t('moreChips', { count: (plan.facilities ?? []).length - 3 })}</span>
                           )}
                           {plan.visits_per_week && (
-                            <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{plan.visits_per_week}×/wk</span>
+                            <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{t('visitsPerWeek', { count: plan.visits_per_week })}</span>
                           )}
                           {plan.visits_per_month && !plan.visits_per_week && (
-                            <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{plan.visits_per_month}×/mo</span>
+                            <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{t('visitsPerMonth', { count: plan.visits_per_month })}</span>
                           )}
                           {(plan.add_ons ?? []).length > 0 && (
-                            <span className="px-1.5 py-0.5 bg-amber-900/40 text-amber-400 text-xs rounded">{(plan.add_ons ?? []).length} perk{(plan.add_ons ?? []).length > 1 ? 's' : ''}</span>
+                            <span className="px-1.5 py-0.5 bg-amber-900/40 text-amber-400 text-xs rounded">
+                              {(plan.add_ons ?? []).length === 1
+                                ? t('perksCount', { count: (plan.add_ons ?? []).length })
+                                : t('perksCountPlural', { count: (plan.add_ons ?? []).length })}
+                            </span>
                           )}
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${planTypeColor[plan.plan_type] ?? 'bg-gray-400/10 text-fg-muted'}`}>
-                          {plan.plan_type}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${planTypeColor[plan.plan_type] ?? 'bg-gray-400/10 text-fg-muted'}`}>
+                          {planTypeLabel[plan.plan_type] ?? plan.plan_type}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-fg font-medium">
@@ -243,16 +253,16 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                       </td>
                       <td className="px-5 py-3.5 text-fg-muted">
                         {plan.plan_type === 'sessions'
-                          ? plan.session_count ? `${plan.session_count} sessions` : '—'
+                          ? plan.session_count ? t('sessionsSuffix', { count: plan.session_count }) : '—'
                           : plan.duration_days
-                            ? plan.duration_days >= 365 ? `${Math.round(plan.duration_days / 365)} yr`
-                              : plan.duration_days >= 30  ? `${Math.round(plan.duration_days / 30)} mo`
-                              : `${plan.duration_days} days`
+                            ? plan.duration_days >= 365 ? t('yearSuffix', { count: Math.round(plan.duration_days / 365) })
+                              : plan.duration_days >= 30  ? t('monthSuffix', { count: Math.round(plan.duration_days / 30) })
+                              : t('daysSuffix', { count: plan.duration_days })
                             : '—'}
                       </td>
                       <td className="px-5 py-3.5">
                         {plan.access_scope === 'all_branches' ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400">All Branches</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400">{t('allBranches')}</span>
                         ) : plan.allowed_branch_ids && plan.allowed_branch_ids.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {plan.allowed_branch_ids.map(bid => (
@@ -266,14 +276,15 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <Badge variant={plan.is_active ? 'success' : 'neutral'}>{plan.is_active ? 'Active' : 'Inactive'}</Badge>
+                        <Badge variant={plan.is_active ? 'success' : 'neutral'}>{plan.is_active ? tc('active') : tc('inactive')}</Badge>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
                           {can(permissions, 'members', 'edit') && (
                             <button
                               onClick={() => openEdit(plan)}
-                              title="Edit plan"
+                              title={t('editPlan')}
+                              aria-label={t('editPlan')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
@@ -283,7 +294,8 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                             <button
                               onClick={() => handleToggleClick(plan)}
                               disabled={togglingId === plan.id}
-                              title={plan.is_active ? 'Deactivate' : 'Activate'}
+                              title={plan.is_active ? t('deactivate') : t('activate')}
+                              aria-label={plan.is_active ? t('deactivate') : t('activate')}
                               className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
                                 plan.is_active
                                   ? 'text-fg-faint hover:text-amber-400 hover:bg-amber-400/10'
@@ -307,8 +319,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
           {meta && meta.last_page > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-line">
               <p className="text-xs text-fg-faint">
-                Showing {(meta.current_page - 1) * meta.per_page + 1}–
-                {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total}
+                {t('showing', { from: (meta.current_page - 1) * meta.per_page + 1, to: Math.min(meta.current_page * meta.per_page, meta.total), total: meta.total })}
               </p>
               <div className="flex items-center gap-2">
                 {meta.current_page > 1 ? (
@@ -317,28 +328,28 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-muted hover:text-fg bg-surface-3 hover:bg-surface-4 rounded-md transition-colors"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
-                    Prev
+                    {t('prev')}
                   </button>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-faint bg-surface-2 rounded-md cursor-not-allowed">
                     <ChevronLeft className="w-3.5 h-3.5" />
-                    Prev
+                    {t('prev')}
                   </span>
                 )}
                 <span className="text-xs text-fg-muted px-2">
-                  Page {meta.current_page} of {meta.last_page}
+                  {t('page', { current: meta.current_page, last: meta.last_page })}
                 </span>
                 {meta.current_page < meta.last_page ? (
                   <button
                     onClick={() => pushFilters({ page: meta.current_page + 1 })}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-muted hover:text-fg bg-surface-3 hover:bg-surface-4 rounded-md transition-colors"
                   >
-                    Next
+                    {t('next')}
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-fg-faint bg-surface-2 rounded-md cursor-not-allowed">
-                    Next
+                    {t('next')}
                     <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 )}

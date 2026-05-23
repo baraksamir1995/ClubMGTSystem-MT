@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { MemberOption, AttendanceLog, SessionOption } from '@/app/dashboard/attendance/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Avatar, Button, Input, Modal, Select } from '@/components/ui';
@@ -18,6 +19,9 @@ interface Props {
 }
 
 export default function ManualLogModal({ members, accessPoints, sessionEntryPoints: initialSessionEntryPoints, sessionOptions: initialSessionOptions, branches, onClose, onSaved }: Props) {
+  const t = useTranslations('attendance');
+  const tc = useTranslations('common');
+
   const [search,      setSearch]      = useState('');
   const [selectedId,  setSelectedId]  = useState('');
   const [checkInAt,   setCheckInAt]   = useState(() => {
@@ -31,7 +35,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
     const mi = String(now.getMinutes()).padStart(2, '0');
     return `${y}-${mo}-${d}T${h}:${mi}`;
   });
-  const defaultGymEntry = branches.length === 1 ? branches[0].name : 'Gym Main Entrance';
+  const defaultGymEntry = branches.length === 1 ? branches[0].name : t('qrModal.gymMainEntrance');
   const [accessPoint,  setAccessPoint]  = useState(defaultGymEntry);
   const [customPoint,  setCustomPoint]  = useState('');
   const [branchId,     setBranchId]     = useState(branches.length === 1 ? branches[0].id : '');
@@ -115,7 +119,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
   const canAccessClass = planType === null || planType === 'sessions' || planType === 'duration_session';
 
   const handleSave = async () => {
-    if (!selectedId) { toast.error('Select a member'); return; }
+    if (!selectedId) { toast.error(t('manualModal.selectMemberError')); return; }
     setSaving(true);
     try {
       const res = await fetch('/api/attendance', {
@@ -131,9 +135,9 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to log'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('manualModal.failedToLog')); return; }
 
-      toast.success('Attendance logged');
+      toast.success(t('manualModal.attendanceLogged'));
       const finalPoint = (accessPoint === '__custom__' ? customPoint.trim() : accessPoint) || null;
       onSaved({
         id:              data.id,
@@ -153,7 +157,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
         plan_type:       null,
       });
       onClose();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(t('manualModal.networkError')); }
     finally { setSaving(false); }
   };
 
@@ -162,26 +166,26 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><UserCheck className="w-4 h-4 text-brand" /> Manual Check-in</span>
+        <span className="inline-flex items-center gap-2"><UserCheck className="w-4 h-4 text-brand" /> {t('manualModal.title')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
         {/* Member search */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Member <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.memberLabel')} <span className="text-danger">*</span></label>
           <div className="mb-2">
             <Input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name or ID…"
+              placeholder={t('manualModal.searchPlaceholder')}
               leftIcon={<Search className="w-4 h-4" />} />
           </div>
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {filtered.length === 0 && (
-              <p className="text-xs text-fg-faint px-2 py-1">No members found</p>
+              <p className="text-xs text-fg-faint px-2 py-1">{t('manualModal.noMembersFound')}</p>
             )}
             {filtered.map(m => (
               <button key={m.id} type="button"
                 onClick={() => setSelectedId(m.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-start transition-colors ${
                   selectedId === m.id ? 'bg-brand/15 border border-brand/40' : 'hover:bg-surface-3/50 border border-transparent'
                 }`}>
                 <Avatar name={m.full_name ?? m.member_number ?? '?'} size={28} />
@@ -190,7 +194,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
                   <p className="text-xs text-fg-faint font-mono">{m.member_number}</p>
                 </div>
                 {selectedId === m.id && (
-                  <UserCheck className="w-4 h-4 text-brand ml-auto flex-shrink-0" />
+                  <UserCheck className="w-4 h-4 text-brand ms-auto flex-shrink-0" />
                 )}
               </button>
             ))}
@@ -199,49 +203,49 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
 
         {/* Date & time */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Check-in Date & Time <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.checkInDateTime')} <span className="text-danger">*</span></label>
           <Input type="datetime-local" value={checkInAt} onChange={e => setCheckInAt(e.target.value)}
             className="[color-scheme:dark]" />
         </div>
 
         {/* Entry point */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Entry Point</label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.entryPoint')}</label>
           <Select value={accessPoint} onChange={e => handleAccessPointChange(e.target.value)}>
-            <optgroup label={`Gym Access (no session deducted)${!canAccessGym ? ' — not available on this plan' : ''}`}>
+            <optgroup label={canAccessGym ? t('manualModal.gymAccessGroup') : t('manualModal.gymAccessGroupRestricted')}>
               <option value={defaultGymEntry} disabled={!canAccessGym}>
-                {defaultGymEntry}{!canAccessGym ? ' (plan is class-only)' : ''}
+                {defaultGymEntry}{!canAccessGym ? t('manualModal.planClassOnly') : ''}
               </option>
               {accessPoints
                 .filter(p => p !== defaultGymEntry && p !== 'Gym Main Entrance' && !dateEntryPoints.includes(p))
                 .map(p => <option key={p} value={p} disabled={!canAccessGym}>{p}</option>)}
             </optgroup>
             {dateEntryPoints.length > 0 && (
-              <optgroup label={`Class Session (session deducted)${!canAccessClass ? ' — not available on this plan' : ''}`}>
+              <optgroup label={canAccessClass ? t('manualModal.classSessionGroup') : t('manualModal.classSessionGroupRestricted')}>
                 {dateEntryPoints.map(p => <option key={p} value={p} disabled={!canAccessClass}>
-                  {p}{!canAccessClass ? ' (plan is gym-only)' : ''}
+                  {p}{!canAccessClass ? t('manualModal.planGymOnly') : ''}
                 </option>)}
               </optgroup>
             )}
-            <option value="__custom__">Other (type below)…</option>
+            <option value="__custom__">{t('manualModal.otherCustom')}</option>
           </Select>
           {accessPoint === '__custom__' && (
             <Input value={customPoint} onChange={e => setCustomPoint(e.target.value)}
-              placeholder="Enter entry point name…" className="mt-2" />
+              placeholder={t('manualModal.enterEntryPoint')} className="mt-2" />
           )}
         </div>
 
         {/* Branch */}
         {branches.length > 0 && (
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Branch</label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.branchLabel')}</label>
             {selectedSession ? (
               <div className={fieldBox}>
                 {effectiveBranchName ?? <span className="text-fg-faint">—</span>}
               </div>
             ) : (
               <Select value={branchId} onChange={e => setBranchId(e.target.value)}>
-                <option value="">— Select branch —</option>
+                <option value="">{t('manualModal.selectBranch')}</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </Select>
             )}
@@ -251,7 +255,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
         {/* Specialist (auto-filled from selected session) */}
         {selectedSession && (
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Specialist</label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.specialistLabel')}</label>
             <div className={fieldBox}>
               {effectiveSpecialist ?? <span className="text-fg-faint">—</span>}
             </div>
@@ -260,9 +264,9 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose}>{tc('cancel')}</Button>
         <Button variant="primary" fullWidth onClick={handleSave} disabled={!selectedId} isLoading={saving}>
-          Log Check-in
+          {t('manualModal.logCheckin')}
         </Button>
       </Modal.Footer>
     </Modal>

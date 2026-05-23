@@ -6,6 +6,7 @@ import {
   Download, Eye, RefreshCw, BadgeCheck, AlertTriangle, Clock, Filter,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { fmtDateGym as fmtDate } from '@/lib/time';
 import {
   Avatar,
@@ -60,41 +61,6 @@ interface ApiResponse {
   error?: string;
 }
 
-const PLAN_TYPES = [
-  { value: 'all',              label: 'All plan types' },
-  { value: 'sessions',         label: 'Sessions' },
-  { value: 'duration',         label: 'Duration' },
-  { value: 'duration_session', label: 'Duration + Sessions' },
-];
-
-const STATUS_FILTERS = [
-  { value: 'all',           label: 'All statuses' },
-  { value: 'active',        label: 'Active' },
-  { value: 'expiring_soon', label: 'Expiring soon' },
-  { value: 'expired',       label: 'Expired' },
-];
-
-// Source filters — paid subscriptions vs gifted (transferred) buckets.
-// The session-transfer feature creates one membership row per gift, so a
-// recipient can accumulate many transfer rows; defaulting the operational
-// view to subscriptions only keeps the table actionable.
-const SOURCE_FILTERS = [
-  { value: 'subscription', label: 'Subscriptions only' },
-  { value: 'all',          label: 'All sources' },
-  { value: 'transfer',     label: 'Transferred only' },
-];
-
-const STATUS_VARIANT: Record<DisplayStatus, BadgeProps['variant']> = {
-  active:        'success',
-  expiring_soon: 'warning',
-  expired:       'danger',
-};
-const STATUS_LABEL: Record<DisplayStatus, string> = {
-  active:        'Active',
-  expiring_soon: 'Expiring soon',
-  expired:       'Expired',
-};
-
 // Filter state is persisted in sessionStorage so navigating to a member
 // detail and back keeps the same filtered view. Cleared when the tab
 // closes — that's the natural "session" boundary the user expects.
@@ -117,8 +83,6 @@ const DEFAULT_FILTERS: PersistedFilters = {
   search: '',
   status: 'all',
   planType: 'all',
-  // Default to subscriptions — most operational follow-ups (renewals,
-  // expiring plans) are about paid plans, not gifted session buckets.
   sourceType: 'subscription',
   startFrom: '',
   startTo: '',
@@ -140,7 +104,42 @@ function loadPersistedFilters(): PersistedFilters {
   }
 }
 
+const STATUS_VARIANT: Record<DisplayStatus, BadgeProps['variant']> = {
+  active:        'success',
+  expiring_soon: 'warning',
+  expired:       'danger',
+};
+
 export default function MembershipsTable() {
+  const t = useTranslations('members.memberships');
+  const tc = useTranslations('common');
+
+  const PLAN_TYPES = [
+    { value: 'all',              label: t('planType.all') },
+    { value: 'sessions',         label: t('planType.sessions') },
+    { value: 'duration',         label: t('planType.duration') },
+    { value: 'duration_session', label: t('planType.durationSession') },
+  ];
+
+  const STATUS_FILTERS = [
+    { value: 'all',           label: t('statusFilter.all') },
+    { value: 'active',        label: t('statusFilter.active') },
+    { value: 'expiring_soon', label: t('statusFilter.expiringSoon') },
+    { value: 'expired',       label: t('statusFilter.expired') },
+  ];
+
+  const SOURCE_FILTERS = [
+    { value: 'subscription', label: t('sourceFilter.subscription') },
+    { value: 'all',          label: t('sourceFilter.all') },
+    { value: 'transfer',     label: t('sourceFilter.transfer') },
+  ];
+
+  const STATUS_LABEL: Record<DisplayStatus, string> = {
+    active:        t('displayStatus.active'),
+    expiring_soon: t('displayStatus.expiringSoon'),
+    expired:       t('displayStatus.expired'),
+  };
+
   const [rows, setRows]               = useState<MembershipRow[]>([]);
   const [summary, setSummary]         = useState<Summary>({ active: 0, expiring_soon: 0, expired: 0 });
   const [page, setPage]               = useState(1);
@@ -148,8 +147,6 @@ export default function MembershipsTable() {
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState<string | null>(null);
 
-  // Filters — initialized from sessionStorage on first render so the user
-  // returns to the same filtered view after a navigation.
   const initial = useRef<PersistedFilters>(loadPersistedFilters());
   const [search, setSearch]               = useState(initial.current.search);
   const [debouncedSearch, setDebouncedSearch] = useState(initial.current.search);
@@ -163,7 +160,6 @@ export default function MembershipsTable() {
   const [expiringDays, setExpiringDays]   = useState<number>(initial.current.expiringDays);
   const [showFilters, setShowFilters]     = useState(initial.current.showFilters);
 
-  // Persist filters whenever any of them change.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -176,7 +172,6 @@ export default function MembershipsTable() {
     } catch {/* sessionStorage may be unavailable in private mode */}
   }, [search, status, planType, sourceType, startFrom, startTo, endFrom, endTo, expiringDays, showFilters]);
 
-  // Bulk select
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const fetchRows = useCallback(async (p = 1) => {
@@ -199,7 +194,7 @@ export default function MembershipsTable() {
       const res = await fetch(`/api/memberships?${params}`);
       const data: ApiResponse = await res.json();
       if (!res.ok) {
-        setError(data.error ?? 'Failed to load memberships');
+        setError(data.error ?? tc('somethingWrong'));
         return;
       }
       setRows(data.data ?? []);
@@ -209,11 +204,11 @@ export default function MembershipsTable() {
       }
       if (data.summary) setSummary(data.summary);
     } catch {
-      setError('Network error');
+      setError(tc('networkError'));
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, status, planType, sourceType, startFrom, startTo, endFrom, endTo, expiringDays]);
+  }, [debouncedSearch, status, planType, sourceType, startFrom, startTo, endFrom, endTo, expiringDays, tc]);
 
   useEffect(() => {
     fetchRows(1);
@@ -244,12 +239,12 @@ export default function MembershipsTable() {
     || expiringDays !== DEFAULT_EXPIRING_DAYS;
 
   const exportCsv = () => {
-    if (rows.length === 0) { toast.error('Nothing to export'); return; }
+    if (rows.length === 0) { toast.error(t('toast.nothingToExport')); return; }
     const exportRows = selected.size > 0 ? rows.filter(r => selected.has(r.id)) : rows;
     const headers = [
-      'Member Name', 'Member Number', 'Plan', 'Plan Type',
-      'Start Date', 'End Date', 'Status', 'Days Remaining',
-      'Sessions Remaining', 'Last Check-in',
+      t('csvHeaders.memberName'), t('csvHeaders.memberNumber'), t('csvHeaders.plan'), t('csvHeaders.planType'),
+      t('csvHeaders.startDate'), t('csvHeaders.endDate'), t('csvHeaders.status'), t('csvHeaders.daysRemaining'),
+      t('csvHeaders.sessionsRemaining'), t('csvHeaders.lastCheckIn'),
     ];
     const lines = exportRows.map(r => [
       r.member_name ?? '',
@@ -271,7 +266,8 @@ export default function MembershipsTable() {
     a.download = `memberships-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exported ${exportRows.length} row${exportRows.length === 1 ? '' : 's'}`);
+    const count = exportRows.length;
+    toast.success(count === 1 ? t('toast.exported', { count }) : t('toast.exportedPlural', { count }));
   };
 
   const columns: DataTableColumn<MembershipRow>[] = [
@@ -297,7 +293,7 @@ export default function MembershipsTable() {
     },
     {
       key: 'member',
-      header: 'Member',
+      header: t('col.member'),
       cell: (r) => (
         <div className="flex items-center gap-3 min-w-0">
           <Avatar name={r.member_name ?? r.member_number ?? '?'} src={r.member_photo_url} size={36} />
@@ -310,14 +306,14 @@ export default function MembershipsTable() {
     },
     {
       key: 'plan',
-      header: 'Plan',
+      header: t('col.plan'),
       cell: (r) => (
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             <p className="text-fg truncate max-w-[200px]">{r.plan_name ?? '—'}</p>
             {r.source_type === 'transfer' && (
-              <Badge variant="brand" size="sm" className="uppercase tracking-wider flex-shrink-0" title="Transferred from another member">
-                Transferred
+              <Badge variant="brand" size="sm" className="uppercase tracking-wider flex-shrink-0" title={t('transferred')}>
+                {t('transferred')}
               </Badge>
             )}
           </div>
@@ -329,41 +325,41 @@ export default function MembershipsTable() {
     },
     {
       key: 'start',
-      header: 'Start',
+      header: t('col.start'),
       hideOnMobile: true,
       cell: (r) => <span className="text-fg-muted whitespace-nowrap">{fmtDate(r.start_date)}</span>,
     },
     {
       key: 'end',
-      header: 'End',
+      header: t('col.end'),
       hideOnMobile: true,
       cell: (r) => <span className="text-fg-muted whitespace-nowrap">{r.end_date ? fmtDate(r.end_date) : '—'}</span>,
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('col.status'),
       cell: (r) => <Badge variant={STATUS_VARIANT[r.display_status]}>{STATUS_LABEL[r.display_status]}</Badge>,
     },
     {
       key: 'days',
-      header: 'Days left',
+      header: t('col.daysLeft'),
       align: 'right',
-      cell: (r) => <RemainingDays days={r.days_remaining} status={r.display_status} />,
+      cell: (r) => <RemainingDays days={r.days_remaining} status={r.display_status} agoLabel={t('agoLabel', { days: r.days_remaining != null ? Math.abs(r.days_remaining) : 0 })} />,
     },
     {
       key: 'sessions',
-      header: 'Sessions left',
+      header: t('col.sessionsLeft'),
       align: 'right',
-      cell: (r) => <Sessions row={r} />,
+      cell: (r) => <Sessions row={r} leftLabel={t('leftLabel')} usedLabel={(used: number, total: number) => t('usedLabel', { used, total })} />,
     },
     {
       key: 'last_check_in',
-      header: 'Last check-in',
+      header: t('col.lastCheckIn'),
       hideOnMobile: true,
       cell: (r) => (
         r.last_check_in_at
           ? <span className="text-fg-muted whitespace-nowrap">{fmtDate(r.last_check_in_at)}</span>
-          : <span className="text-fg-faint">Never</span>
+          : <span className="text-fg-faint">{t('neverCheckedIn')}</span>
       ),
     },
     {
@@ -375,7 +371,7 @@ export default function MembershipsTable() {
           href={`/dashboard/members/${r.gym_member_id}`}
           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-brand hover:text-fg hover:bg-surface-3 transition-colors"
         >
-          <Eye className="w-3.5 h-3.5" /> View
+          <Eye className="w-3.5 h-3.5" /> {t('col.view')}
         </Link>
       ),
     },
@@ -386,9 +382,9 @@ export default function MembershipsTable() {
       {/* Title */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-fg">Memberships</h1>
+          <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
           <p className="text-sm text-fg-muted mt-0.5">
-            {total > 0 ? `${total} memberships across your gym` : 'Aggregated view for follow-ups and renewals'}
+            {total > 0 ? t('subtitleWithCount', { total }) : t('subtitleEmpty')}
           </p>
         </div>
       </div>
@@ -397,21 +393,21 @@ export default function MembershipsTable() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <SummaryTile
           icon={<BadgeCheck className="w-5 h-5" />}
-          label="Active memberships"
+          label={t('activeLabel')}
           value={summary.active}
           tone="success"
           onClick={() => setStatus('active')}
         />
         <SummaryTile
           icon={<AlertTriangle className="w-5 h-5" />}
-          label={`Expiring in ${expiringDays} day${expiringDays === 1 ? '' : 's'}`}
+          label={expiringDays === 1 ? t('expiringLabel', { days: expiringDays }) : t('expiringLabelPlural', { days: expiringDays })}
           value={summary.expiring_soon}
           tone="warning"
           onClick={() => setStatus('expiring_soon')}
         />
         <SummaryTile
           icon={<Clock className="w-5 h-5" />}
-          label="Expired"
+          label={t('expiredLabel')}
           value={summary.expired}
           tone="danger"
           onClick={() => setStatus('expired')}
@@ -425,12 +421,12 @@ export default function MembershipsTable() {
           value={search}
           onValueChange={setSearch}
           onSearch={setDebouncedSearch}
-          placeholder="Search name or member number…"
+          placeholder={t('searchPlaceholder')}
         />
 
-        <FilterDropdown label="Status" value={status} onChange={setStatus} options={STATUS_FILTERS} />
-        <FilterDropdown label="Plan" value={planType} onChange={setPlanType} options={PLAN_TYPES} />
-        <FilterDropdown label="Source" value={sourceType} onChange={setSourceType} options={SOURCE_FILTERS} />
+        <FilterDropdown label={tc('status')} value={status} onChange={setStatus} options={STATUS_FILTERS} />
+        <FilterDropdown label={tc('type')} value={planType} onChange={setPlanType} options={PLAN_TYPES} />
+        <FilterDropdown label={tc('filter')} value={sourceType} onChange={setSourceType} options={SOURCE_FILTERS} />
 
         <Button
           variant={showFilters ? 'primary' : 'secondary'}
@@ -438,11 +434,11 @@ export default function MembershipsTable() {
           onClick={() => setShowFilters(v => !v)}
           leftIcon={<Filter className="w-3.5 h-3.5" />}
         >
-          Date filters
+          {t('dateFilters')}
         </Button>
 
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+          <Button variant="ghost" size="sm" onClick={clearFilters}>{tc('clear')}</Button>
         )}
 
         <div className="flex-1" />
@@ -454,7 +450,7 @@ export default function MembershipsTable() {
           disabled={loading}
           leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
         >
-          Refresh
+          {t('refresh')}
         </Button>
         <Button
           variant="secondary"
@@ -462,27 +458,27 @@ export default function MembershipsTable() {
           onClick={exportCsv}
           leftIcon={<Download className="w-3.5 h-3.5" />}
         >
-          Export {selected.size > 0 ? `(${selected.size})` : ''}
+          {selected.size > 0 ? t('exportSelected', { count: selected.size }) : t('export')}
         </Button>
       </div>
 
       {/* Date range filters (collapsible) */}
       {showFilters && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-surface-2/40 border border-line rounded-xl">
-          <Field label="Start date from">
+          <Field label={t('startDateFrom')}>
             <Input type="date" value={startFrom} onChange={e => setStartFrom(e.target.value)} className="[color-scheme:dark]" />
           </Field>
-          <Field label="Start date to">
+          <Field label={t('startDateTo')}>
             <Input type="date" value={startTo} onChange={e => setStartTo(e.target.value)} className="[color-scheme:dark]" />
           </Field>
-          <Field label="End date from">
+          <Field label={t('endDateFrom')}>
             <Input type="date" value={endFrom} onChange={e => setEndFrom(e.target.value)} className="[color-scheme:dark]" />
           </Field>
-          <Field label="End date to">
+          <Field label={t('endDateTo')}>
             <Input type="date" value={endTo} onChange={e => setEndTo(e.target.value)} className="[color-scheme:dark]" />
           </Field>
           <div className="lg:col-span-4 flex items-center gap-3">
-            <label className="text-xs text-fg-muted font-medium uppercase tracking-wide">Expiring threshold</label>
+            <label className="text-xs text-fg-muted font-medium uppercase tracking-wide">{t('expiringThreshold')}</label>
             <Input
               type="number"
               min={1}
@@ -491,7 +487,7 @@ export default function MembershipsTable() {
               onChange={e => setExpiringDays(Math.max(1, Math.min(90, Number(e.target.value) || DEFAULT_EXPIRING_DAYS)))}
               className="w-20"
             />
-            <span className="text-xs text-fg-faint">days before end date</span>
+            <span className="text-xs text-fg-faint">{t('daysBeforeEndDate')}</span>
           </div>
         </div>
       )}
@@ -500,7 +496,7 @@ export default function MembershipsTable() {
       {error ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <p className="text-sm text-danger mb-3">{error}</p>
-          <Button variant="primary" size="sm" onClick={() => fetchRows(page)}>Try again</Button>
+          <Button variant="primary" size="sm" onClick={() => fetchRows(page)}>{tc('tryAgain')}</Button>
         </div>
       ) : (
         <DataTable
@@ -512,7 +508,7 @@ export default function MembershipsTable() {
           empty={
             <EmptyState
               icon={BadgeCheck}
-              title={hasFilters ? 'No memberships match these filters.' : 'No memberships yet.'}
+              title={hasFilters ? t('noMembershipsFiltered') : t('noMembershipsYet')}
             />
           }
         />
@@ -527,8 +523,12 @@ export default function MembershipsTable() {
         loading={loading}
         summary={
           <>
-            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
-            {selected.size > 0 && <span className="ml-2 text-brand">· {selected.size} selected</span>}
+            {t('showingRange', {
+              from: (page - 1) * PAGE_SIZE + 1,
+              to: Math.min(page * PAGE_SIZE, total),
+              total,
+            })}
+            {selected.size > 0 && <span className="ms-2 text-brand">{t('selected', { count: selected.size })}</span>}
           </>
         }
       />
@@ -537,18 +537,25 @@ export default function MembershipsTable() {
 }
 
 // ─── Cells ───────────────────────────────────────────────────────────────────
-function RemainingDays({ days, status }: { days: number | null; status: DisplayStatus }) {
+function RemainingDays({ days, status, agoLabel }: { days: number | null; status: DisplayStatus; agoLabel: string }) {
   if (days === null) return <span className="text-fg-faint">—</span>;
   if (status === 'expired') {
-    return <span className="text-danger">{Math.abs(days)} ago</span>;
+    return <span className="text-danger">{agoLabel}</span>;
   }
   const tone = status === 'expiring_soon' ? 'text-warning font-medium' : 'text-fg-muted';
   return <span className={tone}>{days}</span>;
 }
 
-function Sessions({ row }: { row: MembershipRow }) {
+function Sessions({
+  row,
+  leftLabel,
+  usedLabel,
+}: {
+  row: MembershipRow;
+  leftLabel: string;
+  usedLabel: (used: number, total: number) => string;
+}) {
   if (row.sessions_total === null || row.sessions_total === undefined) {
-    // Unlimited (no finite count) — only meaningful for non-sessions plans.
     return <span className="text-fg-faint">∞</span>;
   }
   const total = row.sessions_total ?? 0;
@@ -561,15 +568,15 @@ function Sessions({ row }: { row: MembershipRow }) {
       : 'text-fg';
   return (
     <div
-      className="text-right leading-tight tabular-nums"
-      title={`${remaining} session${remaining === 1 ? '' : 's'} left, ${used} used (out of ${total})`}
+      className="text-end leading-tight tabular-nums"
+      title={`${remaining} sessions left, ${used} used (out of ${total})`}
     >
       <div>
         <span className={`font-semibold ${tone}`}>{remaining}</span>
-        <span className="text-fg-faint font-normal text-xs ml-1">left</span>
+        <span className="text-fg-faint font-normal text-xs ms-1">{leftLabel}</span>
       </div>
       <div className="text-[10px] text-fg-faint mt-0.5">
-        {used} / {total} used
+        {usedLabel(used, total)}
       </div>
     </div>
   );
@@ -591,7 +598,7 @@ function SummaryTile({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 p-4 bg-surface-2 border ${tones.border} rounded-xl hover:bg-surface-3 transition-colors text-left`}
+      className={`flex items-center gap-3 p-4 bg-surface-2 border ${tones.border} rounded-xl hover:bg-surface-3 transition-colors text-start`}
     >
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${tones.bg} ${tones.text}`}>
         {icon}

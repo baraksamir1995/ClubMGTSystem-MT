@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Dumbbell, Salad, HeartPulse, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge, type BadgeProps } from '@/components/ui';
+import { useTranslations } from 'next-intl';
 
 const PAGE_SIZE = 5;
 
@@ -11,11 +12,7 @@ const serviceIcon: Record<string, React.ElementType> = {
   nutritionist:     Salad,
   physiotherapist:  HeartPulse,
 };
-const serviceLabel: Record<string, string> = {
-  personal_trainer: 'Personal Training',
-  nutritionist:     'Nutrition',
-  physiotherapist:  'Physiotherapy',
-};
+
 const statusVariant: Record<string, BadgeProps['variant']> = {
   active:    'success',
   completed: 'neutral',
@@ -23,6 +20,7 @@ const statusVariant: Record<string, BadgeProps['variant']> = {
 };
 
 export default function ServicePackagesList({ assignments }: { assignments: any[] }) {
+  const t = useTranslations('members.servicePackages');
   const [page, setPage] = useState(0);
 
   const totalPages = Math.ceil(assignments.length / PAGE_SIZE);
@@ -32,8 +30,8 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
     <div className="bg-surface-2 border border-line rounded-xl p-6 mt-6">
       <div className="flex items-center gap-2 mb-4">
         <Dumbbell className="w-4 h-4 text-brand" />
-        <h2 className="text-sm font-semibold text-fg">Service Packages</h2>
-        <span className="ml-auto text-xs text-fg-faint">{assignments.length} assigned</span>
+        <h2 className="text-sm font-semibold text-fg">{t('title')}</h2>
+        <span className="ms-auto text-xs text-fg-faint">{t('assigned', { count: assignments.length })}</span>
       </div>
 
       <div className="space-y-3">
@@ -42,6 +40,7 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
           const used  = a.sessions_used  ?? 0;
           const total = a.sessions_total ?? 1;
           const pct   = Math.min(100, Math.round((used / total) * 100));
+          const serviceLabel = t(`serviceType.${a.service_type}` as any) ?? (a.service_type ?? '').toString().replace('_', ' ');
           return (
             <div key={a.id} className="bg-surface-3/30 rounded-xl p-4 border border-line">
               <div className="flex items-start justify-between gap-3 mb-2">
@@ -49,18 +48,18 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
                   <Icon className="w-4 h-4 text-fg-muted shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-fg">{a.package_name}</p>
-                    <p className="text-xs text-fg-faint">{serviceLabel[a.service_type] ?? a.service_type}</p>
+                    <p className="text-xs text-fg-faint">{serviceLabel}</p>
                   </div>
                 </div>
                 <Badge variant={statusVariant[a.status] ?? 'neutral'} size="sm" className="capitalize">{a.status}</Badge>
               </div>
               {a.trainer_name && (
                 <p className="text-xs text-fg-faint mb-2">
-                  Specialist: <span className="text-fg-muted">{a.trainer_name}</span>
+                  {t('specialist', { name: a.trainer_name })}
                 </p>
               )}
               <div className="flex items-center justify-between text-xs text-fg-faint mb-1">
-                <span>Sessions used</span>
+                <span>{t('sessionsUsed')}</span>
                 <span className="text-fg font-medium">{used} / {total}</span>
               </div>
               <div className="w-full bg-surface-3 rounded-full h-1.5">
@@ -77,7 +76,7 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-line">
           <span className="text-xs text-fg-faint">
-            Page {page + 1} of {totalPages}
+            {t('page', { page: page + 1, total: totalPages })}
           </span>
           <div className="flex items-center gap-1">
             <button

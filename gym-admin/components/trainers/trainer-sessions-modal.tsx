@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, CalendarDays, Clock, MapPin, Loader2 } from 'lucide-react';
 import type { TrainerProfile } from './trainer-modal';
 import { fmt12 } from '@/lib/time';
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function TrainerSessionsModal({ trainer, onClose }: Props) {
+  const t = useTranslations('services');
   const [sessions, setSessions] = useState<TrainerSession[]>([]);
   const [loading,  setLoading]  = useState(true);
 
@@ -51,7 +53,7 @@ export default function TrainerSessionsModal({ trainer, onClose }: Props) {
             </div>
             <div>
               <h2 className="text-base font-semibold text-fg">{trainer.name}</h2>
-              <p className="text-xs text-fg-muted">Upcoming assigned sessions</p>
+              <p className="text-xs text-fg-muted">{t('trainersPage.upcomingSessionsLabel')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
@@ -68,7 +70,7 @@ export default function TrainerSessionsModal({ trainer, onClose }: Props) {
           ) : sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <CalendarDays className="w-10 h-10 text-fg-faint mb-3" />
-              <p className="text-sm text-fg-muted">No upcoming sessions assigned</p>
+              <p className="text-sm text-fg-muted">{t('trainersPage.noUpcomingSessions')}</p>
             </div>
           ) : (
             <div className="divide-y divide-line">
@@ -95,7 +97,7 @@ export default function TrainerSessionsModal({ trainer, onClose }: Props) {
                     </div>
                   </div>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 font-medium flex-shrink-0">
-                    Scheduled
+                    {t('trainersPage.sessionScheduled')}
                   </span>
                 </div>
               ))}

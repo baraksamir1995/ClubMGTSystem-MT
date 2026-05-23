@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Users, Loader2, Tag, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { PromoCode } from '@/app/dashboard/promotions/page';
 import { Modal } from '@/components/ui';
 
@@ -25,6 +26,7 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 
 export default function PromoRedemptionsModal({ promo, onClose }: Props) {
+  const t = useTranslations('promotions');
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
   const [loading,     setLoading]     = useState(true);
 
@@ -59,16 +61,16 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
         <div className="grid grid-cols-3 gap-3 px-5 py-4 border-b border-line flex-shrink-0">
           {/* Usage */}
           <div className="bg-surface-3/40 rounded-xl p-3">
-            <p className="text-xs text-fg-muted mb-1">Total Redemptions</p>
+            <p className="text-xs text-fg-muted mb-1">{t('redemptionsTitle')}</p>
             <p className="text-2xl font-bold text-fg">{promo.usage_count}</p>
             {promo.max_uses && (
-              <p className="text-xs text-fg-faint mt-0.5">of {promo.max_uses} max</p>
+              <p className="text-xs text-fg-faint mt-0.5">{t('ofMax', { max: promo.max_uses })}</p>
             )}
           </div>
 
           {/* Remaining */}
           <div className={`rounded-xl p-3 ${remaining === 0 ? 'bg-red-400/10' : remaining != null && remaining <= 5 ? 'bg-amber-400/10' : 'bg-surface-3/40'}`}>
-            <p className="text-xs text-fg-muted mb-1">Remaining Uses</p>
+            <p className="text-xs text-fg-muted mb-1">{t('remainingUses')}</p>
             <p className={`text-2xl font-bold ${remaining === 0 ? 'text-red-400' : remaining != null && remaining <= 5 ? 'text-amber-400' : 'text-fg'}`}>
               {remaining != null ? remaining : '∞'}
             </p>
@@ -80,23 +82,25 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
                     style={{ width: `${Math.min(usagePct, 100)}%` }}
                   />
                 </div>
-                <p className="text-xs text-fg-faint mt-0.5">{usagePct}% used</p>
+                <p className="text-xs text-fg-faint mt-0.5">{t('percentUsed', { pct: usagePct })}</p>
               </div>
             )}
             {remaining === 0 && (
               <div className="flex items-center gap-1 mt-1">
                 <AlertTriangle className="w-3 h-3 text-red-400" />
-                <p className="text-xs text-red-400">Limit reached</p>
+                <p className="text-xs text-red-400">{t('limitReached')}</p>
               </div>
             )}
           </div>
 
           {/* Total savings given */}
           <div className="bg-surface-3/40 rounded-xl p-3">
-            <p className="text-xs text-fg-muted mb-1">Total Discounts Given</p>
+            <p className="text-xs text-fg-muted mb-1">{t('totalDiscountsGiven')}</p>
             <p className="text-xl font-bold text-emerald-400">{fmt(totalSavings, currency)}</p>
             <p className="text-xs text-fg-faint mt-0.5">
-              {promo.discount_type === 'percent' ? `${promo.discount_value}% off` : `${fmt(promo.discount_value, currency)} off`} per use
+              {promo.discount_type === 'percent'
+                ? t('perUsePercent', { value: promo.discount_value })
+                : t('perUseFixed',   { value: fmt(promo.discount_value, currency) })}
             </p>
           </div>
         </div>
@@ -110,16 +114,16 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
           ) : redemptions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Users className="w-10 h-10 text-fg-faint mb-3" />
-              <p className="text-sm text-fg-muted">No redemptions yet</p>
+              <p className="text-sm text-fg-muted">{t('noRedemptionsYet')}</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-surface-2 z-10">
                 <tr className="border-b border-line">
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">MEMBER</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PLAN</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">DATE</th>
-                  <th className="text-right text-xs text-fg-muted font-medium px-5 py-3">PRICE PAID</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('colMember')}</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('colPlan')}</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('colDate')}</th>
+                  <th className="text-end text-xs text-fg-muted font-medium px-5 py-3">{t('colPricePaid')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -133,7 +137,7 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
                     <td className="px-5 py-3.5 text-fg-muted text-xs">
                       {new Date(r.redeemed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="px-5 py-3.5 text-end">
                       <p className="text-xs text-fg-faint line-through">{fmt(r.original_price, r.currency)}</p>
                       <p className="text-sm font-semibold text-emerald-400">{fmt(r.final_price, r.currency)}</p>
                       <p className="text-xs text-emerald-600">− {fmt(r.discount_amount, r.currency)}</p>

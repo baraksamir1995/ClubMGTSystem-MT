@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CalendarPlus, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { Button, Modal } from '@/components/ui';
 
 interface Props {
@@ -30,6 +31,8 @@ function monthLabelFromIso(iso: string): string {
 }
 
 export default function CopyMonthModal({ branchId, branchName, onClose, onCopied }: Props) {
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
   const [loading, setLoading] = useState(false);
   const [conflict, setConflict] = useState<{ existing: number; targetStart: string; targetEnd: string } | null>(null);
 
@@ -54,18 +57,18 @@ export default function CopyMonthModal({ branchId, branchName, onClose, onCopied
             targetEnd: data.target_end,
           });
         } else {
-          toast.error(data.error ?? 'Failed to copy schedule');
+          toast.error(data.error ?? t('copyMonth.failedToCopy'));
         }
         return;
       }
       // Use the backend's resolved target month for the toast — server tz
       // (Postgres CURRENT_DATE) is the source of truth, not local Date().
       const targetMonth = data.target_start ? monthLabelFromIso(data.target_start) : targetLabel;
-      toast.success(`Copied ${data.created} sessions across ${data.templates} classes into ${targetMonth}`);
+      toast.success(t('copyMonth.copySuccess', { created: data.created, templates: data.templates, month: targetMonth }));
       onCopied();
       onClose();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setLoading(false);
     }
@@ -74,43 +77,47 @@ export default function CopyMonthModal({ branchId, branchName, onClose, onCopied
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><CalendarPlus className="w-4 h-4 text-brand" /> Copy Schedule to Next Month</span>
+        <span className="inline-flex items-center gap-2"><CalendarPlus className="w-4 h-4 text-brand" /> {t('copyMonth.title')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
         <div className="flex items-center justify-center gap-3 py-3 bg-surface border border-line rounded-xl">
           <div className="text-center">
-            <p className="text-xs text-fg-faint uppercase tracking-wide">From</p>
+            <p className="text-xs text-fg-faint uppercase tracking-wide">{t('copyMonth.from')}</p>
             <p className="text-sm font-semibold text-fg mt-0.5">{sourceLabel}</p>
           </div>
           <div className="text-fg-faint">→</div>
           <div className="text-center">
-            <p className="text-xs text-fg-faint uppercase tracking-wide">To</p>
+            <p className="text-xs text-fg-faint uppercase tracking-wide">{t('copyMonth.to')}</p>
             <p className="text-sm font-semibold text-brand mt-0.5">{targetLabel}</p>
           </div>
         </div>
 
         {branchName && (
           <p className="text-xs text-fg-muted text-center">
-            Branch: <span className="text-fg font-medium">{branchName}</span>
+            {t('copyMonth.branch')} <span className="text-fg font-medium">{branchName}</span>
           </p>
         )}
 
         <ul className="text-xs text-fg-muted space-y-1.5 leading-relaxed">
-          <li>· Recurring sessions only — pop-ups and cancelled sessions are skipped.</li>
-          <li>· Each weekday&apos;s pattern is copied to the matching weekdays in {targetLabel}.</li>
-          <li>· New sessions start as <span className="text-fg">unpublished</span> — review and publish.</li>
-          <li>· Each copied series gets a new template, so stopping the new series won&apos;t affect {sourceLabel}.</li>
+          <li>· {t('copyMonth.bulletRecurringOnly')}</li>
+          <li>· {t('copyMonth.bulletWeekdayPattern', { month: targetLabel })}</li>
+          <li>· {t('copyMonth.bulletUnpublished')}</li>
+          <li>· {t('copyMonth.bulletNewTemplate', { month: sourceLabel })}</li>
         </ul>
 
         {conflict && (
           <div className="flex items-start gap-2 p-3 bg-warning-soft border border-warning/30 rounded-xl">
             <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-warning">Target month is not empty</p>
+              <p className="text-sm font-medium text-warning">{t('copyMonth.conflictTitle')}</p>
               <p className="text-xs text-fg-muted mt-0.5">
-                {targetLabel} already has {conflict.existing} session{conflict.existing === 1 ? '' : 's'}{branchName ? ` for ${branchName}` : ''}.
-                Cancel or remove them before copying.
+                {t('copyMonth.conflictBody', {
+                  month: targetLabel,
+                  count: conflict.existing,
+                  plural: conflict.existing !== 1 ? t('copyMonth.conflictPluralSuffix') : '',
+                  branch: branchName ? `${t('copyMonth.conflictBranchPrefix')}${branchName}` : '',
+                })}
               </p>
             </div>
           </div>
@@ -118,10 +125,10 @@ export default function CopyMonthModal({ branchId, branchName, onClose, onCopied
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{tc('cancel')}</Button>
         <Button variant="primary" fullWidth onClick={handleCopy} disabled={!!conflict} isLoading={loading}
           leftIcon={<CalendarPlus className="w-3.5 h-3.5" />}>
-          Copy Schedule
+          {t('copyMonth.copySchedule')}
         </Button>
       </Modal.Footer>
     </Modal>

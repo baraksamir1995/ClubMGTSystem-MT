@@ -3,19 +3,22 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Users, BadgeCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /// Sub-tab bar for the Members module — currently switches between the
 /// member directory and the aggregated memberships operational view.
 /// Tab state is held in the `?view=` query so links stay shareable.
-const TABS = [
-  { id: 'members',     label: 'Members',     icon: Users,       view: undefined },
-  { id: 'memberships', label: 'Memberships', icon: BadgeCheck,  view: 'memberships' },
-] as const;
 
 export default function MembersModuleTabs() {
+  const t = useTranslations('members.moduleTabs');
   const pathname = usePathname();
   const params = useSearchParams();
   const current = params.get('view') === 'memberships' ? 'memberships' : 'members';
+
+  const TABS = [
+    { id: 'members',     label: t('members'),     icon: Users,       view: undefined },
+    { id: 'memberships', label: t('memberships'), icon: BadgeCheck,  view: 'memberships' },
+  ] as const;
 
   return (
     <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit">

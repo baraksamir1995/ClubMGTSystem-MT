@@ -5,6 +5,7 @@ import { Clock, Filter, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-r
 import { fmtTime12, parsePgTimestamp, fmtDateGym } from '@/lib/time';
 import type { AttendanceLog } from '@/lib/types/attendance-log';
 import { Badge, Button, Input } from '@/components/ui';
+import { useTranslations } from 'next-intl';
 
 const PAGE_SIZE = 5;
 
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export default function AttendanceTab({ logs, membershipStart, membershipEnd, planName }: Props) {
+  const t = useTranslations('members.attendance');
+  const tc = useTranslations('common');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [page, setPage] = useState(1);
@@ -52,16 +55,16 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
-          <p className="text-xs text-fg-faint mb-1">Total Check-ins</p>
+          <p className="text-xs text-fg-faint mb-1">{t('totalCheckins')}</p>
           <p className="text-2xl font-bold text-fg">{logs.length}</p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
-          <p className="text-xs text-fg-faint mb-1">This Period</p>
+          <p className="text-xs text-fg-faint mb-1">{t('thisPeriod')}</p>
           <p className="text-2xl font-bold text-brand">{periodVisits}</p>
           {planName && <p className="text-xs text-fg-faint mt-0.5 truncate">{planName}</p>}
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
-          <p className="text-xs text-fg-faint mb-1">Last Visit</p>
+          <p className="text-xs text-fg-faint mb-1">{t('lastVisit')}</p>
           <p className="text-sm font-semibold text-fg mt-1">
             {logs[0] ? fmtDateGym(logs[0].check_in_at) : '—'}
           </p>
@@ -77,23 +80,27 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
       <div className="bg-surface-2 border border-line rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="w-4 h-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Filter by date range</span>
+          <span className="text-sm font-medium text-fg">{t('filterByDate')}</span>
           {(fromDate || toDate) && (
-            <Button variant="ghost" size="sm" className="ml-auto" onClick={clearFilter}>Clear</Button>
+            <Button variant="ghost" size="sm" className="ms-auto" onClick={clearFilter}>{tc('clear')}</Button>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-fg-faint mb-1">From</label>
+            <label className="block text-xs text-fg-faint mb-1">{t('from')}</label>
             <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="[color-scheme:dark]" />
           </div>
           <div>
-            <label className="block text-xs text-fg-faint mb-1">To</label>
+            <label className="block text-xs text-fg-faint mb-1">{t('to')}</label>
             <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="[color-scheme:dark]" />
           </div>
         </div>
         {(fromDate || toDate) && (
-          <p className="text-xs text-fg-faint mt-2">{filtered.length} record{filtered.length !== 1 ? 's' : ''} found</p>
+          <p className="text-xs text-fg-faint mt-2">
+            {filtered.length === 1
+              ? t('recordsFound', { count: filtered.length })
+              : t('recordsFoundPlural', { count: filtered.length })}
+          </p>
         )}
       </div>
 
@@ -101,14 +108,16 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
       <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-line flex items-center gap-2">
           <Clock className="w-4 h-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Check-in History</span>
-          <span className="ml-auto text-xs text-fg-faint">{filtered.length} entries</span>
+          <span className="text-sm font-medium text-fg">{t('checkInHistory')}</span>
+          <span className="ms-auto text-xs text-fg-faint">{t('entries', { count: filtered.length })}</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="p-10 text-center">
             <CalendarDays className="w-8 h-8 text-fg-faint mx-auto mb-2" />
-            <p className="text-sm text-fg-faint">No attendance records{(fromDate || toDate) ? ' for this date range' : ''}.</p>
+            <p className="text-sm text-fg-faint">
+              {(fromDate || toDate) ? t('noAttendanceRange') : t('noAttendance')}
+            </p>
           </div>
         ) : (
           <>
@@ -116,11 +125,11 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-left px-4 py-3">Date</th>
-                    <th className="text-left px-4 py-3">Check In</th>
-                    <th className="text-left px-4 py-3">Branch</th>
-                    <th className="text-left px-4 py-3">Entry Point</th>
-                    <th className="text-left px-4 py-3">Method</th>
+                    <th className="text-start px-4 py-3">{t('col.date')}</th>
+                    <th className="text-start px-4 py-3">{t('col.checkIn')}</th>
+                    <th className="text-start px-4 py-3">{t('col.branch')}</th>
+                    <th className="text-start px-4 py-3">{t('col.entryPoint')}</th>
+                    <th className="text-start px-4 py-3">{t('col.method')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">

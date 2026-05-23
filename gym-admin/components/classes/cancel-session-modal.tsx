@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { ClassSession } from '@/app/dashboard/classes/page';
 import { fmt12 } from '@/lib/time';
 import { Button, Modal, Textarea } from '@/components/ui';
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export default function CancelSessionModal({ session, gym, onClose, onCancelled }: Props) {
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
   const [reason, setReason]             = useState('');
   const [notify, setNotify]             = useState(true);
   const [bookedCount, setBookedCount]   = useState<number | null>(null);
@@ -29,7 +32,7 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
   }, [session.id]);
 
   const handleCancel = async () => {
-    if (!reason.trim()) { toast.error('Please provide a cancellation reason'); return; }
+    if (!reason.trim()) { toast.error(t('cancelModal.reasonRequired')); return; }
     setLoading(true);
     try {
       const res = await fetch(`/api/sessions/${session.id}/cancel`, {
@@ -40,11 +43,11 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
       const text = await res.text();
       let data: any = {};
       try { data = JSON.parse(text); } catch { toast.error(`Server error: ${text.slice(0, 120)}`); return; }
-      if (!res.ok) { toast.error(data.error ?? 'Failed to cancel'); return; }
-      toast.success('Session cancelled' + (notify && (bookedCount ?? 0) > 0 ? ' · Members notified' : ''));
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
+      toast.success(notify && (bookedCount ?? 0) > 0 ? t('cancelModal.cancelSuccessNotified') : t('cancelModal.cancelSuccess'));
       onCancelled(session.id);
       onClose();
-    } catch (e: any) { toast.error(e?.message ?? 'Network error'); }
+    } catch (e: any) { toast.error(e?.message ?? tc('networkError')); }
     finally { setLoading(false); }
   };
 
@@ -53,7 +56,7 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-danger" /> Cancel Session</span>
+        <span className="inline-flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-danger" /> {t('cancelModal.title')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
@@ -73,17 +76,20 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
           <div className="mt-3 pt-3 border-t border-line flex items-center gap-2">
             <Users className="w-3.5 h-3.5 text-fg-muted" />
             {bookedCount === null
-              ? <span className="text-xs text-fg-faint">Loading bookings…</span>
-              : <span className="text-xs text-fg-muted"><span className="text-fg font-medium">{bookedCount}</span> member{bookedCount !== 1 ? 's' : ''} booked</span>
+              ? <span className="text-xs text-fg-faint">{t('cancelModal.loadingBookings')}</span>
+              : <span className="text-xs text-fg-muted">
+                  <span className="text-fg font-medium">{bookedCount}</span>{' '}
+                  {bookedCount !== 1 ? t('cancelModal.membersBookedPlural') : t('cancelModal.membersBooked')}
+                </span>
             }
           </div>
         </div>
 
         {/* Reason */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Cancellation Reason <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('cancelModal.labelReason')} <span className="text-danger">*</span></label>
           <Textarea value={reason} onChange={e => setReason(e.target.value)}
-            rows={3} placeholder="e.g. Instructor unavailable, maintenance..."
+            rows={3} placeholder={t('cancelModal.reasonPlaceholder')}
             className="resize-none" />
         </div>
 
@@ -95,7 +101,7 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
               className={`relative w-10 h-5 rounded-full transition-colors ${notify ? 'bg-brand' : 'bg-surface-4'}`}>
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${notify ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </div>
-            <span className="text-sm text-fg-muted">Notify booked members by email</span>
+            <span className="text-sm text-fg-muted">{t('cancelModal.notifyMembers')}</span>
           </label>
         )}
 
@@ -103,15 +109,15 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
         <div className="flex items-start gap-2 bg-danger-soft border border-danger/20 rounded-xl p-3">
           <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
           <p className="text-xs text-danger">
-            This action cannot be undone. The session will be marked as cancelled and removed from the active schedule.
+            {t('cancelModal.warning')}
           </p>
         </div>
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose}>Keep Session</Button>
+        <Button variant="secondary" fullWidth onClick={onClose}>{t('cancelModal.keepSession')}</Button>
         <Button variant="danger" fullWidth onClick={handleCancel} disabled={!reason.trim()} isLoading={loading}>
-          Cancel Session
+          {t('cancelModal.cancelSession')}
         </Button>
       </Modal.Footer>
     </Modal>

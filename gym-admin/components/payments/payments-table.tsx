@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Plus, Search, X, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Clock, AlertCircle, FileText, RotateCcw, Bell, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -15,21 +16,6 @@ import { can, type Permission } from '@/lib/get-permissions';
 import { Badge, type BadgeProps, Button } from '@/components/ui';
 
 const PAGE_SIZE = 10;
-
-const statusConfig: Record<string, { label: string; icon: React.ElementType; variant: BadgeProps['variant']; dot: string }> = {
-  paid:          { label: 'Paid',          icon: CheckCircle, variant: 'success', dot: 'bg-success' },
-  pending:       { label: 'Pending',       icon: Clock,       variant: 'warning', dot: 'bg-warning' },
-  overdue:       { label: 'Overdue',       icon: AlertCircle, variant: 'danger',  dot: 'bg-danger' },
-  refunded:      { label: 'Refunded',      icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
-  partial_refund:{ label: 'Part. Refund',  icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
-};
-
-const methodLabel: Record<string, string> = {
-  cash:          'Cash',
-  bank_transfer: 'Bank Transfer',
-  card:          'Card',
-  other:         'Other',
-};
 
 const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
@@ -47,6 +33,24 @@ interface Props {
 
 export default function PaymentsTable({ payments: initial, memberOptions, serviceOptions, trainerOptions, branches: branchOptions, gym, permissions, promoCodes }: Props) {
   const router = useRouter();
+  const t  = useTranslations('payments');
+  const tc = useTranslations('common');
+
+  const statusConfig: Record<string, { label: string; icon: React.ElementType; variant: BadgeProps['variant']; dot: string }> = {
+    paid:          { label: t('status.paid'),         icon: CheckCircle, variant: 'success', dot: 'bg-success' },
+    pending:       { label: t('status.pending'),      icon: Clock,       variant: 'warning', dot: 'bg-warning' },
+    overdue:       { label: t('status.overdue'),      icon: AlertCircle, variant: 'danger',  dot: 'bg-danger' },
+    refunded:      { label: t('status.refunded'),     icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
+    partial_refund:{ label: t('status.partialRefund'),icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
+  };
+
+  const methodLabel: Record<string, string> = {
+    cash:          t('method.cash'),
+    bank_transfer: t('method.bankTransfer'),
+    card:          t('method.card'),
+    other:         t('method.other'),
+  };
+
   const [payments, setPayments] = useState<Payment[]>(initial);
   const [modalOpen, setModalOpen]           = useState(false);
   const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
@@ -124,11 +128,11 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) { toast.error('Failed to update'); return; }
+      if (!res.ok) { toast.error(t('toast.updateFailed')); return; }
       setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: newStatus, paid_at: newStatus === 'paid' ? new Date().toISOString() : null } : p));
-      toast.success(`Marked as ${newStatus}`);
+      toast.success(t('toast.markedAs', { status: newStatus }));
     } catch {
-      toast.error('Network error');
+      toast.error(t('toast.networkError'));
     } finally {
       setUpdatingId(null);
     }
@@ -147,19 +151,19 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Payments</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Record and track member payments</p>
+            <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             {overduePayments.length > 0 && can(permissions, 'payments', 'create') && (
               <Button variant="danger" onClick={() => setReminderOpen(true)} leftIcon={<Bell className="w-4 h-4" />}>
-                Send Reminders
-                <span className="ml-1.5 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{overduePayments.length}</span>
+                {t('sendReminders')}
+                <span className="ms-1.5 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{overduePayments.length}</span>
               </Button>
             )}
             {can(permissions, 'payments', 'create') && (
               <Button variant="primary" onClick={() => setModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
-                Record Payment
+                {t('recordPayment')}
               </Button>
             )}
           </div>
@@ -168,17 +172,17 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         {/* Summary cards */}
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-surface-2 border border-line rounded-xl p-4">
-            <p className="text-xs text-fg-muted mb-1">Total Revenue</p>
+            <p className="text-xs text-fg-muted mb-1">{t('summary.totalRevenue')}</p>
             <p className="text-xl font-bold text-emerald-400">{fmt(totalRevenue)}</p>
           </div>
           {[
-            { label: 'Paid',    value: totalPaid,    color: 'text-emerald-400', filter: 'paid' },
-            { label: 'Pending', value: totalPending, color: 'text-amber-400',   filter: 'pending' },
-            { label: 'Overdue', value: totalOverdue, color: 'text-red-400',     filter: 'overdue' },
+            { label: t('summary.paid'),    value: totalPaid,    color: 'text-emerald-400', filter: 'paid' },
+            { label: t('summary.pending'), value: totalPending, color: 'text-amber-400',   filter: 'pending' },
+            { label: t('summary.overdue'), value: totalOverdue, color: 'text-red-400',     filter: 'overdue' },
           ].map(s => (
             <button key={s.filter}
               onClick={() => setStatusFilter(statusFilter === s.filter ? 'all' : s.filter)}
-              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}>
+              className={`bg-surface-2 border rounded-xl p-4 text-start transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}>
               <p className="text-xs text-fg-muted mb-1">{s.label}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
@@ -188,13 +192,13 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         {/* Search + Filters */}
         <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by member name, email, or member #…"
-              className="w-full pl-9 pr-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
+              placeholder={t('filters.searchPlaceholder')}
+              className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg">
+              <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -202,21 +206,21 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
 
           <div className="flex items-center gap-2 pt-1">
             <Filter className="w-4 h-4 text-fg-muted" />
-            <span className="text-sm font-medium text-fg">Filters</span>
+            <span className="text-sm font-medium text-fg">{tc('filters')}</span>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="ml-auto text-xs text-fg-muted hover:text-fg transition-colors">Clear all</button>
+              <button onClick={clearFilters} className="ms-auto text-xs text-fg-muted hover:text-fg transition-colors">{t('filters.clearAll')}</button>
             )}
           </div>
 
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-fg-faint mb-1">From</label>
+              <label className="block text-xs text-fg-faint mb-1">{t('filters.from')}</label>
               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className={selectCls + ' w-full [color-scheme:dark]'} />
             </div>
             <div>
-              <label className="block text-xs text-fg-faint mb-1">To</label>
+              <label className="block text-xs text-fg-faint mb-1">{t('filters.to')}</label>
               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
                 className={selectCls + ' w-full [color-scheme:dark]'} />
             </div>
@@ -225,26 +229,26 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
           {/* Dropdowns row */}
           <div className="flex flex-wrap gap-3 items-center">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={selectCls}>
-              <option value="all">All Statuses</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="overdue">Overdue</option>
-              <option value="refunded">Refunded</option>
-              <option value="partial_refund">Partial Refund</option>
+              <option value="all">{t('status.allStatuses')}</option>
+              <option value="paid">{t('status.paid')}</option>
+              <option value="pending">{t('status.pending')}</option>
+              <option value="overdue">{t('status.overdue')}</option>
+              <option value="refunded">{t('status.refunded')}</option>
+              <option value="partial_refund">{t('status.partialRefundFull')}</option>
             </select>
             <select value={methodFilter} onChange={e => setMethodFilter(e.target.value)} className={selectCls}>
-              <option value="">All Methods</option>
+              <option value="">{t('method.allMethods')}</option>
               {methods.map(m => <option key={m} value={m}>{methodLabel[m] ?? m}</option>)}
             </select>
             {specialists.length > 0 && (
               <select value={specialistFilter} onChange={e => setSpecialistFilter(e.target.value)} className={selectCls}>
-                <option value="">All Specialists</option>
+                <option value="">{t('filters.allSpecialists')}</option>
                 {specialists.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             )}
             {services.length > 0 && (
               <select value={serviceFilter} onChange={e => setServiceFilter(e.target.value)} className={selectCls}>
-                <option value="">All Services</option>
+                <option value="">{t('filters.allServices')}</option>
                 {services.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             )}
@@ -256,10 +260,12 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                   className={`${selectCls} flex items-center gap-1.5 min-w-[140px]`}
                 >
                   {branchFilter.length === 0
-                    ? 'All Branches'
-                    : `${branchFilter.length} Branch${branchFilter.length > 1 ? 'es' : ''}`}
+                    ? t('filters.allBranches')
+                    : branchFilter.length === 1
+                      ? t('filters.branches', { count: branchFilter.length })
+                      : t('filters.branchesPlural', { count: branchFilter.length })}
                   {branchFilter.length > 0 && (
-                    <span className="ml-1 bg-brand/20 text-brand text-xs px-1.5 py-0.5 rounded-full">{branchFilter.length}</span>
+                    <span className="ms-1 bg-brand/20 text-brand text-xs px-1.5 py-0.5 rounded-full">{branchFilter.length}</span>
                   )}
                 </button>
                 <div className={`${branchDropdownOpen ? '' : 'hidden'} absolute z-20 mt-1 w-48 bg-surface-2 border border-line rounded-lg shadow-xl py-1 max-h-48 overflow-y-auto`}>
@@ -279,7 +285,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                 </div>
               </div>
             )}
-            <span className="ml-auto text-xs text-fg-faint">{filtered.length} of {payments.length} payments</span>
+            <span className="ms-auto text-xs text-fg-faint">{t('filters.countOfTotal', { count: filtered.length, total: payments.length })}</span>
           </div>
         </div>
 
@@ -289,11 +295,11 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
             <div className="p-12 text-center">
               <DollarSign className="w-10 h-10 text-fg-faint mx-auto mb-3" />
               <p className="text-fg-muted text-sm">
-                {payments.length === 0 ? 'No payments recorded yet' : 'No payments match your filters'}
+                {payments.length === 0 ? t('empty.noPayments') : t('empty.noMatch')}
               </p>
               {payments.length === 0 && can(permissions, 'payments', 'create') && (
                 <Button variant="primary" className="mt-4" onClick={() => setModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
-                  Record first payment
+                  {t('empty.recordFirst')}
                 </Button>
               )}
             </div>
@@ -303,16 +309,16 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                      <th className="text-left px-5 py-3">Member</th>
-                      <th className="text-left px-5 py-3">Amount</th>
-                      <th className="text-left px-5 py-3">Service / Item</th>
-                      <th className="text-left px-5 py-3">Branch</th>
-                      <th className="text-left px-5 py-3">Specialist</th>
-                      <th className="text-left px-5 py-3">Method</th>
-                      <th className="text-left px-5 py-3">Source</th>
-                      <th className="text-left px-5 py-3">Date</th>
-                      <th className="text-left px-5 py-3">Status</th>
-                      <th className="text-right px-5 py-3">Actions</th>
+                      <th className="text-start px-5 py-3">{t('table.member')}</th>
+                      <th className="text-start px-5 py-3">{t('table.amount')}</th>
+                      <th className="text-start px-5 py-3">{t('table.serviceItem')}</th>
+                      <th className="text-start px-5 py-3">{t('table.branch')}</th>
+                      <th className="text-start px-5 py-3">{t('table.specialist')}</th>
+                      <th className="text-start px-5 py-3">{t('table.method')}</th>
+                      <th className="text-start px-5 py-3">{t('table.source')}</th>
+                      <th className="text-start px-5 py-3">{t('table.date')}</th>
+                      <th className="text-start px-5 py-3">{t('table.status')}</th>
+                      <th className="text-end px-5 py-3">{t('table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -369,7 +375,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                 ? 'bg-blue-400/10 text-blue-400'
                                 : 'bg-brand/10 text-brand'
                             }`}>
-                              {payment.source === 'mobile_app' ? 'Mobile App' : 'Admin'}
+                              {payment.source === 'mobile_app' ? t('source.mobileApp') : t('source.admin')}
                             </span>
                           </td>
                           <td className="px-5 py-3.5 text-fg-muted">
@@ -388,7 +394,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                               {/* Invoice / Receipt */}
                               <button
                                 onClick={() => setInvoicePayment(payment)}
-                                title={payment.status === 'paid' ? 'View Receipt' : 'View Invoice'}
+                                title={payment.status === 'paid' ? t('tooltips.viewReceipt') : t('tooltips.viewInvoice')}
                                 className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                               >
                                 <FileText className="w-4 h-4" />
@@ -397,7 +403,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                               {payment.status === 'paid' && payment.refunded_amount < payment.amount && can(permissions, 'payments', 'edit') && (
                                 <button
                                   onClick={() => setRefundPayment(payment)}
-                                  title="Process Refund"
+                                  title={t('tooltips.processRefund')}
                                   className="p-1.5 rounded-lg text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
                                 >
                                   <RotateCcw className="w-4 h-4" />
@@ -408,7 +414,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                 <button
                                   onClick={() => updateStatus(payment, 'paid')}
                                   disabled={updatingId === payment.id}
-                                  title="Mark as Paid"
+                                  title={t('tooltips.markAsPaid')}
                                   className="p-1.5 rounded-lg text-fg-faint hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40 text-xs font-medium"
                                 >
                                   <CheckCircle className="w-4 h-4" />
@@ -418,7 +424,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                 <button
                                   onClick={() => updateStatus(payment, 'overdue')}
                                   disabled={updatingId === payment.id}
-                                  title="Mark as Overdue"
+                                  title={t('tooltips.markAsOverdue')}
                                   className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
                                 >
                                   <AlertCircle className="w-4 h-4" />
@@ -428,7 +434,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                 <button
                                   onClick={() => updateStatus(payment, 'pending')}
                                   disabled={updatingId === payment.id}
-                                  title="Mark as Pending"
+                                  title={t('tooltips.markAsPending')}
                                   className="p-1.5 rounded-lg text-fg-faint hover:text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
                                 >
                                   <Clock className="w-4 h-4" />
@@ -447,7 +453,11 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-5 py-3 border-t border-line">
                   <p className="text-xs text-fg-faint">
-                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+                    {t('pagination.showing', {
+                      from: (page - 1) * PAGE_SIZE + 1,
+                      to: Math.min(page * PAGE_SIZE, filtered.length),
+                      total: filtered.length,
+                    })}
                   </p>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}

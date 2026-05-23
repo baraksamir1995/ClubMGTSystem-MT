@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreditCard, ArrowLeftRight, CalendarPlus, Plus, Snowflake, Play, Unlink } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import AssignPlanModal from './assign-plan-modal';
 import TransferModal from './transfer-modal';
 import ExtendMembershipModal from './extend-membership-modal';
@@ -62,6 +63,8 @@ export default function MemberDetailActions({
   activeMembership,
   gymMembers,
 }: Props) {
+  const t = useTranslations('members.actions');
+  const tc = useTranslations('common');
   const router = useRouter();
   const [planModal, setplanModal]         = useState(false);
   const [transferModal, setTransferModal] = useState(false);
@@ -88,12 +91,12 @@ export default function MemberDetailActions({
       const res = await fetch(`/api/members/${memberId}/membership/detach`, { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to detach plan');
+        throw new Error(body.error ?? t('toast.detachFailed'));
       }
-      toast.success('Plan detached. Member set to inactive.');
+      toast.success(t('toast.planDetached'));
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message ?? 'Something went wrong');
+      toast.error(err.message ?? tc('somethingWrong'));
       setDetachConfirm(false);
     } finally {
       setDetaching(false);
@@ -105,12 +108,12 @@ export default function MemberDetailActions({
       <div className="flex items-center gap-2 flex-wrap">
         {hasSessions && (
           <Button variant="secondary" onClick={() => setAddModal(true)} leftIcon={<Plus className="w-4 h-4" />}>
-            Add Sessions
+            {t('addSessions')}
           </Button>
         )}
         {hasDuration && (
           <Button variant="secondary" onClick={() => setExtendModal(true)} leftIcon={<CalendarPlus className="w-4 h-4" />}>
-            Extend
+            {t('extend')}
           </Button>
         )}
         {freezeEnabled && isFrozen && (
@@ -119,14 +122,14 @@ export default function MemberDetailActions({
             className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-sm font-medium rounded-lg transition-colors"
           >
             <Play className="w-4 h-4" />
-            Unfreeze
+            {t('unfreeze')}
           </button>
         )}
         {freezeEnabled && !isFrozen && (
           <button
             onClick={() => !quotaExhausted && setFreezeModal(true)}
             disabled={quotaExhausted}
-            title={quotaExhausted ? (daysExhausted ? 'All freeze days used' : 'Max freeze count reached') : undefined}
+            title={quotaExhausted ? (daysExhausted ? t('allFreezeDaysUsed') : t('maxFreezeCountReached')) : undefined}
             className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium rounded-lg transition-colors ${
               quotaExhausted
                 ? 'bg-blue-600/5 text-blue-400/40 border-blue-500/15 cursor-not-allowed'
@@ -134,21 +137,21 @@ export default function MemberDetailActions({
             }`}
           >
             <Snowflake className="w-4 h-4" />
-            Freeze
+            {t('freeze')}
           </button>
         )}
         <Button variant="secondary" onClick={() => setTransferModal(true)} leftIcon={<ArrowLeftRight className="w-4 h-4" />}>
-          Transfer
+          {t('transfer')}
         </Button>
         {activeMembership && (
           detachConfirm ? (
             <div className="flex items-center gap-1">
-              <span className="text-xs text-danger font-medium">Remove plan?</span>
+              <span className="text-xs text-danger font-medium">{t('removePlan')}</span>
               <Button variant="danger" size="sm" onClick={detachPlan} isLoading={detaching}>
-                Confirm
+                {tc('confirm')}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setDetachConfirm(false)} disabled={detaching}>
-                Cancel
+                {tc('cancel')}
               </Button>
             </div>
           ) : (
@@ -157,12 +160,12 @@ export default function MemberDetailActions({
               className="flex items-center gap-2 px-4 py-2 bg-danger-soft hover:bg-danger/25 text-danger border border-danger/30 text-sm font-medium rounded-lg transition-colors"
             >
               <Unlink className="w-4 h-4" />
-              Detach Plan
+              {t('detachPlan')}
             </button>
           )
         )}
         <Button variant="primary" onClick={() => setplanModal(true)} leftIcon={<CreditCard className="w-4 h-4" />}>
-          {currentPlanId ? 'Change Plan' : 'Assign Plan'}
+          {currentPlanId ? t('changePlan') : t('assignPlan')}
         </Button>
       </div>
 

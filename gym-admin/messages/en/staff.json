@@ -1,0 +1,168 @@
+{
+  "pageTitle": "User & Role Management",
+  "pageSubtitle": "Manage staff accounts, roles, permissions, and access logs",
+
+  "tabs": {
+    "overview": "Overview",
+    "accounts": "Staff Accounts",
+    "roles": "Roles & Permissions",
+    "activity": "Activity Log"
+  },
+
+  "overview": {
+    "totalStaff": "Total Staff",
+    "active": "Active",
+    "inactive": "Inactive",
+    "roles": "Roles",
+    "rolesAndMembers": "Roles & Members",
+    "noRolesYet": "No roles created yet",
+    "failedToLoad": "Failed to load overview data"
+  },
+
+  "accounts": {
+    "staffCount_one": "{count} staff member",
+    "staffCount_other": "{count} staff members",
+    "addStaff": "Add Staff",
+    "noStaffYet": "No staff members yet",
+    "addFirstStaff": "Add First Staff Member",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colPhone": "Phone",
+    "colRoles": "Roles",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "noRolesAssigned": "No roles",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "editTooltip": "Edit",
+    "resetPasswordTooltip": "Reset Password",
+    "deactivateTooltip": "Deactivate",
+    "reactivateTooltip": "Reactivate"
+  },
+
+  "roles": {
+    "createRole": "Create Role",
+    "noRolesYet": "No roles yet",
+    "selectRolePrompt": "Select a role to view its permissions",
+    "memberCount_one": "{count} member",
+    "memberCount_other": "{count} members",
+    "colModule": "Module",
+    "colAll": "All",
+    "permissionsGranted_one": "{count} permission granted",
+    "permissionsGranted_other": "{count} permissions granted",
+    "staffAssigned_one": "{count} staff member assigned",
+    "staffAssigned_other": "{count} staff members assigned"
+  },
+
+  "modules": {
+    "overview": "Overview (Dashboard)",
+    "members": "Members",
+    "plans": "Subscription Plans",
+    "payments": "Payments",
+    "classes": "Classes & Schedule",
+    "trainers": "Trainers",
+    "promotions": "Promotions & Discounts",
+    "attendance": "Attendance & Access",
+    "content": "Content",
+    "notifications": "Communications",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "staff": "Staff & Roles"
+  },
+
+  "actions": {
+    "view": "View",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+
+  "activity": {
+    "colStaff": "Staff",
+    "colFrom": "From",
+    "colTo": "To",
+    "colAction": "Action",
+    "filterByName": "Filter by name…",
+    "allActions": "All actions",
+    "actionCreate": "Create",
+    "actionUpdate": "Update",
+    "actionDelete": "Delete",
+    "actionDeactivate": "Deactivate",
+    "actionReactivate": "Reactivate",
+    "exportCsv": "Export CSV",
+    "noLogsFound": "No activity logs found",
+    "logCount_one": "{count} log entry",
+    "logCount_other": "{count} log entries",
+    "pageOf": "Page {page} of {pages}",
+    "csvHeaders": {
+      "date": "Date",
+      "staff": "Staff",
+      "module": "Module",
+      "action": "Action",
+      "description": "Description"
+    }
+  },
+
+  "staffModal": {
+    "titleCreate": "Add Staff Member",
+    "titleEdit": "Edit Staff Member",
+    "titleCreated": "Staff Created",
+    "labelFullName": "Full Name *",
+    "placeholderFullName": "e.g. Jane Smith",
+    "labelEmail": "Email *",
+    "placeholderEmail": "jane@example.com",
+    "labelPhone": "Phone",
+    "placeholderPhone": "+1 555 000 0000",
+    "labelAssignRoles": "Assign Roles",
+    "noRolesHint": "No roles created yet. Create roles first in the Roles & Permissions tab.",
+    "tempPasswordHint": "A temporary password will be auto-generated. The staff member must change it on first login.",
+    "btnCreate": "Create Staff",
+    "btnSave": "Save Changes",
+    "validationNameEmail": "Name and email required"
+  },
+
+  "roleModal": {
+    "titleCreate": "Create Role",
+    "titleEdit": "Edit Role",
+    "labelRoleName": "Role Name *",
+    "placeholderRoleName": "e.g. Manager, Trainer",
+    "labelDescription": "Description",
+    "placeholderDescription": "Brief description…",
+    "labelPermissions": "Permissions",
+    "btnCreate": "Create Role",
+    "btnSave": "Save Changes",
+    "validationRoleName": "Role name required",
+    "roleUpdated": "Role updated",
+    "roleCreated": "Role created",
+    "roleDeleted": "Role deleted",
+    "deleteConfirm": "Delete role \"{name}\"? This cannot be undone."
+  },
+
+  "deactivateModal": {
+    "title": "Deactivate Account",
+    "subtitle": "This will revoke their access immediately",
+    "body": "Are you sure you want to deactivate {name}? You can reactivate them at any time.",
+    "btnDeactivate": "Deactivate"
+  },
+
+  "resetPassword": {
+    "title": "Password Reset",
+    "hint": "Share this temporary password with the staff member. They must change it on next login.",
+    "toastFailed": "Failed to reset password"
+  },
+
+  "createdCard": {
+    "successTitle": "Staff member created!",
+    "successHint": "Share these credentials. They must change their password on first login.",
+    "labelEmail": "Email",
+    "labelTempPassword": "Temporary password"
+  },
+
+  "toasts": {
+    "staffUpdated": "Staff updated",
+    "accountReactivated": "Account reactivated",
+    "accountDeactivated": "Account deactivated",
+    "statusFailed": "Failed to update status",
+    "genericError": "Error"
+  }
+}

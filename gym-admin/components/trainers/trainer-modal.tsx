@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, Camera, Hash, Lock, Copy, Check, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymBranch } from '@/app/dashboard/branches/page';
@@ -34,6 +35,8 @@ interface Props {
 }
 
 export default function TrainerModal({ existing, defaultType, branches = [], gymId = '', onClose, onSaved }: Props) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const isCreate = !existing;
   const [name,            setName]            = useState(existing?.name ?? '');
   const [bio,             setBio]             = useState(existing?.bio ?? '');
@@ -46,17 +49,10 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
   const [saving,          setSaving]          = useState(false);
 
   // Coachesapp login.
-  // - Create mode: Username (optional, auto-assigned if blank) + Password (required).
-  // - Edit mode: existing Username (editable input — admin can change it
-  //   if not taken) + Password (blank = leave unchanged).
   const existingUsername = existing?.username ?? '';
   const existingHasLogin = existing?.has_login ?? false;
   const [username,        setUsername]        = useState(existingUsername);
   const [password,        setPassword]        = useState('');
-  // Controlled visibility so the Generate button can reveal the
-  // freshly-generated password (otherwise the admin can't see what
-  // they just produced). PasswordInput renders the eye toggle for the
-  // user; we drive it from outside via the controlled `visible` prop.
   const [showPw, setShowPw] = useState(false);
   const [createdCreds,    setCreatedCreds]    = useState<{ username: string; password: string } | null>(null);
   const [showQR,          setShowQR]          = useState(false);
@@ -98,9 +94,9 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
       form.append('file', file);
       const res = await fetch('/api/trainers/photo', { method: 'POST', body: form });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Photo upload failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('trainerModal.photoUploadFailed')); return; }
       setPhotoUrl(data.url);
-    } catch { toast.error('Photo upload failed'); }
+    } catch { toast.error(t('trainerModal.photoUploadFailed')); }
     finally { setUploadingPhoto(false); }
   };
 
@@ -122,38 +118,31 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
   };
 
   const handleSave = async () => {
-    if (!name.trim()) { toast.error('Name is required'); return; }
-    if (uploadingPhoto) { toast.error('Photo still uploading, please wait'); return; }
+    if (!name.trim()) { toast.error(t('trainerModal.nameRequired')); return; }
+    if (uploadingPhoto) { toast.error(t('trainerModal.photoUploading')); return; }
     if (branches.length > 1 && selectedBranchIds.length === 0) {
-      toast.error('Select at least one branch');
+      toast.error(t('trainerModal.selectBranch'));
       return;
     }
-    // Mobile-number-style username (digits only, 4–15). Admin supplies
-    // the specialist's mobile; uniqueness is enforced server-side by
-    // the partial unique index on profiles.username.
     const mobilePattern = /^[0-9]{4,15}$/;
     if (isCreate) {
-      if (!username) { toast.error('Mobile number is required'); return; }
+      if (!username) { toast.error(t('trainerModal.mobileRequired')); return; }
       if (!mobilePattern.test(username)) {
-        toast.error('Mobile number must be digits only (4–15)'); return;
+        toast.error(t('trainerModal.mobileDigitsOnly')); return;
       }
-      if (!password) { toast.error('Password is required'); return; }
-      if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+      if (!password) { toast.error(t('trainerModal.passwordRequired')); return; }
+      if (password.length < 6) { toast.error(t('trainerModal.passwordMinLength')); return; }
     } else {
-      // Edit mode: validate creds only when the admin actually touched
-      // them (blank password = no change).
       if (password && password.length < 6) {
-        toast.error('New password must be at least 6 characters'); return;
+        toast.error(t('trainerModal.passwordMinLengthEdit')); return;
       }
       if (username && username !== existingUsername && !mobilePattern.test(username)) {
-        toast.error('Mobile number must be digits only (4–15)'); return;
+        toast.error(t('trainerModal.mobileInvalidEdit')); return;
       }
     }
 
     setSaving(true);
     try {
-      // One endpoint for both create + edit. Camel-case keys; the
-      // /api/trainers proxy maps them to snake_case before forwarding.
       const body: Record<string, unknown> = {
         name:            name.trim(),
         photoUrl:        photoUrl || null,
@@ -163,9 +152,6 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
         isActive:        existing?.is_active ?? true,
         branchIds:       selectedBranchIds,
       };
-      // Forward credentials only when the admin actually filled them in:
-      // - Create: password required (validated above), username optional.
-      // - Edit:   blank password = leave unchanged; blank username = no change.
       if (password) body.password = password;
       if (username && username !== existingUsername) body.username = username;
 
@@ -181,14 +167,13 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
             body: JSON.stringify(body),
           });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('trainerModal.failedSaveToast')); return; }
 
-      // The API returns the saved trainer at the root (or under `data`).
       const d = data?.data ?? data;
       const savedUsername: string | null = d.username ?? existing?.username ?? null;
       const savedHasLogin: boolean = d.has_login ?? existing?.has_login ?? !!savedUsername;
 
-      toast.success(isCreate ? 'Specialist added' : 'Specialist updated');
+      toast.success(isCreate ? t('trainerModal.addedToast') : t('trainerModal.updatedToast'));
       onSaved({
         id:                d.id ?? existing!.id,
         name:              name.trim(),
@@ -204,51 +189,48 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
       } as TrainerProfile);
 
       if (isCreate) {
-        // Show the assigned credentials once before letting the admin close.
         setCreatedCreds({ username: d.username, password });
         return;
       }
       onClose();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setSaving(false); }
   };
 
   const copy = (s: string, label: string) => {
     navigator.clipboard.writeText(s);
-    toast.success(`${label} copied`);
+    toast.success(t('trainerModal.copiedToast', { label }));
   };
 
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        {createdCreds ? 'Login credentials' : (existing ? 'Edit Specialist' : 'Add Specialist')}
+        {createdCreds ? t('trainerModal.credentialsTitle') : (existing ? t('trainerModal.editTitle') : t('trainerModal.addTitle'))}
       </Modal.Header>
 
-        {/* Post-create credentials view — shown once after a successful
-            specialist provision so the admin can copy/share them. */}
+        {/* Post-create credentials view */}
         {createdCreds && (
           <Modal.Body className="space-y-4">
             <p className="text-sm text-fg-muted">
-              Share these with the specialist. The password is shown once —
-              copy it now.
+              {t('trainerModal.credentialsHint')}
             </p>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-surface border border-line">
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wide text-fg-faint">Username</div>
+                  <div className="text-[10px] uppercase tracking-wide text-fg-faint">{t('trainerModal.usernameLabel')}</div>
                   <div className="font-mono text-sm text-fg truncate">{createdCreds.username}</div>
                 </div>
-                <button onClick={() => copy(createdCreds.username, 'Username')}
+                <button onClick={() => copy(createdCreds.username, t('trainerModal.usernameLabel'))}
                   className="p-2 rounded-md hover:bg-surface-3 text-fg-muted">
                   <Copy className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-surface border border-line">
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wide text-fg-faint">Password</div>
+                  <div className="text-[10px] uppercase tracking-wide text-fg-faint">{t('trainerModal.passwordLabel')}</div>
                   <div className="font-mono text-sm text-fg truncate">{createdCreds.password}</div>
                 </div>
-                <button onClick={() => copy(createdCreds.password, 'Password')}
+                <button onClick={() => copy(createdCreds.password, t('trainerModal.passwordLabel'))}
                   className="p-2 rounded-md hover:bg-surface-3 text-fg-muted">
                   <Copy className="w-4 h-4" />
                 </button>
@@ -256,11 +238,11 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
             </div>
             <div className="flex items-start gap-2 text-xs text-fg-faint">
               <Check className="w-3.5 h-3.5 mt-0.5 text-emerald-400 flex-shrink-0" />
-              <span>The specialist can sign in to the Coachesapp with these.</span>
+              <span>{t('trainerModal.credentialsConfirm')}</span>
             </div>
             <div className="pt-2">
               <Button variant="primary" size="md" fullWidth onClick={onClose}>
-                Done
+                {t('trainerModal.doneBtn')}
               </Button>
             </div>
           </Modal.Body>
@@ -285,7 +267,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                   {uploadingPhoto
                     ? <Loader2 className="w-6 h-6 animate-spin" />
                     : <Camera className="w-6 h-6" />}
-                  <span className="text-xs">Photo</span>
+                  <span className="text-xs">{t('trainerModal.photoLabel')}</span>
                 </div>
               )}
               {uploadingPhoto && (
@@ -294,22 +276,22 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                 </div>
               )}
             </div>
-            <p className="text-xs text-fg-faint">Click to upload photo</p>
+            <p className="text-xs text-fg-faint">{t('trainerModal.photoHint')}</p>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
           </div>
 
-          <Field label="Name" required>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Trainer name" />
+          <Field label={t('trainerModal.nameField')} required>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={t('trainerModal.namePlaceholder')} />
           </Field>
 
           {/* Trainer Type */}
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Type <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('trainerModal.typeField')} <span className="text-red-400">*</span></label>
             <div className="flex gap-2">
               {([
-                ['personal_trainer', 'Personal Trainer'],
-                ['nutritionist',     'Nutritionist'],
-                ['physiotherapist',  'Physiotherapist'],
+                ['personal_trainer', t('trainerModal.typePT')],
+                ['nutritionist',     t('trainerModal.typeNutritionist')],
+                ['physiotherapist',  t('trainerModal.typePhysio')],
               ] as const).map(([val, label]) => (
                 <button
                   key={val}
@@ -327,34 +309,28 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
             </div>
           </div>
 
-          {/* Coachesapp login.
-              - Create: numeric username (auto-assigned if blank) +
-                required password.
-              - Edit (specialist has a login): username editable, password
-                blank = leave unchanged.
-              - Edit (legacy trainer, no login yet): show a hint instead
-                of fields, since /api/trainers/{id} can't add a login. */}
+          {/* Coachesapp login */}
           {(isCreate || existingHasLogin) && (
             <div className="rounded-lg border border-line bg-surface/40 p-3 space-y-3">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-fg-muted">
                 <Hash className="w-3.5 h-3.5" />
-                Coachesapp login
+                {t('trainerModal.coachesappLogin')}
               </div>
 
-              <Field label="Username" required={isCreate}>
+              <Field label={t('trainerModal.usernameMobileLabel')} required={isCreate}>
                 <Input
                   value={username}
                   onChange={e => setUsername(e.target.value.replace(/\D/g, '').slice(0, 15))}
                   inputMode="tel"
-                  placeholder="Mobile number"
+                  placeholder={t('trainerModal.usernamePlaceholder')}
                   className="font-mono"
                 />
               </Field>
 
               <Field
-                label="Password"
+                label={t('trainerModal.passwordLabel')}
                 required={isCreate}
-                hint={!isCreate ? 'Leave blank to keep current.' : undefined}
+                hint={!isCreate ? t('trainerModal.passwordHint') : undefined}
               >
                 <div className="flex gap-2">
                   <PasswordInput
@@ -365,68 +341,61 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                     visible={showPw}
                     onVisibleChange={setShowPw}
                     leftIcon={<Lock className="w-4 h-4" />}
-                    placeholder={isCreate ? 'At least 6 characters' : 'New password (optional)'}
+                    placeholder={isCreate ? t('trainerModal.passwordPlaceholder') : t('trainerModal.passwordEditPlaceholder')}
                   />
                   <Button type="button" variant="secondary" size="md" onClick={generatePw}>
-                    Generate
+                    {t('trainerModal.generateBtn')}
                   </Button>
                 </div>
               </Field>
             </div>
           )}
 
-          {/* Legacy specialist with no login row — the existing edit
-              endpoint can't attach a new login. Surface this rather
-              than silently dropping the input fields. */}
+          {/* Legacy specialist with no login row */}
           {!isCreate && !existingHasLogin && (
             <div className="rounded-lg border border-dashed border-line bg-surface/40 px-3 py-2.5 flex items-start gap-2">
               <Hash className="w-3.5 h-3.5 mt-0.5 text-fg-faint flex-shrink-0" />
               <p className="text-[12px] text-fg-muted leading-snug">
-                This specialist was added before login support. They
-                can&rsquo;t sign in to the Coachesapp yet — re-create them
-                with a password to enable it.
+                {t('trainerModal.noLoginHint')}
               </p>
             </div>
           )}
 
-          {/* Session QR — existing specialists only (the code encodes the
-              specialist id, which doesn't exist until they're created).
-              Members scan it in the app to use one of their booked sessions
-              with this specialist. */}
+          {/* Session QR */}
           {existing && (
             <div className="rounded-lg border border-line bg-surface/40 p-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-2 min-w-0">
                 <QrCode className="w-4 h-4 mt-0.5 text-brand flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-fg">Session QR code</p>
+                  <p className="text-sm font-medium text-fg">{t('qr.sessionQrTitle')}</p>
                   <p className="text-xs text-fg-faint leading-snug">
-                    Members scan this to use a session with this specialist.
+                    {t('qr.sessionQrSubtitle')}
                   </p>
                 </div>
               </div>
               <Button type="button" variant="secondary" size="sm" onClick={() => setShowQR(true)}>
-                Show QR
+                {t('qr.showQrBtn')}
               </Button>
             </div>
           )}
 
-          <Field label={<>Bio <span className="text-fg-faint font-normal">(optional)</span></>}>
+          <Field label={<>{t('trainerModal.bioField')} <span className="text-fg-faint font-normal">{t('trainerModal.bioOptional')}</span></>}>
             <Textarea
               value={bio}
               onChange={e => setBio(e.target.value)}
               rows={3}
-              placeholder="Short trainer bio…"
+              placeholder={t('trainerModal.bioPlaceholder')}
             />
           </Field>
 
           {/* Specialisations */}
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Specialisations <span className="text-fg-faint">(optional)</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('trainerModal.specialisationsField')} <span className="text-fg-faint">{t('trainerModal.specialisationsOptional')}</span></label>
             <div className="bg-surface border border-line rounded-lg px-3 py-2 focus-within:border-brand transition-colors min-h-[42px] flex flex-wrap gap-1.5">
               {specialisations.map(tag => (
                 <span key={tag} className="flex items-center gap-1 bg-brand/20 border border-brand/30 text-brand text-xs px-2 py-0.5 rounded-full">
                   {tag}
-                  <button onClick={() => setSpecialisations(prev => prev.filter(t => t !== tag))}
+                  <button onClick={() => setSpecialisations(prev => prev.filter(tg => tg !== tag))}
                     className="hover:text-fg transition-colors">×</button>
                 </span>
               ))}
@@ -435,17 +404,17 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 onBlur={() => tagInput.trim() && addTag(tagInput)}
-                placeholder={specialisations.length === 0 ? 'e.g. Boxing, HIIT, Yoga — press Enter' : ''}
+                placeholder={specialisations.length === 0 ? t('trainerModal.specialisationsPlaceholder') : ''}
                 className="flex-1 min-w-[120px] bg-transparent text-sm text-fg placeholder-gray-500 outline-none" />
             </div>
-            <p className="text-xs text-fg-faint mt-1">Press Enter or comma to add</p>
+            <p className="text-xs text-fg-faint mt-1">{t('trainerModal.specialisationsHint')}</p>
           </div>
 
           {/* Branch assignment (multi-branch gyms only) */}
           {branches.length > 1 && (
             <div>
               <label className="block text-xs text-fg-muted mb-1.5">
-                Branches <span className="text-red-400">*</span>
+                {t('trainerModal.branchesField')} <span className="text-red-400">*</span>
               </label>
               <div className="flex flex-col gap-2">
                 {branches.map(b => (
@@ -472,7 +441,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                 ))}
               </div>
               {selectedBranchIds.length === 0 && (
-                <p className="text-xs text-red-400 mt-1.5">Select at least one branch</p>
+                <p className="text-xs text-red-400 mt-1.5">{t('trainerModal.branchesRequired')}</p>
               )}
             </div>
           )}
@@ -482,7 +451,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
         {!createdCreds && (
         <Modal.Footer>
           <Button variant="secondary" size="md" fullWidth onClick={onClose}>
-            Cancel
+            {tc('cancel')}
           </Button>
           <Button
             variant="primary"
@@ -492,7 +461,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
             disabled={!name.trim() || uploadingPhoto}
             isLoading={saving}
           >
-            {saving ? 'Saving…' : (existing ? 'Save Changes' : 'Add Specialist')}
+            {saving ? tc('saving') : (existing ? tc('saveChanges') : t('trainerModal.addTitle'))}
           </Button>
         </Modal.Footer>
         )}

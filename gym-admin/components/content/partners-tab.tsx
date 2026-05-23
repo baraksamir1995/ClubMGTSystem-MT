@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Check, Upload, Handshake } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Button } from '@/components/ui';
 
@@ -26,6 +27,9 @@ const emptyForm = { name: '' };
 const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand';
 
 export default function PartnersTab({ initialPartners, permissions, gymId }: Props) {
+  const t = useTranslations('content');
+  const tc = useTranslations('common');
+
   const [partners, setPartners]         = useState<GymPartner[]>(initialPartners);
   const [showForm, setShowForm]         = useState(false);
   const [editId, setEditId]             = useState<string | null>(null);
@@ -36,6 +40,9 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
   const [uploading, setUploading]       = useState(false);
   const [togglingId, setTogglingId]     = useState<string | null>(null);
   const [deletingId, setDeletingId]     = useState<string | null>(null);
+
+  // gymId is received as a prop and may be used in future API calls
+  void gymId;
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +60,7 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2 MB'); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error(t('partners.imageSizeError')); return; }
 
     setUploading(true);
     try {
@@ -62,16 +69,16 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
       formData.append('bucket', 'partner-logos');
       const res = await fetch('/api/files/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (!res.ok) { toast.error('Upload failed: ' + (data.error ?? 'Unknown error')); return; }
+      if (!res.ok) { toast.error(t('partners.uploadFailedMessage', { error: data.error ?? tc('somethingWrong') })); return; }
       setImageUrl(data.url);
       setStoragePath(data.path ?? '');
-      toast.success('Logo uploaded');
-    } catch { toast.error('Upload failed'); }
+      toast.success(t('partners.logoUploaded'));
+    } catch { toast.error(t('partners.uploadFailed')); }
     finally { setUploading(false); e.target.value = ''; }
   };
 
   const save = async () => {
-    if (!form.name.trim()) { toast.error('Name is required'); return; }
+    if (!form.name.trim()) { toast.error(t('partners.nameRequired')); return; }
     setSaving(true);
     try {
       const isEdit = !!editId;
@@ -81,11 +88,11 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
         body: JSON.stringify({ name: form.name.trim(), image_url: imageUrl || null, storage_path: storagePath || null }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setPartners(prev => isEdit ? prev.map(p => p.id === editId ? data : p) : [...prev, data]);
-      toast.success(isEdit ? 'Partner updated' : 'Partner added');
+      toast.success(isEdit ? t('partners.partnerUpdated') : t('partners.partnerAdded'));
       cancel();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setSaving(false); }
   };
 
@@ -98,46 +105,50 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
         body: JSON.stringify({ is_visible: !p.is_visible }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setPartners(prev => prev.map(x => x.id === p.id ? data : x));
-      toast.success(p.is_visible ? 'Partner hidden' : 'Partner visible');
-    } catch { toast.error('Network error'); }
+      toast.success(p.is_visible ? t('partners.partnerHidden') : t('partners.partnerVisible'));
+    } catch { toast.error(tc('networkError')); }
     finally { setTogglingId(null); }
   };
 
   const deletePartner = async (p: GymPartner) => {
-    if (!confirm(`Delete "${p.name}"?`)) return;
+    if (!confirm(t('partners.deleteConfirm', { name: p.name }))) return;
     setDeletingId(p.id);
     try {
       const res = await fetch(`/api/content/partners/${p.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete'); return; }
+      if (!res.ok) { toast.error(tc('somethingWrong')); return; }
       setPartners(prev => prev.filter(x => x.id !== p.id));
-      toast.success('Partner removed');
-    } catch { toast.error('Network error'); }
+      toast.success(t('partners.partnerRemoved'));
+    } catch { toast.error(tc('networkError')); }
     finally { setDeletingId(null); }
   };
+
+  const countLabel = partners.length === 1
+    ? t('partners.countSingular', { count: partners.length })
+    : t('partners.countPlural', { count: partners.length });
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-fg-muted">{partners.length} partner{partners.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-fg-muted">{countLabel}</p>
         {can(permissions, 'content', 'create') && (
-          <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>Add Partner</Button>
+          <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('partners.addPartner')}</Button>
         )}
       </div>
 
       {/* Inline form */}
       {showForm && (
         <div className="bg-surface-2 border border-brand/40 rounded-xl p-5 space-y-4">
-          <p className="text-sm font-medium text-fg">{editId ? 'Edit Partner' : 'New Partner'}</p>
+          <p className="text-sm font-medium text-fg">{editId ? t('partners.editPartner') : t('partners.newPartner')}</p>
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Name <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('partners.nameLabel')} <span className="text-red-400">*</span></label>
             <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. Nike, Protein World" className={inp} />
+              placeholder={t('partners.namePlaceholder')} className={inp} />
           </div>
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Logo</label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('partners.logoLabel')}</label>
             {imageUrl ? (
               <div className="flex items-center gap-3">
                 <div className="w-20 h-20 rounded-xl border border-line bg-surface flex items-center justify-center overflow-hidden p-2">
@@ -145,20 +156,20 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
                   <img src={imageUrl} alt="Preview" className="max-w-full max-h-full object-contain" />
                 </div>
                 <button type="button" onClick={() => { setImageUrl(''); setStoragePath(''); }}
-                  className="text-xs text-fg-muted hover:text-danger transition-colors">Remove</button>
+                  className="text-xs text-fg-muted hover:text-danger transition-colors">{t('partners.remove')}</button>
               </div>
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                 className="flex items-center gap-2 px-4 py-2 border border-dashed border-line text-fg-muted hover:text-fg hover:border-brand rounded-lg text-sm transition-colors disabled:opacity-50">
                 <Upload className="w-4 h-4" />
-                {uploading ? 'Uploading…' : 'Upload logo'}
+                {uploading ? t('partners.uploading') : t('partners.uploadLogo')}
               </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" fullWidth onClick={cancel}>Cancel</Button>
-            <Button variant="primary" fullWidth onClick={save} disabled={uploading} isLoading={saving} leftIcon={<Check className="w-3.5 h-3.5" />}>Save</Button>
+            <Button variant="secondary" fullWidth onClick={cancel}>{tc('cancel')}</Button>
+            <Button variant="primary" fullWidth onClick={save} disabled={uploading} isLoading={saving} leftIcon={<Check className="w-3.5 h-3.5" />}>{tc('save')}</Button>
           </div>
         </div>
       )}
@@ -167,7 +178,7 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
       {partners.length === 0 ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <Handshake className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-          <p className="text-sm text-fg-muted">No partners yet. Add your first partner.</p>
+          <p className="text-sm text-fg-muted">{t('partners.empty')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

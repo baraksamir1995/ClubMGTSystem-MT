@@ -1,0 +1,168 @@
+{
+  "pageTitle": "إدارة المستخدمين والأدوار",
+  "pageSubtitle": "إدارة حسابات الموظفين والأدوار والصلاحيات وسجلات النشاط",
+
+  "tabs": {
+    "overview": "نظرة عامة",
+    "accounts": "حسابات الموظفين",
+    "roles": "الأدوار والصلاحيات",
+    "activity": "سجل النشاط"
+  },
+
+  "overview": {
+    "totalStaff": "إجمالي الموظفين",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "roles": "الأدوار",
+    "rolesAndMembers": "الأدوار والأعضاء",
+    "noRolesYet": "لم يتم إنشاء أدوار بعد",
+    "failedToLoad": "فشل تحميل بيانات النظرة العامة"
+  },
+
+  "accounts": {
+    "staffCount_one": "موظف واحد",
+    "staffCount_other": "{count} موظف",
+    "addStaff": "إضافة موظف",
+    "noStaffYet": "لا يوجد موظفون بعد",
+    "addFirstStaff": "إضافة أول موظف",
+    "colName": "الاسم",
+    "colEmail": "البريد الإلكتروني",
+    "colPhone": "الهاتف",
+    "colRoles": "الأدوار",
+    "colStatus": "الحالة",
+    "colActions": "الإجراءات",
+    "noRolesAssigned": "لا توجد أدوار",
+    "statusActive": "نشط",
+    "statusInactive": "غير نشط",
+    "editTooltip": "تعديل",
+    "resetPasswordTooltip": "إعادة تعيين كلمة المرور",
+    "deactivateTooltip": "تعطيل الحساب",
+    "reactivateTooltip": "إعادة تفعيل الحساب"
+  },
+
+  "roles": {
+    "createRole": "إنشاء دور",
+    "noRolesYet": "لا توجد أدوار بعد",
+    "selectRolePrompt": "اختر دوراً لعرض صلاحياته",
+    "memberCount_one": "عضو واحد",
+    "memberCount_other": "{count} أعضاء",
+    "colModule": "الوحدة",
+    "colAll": "الكل",
+    "permissionsGranted_one": "صلاحية واحدة ممنوحة",
+    "permissionsGranted_other": "{count} صلاحيات ممنوحة",
+    "staffAssigned_one": "موظف واحد معيّن",
+    "staffAssigned_other": "{count} موظفين معيّنين"
+  },
+
+  "modules": {
+    "overview": "نظرة عامة (لوحة التحكم)",
+    "members": "الأعضاء",
+    "plans": "خطط الاشتراك",
+    "payments": "المدفوعات",
+    "classes": "الحصص والجدول",
+    "trainers": "المدربون",
+    "promotions": "العروض والخصومات",
+    "attendance": "الحضور والوصول",
+    "content": "المحتوى",
+    "notifications": "الاتصالات",
+    "analytics": "التحليلات",
+    "settings": "الإعدادات",
+    "staff": "الموظفون والأدوار"
+  },
+
+  "actions": {
+    "view": "عرض",
+    "create": "إنشاء",
+    "edit": "تعديل",
+    "delete": "حذف"
+  },
+
+  "activity": {
+    "colStaff": "الموظف",
+    "colFrom": "من",
+    "colTo": "إلى",
+    "colAction": "الإجراء",
+    "filterByName": "تصفية بالاسم…",
+    "allActions": "جميع الإجراءات",
+    "actionCreate": "إنشاء",
+    "actionUpdate": "تحديث",
+    "actionDelete": "حذف",
+    "actionDeactivate": "تعطيل",
+    "actionReactivate": "إعادة تفعيل",
+    "exportCsv": "تصدير CSV",
+    "noLogsFound": "لم يتم العثور على سجلات نشاط",
+    "logCount_one": "سجل واحد",
+    "logCount_other": "{count} سجلات",
+    "pageOf": "الصفحة {page} من {pages}",
+    "csvHeaders": {
+      "date": "التاريخ",
+      "staff": "الموظف",
+      "module": "الوحدة",
+      "action": "الإجراء",
+      "description": "الوصف"
+    }
+  },
+
+  "staffModal": {
+    "titleCreate": "إضافة موظف",
+    "titleEdit": "تعديل بيانات الموظف",
+    "titleCreated": "تم إنشاء الموظف",
+    "labelFullName": "الاسم الكامل *",
+    "placeholderFullName": "مثال: أحمد محمد",
+    "labelEmail": "البريد الإلكتروني *",
+    "placeholderEmail": "example@domain.com",
+    "labelPhone": "الهاتف",
+    "placeholderPhone": "+966 5XX XXX XXXX",
+    "labelAssignRoles": "تعيين الأدوار",
+    "noRolesHint": "لم يتم إنشاء أدوار بعد. أنشئ الأدوار أولاً من تبويب الأدوار والصلاحيات.",
+    "tempPasswordHint": "سيتم توليد كلمة مرور مؤقتة تلقائياً. يجب على الموظف تغييرها عند أول تسجيل دخول.",
+    "btnCreate": "إنشاء موظف",
+    "btnSave": "حفظ التغييرات",
+    "validationNameEmail": "الاسم والبريد الإلكتروني مطلوبان"
+  },
+
+  "roleModal": {
+    "titleCreate": "إنشاء دور",
+    "titleEdit": "تعديل الدور",
+    "labelRoleName": "اسم الدور *",
+    "placeholderRoleName": "مثال: مدير، مدرب",
+    "labelDescription": "الوصف",
+    "placeholderDescription": "وصف مختصر…",
+    "labelPermissions": "الصلاحيات",
+    "btnCreate": "إنشاء دور",
+    "btnSave": "حفظ التغييرات",
+    "validationRoleName": "اسم الدور مطلوب",
+    "roleUpdated": "تم تحديث الدور",
+    "roleCreated": "تم إنشاء الدور",
+    "roleDeleted": "تم حذف الدور",
+    "deleteConfirm": "حذف الدور \"{name}\"؟ لا يمكن التراجع عن هذا الإجراء."
+  },
+
+  "deactivateModal": {
+    "title": "تعطيل الحساب",
+    "subtitle": "سيؤدي هذا إلى إلغاء صلاحية الوصول فوراً",
+    "body": "هل أنت متأكد من تعطيل حساب {name}؟ يمكنك إعادة تفعيله في أي وقت.",
+    "btnDeactivate": "تعطيل الحساب"
+  },
+
+  "resetPassword": {
+    "title": "إعادة تعيين كلمة المرور",
+    "hint": "شارك كلمة المرور المؤقتة مع الموظف. يجب عليه تغييرها عند تسجيل الدخول التالي.",
+    "toastFailed": "فشل إعادة تعيين كلمة المرور"
+  },
+
+  "createdCard": {
+    "successTitle": "تم إنشاء الموظف بنجاح!",
+    "successHint": "شارك بيانات الاعتماد هذه. يجب عليه تغيير كلمة المرور عند أول تسجيل دخول.",
+    "labelEmail": "البريد الإلكتروني",
+    "labelTempPassword": "كلمة المرور المؤقتة"
+  },
+
+  "toasts": {
+    "staffUpdated": "تم تحديث بيانات الموظف",
+    "accountReactivated": "تم إعادة تفعيل الحساب",
+    "accountDeactivated": "تم تعطيل الحساب",
+    "statusFailed": "فشل تحديث الحالة",
+    "genericError": "حدث خطأ"
+  }
+}

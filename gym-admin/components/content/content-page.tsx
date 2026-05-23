@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LayoutTemplate, Handshake, Bell, Layers } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import BannersTab from './banners-tab';
 import PopupsTab from './popups-tab';
 import PartnersTab, { type GymPartner } from './partners-tab';
@@ -26,21 +27,22 @@ export default function ContentPage({
   initialPartners, planOptions,
   permissions, gymId,
 }: Props) {
+  const t = useTranslations('content');
   const [activeTab, setActiveTab] = useState<Tab>('banners');
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-fg">Content</h1>
-        <p className="text-sm text-fg-muted mt-0.5">Manage everything members see in the app</p>
+        <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+        <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
         <Tabs.List className="flex-wrap">
-          <Tabs.Trigger value="banners" icon={LayoutTemplate}>Banners</Tabs.Trigger>
-          <Tabs.Trigger value="popups" icon={Layers}>Pop-ups</Tabs.Trigger>
-          <Tabs.Trigger value="partners" icon={Handshake}>Partners</Tabs.Trigger>
-          <Tabs.Trigger value="communications" icon={Bell}>Communications</Tabs.Trigger>
+          <Tabs.Trigger value="banners" icon={LayoutTemplate}>{t('tabs.banners')}</Tabs.Trigger>
+          <Tabs.Trigger value="popups" icon={Layers}>{t('tabs.popups')}</Tabs.Trigger>
+          <Tabs.Trigger value="partners" icon={Handshake}>{t('tabs.partners')}</Tabs.Trigger>
+          <Tabs.Trigger value="communications" icon={Bell}>{t('tabs.communications')}</Tabs.Trigger>
         </Tabs.List>
       </Tabs>
 

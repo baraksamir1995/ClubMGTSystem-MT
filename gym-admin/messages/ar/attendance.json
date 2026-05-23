@@ -1,0 +1,121 @@
+{
+  "title": "الحضور والدخول",
+  "subtitle": "تسجيلات الحضور المباشرة والسجلات",
+
+  "gymQrCode": "رمز QR للصالة",
+  "manualCheckin": "تسجيل حضور يدوي",
+
+  "tabs": {
+    "liveFeed": "البث المباشر",
+    "logsAccess": "السجلات والدخول"
+  },
+
+  "live": {
+    "statusLine": "يُحدَّث عند تسجيل الحضور · يُحدَّث كل 60 ثانية",
+    "lastRefresh": "· آخر تحديث: {time}",
+    "refresh": "تحديث",
+    "noRecentCheckins": "لا توجد تسجيلات حضور حديثة",
+    "recentHeader": "الأحدث",
+    "earlierOnPage": "{count} سابقة في هذه الصفحة",
+    "showing": "عرض {from}–{to} من {total}"
+  },
+
+  "hero": {
+    "latest": "الأحدث",
+    "locationLabel": "الموقع",
+    "trainerLabel": "المدرب",
+    "dateLabel": "التاريخ",
+    "timeLabel": "الوقت",
+    "gymEntrance": "المدخل"
+  },
+
+  "relativeTime": {
+    "justNow": "الآن",
+    "minAgo": "منذ {min} دقيقة",
+    "hrAgo": "منذ {hr} ساعة",
+    "dayAgo": "منذ يوم واحد",
+    "daysAgo": "منذ {day} أيام"
+  },
+
+  "planLabel": {
+    "sessions": "خطة جلسات",
+    "duration": "خطة مدة زمنية",
+    "durationSession": "مدة زمنية + جلسات"
+  },
+
+  "methods": {
+    "manual": "يدوي",
+    "qr": "رمز QR",
+    "app": "التطبيق",
+    "card": "بطاقة",
+    "pin": "رقم سري"
+  },
+
+  "logs": {
+    "filters": "الفلاتر",
+    "clearAll": "مسح الكل",
+    "from": "من",
+    "to": "إلى",
+    "member": "العضو",
+    "allMembers": "جميع الأعضاء",
+    "entryPoint": "نقطة الدخول",
+    "allEntryPoints": "جميع نقاط الدخول",
+    "gymGroup": "الصالة",
+    "todaysClasses": "كلاسات اليوم",
+    "applyFilters": "تطبيق الفلاتر",
+    "searchPlaceholder": "البحث بالاسم أو الرقم أو نقطة الدخول…",
+    "recordCount": "{count} سجل",
+    "noLogs": "لا توجد سجلات",
+    "colMember": "العضو",
+    "colCheckin": "تسجيل الحضور",
+    "colBranch": "الفرع",
+    "colEntryPoint": "نقطة الدخول",
+    "colSpecialist": "المتخصص",
+    "colMethod": "الطريقة",
+    "showing": "عرض {from}–{to} من {total}"
+  },
+
+  "qrModal": {
+    "title": "رمز QR لتسجيل الحضور في الصالة",
+    "branchLabel": "الفرع",
+    "gymMainEntrance": "المدخل الرئيسي للصالة",
+    "membersInstruction": "يمسح الأعضاء هذا الرمز لتسجيل حضورهم في الصالة",
+    "downloadPng": "تنزيل PNG",
+    "print": "طباعة",
+    "regenerateQr": "إعادة إنشاء رمز QR",
+    "regenerateTitle": "إعادة إنشاء رمز QR؟",
+    "regenerateBody": "سيتم إنشاء رمز QR جديد للفرع {branchName}. أي رمز مطبوع أو محفوظ مسبقاً سيتوقف عن العمل فوراً.",
+    "thisBranch": "هذا الفرع",
+    "yesRegenerate": "نعم، إعادة الإنشاء",
+    "regenerating": "جارٍ الإنشاء…",
+    "regeneratedSuccess": "تم إعادة إنشاء رمز QR — الرمز القديم لم يعد صالحاً",
+    "regenerateFailed": "فشل في إعادة الإنشاء",
+    "networkError": "خطأ في الشبكة"
+  },
+
+  "manualModal": {
+    "title": "تسجيل حضور يدوي",
+    "memberLabel": "العضو",
+    "searchPlaceholder": "البحث بالاسم أو الرقم…",
+    "noMembersFound": "لا يوجد أعضاء",
+    "checkInDateTime": "تاريخ ووقت تسجيل الحضور",
+    "entryPoint": "نقطة الدخول",
+    "gymAccessGroup": "دخول الصالة (بدون خصم جلسة)",
+    "gymAccessGroupRestricted": "دخول الصالة (بدون خصم جلسة) — غير متاح في هذه الخطة",
+    "planClassOnly": " (الخطة للكلاسات فقط)",
+    "classSessionGroup": "جلسة كلاس (مع خصم جلسة)",
+    "classSessionGroupRestricted": "جلسة كلاس (مع خصم جلسة) — غير متاح في هذه الخطة",
+    "planGymOnly": " (الخطة للصالة فقط)",
+    "otherCustom": "أخرى (اكتب أدناه)…",
+    "enterEntryPoint": "أدخل اسم نقطة الدخول…",
+    "branchLabel": "الفرع",
+    "selectBranch": "— اختر الفرع —",
+    "specialistLabel": "المتخصص",
+    "logCheckin": "تسجيل الحضور",
+    "selectMemberError": "اختر عضواً",
+    "attendanceLogged": "تم تسجيل الحضور",
+    "failedToLog": "فشل تسجيل الحضور",
+    "networkError": "خطأ في الشبكة",
+    "failedToLoadLogs": "فشل تحميل السجلات"
+  }
+}

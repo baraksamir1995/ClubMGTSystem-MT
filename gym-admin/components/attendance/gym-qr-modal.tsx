@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { QrCode, Download, Printer, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Button, Modal, Select } from '@/components/ui';
 
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default function GymQRModal({ gymId, branches, onClose }: Props) {
+  const t = useTranslations('attendance');
+  const tc = useTranslations('common');
   const qrRef = useRef<HTMLDivElement>(null);
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
@@ -52,12 +55,12 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
       const data = await res.json();
       if (res.ok) {
         setQrToken(data.qr_token);
-        toast.success('QR code regenerated — the old QR is now invalid');
+        toast.success(t('qrModal.regeneratedSuccess'));
       } else {
-        toast.error(data.error ?? 'Failed to regenerate');
+        toast.error(data.error ?? t('qrModal.regenerateFailed'));
       }
     } catch {
-      toast.error('Network error');
+      toast.error(t('qrModal.networkError'));
     } finally {
       setRegenerating(false);
       setShowConfirm(false);
@@ -100,14 +103,14 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
     <>
       <Modal open onClose={onClose} size="sm">
         <Modal.Header>
-          <span className="inline-flex items-center gap-2"><QrCode className="w-4 h-4 text-brand" /> Gym Check-in QR Code</span>
+          <span className="inline-flex items-center gap-2"><QrCode className="w-4 h-4 text-brand" /> {t('qrModal.title')}</span>
         </Modal.Header>
 
         <Modal.Body className="flex flex-col items-center gap-5">
           {/* Branch selector */}
           {branches.length > 1 && (
             <div className="w-full">
-              <label className="block text-xs text-fg-muted mb-1.5">Branch</label>
+              <label className="block text-xs text-fg-muted mb-1.5">{tc('branch')}</label>
               <Select value={selectedBranchId} onChange={e => setSelectedBranchId(e.target.value)}>
                 {branches.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
@@ -136,20 +139,20 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
 
           <div className="text-center">
             <p className="text-sm font-medium text-fg">
-              {selectedBranch ? selectedBranch.name : 'Gym Main Entrance'}
+              {selectedBranch ? selectedBranch.name : t('qrModal.gymMainEntrance')}
             </p>
-            <p className="text-xs text-fg-faint mt-0.5">Members scan this to check in at the gym</p>
+            <p className="text-xs text-fg-faint mt-0.5">{t('qrModal.membersInstruction')}</p>
           </div>
 
           {/* Action buttons */}
           <div className="flex gap-2 w-full">
             <Button variant="secondary" fullWidth onClick={downloadQR} disabled={tokenLoading || regenerating}
               leftIcon={<Download className="w-4 h-4" />}>
-              Download PNG
+              {t('qrModal.downloadPng')}
             </Button>
             <Button variant="primary" fullWidth onClick={printQR} disabled={tokenLoading || regenerating}
               leftIcon={<Printer className="w-4 h-4" />}>
-              Print
+              {t('qrModal.print')}
             </Button>
           </div>
 
@@ -160,7 +163,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
               disabled={tokenLoading || regenerating}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-warning/40 text-warning text-sm hover:bg-warning-soft transition-colors disabled:opacity-40"
             >
-              <RefreshCw className="w-3.5 h-3.5" /> Regenerate QR
+              <RefreshCw className="w-3.5 h-3.5" /> {t('qrModal.regenerateQr')}
             </button>
           )}
         </Modal.Body>
@@ -175,23 +178,22 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
                 <AlertTriangle className="w-4 h-4 text-warning" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-fg">Regenerate QR Code?</p>
+                <p className="text-sm font-semibold text-fg">{t('qrModal.regenerateTitle')}</p>
                 <p className="text-xs text-fg-muted mt-1 leading-relaxed">
-                  This will create a new QR code for <span className="text-fg">{selectedBranch?.name ?? 'this branch'}</span>.
-                  Any previously printed or saved QR will stop working immediately.
+                  {t('qrModal.regenerateBody', { branchName: selectedBranch?.name ?? t('qrModal.thisBranch') })}
                 </p>
               </div>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" fullWidth onClick={() => setShowConfirm(false)} disabled={regenerating}>
-                Cancel
+                {tc('cancel')}
               </Button>
               <button
                 onClick={handleRegenerate}
                 disabled={regenerating}
                 className="flex-1 py-2 rounded-lg bg-warning hover:bg-warning/90 text-brand-ink text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {regenerating ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Regenerating…</> : 'Yes, Regenerate'}
+                {regenerating ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('qrModal.regenerating')}</> : t('qrModal.yesRegenerate')}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Calendar, RefreshCw, Download, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -58,6 +59,8 @@ interface Props {
 const PAGE_SIZE = 10;
 
 export default function ServicesLogTab({ trainers, branches }: Props) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const [rows,       setRows]       = useState<ServiceLogRow[]>([]);
   const [total,      setTotal]      = useState(0);
   const [offset,     setOffset]     = useState(0);
@@ -79,22 +82,20 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
       const res = await fetch(`/api/service-logs?${params}`, { cache: 'no-store' });
       const json = (await res.json()) as ApiPayload;
       if (!res.ok) {
-        toast.error((json as unknown as { error?: string }).error ?? 'Failed to load');
+        toast.error((json as unknown as { error?: string }).error ?? tc('somethingWrong'));
         return;
       }
       setRows(json.data);
       setTotal(json.total);
       setOffset(json.offset);
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setLoading(false);
     }
-  }, [q, trainerId, branchId]);
+  }, [q, trainerId, branchId, tc]);
 
-  // Refetch when the non-search filters change. (SearchInput owns its
-  // own debounce and calls `onSearch` directly, so we don't need a
-  // useEffect on `q` here.)
+  // Refetch when the non-search filters change.
   useEffect(() => { fetchRows(0); /* on filter change */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainerId, branchId]);
@@ -106,19 +107,19 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
 
   // ── Filter options + export URL ────────────────────────────────────
   const trainerOptions = useMemo(() => [
-    { value: '', label: 'All specialists' },
+    { value: '', label: t('servicesLog.filterAllSpecialists') },
     ...[...trainers]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(t => ({
-        value: t.id,
-        label: `${t.name}${t.trainer_type ? ' · ' + trainerTypeLabel(t.trainer_type) : ''}`,
+      .map(tr => ({
+        value: tr.id,
+        label: `${tr.name}${tr.trainer_type ? ' · ' + trainerTypeLabel(tr.trainer_type, t) : ''}`,
       })),
-  ], [trainers]);
+  ], [trainers, t]);
 
   const branchOptions = useMemo(() => [
-    { value: '', label: 'All branches' },
+    { value: '', label: t('servicesLog.filterAllBranches') },
     ...branches.map(b => ({ value: b.id, label: b.name })),
-  ], [branches]);
+  ], [branches, t]);
 
   const exportUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -140,7 +141,7 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
   const columns: DataTableColumn<ServiceLogRow>[] = useMemo(() => [
     {
       key: 'date',
-      header: 'Date / Time',
+      header: t('servicesLog.colDateTime'),
       cell: (r) => (
         <div>
           <div className="text-fg">{fmtDate(r.delivered_at)}</div>
@@ -150,7 +151,7 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
     },
     {
       key: 'member',
-      header: 'Member',
+      header: t('servicesLog.colMember'),
       cell: (r) => (
         <div className="flex items-center gap-3 min-w-0">
           <Avatar name={r.member.name ?? '?'} size={32} />
@@ -166,42 +167,43 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
     },
     {
       key: 'specialist',
-      header: 'Specialist',
+      header: t('servicesLog.colSpecialist'),
       cell: (r) => (
         <div>
           <div className="text-fg">{r.specialist.name ?? '—'}</div>
           <div className="text-[11px] text-fg-muted">
-            {r.specialist.trainer_type ? trainerTypeLabel(r.specialist.trainer_type) : '—'}
+            {r.specialist.trainer_type ? trainerTypeLabel(r.specialist.trainer_type, t) : '—'}
           </div>
         </div>
       ),
     },
     {
       key: 'package',
-      header: 'Package',
+      header: t('servicesLog.colPackage'),
       cell: (r) => (
         <div>
           <div className="text-fg">{r.package.name ?? '—'}</div>
-          <div className="text-[11px] text-fg-muted">{r.package.sessions_total} sessions total</div>
+          <div className="text-[11px] text-fg-muted">{t('packages.sessionsTotal', { count: r.package.sessions_total })}</div>
         </div>
       ),
     },
     {
       key: 'price',
-      header: 'Price / session',
+      header: t('servicesLog.colPricePerSession'),
       align: 'right',
       cell: (r) => (
-        <div className="text-right">
+        <div className="text-end">
           <div className="text-fg">{fmtMoney(r.package.price_per_session, r.package.currency)}</div>
           {r.package.price !== null && (
             <div className="text-[11px] text-fg-muted">
-              pack: {fmtMoney(r.package.price, r.package.currency)}
+              {t('packages.packTotal', { amount: fmtMoney(r.package.price, r.package.currency) })}
             </div>
           )}
         </div>
       ),
     },
-  ], []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t]);
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -213,11 +215,11 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
           value={q}
           onValueChange={setQ}
           onSearch={(next) => fetchRows(0, next)}
-          placeholder="Search member · name, ID, email"
+          placeholder={t('servicesLog.searchPlaceholder')}
         />
 
         <FilterDropdown
-          label="Specialist"
+          label={t('servicesLog.filterSpecialist')}
           value={trainerId}
           onChange={setTrainerId}
           options={trainerOptions}
@@ -225,7 +227,7 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
         />
 
         <FilterDropdown
-          label="Branch"
+          label={t('servicesLog.filterBranch')}
           value={branchId}
           onChange={setBranchId}
           options={branchOptions}
@@ -234,21 +236,18 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            Clear
+            {tc('clear')}
           </Button>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2">
           <a
             href={exportUrl}
             download
             aria-disabled={total === 0}
-            // `<a download>` triggers the browser's download flow against
-            // the streamed CSV. Styled to match the secondary Button so
-            // the row stays visually consistent.
             className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium select-none whitespace-nowrap h-8 px-3 text-xs transition-colors bg-brand text-brand-ink hover:bg-brand-dim ${total === 0 ? 'pointer-events-none opacity-40' : ''}`}
           >
-            <Download className="w-3.5 h-3.5" /> Export CSV
+            <Download className="w-3.5 h-3.5" /> {t('servicesLog.exportCsvBtn')}
           </a>
           <Button
             variant="secondary"
@@ -256,7 +255,7 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
             onClick={() => fetchRows(offset)}
             leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
           >
-            Refresh
+            {t('servicesLog.refreshBtn')}
           </Button>
         </div>
       </div>
@@ -264,10 +263,10 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
       {/* Result summary */}
       <div className="text-xs text-fg-muted px-1">
         {loading && rows.length === 0
-          ? 'Loading…'
+          ? tc('loading')
           : total === 0
-            ? 'No sessions logged yet match these filters.'
-            : `Showing ${offset + 1}–${Math.min(offset + rows.length, total)} of ${total}`}
+            ? t('servicesLog.noSessionsYet')
+            : tc('showingResults', { from: offset + 1, to: Math.min(offset + rows.length, total), total })}
       </div>
 
       {/* Table */}
@@ -279,8 +278,8 @@ export default function ServicesLogTab({ trainers, branches }: Props) {
         empty={
           <EmptyState
             icon={Calendar}
-            title="Nothing here yet"
-            description="Coach-logged sessions will appear here once members start being scanned in."
+            title={t('servicesLog.emptyTitle')}
+            description={t('servicesLog.emptyDescription')}
           />
         }
       />
@@ -320,11 +319,11 @@ function fmtMoney(n: number | null, currency: string | null): string {
     return `${currency || ''} ${n}`.trim();
   }
 }
-function trainerTypeLabel(t: string): string {
-  switch (t) {
-    case 'personal_trainer': return 'Personal Trainer';
-    case 'physiotherapist':  return 'Physiotherapist';
-    case 'nutritionist':     return 'Nutritionist';
-    default: return t;
+function trainerTypeLabel(type: string, t: ReturnType<typeof useTranslations<'services'>>): string {
+  switch (type) {
+    case 'personal_trainer': return t('servicesLog.typePT');
+    case 'physiotherapist':  return t('servicesLog.typePhysio');
+    case 'nutritionist':     return t('servicesLog.typeNutritionist');
+    default: return type;
   }
 }

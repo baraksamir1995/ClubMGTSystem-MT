@@ -1,0 +1,40 @@
+{
+  "title": "Guest Invitations",
+  "subtitle": "Track and manage member guest invitations",
+
+  "status_pending": "Pending",
+  "status_accepted": "Accepted",
+  "status_active": "Active",
+  "status_expired": "Expired",
+  "status_invalidated": "Invalidated",
+
+  "col_guest": "Guest",
+  "col_invitedBy": "Invited By",
+  "col_passType": "Pass Type",
+  "col_status": "Status",
+  "col_sent": "Sent",
+  "col_expires": "Expires",
+
+  "passTimeBased": "{days}-day pass",
+  "passVisit": "{visits} visit",
+  "passVisitPlural": "{visits} visits",
+  "visitsUsed": "{count} used",
+
+  "passCountdown_expired": "Expired",
+  "passCountdown_days": "{days}d left",
+  "passCountdown_hours": "{hours}h left",
+  "passLabel": "Pass: {countdown}",
+
+  "guestUnknown": "Unknown",
+
+  "filterAll": "All ({count})",
+
+  "emptyState": "No invitations found",
+
+  "invalidateButton": "Invalidate",
+  "cancellingButton": "Cancelling…",
+  "invalidateConfirm": "Invalidate this invitation? The invite will be returned to the member's balance.",
+  "invalidateSuccess": "Invitation invalidated. Invite returned to member.",
+  "invalidateErrorDefault": "Failed to invalidate",
+  "networkError": "Network error"
+}

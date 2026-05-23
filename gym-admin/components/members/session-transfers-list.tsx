@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Repeat2 } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import { dateLocale } from '@/lib/date-locale';
 
 interface TransferRow {
   id: string;
@@ -21,6 +23,8 @@ interface Props {
  * received (inbound). Hidden entirely when the member has no activity.
  */
 export default function SessionTransfersList({ gymMemberId }: Props) {
+  const t = useTranslations('members.sessionTransfers');
+  const tc = useTranslations('common');
   const [sent, setSent] = useState<TransferRow[]>([]);
   const [received, setReceived] = useState<TransferRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,9 +59,9 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
       <div className="bg-surface-2 border border-line rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Repeat2 className="w-4 h-4 text-brand" />
-          <h2 className="text-sm font-semibold text-fg">Session Transfers</h2>
+          <h2 className="text-sm font-semibold text-fg">{t('title')}</h2>
         </div>
-        <p className="text-xs text-fg-faint">Loading…</p>
+        <p className="text-xs text-fg-faint">{tc('loading')}</p>
       </div>
     );
   }
@@ -68,23 +72,23 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
     <div className="bg-surface-2 border border-line rounded-xl p-6">
       <div className="flex items-center gap-2 mb-4">
         <Repeat2 className="w-4 h-4 text-brand" />
-        <h2 className="text-sm font-semibold text-fg">Session Transfers</h2>
+        <h2 className="text-sm font-semibold text-fg">{t('title')}</h2>
         {totalCount > 0 && (
-          <span className="ml-auto text-xs text-fg-faint">
-            {sent.length} sent · {received.length} received
+          <span className="ms-auto text-xs text-fg-faint">
+            {t('sentReceived', { sent: sent.length, received: received.length })}
           </span>
         )}
       </div>
 
       {totalCount === 0 ? (
-        <p className="text-sm text-fg-faint">No transfers yet.</p>
+        <p className="text-sm text-fg-faint">{t('noTransfers')}</p>
       ) : (
         <div className="space-y-2">
-          {sent.map((t) => (
-            <Row key={t.id} row={t} direction="sent" />
+          {sent.map((tr) => (
+            <Row key={tr.id} row={tr} direction="sent" t={t} />
           ))}
-          {received.map((t) => (
-            <Row key={t.id} row={t} direction="received" />
+          {received.map((tr) => (
+            <Row key={tr.id} row={tr} direction="received" t={t} />
           ))}
         </div>
       )}
@@ -92,12 +96,17 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
   );
 }
 
-function Row({ row, direction }: { row: TransferRow; direction: 'sent' | 'received' }) {
+function Row({ row, direction, t }: { row: TransferRow; direction: 'sent' | 'received'; t: ReturnType<typeof useTranslations> }) {
+  const locale = useLocale();
   const isSent = direction === 'sent';
   const date = new Date(row.created_at);
   const dateStr = isNaN(date.getTime())
     ? row.created_at
-    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    : date.toLocaleDateString(dateLocale(locale), { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const sessionLabel = row.count === 1
+    ? t('sessionSingle', { count: row.count })
+    : t('sessionPlural', { count: row.count });
 
   return (
     <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-surface/40 border border-line">
@@ -114,8 +123,9 @@ function Row({ row, direction }: { row: TransferRow; direction: 'sent' | 'receiv
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-fg truncate">
-          {isSent ? 'Sent to' : 'Received from'}{' '}
-          <span className="font-medium">{row.other_name ?? '—'}</span>
+          {isSent
+            ? t('sentTo', { name: row.other_name ?? '—' })
+            : t('receivedFrom', { name: row.other_name ?? '—' })}
         </p>
         <p className="text-xs text-fg-faint">{dateStr}</p>
       </div>
@@ -125,7 +135,7 @@ function Row({ row, direction }: { row: TransferRow; direction: 'sent' | 'receiv
         }`}
       >
         {isSent ? '−' : '+'}
-        {row.count} {row.count === 1 ? 'session' : 'sessions'}
+        {sessionLabel}
       </div>
     </div>
   );

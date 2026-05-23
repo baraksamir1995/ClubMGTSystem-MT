@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CalendarDays, Zap, Repeat, Copy, type LucideIcon } from 'lucide-react'; // Copy used in parallel toggle
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymClass, ClassSession, GymBranch, GymStudio } from '@/app/dashboard/classes/page';
 import { Button, Input, Modal, Select } from '@/components/ui';
 
@@ -33,12 +34,15 @@ interface Props {
   }) => void;
 }
 
-const SESSION_TYPES: { value: SessionType; label: string; icon: LucideIcon; desc: string }[] = [
-  { value: 'popup',     label: 'Pop-up',    icon: Zap,    desc: 'One-off special session' },
-  { value: 'recurring', label: 'Recurring', icon: Repeat, desc: 'Repeating weekly class' },
-];
-
 export default function SessionModal({ classes, branches, studios, existing, defaultClassId, defaultDate, defaultBranchId, onClose, onSaved, onSavedMultiple, onSeriesUpdated }: Props) {
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
+
+  const SESSION_TYPES: { value: SessionType; label: string; icon: LucideIcon; desc: string }[] = [
+    { value: 'popup',     label: t('sessionModal.popupLabel'),     icon: Zap,    desc: t('sessionModal.popupDesc') },
+    { value: 'recurring', label: t('sessionModal.recurringLabel'), icon: Repeat, desc: t('sessionModal.recurringDesc') },
+  ];
+
   const todayLocal = new Date().toLocaleDateString('en-CA');
 
   const [branchId,    setBranchId]    = useState(existing?.branch_id ?? defaultBranchId ?? (branches.length === 1 ? branches[0].id : ''));
@@ -136,11 +140,11 @@ export default function SessionModal({ classes, branches, studios, existing, def
   };
 
   const handleSubmit = async () => {
-    if (!classId || !date || !startTime || !endTime) { toast.error('Fill in all required fields'); return; }
-    if (branches.length > 1 && !branchId) { toast.error('Please select a branch'); return; }
-    if (!studioId) { toast.error('Please select a studio'); return; }
-    if (startTime >= endTime) { toast.error('End time must be after start time'); return; }
-    if (showParallel && !parallelStudioId) { toast.error('Select a studio for the parallel session'); return; }
+    if (!classId || !date || !startTime || !endTime) { toast.error(t('sessionModal.fillRequired')); return; }
+    if (branches.length > 1 && !branchId) { toast.error(t('sessionModal.selectBranchError')); return; }
+    if (!studioId) { toast.error(t('sessionModal.selectStudioError')); return; }
+    if (startTime >= endTime) { toast.error(t('sessionModal.endTimeAfterStart')); return; }
+    if (showParallel && !parallelStudioId) { toast.error(t('sessionModal.selectParallelStudio')); return; }
 
     setSaving(true);
     try {
@@ -151,7 +155,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
         body: JSON.stringify(buildBody()),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
 
       const cls = classes.find(c => c.id === classId)!;
 
@@ -186,7 +190,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
           studio_id:             studioId || null,
           walk_in_allowed:       walkInAllowed,
         }));
-        toast.success(`Recurring session scheduled — ${recurringSessions.length} weeks generated`);
+        toast.success(t('sessionModal.recurringScheduled', { count: recurringSessions.length }));
         onSavedMultiple ? onSavedMultiple(recurringSessions) : recurringSessions.forEach(s => onSaved(s));
         onClose();
         return;
@@ -214,9 +218,13 @@ export default function SessionModal({ classes, branches, studios, existing, def
 
       const seriesUpdated = existing && isRecurringSeriesEdit && applyToSeries;
       if (seriesUpdated && data.updated_siblings > 0) {
-        toast.success(`Session updated — ${data.updated_siblings} upcoming sibling${data.updated_siblings === 1 ? '' : 's'} also updated`);
+        toast.success(
+          data.updated_siblings === 1
+            ? t('sessionModal.seriesUpdatedSiblings', { count: data.updated_siblings })
+            : t('sessionModal.seriesUpdatedSiblingsPlural', { count: data.updated_siblings })
+        );
       } else {
-        toast.success(existing ? 'Session updated' : 'Session scheduled');
+        toast.success(existing ? t('sessionModal.sessionUpdated') : t('sessionModal.sessionScheduled'));
       }
       onSaved(baseSession);
 
@@ -264,14 +272,14 @@ export default function SessionModal({ classes, branches, studios, existing, def
             instructor:      instructor.trim() || null,
             capacity:        (parallelCapacity || capacity) ? parseInt(parallelCapacity || capacity) : null,
           });
-          toast.success('Parallel session also scheduled');
+          toast.success(t('sessionModal.parallelScheduled'));
         } else {
-          toast.error(`Parallel session failed: ${data2.error ?? 'Unknown error'}`);
+          toast.error(t('sessionModal.parallelFailed', { error: data2.error ?? 'Unknown error' }));
         }
       }
 
       onClose();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setSaving(false); }
   };
 
@@ -280,7 +288,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><CalendarDays className="w-4 h-4 text-brand" /> {existing ? 'Edit Session' : 'Schedule Session'}</span>
+        <span className="inline-flex items-center gap-2"><CalendarDays className="w-4 h-4 text-brand" /> {existing ? t('sessionModal.titleEdit') : t('sessionModal.titleNew')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
@@ -288,22 +296,22 @@ export default function SessionModal({ classes, branches, studios, existing, def
           <div className="bg-brand/10 border border-brand/30 rounded-xl p-3 space-y-2">
             <p className="text-xs text-brand font-medium uppercase tracking-wide flex items-center gap-1.5">
               <Repeat className="w-3.5 h-3.5" />
-              Recurring Series
+              {t('sessionModal.recurringSeries')}
             </p>
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="radio" checked={applyToSeries} onChange={() => setApplyToSeries(true)}
                 className="mt-0.5 accent-brand" />
               <div>
-                <p className="text-sm text-fg">Apply to this and all upcoming sessions</p>
-                <p className="text-xs text-fg-muted mt-0.5">Date changes shift the whole series by the same number of days.</p>
+                <p className="text-sm text-fg">{t('sessionModal.applyToAll')}</p>
+                <p className="text-xs text-fg-muted mt-0.5">{t('sessionModal.applyToAllHint')}</p>
               </div>
             </label>
             <label className="flex items-start gap-2 cursor-pointer">
               <input type="radio" checked={!applyToSeries} onChange={() => setApplyToSeries(false)}
                 className="mt-0.5 accent-brand" />
               <div>
-                <p className="text-sm text-fg">Apply to this session only</p>
-                <p className="text-xs text-fg-muted mt-0.5">Detaches this instance from the rest of the series.</p>
+                <p className="text-sm text-fg">{t('sessionModal.applyToThis')}</p>
+                <p className="text-xs text-fg-muted mt-0.5">{t('sessionModal.applyToThisHint')}</p>
               </div>
             </label>
           </div>
@@ -312,9 +320,9 @@ export default function SessionModal({ classes, branches, studios, existing, def
         {/* Branch picker — first, filters classes below */}
         {branches.length > 1 && (
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Branch <span className="text-danger">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelBranch')} <span className="text-danger">*</span></label>
             <Select value={branchId} onChange={e => setBranchId(e.target.value)}>
-              <option value="">Select branch…</option>
+              <option value="">{tc('select')}…</option>
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </Select>
           </div>
@@ -322,10 +330,10 @@ export default function SessionModal({ classes, branches, studios, existing, def
 
         {/* Class picker — filtered by selected branch */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Class <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelClass')} <span className="text-danger">*</span></label>
           <Select value={classId} onChange={e => setClassId(e.target.value)}>
             {visibleClasses.length === 0
-              ? <option value="">{branches.length > 1 && !branchId ? 'Select a branch first' : 'No classes for this branch'}</option>
+              ? <option value="">{branches.length > 1 && !branchId ? t('sessionModal.selectBranchFirst') : t('sessionModal.noClassesForBranch')}</option>
               : visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
             }
           </Select>
@@ -333,7 +341,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
 
         {/* Session Type — required */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Session Type <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelSessionType')} <span className="text-danger">*</span></label>
           <div className="grid grid-cols-2 gap-2">
             {SESSION_TYPES.map(({ value, label, icon: Icon, desc }) => (
               <button key={value} type="button"
@@ -344,7 +352,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
                     : 'border-line bg-surface-3/40 text-fg-muted hover:border-line-strong hover:text-fg'
                 }`}>
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                <div className="text-left">
+                <div className="text-start">
                   <p>{label}</p>
                   <p className="text-fg-faint font-normal mt-0.5">{desc}</p>
                 </div>
@@ -355,7 +363,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
 
         {/* Date */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Date <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelDate')} <span className="text-danger">*</span></label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)}
             min={existing ? undefined : todayLocal} className="[color-scheme:dark]" />
         </div>
@@ -363,11 +371,11 @@ export default function SessionModal({ classes, branches, studios, existing, def
         {/* Times */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Start Time <span className="text-danger">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelStartTime')} <span className="text-danger">*</span></label>
             <TimeWithAmPm value={startTime} onChange={setStartTime} inputCls={inputCls} />
           </div>
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">End Time <span className="text-danger">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelEndTime')} <span className="text-danger">*</span></label>
             <TimeWithAmPm value={endTime} onChange={setEndTime} inputCls={inputCls} />
           </div>
         </div>
@@ -377,29 +385,29 @@ export default function SessionModal({ classes, branches, studios, existing, def
             back to booking-required preserves whatever the admin typed. */}
         <div>
           <label className="block text-xs text-fg-muted mb-1.5">
-            Capacity <span className="text-fg-faint">(optional)</span>
+            {t('sessionModal.labelCapacity')} <span className="text-fg-faint">({t('sessionModal.capacityOptional')})</span>
             {walkInAllowed && (
-              <span className="ml-2 text-[10px] uppercase tracking-wider text-fg-faint">
-                Not enforced for walk-in
+              <span className="ms-2 text-[10px] uppercase tracking-wider text-fg-faint">
+                {t('sessionModal.notEnforcedWalkIn')}
               </span>
             )}
           </label>
           <Input type="number" value={capacity} onChange={e => setCapacity(e.target.value)}
-            min="1" placeholder={walkInAllowed ? 'Not enforced' : 'Unlimited'}
+            min="1" placeholder={walkInAllowed ? t('sessionModal.notEnforced') : t('sessionModal.unlimited')}
             disabled={walkInAllowed} />
         </div>
 
         {/* Studio — filtered by selected branch */}
         <div>
-          <label className="block text-xs text-fg-muted mb-1.5">Studio <span className="text-danger">*</span></label>
+          <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelStudio')} <span className="text-danger">*</span></label>
           <Select value={studioId} onChange={e => setStudioId(e.target.value)}
             disabled={branches.length > 1 && !branchId}>
             <option value="">
               {branches.length > 1 && !branchId
-                ? 'Select a branch first'
+                ? t('sessionModal.selectBranchFirst')
                 : branchStudios.length === 0
-                  ? 'No studios for this branch'
-                  : 'No studio assigned'}
+                  ? t('sessionModal.noStudiosForBranch')
+                  : t('sessionModal.noStudioAssigned')}
             </option>
             {branchStudios.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
@@ -425,11 +433,11 @@ export default function SessionModal({ classes, branches, studios, existing, def
                       <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${needsBooking ? 'translate-x-5' : 'translate-x-0.5'}`} />
                     </div>
                     <div>
-                      <p className="text-sm text-fg-muted">Needs booking</p>
+                      <p className="text-sm text-fg-muted">{t('sessionModal.needsBooking')}</p>
                       <p className="text-xs text-fg-faint mt-0.5">
                         {needsBooking
-                          ? 'Members must book a spot before attending.'
-                          : 'Members attend by scanning the studio QR — no booking needed.'}
+                          ? t('sessionModal.needsBookingHint')
+                          : t('sessionModal.walkInHint')}
                       </p>
                     </div>
                   </>
@@ -442,25 +450,25 @@ export default function SessionModal({ classes, branches, studios, existing, def
         {/* Trainer — dropdown fetched from branch trainers, defaults to class trainer */}
         <div>
           <label className="block text-xs text-fg-muted mb-1.5">
-            Trainer
+            {t('sessionModal.labelTrainer')}
             {selectedClass?.instructor && instructor && instructor !== selectedClass.instructor && (
               <button type="button" onClick={() => setInstructor(selectedClass.instructor ?? '')}
-                className="ml-2 text-brand hover:text-brand-dim text-xs underline">
-                Reset to default
+                className="ms-2 text-brand hover:text-brand-dim text-xs underline">
+                {t('sessionModal.resetToDefault')}
               </button>
             )}
           </label>
           <Select value={instructor} onChange={e => setInstructor(e.target.value)}>
-            <option value="">No trainer assigned</option>
-            {trainers.map(t => (
-              <option key={t.id} value={t.name}>{t.name}</option>
+            <option value="">{t('sessionModal.noTrainerAssigned')}</option>
+            {trainers.map(tr => (
+              <option key={tr.id} value={tr.name}>{tr.name}</option>
             ))}
             {/* Keep class default visible even if not in branch trainer list */}
-            {selectedClass?.instructor && !trainers.some(t => t.name === selectedClass.instructor) && (
-              <option value={selectedClass.instructor}>{selectedClass.instructor} (class default)</option>
+            {selectedClass?.instructor && !trainers.some(tr => tr.name === selectedClass.instructor) && (
+              <option value={selectedClass.instructor}>{selectedClass.instructor} {t('sessionModal.classDefault')}</option>
             )}
             {/* Keep current session value visible if it doesn't match any trainer */}
-            {instructor && instructor !== selectedClass?.instructor && !trainers.some(t => t.name === instructor) && (
+            {instructor && instructor !== selectedClass?.instructor && !trainers.some(tr => tr.name === instructor) && (
               <option value={instructor}>{instructor}</option>
             )}
           </Select>
@@ -477,20 +485,20 @@ export default function SessionModal({ classes, branches, studios, existing, def
               <div>
                 <p className="text-sm text-fg-muted flex items-center gap-1.5">
                   <Copy className="w-3.5 h-3.5" />
-                  Add parallel session at the same time
+                  {t('sessionModal.parallelSession')}
                 </p>
-                <p className="text-xs text-fg-faint mt-0.5">Same class, same time — different studio</p>
+                <p className="text-xs text-fg-faint mt-0.5">{t('sessionModal.parallelSessionHint')}</p>
               </div>
             </label>
 
             {showParallel && (
               <div className="mt-4 space-y-3 bg-surface-3/30 border border-line rounded-xl p-4">
-                <p className="text-xs text-fg-muted font-medium uppercase tracking-wide">Parallel Session</p>
+                <p className="text-xs text-fg-muted font-medium uppercase tracking-wide">{t('sessionModal.parallelSessionTitle')}</p>
 
                 <div>
-                  <label className="block text-xs text-fg-muted mb-1.5">Studio <span className="text-danger">*</span></label>
+                  <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelParallelStudio')} <span className="text-danger">*</span></label>
                   <Select value={parallelStudioId} onChange={e => setParallelStudioId(e.target.value)}>
-                    <option value="">Select studio…</option>
+                    <option value="">{t('sessionModal.selectStudio')}</option>
                     {branchStudios.filter(s => s.id !== studioId).map(s => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
@@ -498,9 +506,9 @@ export default function SessionModal({ classes, branches, studios, existing, def
                 </div>
 
                 <div>
-                  <label className="block text-xs text-fg-muted mb-1.5">Capacity <span className="text-fg-faint">(optional — defaults to main)</span></label>
+                  <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelParallelCapacity')} <span className="text-fg-faint">({t('sessionModal.parallelCapacityHint')})</span></label>
                   <Input type="number" min="1" value={parallelCapacity} onChange={e => setParallelCapacity(e.target.value)}
-                    placeholder={capacity || 'Same as main session'} />
+                    placeholder={capacity || t('sessionModal.parallelCapacityPlaceholder')} />
                 </div>
               </div>
             )}
@@ -509,9 +517,9 @@ export default function SessionModal({ classes, branches, studios, existing, def
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose}>{tc('cancel')}</Button>
         <Button variant="primary" fullWidth onClick={handleSubmit} disabled={!classId || !date} isLoading={saving}>
-          {existing ? 'Save Changes' : showParallel ? 'Schedule Both' : 'Schedule'}
+          {existing ? tc('saveChanges') : showParallel ? t('sessionModal.scheduleBoth') : t('sessionModal.schedule')}
         </Button>
       </Modal.Footer>
     </Modal>

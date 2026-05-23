@@ -1,0 +1,247 @@
+{
+  "title": "Payments",
+  "subtitle": "Record and track member payments",
+
+  "recordPayment": "Record Payment",
+  "createPayment": "Create Payment",
+  "sendReminders": "Send Reminders",
+
+  "summary": {
+    "totalRevenue": "Total Revenue",
+    "paid": "Paid",
+    "pending": "Pending",
+    "overdue": "Overdue"
+  },
+
+  "status": {
+    "paid": "Paid",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "refunded": "Refunded",
+    "partialRefund": "Part. Refund",
+    "allStatuses": "All Statuses",
+    "partialRefundFull": "Partial Refund"
+  },
+
+  "method": {
+    "cash": "Cash",
+    "bankTransfer": "Bank Transfer",
+    "card": "Card",
+    "other": "Other",
+    "paymentLink": "Payment Link",
+    "allMethods": "All Methods"
+  },
+
+  "source": {
+    "mobileApp": "Mobile App",
+    "admin": "Admin"
+  },
+
+  "filters": {
+    "searchPlaceholder": "Search by member name, email, or member #…",
+    "from": "From",
+    "to": "To",
+    "clearAll": "Clear all",
+    "allSpecialists": "All Specialists",
+    "allServices": "All Services",
+    "allBranches": "All Branches",
+    "branches": "{count} Branch",
+    "branchesPlural": "{count} Branches",
+    "countOfTotal": "{count} of {total} payments"
+  },
+
+  "table": {
+    "member": "Member",
+    "amount": "Amount",
+    "serviceItem": "Service / Item",
+    "branch": "Branch",
+    "specialist": "Specialist",
+    "method": "Method",
+    "source": "Source",
+    "date": "Date",
+    "status": "Status",
+    "actions": "Actions"
+  },
+
+  "empty": {
+    "noPayments": "No payments recorded yet",
+    "noMatch": "No payments match your filters",
+    "recordFirst": "Record first payment"
+  },
+
+  "pagination": {
+    "showing": "Showing {from}–{to} of {total}"
+  },
+
+  "tooltips": {
+    "viewReceipt": "View Receipt",
+    "viewInvoice": "View Invoice",
+    "processRefund": "Process Refund",
+    "markAsPaid": "Mark as Paid",
+    "markAsOverdue": "Mark as Overdue",
+    "markAsPending": "Mark as Pending"
+  },
+
+  "toast": {
+    "updateFailed": "Failed to update",
+    "networkError": "Network error",
+    "markedAs": "Marked as {status}"
+  },
+
+  "recordModal": {
+    "title": "Create Payment",
+    "member": "Member",
+    "memberSearchPlaceholder": "Search by name, email, or member #…",
+    "noMembersFound": "No members found",
+    "serviceItem": "Service / Item",
+    "serviceOptional": "optional",
+    "selectService": "— Select a service —",
+    "otherCustom": "Other (custom description)",
+    "otherDescribePlaceholder": "Describe the service or item…",
+    "specialist": "Specialist",
+    "specialistOptional": "optional",
+    "noSpecialistAssigned": "— No specialist assigned —",
+    "activePromotion": "Active Promotion",
+    "discounted": "Discounted:",
+    "usingOriginalPrice": "Using original price",
+    "usingPromoPrice": "Using promo price",
+    "promoCode": "Promo Code",
+    "noPromoCode": "— No promo code —",
+    "promoOff": "{value} off",
+    "branch": "Branch",
+    "selectBranch": "— Select branch —",
+    "planLimitedTo": "This plan is limited to {branches}",
+    "amount": "Amount",
+    "paymentMethod": "Payment Method",
+    "paymentLinkNote": "A secure Paymob checkout link will be generated and shared with the customer.",
+    "customerMobile": "Customer Mobile Number",
+    "mobileHint": "Include country code — e.g. +201001234567",
+    "statusLabel": "Status",
+    "statusAutomatic": "— set automatically by payment",
+    "notes": "Notes",
+    "notesOptional": "optional",
+    "notesPlaceholder": "e.g. Cash received at front desk…",
+    "generateLink": "Generate Payment Link",
+    "linkGenerated": "Payment link generated — share it with the customer:",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "sendWhatsApp": "Send via WhatsApp",
+    "done": "Done",
+    "cancel": "Cancel",
+    "selectMemberError": "Select a member",
+    "invalidAmountError": "Enter a valid amount",
+    "otherDescriptionError": "Enter a description for Other",
+    "mobileRequiredError": "Mobile number is required for payment links",
+    "linkGeneratedSuccess": "Payment link generated!",
+    "paymentRecorded": "Payment recorded",
+    "failedToRecord": "Failed to record payment",
+    "failedToGenerateLink": "Failed to generate link",
+    "whatsAppMessage": "Hi! Here is your payment link to complete your payment:\n\n{link}"
+  },
+
+  "serviceTypes": {
+    "membership": "Membership",
+    "session_package": "Session Package",
+    "program": "Programme",
+    "offer": "Offer",
+    "other": "Other"
+  },
+
+  "trainerTypes": {
+    "personal_trainer": "Personal Trainer",
+    "nutritionist": "Nutritionist",
+    "physiotherapist": "Physiotherapist",
+    "coach": "Coach"
+  },
+
+  "billingCycles": {
+    "monthly": "/ month",
+    "yearly": "/ year",
+    "quarterly": "/ quarter",
+    "one_time": "one time"
+  },
+
+  "trainerTypeShort": {
+    "personal_trainer": "Personal Training",
+    "physiotherapist": "Physiotherapy",
+    "nutritionist": "Nutrition"
+  },
+
+  "subtitles": {
+    "sessions": "{count} sessions",
+    "programme": "programme",
+    "offer": "offer",
+    "was": "was {price}"
+  },
+
+  "invoice": {
+    "receipt": "RECEIPT",
+    "invoice": "INVOICE",
+    "sendEmail": "Send Email",
+    "sending": "Sending…",
+    "print": "Print / PDF",
+    "billTo": "Bill To",
+    "issueDate": "Issue Date",
+    "paidDate": "Paid Date",
+    "description": "Description",
+    "method": "Method",
+    "amount": "Amount",
+    "offerDiscount": "Offer discount applied",
+    "offerPrice": "Offer price",
+    "totalPaid": "Total Paid",
+    "notes": "Notes",
+    "thankYou": "Thank you for your membership with {gym}",
+    "noEmail": "This member has no email address",
+    "sendFailed": "Failed to send email",
+    "payment": "Payment",
+    "specialist": "Specialist: {name}",
+    "source": "Source: {source}",
+    "mobileApp": "Mobile App",
+    "admin": "Admin",
+    "paidStamp": "PAID"
+  },
+
+  "refund": {
+    "title": "Process Refund",
+    "originalPayment": "Original Payment",
+    "refundType": "Refund Type",
+    "fullRefund": "Full Refund ({amount})",
+    "partialRefund": "Partial Refund",
+    "refundAmount": "Refund Amount",
+    "maxAmount": "max {amount}",
+    "exceedsMax": "Cannot exceed remaining refundable amount of {amount}",
+    "alreadyRefunded": "Already refunded",
+    "reason": "Reason",
+    "reasonPlaceholder": "Enter refund reason...",
+    "paymobWarning": "This will send a real refund request to Paymob for {amount}. The money will be returned to the member's original payment method.",
+    "manualWarning": "This will mark the payment as {status} and record the reason in the payment history.",
+    "fullyRefunded": "fully refunded",
+    "partiallyRefunded": "partially refunded",
+    "refundButton": "Refund {amount}",
+    "processedSuccess": "Refund processed successfully",
+    "failed": "Failed to process refund",
+    "cancel": "Cancel"
+  },
+
+  "reminder": {
+    "title": "Send Overdue Reminders",
+    "complete": "Reminder sending complete:",
+    "overdueCount": "{count} member with overdue payments.",
+    "overdueCountPlural": "{count} members with overdue payments.",
+    "noEmailCount": " {count} have no email on file.",
+    "selected": "{count} selected",
+    "deselectAll": "Deselect all",
+    "selectAll": "Select all",
+    "noEmail": "No email on file",
+    "overdue": "overdue",
+    "sent": "Sent",
+    "failed": "Failed",
+    "sendButton": "Send {count} Reminder",
+    "sendButtonPlural": "Send {count} Reminders",
+    "close": "Close",
+    "cancel": "Cancel",
+    "sendFailed": "Failed to send",
+    "sentSuccess": "Reminder sent to {count} member",
+    "sentSuccessPlural": "Reminder sent to {count} members"
+  }
+}

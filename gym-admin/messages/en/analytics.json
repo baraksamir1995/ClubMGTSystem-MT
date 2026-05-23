@@ -1,0 +1,114 @@
+{
+  "title": "Reporting & Analytics",
+  "subtitle": "Growth, churn, and revenue insights",
+
+  "tabs": {
+    "dashboard": "Dashboard",
+    "members": "Member Growth & Churn",
+    "revenue": "Revenue & Payments",
+    "classes": "Class Attendance"
+  },
+
+  "export": {
+    "csv": "CSV",
+    "excel": "Excel (.xlsx)",
+    "print": "Print / PDF",
+    "excelDownloaded": "Excel file downloaded",
+    "noData": "No data to export"
+  },
+
+  "period": {
+    "today": "Today",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "last30": "Last 30 days",
+    "last90": "Last 90 days",
+    "last6months": "Last 6 months",
+    "last12months": "Last 12 months"
+  },
+
+  "dateRange": {
+    "custom": "Custom:",
+    "to": "to",
+    "apply": "Apply",
+    "selectBothDates": "Select both dates"
+  },
+
+  "fallback": {
+    "noAnalyticsData": "No analytics data available for this view.",
+    "networkError": "Network error — could not reach the server. Try again.",
+    "httpError": "Couldn't load analytics (HTTP {status}). Try again.",
+    "dashboardHttpError": "Couldn't load dashboard (HTTP {status}). Try again."
+  },
+
+  "dashboard": {
+    "performanceOverPeriod": "Performance Over Period",
+    "kpi": {
+      "activeMembers": "Active Members",
+      "revenue": "Revenue",
+      "checkins": "Check-ins",
+      "gymEntries": "gym entries",
+      "sessions": "Sessions",
+      "newSuffix": "+{count} new",
+      "collected": "collected",
+      "bookings": "{count} bookings"
+    }
+  },
+
+  "members": {
+    "newMembers": "New Members",
+    "cancellations": "Cancellations",
+    "netGrowth": "Net Growth",
+    "churnRate": "Churn Rate",
+    "growthVsChurn": "Growth vs Churn by Month",
+    "netGrowthTrend": "Net Growth Trend",
+    "chartLegend": {
+      "newMembers": "New Members",
+      "cancellations": "Cancellations",
+      "netGrowth": "Net Growth"
+    }
+  },
+
+  "revenue": {
+    "totalCollected": "Total Collected",
+    "paidTransactions": "Paid Transactions",
+    "overdueAmount": "Overdue Amount",
+    "pendingAmount": "Pending Amount",
+    "outstandingBalances": "Outstanding Balances",
+    "outstandingDetail": "{overdue} overdue across {count} payment",
+    "outstandingDetailPlural": "{overdue} overdue across {count} payments",
+    "pendingSuffix": " · {pending} pending",
+    "revenueByMonth": "Revenue by Month",
+    "revenueByPlan": "Revenue by Plan",
+    "planBreakdown": "Plan Breakdown",
+    "percentOfTotal": "{pct}% of total",
+    "paymentCount": "{count} payment",
+    "paymentCountPlural": "{count} payments",
+    "chartLegend": {
+      "revenue": "Revenue"
+    }
+  },
+
+  "classes": {
+    "totalSessions": "Total Sessions",
+    "totalBookings": "Total Bookings",
+    "mostPopular": "Most Popular",
+    "leastPopular": "Least Popular",
+    "classesByAttendance": "Classes by Attendance",
+    "noSessionsInPeriod": "No class sessions in this period",
+    "sessionCount": "{count} session",
+    "sessionCountPlural": "{count} sessions",
+    "bookingCount": "{count} bookings",
+    "avgPerSession": "avg {avg}/session",
+    "fillRate": "{rate}% fill rate",
+    "bookingsByDay": "Bookings by Day of Week",
+    "peakDay": "Green = peak day",
+    "bookingsByTime": "Bookings by Start Time",
+    "peakHour": "Amber = peak hour",
+    "chartLegend": {
+      "bookings": "Bookings"
+    }
+  },
+
+  "emptyChart": "No data for this period"
+}

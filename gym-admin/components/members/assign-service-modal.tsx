@@ -4,20 +4,25 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dumbbell, Salad, HeartPulse, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { Button, Modal, Select, Textarea } from '@/components/ui';
 
-const SERVICE_TYPES = [
-  { value: 'personal_trainer',  label: 'Personal Training', icon: Dumbbell,   color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30' },
-  { value: 'nutritionist',      label: 'Nutrition',         icon: Salad,       color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
-  { value: 'physiotherapist',   label: 'Physiotherapy',     icon: HeartPulse,  color: 'text-blue-400',    bg: 'bg-blue-400/10',    border: 'border-blue-400/30' },
-] as const;
+const SERVICE_TYPE_KEYS = ['personal_trainer', 'nutritionist', 'physiotherapist'] as const;
+type ServiceTypeKey = typeof SERVICE_TYPE_KEYS[number];
 
-const PAYMENT_METHODS = [
-  { value: 'cash',          label: 'Cash' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'card',          label: 'Card' },
-  { value: 'other',         label: 'Other' },
-];
+const SERVICE_ICONS: Record<ServiceTypeKey, React.ElementType> = {
+  personal_trainer: Dumbbell,
+  nutritionist: Salad,
+  physiotherapist: HeartPulse,
+};
+
+const SERVICE_STYLES: Record<ServiceTypeKey, { color: string; bg: string; border: string }> = {
+  personal_trainer: { color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30' },
+  nutritionist:     { color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
+  physiotherapist:  { color: 'text-blue-400',    bg: 'bg-blue-400/10',    border: 'border-blue-400/30' },
+};
+
+const PAYMENT_METHOD_KEYS = ['cash', 'bank_transfer', 'card', 'other'] as const;
 
 interface Pkg {
   id: string;
@@ -44,8 +49,12 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
 export default function AssignServiceModal({ memberId, memberName, onClose }: Props) {
+  const t = useTranslations('members.assignService');
+  const tp = useTranslations('members.payments');
+  const tc = useTranslations('common');
+  const ts = useTranslations('members.servicePackages');
   const router = useRouter();
-  const [serviceType, setServiceType] = useState<string>('personal_trainer');
+  const [serviceType, setServiceType] = useState<ServiceTypeKey>('personal_trainer');
   const [packages, setPackages]       = useState<Pkg[]>([]);
   const [trainers, setTrainers]       = useState<Trainer[]>([]);
   const [selectedPkg, setSelectedPkg] = useState<Pkg | null>(null);
@@ -68,12 +77,12 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
     ]).then(([pkgRes, trainerRes]) => {
       setPackages(pkgRes.packages ?? []);
       const all: any[] = trainerRes.trainers ?? [];
-      setTrainers(all.filter(t => t.trainer_type === serviceType && t.is_active));
+      setTrainers(all.filter(tr => tr.trainer_type === serviceType && tr.is_active));
     }).finally(() => setFetching(false));
   }, [serviceType]);
 
   async function handleSubmit() {
-    if (!selectedPkg) { setError('Please select a package'); return; }
+    if (!selectedPkg) { setError(t('toast.selectPackage')); return; }
     setLoading(true);
     setError(null);
     try {
@@ -89,9 +98,9 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to assign package');
+        throw new Error(body.error ?? t('toast.failed'));
       }
-      toast.success('Service package assigned');
+      toast.success(t('toast.assigned'));
       onClose();
       router.refresh();
     } catch (e: any) {
@@ -105,7 +114,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
     <Modal open onClose={onClose} size="lg">
       <Modal.Header>
         <span>
-          Assign Service Package
+          {t('title')}
           <span className="block text-fg-muted text-xs font-normal mt-0.5">{memberName}</span>
         </span>
       </Modal.Header>
@@ -113,39 +122,44 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
       <Modal.Body className="space-y-5">
           {/* Service type selector */}
           <div>
-            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">Service Type</label>
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">{t('serviceTypeLabel')}</label>
             <div className="grid grid-cols-3 gap-2">
-              {SERVICE_TYPES.map(({ value, label, icon: Icon, color, bg, border }) => (
-                <button
-                  key={value}
-                  onClick={() => setServiceType(value)}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-all ${
-                    serviceType === value
-                      ? `${bg} ${color} ${border}`
-                      : 'bg-surface-2 text-fg-muted border-line hover:border-line-strong'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
+              {SERVICE_TYPE_KEYS.map((key) => {
+                const Icon = SERVICE_ICONS[key];
+                const { color, bg, border } = SERVICE_STYLES[key];
+                const label = ts(`serviceType.${key}`);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setServiceType(key)}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-all ${
+                      serviceType === key
+                        ? `${bg} ${color} ${border}`
+                        : 'bg-surface-2 text-fg-muted border-line hover:border-line-strong'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Package list */}
           <div>
-            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">Package</label>
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">{t('packageLabel')}</label>
             {fetching ? (
-              <div className="text-sm text-fg-faint py-4 text-center">Loading packages…</div>
+              <div className="text-sm text-fg-faint py-4 text-center">{t('loadingPackages')}</div>
             ) : packages.length === 0 ? (
-              <div className="text-sm text-fg-faint py-4 text-center">No packages available for this service type.</div>
+              <div className="text-sm text-fg-faint py-4 text-center">{t('noPackages')}</div>
             ) : (
               <div className="space-y-2">
                 {packages.map(pkg => (
                   <button
                     key={pkg.id}
                     onClick={() => setSelectedPkg(pkg)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-start transition-all ${
                       selectedPkg?.id === pkg.id
                         ? 'bg-brand/10 border-brand/40 text-fg'
                         : 'bg-surface-2 border-line hover:border-line-strong text-fg-muted'
@@ -153,11 +167,11 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
                   >
                     <div>
                       <p className="text-sm font-medium">{pkg.name}</p>
-                      <p className="text-xs text-fg-faint mt-0.5">{pkg.session_count} sessions</p>
+                      <p className="text-xs text-fg-faint mt-0.5">{t('sessionsCount', { count: pkg.session_count })}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className="text-sm font-semibold text-brand">{fmt(pkg.price, pkg.currency)}</p>
-                      {selectedPkg?.id === pkg.id && <Check className="w-4 h-4 text-brand ml-auto mt-1" />}
+                      {selectedPkg?.id === pkg.id && <Check className="w-4 h-4 text-brand ms-auto mt-1" />}
                     </div>
                   </button>
                 ))}
@@ -169,12 +183,12 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
           {trainers.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">
-                Specialist <span className="text-fg-faint normal-case font-normal">(optional)</span>
+                {t('specialistLabel')} <span className="text-fg-faint normal-case font-normal">({tc('optional')})</span>
               </label>
               <Select value={trainerId} onChange={e => setTrainerId(e.target.value)}>
-                <option value="">— Not assigned —</option>
-                {trainers.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                <option value="">{t('notAssigned')}</option>
+                {trainers.map(tr => (
+                  <option key={tr.id} value={tr.id}>{tr.name}</option>
                 ))}
               </Select>
             </div>
@@ -182,10 +196,10 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
 
           {/* Payment method */}
           <div>
-            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">Payment Method</label>
+            <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">{t('paymentMethodLabel')}</label>
             <Select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-              {PAYMENT_METHODS.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
+              {PAYMENT_METHOD_KEYS.map(key => (
+                <option key={key} value={key}>{tp(`method.${key}`)}</option>
               ))}
             </Select>
           </div>
@@ -193,13 +207,13 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
           {/* Notes */}
           <div>
             <label className="block text-xs font-medium text-fg-muted uppercase tracking-wide mb-2">
-              Notes <span className="text-fg-faint normal-case font-normal">(optional)</span>
+              {t('notesLabel')} <span className="text-fg-faint normal-case font-normal">({tc('optional')})</span>
             </label>
             <Textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
-              placeholder="e.g. Start next Monday"
+              placeholder={t('notesPlaceholder')}
               className="resize-none"
             />
           </div>
@@ -208,15 +222,15 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
           {selectedPkg && (
             <div className="bg-surface-3/60 rounded-xl p-4 text-sm space-y-1.5">
               <div className="flex justify-between text-fg-muted">
-                <span>Package</span>
+                <span>{t('summaryPackage')}</span>
                 <span className="text-fg font-medium">{selectedPkg.name}</span>
               </div>
               <div className="flex justify-between text-fg-muted">
-                <span>Sessions</span>
+                <span>{t('summarySessions')}</span>
                 <span className="text-fg">{selectedPkg.session_count}</span>
               </div>
               <div className="flex justify-between text-fg-muted">
-                <span>Amount due</span>
+                <span>{t('summaryAmountDue')}</span>
                 <span className="text-brand font-semibold">{fmt(selectedPkg.price, selectedPkg.currency)}</span>
               </div>
             </div>
@@ -226,9 +240,9 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{tc('cancel')}</Button>
         <Button variant="primary" fullWidth onClick={handleSubmit} disabled={!selectedPkg} isLoading={loading}>
-          Assign Package
+          {t('assignPackage')}
         </Button>
       </Modal.Footer>
     </Modal>

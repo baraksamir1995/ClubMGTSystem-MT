@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Snowflake, Play, AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button, Modal } from '@/components/ui';
 
 interface ActiveMembership {
@@ -24,6 +25,8 @@ interface Props {
 }
 
 export default function FreezeMembershipModal({ membership, memberName, onClose }: Props) {
+  const t = useTranslations('members.freeze');
+  const tc = useTranslations('common');
   const router = useRouter();
   const isFrozen = membership.freeze_status === 'frozen';
   const [days, setDays] = useState(1);
@@ -56,7 +59,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to freeze membership');
+        throw new Error(body.error ?? t('toast.freezeFailed'));
       }
       onClose();
       router.refresh();
@@ -78,7 +81,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to unfreeze membership');
+        throw new Error(body.error ?? t('toast.unfreezeFailed'));
       }
       onClose();
       router.refresh();
@@ -89,6 +92,10 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
     }
   }
 
+  const frozenUntilDate = membership.frozen_until
+    ? new Date(membership.frozen_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
@@ -97,7 +104,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
             <Snowflake className="w-5 h-5 text-blue-400" />
           </span>
           <span>
-            {isFrozen ? 'Unfreeze Membership' : 'Freeze Membership'}
+            {isFrozen ? t('titleUnfreeze') : t('titleFreeze')}
             <span className="block text-fg-muted text-xs font-normal mt-0.5">{memberName}</span>
           </span>
         </span>
@@ -107,13 +114,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
         {isFrozen ? (
           <>
             <p className="text-fg-muted text-sm">
-              The membership is currently frozen and will resume on{' '}
-              <span className="text-fg font-medium">
-                {membership.frozen_until
-                  ? new Date(membership.frozen_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : '—'}
-              </span>
-              . Resuming now will refund any unused freeze days back to the expiry date.
+              {t('resumeDesc', { date: frozenUntilDate })}
             </p>
             {error && <p className="text-danger text-sm">{error}</p>}
           </>
@@ -122,17 +123,17 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
             {/* Plan info */}
             <div className="bg-surface-3/60 rounded-xl p-4 text-sm space-y-2">
               <div className="flex justify-between text-fg-muted">
-                <span>Plan</span>
+                <span>{t('plan')}</span>
                 <span className="text-fg font-medium">{membership.plan_name}</span>
               </div>
               <div className="flex justify-between text-fg-muted">
-                <span>Freeze days available</span>
+                <span>{t('freezeDaysAvailable')}</span>
                 <span className={`font-medium ${isDaysExhausted ? 'text-danger' : 'text-fg'}`}>
                   {Math.max(0, daysRemaining)} of {membership.freeze_max_days ?? 0}
                 </span>
               </div>
               <div className="flex justify-between text-fg-muted">
-                <span>Freezes used</span>
+                <span>{t('freezesUsed')}</span>
                 <span className={`font-medium ${isCountExhausted ? 'text-danger' : 'text-fg'}`}>
                   {membership.freeze_count} of {membership.freeze_max_count ?? '∞'}
                 </span>
@@ -145,16 +146,16 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
                 <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" />
                 <p className="text-danger text-sm">
                   {isDaysExhausted
-                    ? `All ${membership.freeze_max_days} freeze days have been used for this plan.`
-                    : `Maximum freeze count (${membership.freeze_max_count}) has been reached for this plan.`}
-                  {' '}No further freezes are allowed.
+                    ? t('limitReachedDays', { max: membership.freeze_max_days ?? 0 })
+                    : t('limitReachedCount', { max: membership.freeze_max_count ?? 0 })}
+                  {t('limitReachedSuffix')}
                 </p>
               </div>
             ) : (
               <>
                 {/* Day picker */}
                 <div>
-                  <label className="block text-fg-muted text-sm font-medium mb-3">How many days?</label>
+                  <label className="block text-fg-muted text-sm font-medium mb-3">{t('howManyDays')}</label>
                   <div className="flex items-center justify-center gap-6">
                     <button
                       onClick={() => setDays(d => Math.max(1, d - 1))}
@@ -172,7 +173,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
                       +
                     </button>
                   </div>
-                  <p className="text-center text-fg-faint text-xs mt-2">Max {maxAllowed} days</p>
+                  <p className="text-center text-fg-faint text-xs mt-2">{t('maxDays', { max: maxAllowed })}</p>
                 </div>
 
                 {/* New expiry preview */}
@@ -180,7 +181,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
                   <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm">
                     <Snowflake className="w-4 h-4 text-blue-400 shrink-0" />
                     <span className="text-blue-300">
-                      New expiry:{' '}
+                      {t('newExpiry')}
                       <span className="font-semibold text-blue-200">
                         {newExpiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
@@ -196,14 +197,14 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{tc('cancel')}</Button>
         {isFrozen ? (
           <Button variant="primary" fullWidth onClick={handleUnfreeze} isLoading={loading} leftIcon={<Play className="w-4 h-4" />}>
-            Resume Now
+            {t('resumeNow')}
           </Button>
         ) : !isLimitReached && (
           <Button variant="primary" fullWidth onClick={handleFreeze} isLoading={loading} leftIcon={<Snowflake className="w-4 h-4" />}>
-            Freeze Plan
+            {t('freezePlan')}
           </Button>
         )}
       </Modal.Footer>

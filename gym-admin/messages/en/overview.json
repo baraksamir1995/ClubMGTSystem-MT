@@ -1,0 +1,10 @@
+{
+  "title": "Overview",
+  "subtitle": "Your gym at a glance",
+  "stats": {
+    "totalMembers": "Total Members",
+    "activeStaff": "Active Staff",
+    "thisMonthRevenue": "This Month Revenue",
+    "totalRevenue": "Total Revenue"
+  }
+}

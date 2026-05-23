@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymClass } from '@/app/dashboard/classes/page';
 import type { StaffMember } from './class-modal';
 import { Button, Input, Modal, Select } from '@/components/ui';
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Props) {
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
   const [staff, setStaff]         = useState<StaffMember[]>([]);
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(cls.instructor ?? '');
@@ -51,18 +54,18 @@ export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Pro
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to update'); return; }
-      toast.success('Trainer reassigned');
+      if (!res.ok) { toast.error(data.error ?? t('reassignTrainer.failedToUpdate')); return; }
+      toast.success(t('reassignTrainer.reassignSuccess'));
       onReassigned(cls.id, instructor);
       onClose();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setSaving(false); }
   };
 
   return (
     <Modal open onClose={onClose} size="sm">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><User className="w-4 h-4 text-brand" /> Assign Trainer</span>
+        <span className="inline-flex items-center gap-2"><User className="w-4 h-4 text-brand" /> {t('reassignTrainer.title')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
@@ -82,20 +85,20 @@ export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Pro
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-fg-muted">Select Trainer</label>
+              <label className="text-xs text-fg-muted">{t('reassignTrainer.selectTrainer')}</label>
               {staff.length > 0 && (
                 <button onClick={() => { setUseCustom(c => !c); setSelected(''); setCustom(''); }}
                   className="text-xs text-brand hover:text-brand-dim transition-colors">
-                  {useCustom ? '← From staff list' : 'Custom name'}
+                  {useCustom ? t('reassignTrainer.fromStaffList') : t('reassignTrainer.customName')}
                 </button>
               )}
             </div>
 
             {staff.length === 0 || useCustom ? (
-              <Input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Trainer name" />
+              <Input value={custom} onChange={e => setCustom(e.target.value)} placeholder={t('reassignTrainer.trainerName')} />
             ) : (
               <Select value={selected} onChange={e => setSelected(e.target.value)}>
-                <option value="">— Remove trainer —</option>
+                <option value="">{t('reassignTrainer.removeTrainer')}</option>
                 {staff.map(s => (
                   <option key={s.id} value={s.full_name}>
                     {s.full_name}{s.role && s.role !== 'staff' ? ` · ${s.role}` : ''}
@@ -112,14 +115,14 @@ export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Pro
                   <p className="text-xs text-fg font-medium">{useCustom ? custom : selected}</p>
                   {!useCustom && <p className="text-xs text-fg-faint">{staff.find(s => s.full_name === selected)?.email ?? ''}</p>}
                 </div>
-                <span className="ml-auto text-xs text-brand font-medium">Assigned</span>
+                <span className="ms-auto text-xs text-brand font-medium">{t('reassignTrainer.assigned')}</span>
               </div>
             )}
 
             {/* Current */}
             {cls.instructor && (
               <p className="text-xs text-fg-faint">
-                Current: <span className="text-fg-muted">{cls.instructor}</span>
+                {t('reassignTrainer.current')} <span className="text-fg-muted">{cls.instructor}</span>
               </p>
             )}
           </div>
@@ -127,9 +130,9 @@ export default function ReassignTrainerModal({ cls, onClose, onReassigned }: Pro
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose}>{tc('cancel')}</Button>
         <Button variant="primary" fullWidth onClick={handleSave} disabled={loading} isLoading={saving}>
-          Assign Trainer
+          {t('reassignTrainer.assignTrainer')}
         </Button>
       </Modal.Footer>
     </Modal>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Percent, Loader2, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import PlanPromoModal from './plan-promo-modal';
 import type { Plan } from '@/app/dashboard/plans/page';
 import { Button } from '@/components/ui';
@@ -24,6 +25,8 @@ interface Props {
 }
 
 export default function PlanPricingTab({ plans }: Props) {
+  const t  = useTranslations('promotions');
+  const tc = useTranslations('common');
   const [promotions,  setPromotions]  = useState<PlanPromotion[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [modal,       setModal]       = useState<{ open: boolean; existing?: PlanPromotion }>({ open: false });
@@ -35,19 +38,19 @@ export default function PlanPricingTab({ plans }: Props) {
     fetch('/api/promos/plan-pricing')
       .then(r => r.json())
       .then(d => setPromotions(d.promotions ?? []))
-      .catch(() => toast.error('Failed to load plan promotions'))
+      .catch(() => toast.error(t('failedToLoadPlanPromos')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const deletePromo = async (promo: PlanPromotion) => {
-    if (!confirm(`Remove promotional pricing for "${promo.plan_name}"?`)) return;
+    if (!confirm(t('removePromoPricingConfirm', { name: promo.plan_name }))) return;
     setDeletingId(promo.id);
     try {
       const res = await fetch(`/api/promos/plan-pricing/${promo.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete'); return; }
+      if (!res.ok) { toast.error(t('failedToDelete')); return; }
       setPromotions(prev => prev.filter(p => p.id !== promo.id));
-      toast.success('Promotion removed');
-    } catch { toast.error('Network error'); }
+      toast.success(t('promotionRemoved'));
+    } catch { toast.error(tc('networkError')); }
     finally { setDeletingId(null); }
   };
 
@@ -58,9 +61,9 @@ export default function PlanPricingTab({ plans }: Props) {
   };
 
   const statusConfig = {
-    active:   { label: 'Active',    icon: CheckCircle2, cls: 'text-success bg-success-soft' },
-    upcoming: { label: 'Upcoming',  icon: Clock,        cls: 'text-blue-400 bg-blue-400/10'       },
-    expired:  { label: 'Expired',   icon: XCircle,      cls: 'text-fg-muted bg-surface-4'       },
+    active:   { label: t('statusActive'),   icon: CheckCircle2, cls: 'text-success bg-success-soft' },
+    upcoming: { label: t('statusUpcoming'), icon: Clock,        cls: 'text-blue-400 bg-blue-400/10'  },
+    expired:  { label: t('statusExpired'),  icon: XCircle,      cls: 'text-fg-muted bg-surface-4'    },
   };
 
   const activePlansWithNoPromo = plans.filter(p =>
@@ -75,37 +78,45 @@ export default function PlanPricingTab({ plans }: Props) {
     );
   }
 
+  const activeCount = promotions.filter(p => getStatus(p) === 'active').length;
+
   return (
     <>
       <div className="space-y-4">
         {/* Active promotions highlight */}
-        {promotions.filter(p => getStatus(p) === 'active').length > 0 && (
+        {activeCount > 0 && (
           <div className="bg-emerald-400/5 border border-emerald-400/20 rounded-xl px-5 py-3 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <p className="text-sm text-emerald-300">
-              <span className="font-semibold">{promotions.filter(p => getStatus(p) === 'active').length}</span> plan{promotions.filter(p => getStatus(p) === 'active').length !== 1 ? 's' : ''} currently have active promotional pricing
+              {activeCount === 1
+                ? t('planPricingActiveNotice')
+                : t('planPricingActiveNoticePlural', { count: activeCount })}
             </p>
           </div>
         )}
 
         <div className="flex items-center justify-between">
-          <p className="text-sm text-fg-muted">{promotions.length} promotion{promotions.length !== 1 ? 's' : ''} total</p>
+          <p className="text-sm text-fg-muted">
+            {promotions.length === 1
+              ? t('promotionsTotal')
+              : t('promotionsTotalPlural', { count: promotions.length })}
+          </p>
           <Button
             variant="primary" size="sm"
             onClick={() => setModal({ open: true })}
             disabled={activePlansWithNoPromo.length === 0}
-            title={activePlansWithNoPromo.length === 0 ? 'All active plans already have promotions' : ''}
+            title={activePlansWithNoPromo.length === 0 ? t('allPlansHavePromos') : ''}
             leftIcon={<Plus className="w-4 h-4" />}>
-            Set Promotion
+            {t('setPromotion')}
           </Button>
         </div>
 
         {promotions.length === 0 ? (
           <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
             <Percent className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-            <p className="text-fg-muted text-sm">No plan promotions set</p>
+            <p className="text-fg-muted text-sm">{t('noPlanPromotionsSet')}</p>
             <Button variant="primary" className="mt-4" onClick={() => setModal({ open: true })} leftIcon={<Plus className="w-4 h-4" />}>
-              Set first promotion
+              {t('setFirstPromotion')}
             </Button>
           </div>
         ) : (
@@ -136,13 +147,13 @@ export default function PlanPricingTab({ plans }: Props) {
                   </div>
 
                   {/* Pricing */}
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-end flex-shrink-0">
                     <div className="flex items-center gap-2 justify-end">
                       <span className="text-xs text-fg-faint line-through">{promo.currency} {planPrice.toFixed(2)}</span>
                       <span className="text-lg font-bold text-fg">{promo.currency} {promoPrice.toFixed(2)}</span>
                     </div>
                     {discount > 0 && (
-                      <p className="text-xs text-emerald-400 mt-0.5">Save {promo.currency} {discount.toFixed(2)} ({pct}% off)</p>
+                      <p className="text-xs text-emerald-400 mt-0.5">{t('savePct', { currency: promo.currency, amount: discount.toFixed(2), pct })}</p>
                     )}
                   </div>
 

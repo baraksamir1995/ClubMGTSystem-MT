@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, Pencil, Trash2, Layers, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRefresh } from '@/lib/use-refresh';
@@ -22,6 +23,8 @@ export default function ProgramsPage({
   permissions: Permission[] | null;
   gymId: string;
 }) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const refresh = useRefresh();
   const [programs, setPrograms]           = useState<GymProgram[]>(initialPrograms);
   const [modalOpen, setModalOpen]         = useState(false);
@@ -65,16 +68,16 @@ export default function ProgramsPage({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this program? This cannot be undone.')) return;
+    if (!confirm(t('programsPage.deleteConfirm'))) return;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/programs/${id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete program'); return; }
+      if (!res.ok) { toast.error(t('programsPage.failedDeleteToast')); return; }
       setPrograms(prev => prev.filter(p => p.id !== id));
-      toast.success('Program deleted');
+      toast.success(t('programsPage.deletedToast'));
       refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setDeletingId(null);
     }
@@ -87,15 +90,15 @@ export default function ProgramsPage({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Programs</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Manage training programs shown on the mobile app Explore feed</p>
+            <h1 className="text-2xl font-bold text-fg">{t('programsPage.title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('programsPage.subtitle')}</p>
           </div>
           {can(permissions, 'programs', 'create') && (
             <button
               onClick={openCreate}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" /> New Program
+              <Plus className="w-4 h-4" /> {t('programsPage.addBtn')}
             </button>
           )}
         </div>
@@ -103,18 +106,18 @@ export default function ProgramsPage({
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
           {([
-            { label: 'Total Programs', value: counts.total,     color: 'text-fg',       filter: 'all' as StatusFilter },
-            { label: 'Published',      value: counts.published, color: 'text-emerald-400', filter: 'published' as StatusFilter },
-            { label: 'Draft',          value: counts.draft,     color: 'text-fg-muted',    filter: 'draft' as StatusFilter },
+            { labelKey: 'programsPage.statTotal',     value: counts.total,     color: 'text-fg',          filter: 'all' as StatusFilter },
+            { labelKey: 'programsPage.statPublished',  value: counts.published, color: 'text-emerald-400', filter: 'published' as StatusFilter },
+            { labelKey: 'programsPage.statDraft',      value: counts.draft,     color: 'text-fg-muted',    filter: 'draft' as StatusFilter },
           ] as const).map(s => (
             <button
               key={s.filter}
               onClick={() => setStatusFilter(statusFilter === s.filter ? 'all' : s.filter)}
-              className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${
+              className={`bg-surface-2 border rounded-xl p-4 text-start transition-colors ${
                 statusFilter === s.filter ? 'border-brand' : 'border-line hover:border-line'
               }`}
             >
-              <p className="text-xs text-fg-muted mb-1">{s.label}</p>
+              <p className="text-xs text-fg-muted mb-1">{t(s.labelKey)}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </button>
           ))}
@@ -123,13 +126,13 @@ export default function ProgramsPage({
         {/* Search + filter */}
         <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by title, category, trainer or level…"
-              className="w-full pl-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
+              placeholder={t('programsPage.searchPlaceholder')}
+              className="w-full ps-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div className="flex gap-3 items-center">
@@ -138,11 +141,11 @@ export default function ProgramsPage({
               onChange={e => setStatusFilter(e.target.value as StatusFilter)}
               className="bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors"
             >
-              <option value="all">All Statuses</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
+              <option value="all">{t('programsPage.statusAll')}</option>
+              <option value="published">{t('programsPage.statusPublished')}</option>
+              <option value="draft">{t('programsPage.statusDraft')}</option>
             </select>
-            <span className="ml-auto text-xs text-fg-faint">{filtered.length} of {programs.length} programs</span>
+            <span className="ms-auto text-xs text-fg-faint">{t('programsPage.resultCount', { filtered: filtered.length, total: programs.length })}</span>
           </div>
         </div>
 
@@ -152,14 +155,14 @@ export default function ProgramsPage({
             <div className="p-12 text-center">
               <Layers className="w-10 h-10 text-fg-faint mx-auto mb-3" />
               <p className="text-fg-muted text-sm">
-                {programs.length === 0 ? 'No programs yet. Create your first program.' : 'No programs match your filters.'}
+                {programs.length === 0 ? t('programsPage.emptyNone') : t('programsPage.emptyNoMatch')}
               </p>
               {programs.length === 0 && can(permissions, 'programs', 'create') && (
                 <button
                   onClick={openCreate}
                   className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
                 >
-                  <Plus className="w-4 h-4" /> Create your first program
+                  <Plus className="w-4 h-4" /> {t('programsPage.createFirstBtn')}
                 </button>
               )}
             </div>
@@ -168,12 +171,12 @@ export default function ProgramsPage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-left px-5 py-3">Program</th>
-                    <th className="text-left px-5 py-3">Details</th>
-                    <th className="text-left px-5 py-3">Trainer</th>
-                    <th className="text-left px-5 py-3">Status</th>
-                    <th className="text-left px-5 py-3">Order</th>
-                    <th className="text-right px-5 py-3">Actions</th>
+                    <th className="text-start px-5 py-3">{t('programsPage.colProgram')}</th>
+                    <th className="text-start px-5 py-3">{t('programsPage.colDetails')}</th>
+                    <th className="text-start px-5 py-3">{t('programsPage.colTrainer')}</th>
+                    <th className="text-start px-5 py-3">{t('programsPage.colStatus')}</th>
+                    <th className="text-start px-5 py-3">{t('programsPage.colOrder')}</th>
+                    <th className="text-end px-5 py-3">{t('programsPage.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -234,7 +237,7 @@ export default function ProgramsPage({
                       {/* Status */}
                       <td className="px-5 py-3.5">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[program.status] ?? 'bg-gray-400/10 text-fg-muted'}`}>
-                          {program.status}
+                          {program.status === 'published' ? t('programsPage.statusPublished') : t('programsPage.statusDraft')}
                         </span>
                       </td>
 
@@ -249,7 +252,7 @@ export default function ProgramsPage({
                           {can(permissions, 'programs', 'edit') && (
                             <button
                               onClick={() => openEdit(program)}
-                              title="Edit program"
+                              title={t('programsPage.editTitle')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
@@ -259,7 +262,7 @@ export default function ProgramsPage({
                             <button
                               onClick={() => handleDelete(program.id)}
                               disabled={deletingId === program.id}
-                              title="Delete program"
+                              title={t('programsPage.deleteTitle')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
                             >
                               <Trash2 className="w-4 h-4" />

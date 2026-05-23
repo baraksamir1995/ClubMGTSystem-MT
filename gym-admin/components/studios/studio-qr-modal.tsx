@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { X, Printer, QrCode, Users } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslations } from 'next-intl';
 import type { GymStudio } from '@/app/dashboard/classes/page';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function StudioQRModal({ studio, gymId, onClose }: Props) {
+  const t = useTranslations('classes');
   const printRef = useRef<HTMLDivElement>(null);
 
   // Static payload — permanently tied to the studio, never contains session data
@@ -39,10 +41,10 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
       </style></head>
       <body><div class="card">
         <h1>${studio.name}</h1>
-        <div class="sub">Studio Access QR</div>
+        <div class="sub">${t('studioQr.studioAccessQr')}</div>
         <div class="qr">${printRef.current?.querySelector('svg')?.outerHTML ?? ''}</div>
-        ${studio.capacity ? `<div class="info">Capacity: ${studio.capacity}</div>` : ''}
-        <div class="footer">Scan with the gym app to access this studio</div>
+        ${studio.capacity ? `<div class="info">${t('studioQr.capacityLabel')} ${studio.capacity}</div>` : ''}
+        <div class="footer">${t('studioQr.scanHint')}</div>
       </div></body></html>`);
     win.document.close();
     win.focus();
@@ -57,7 +59,7 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div className="flex items-center gap-2">
             <QrCode className="w-4 h-4 text-brand" />
-            <h2 className="text-base font-semibold text-fg">Studio QR Code</h2>
+            <h2 className="text-base font-semibold text-fg">{t('studioQr.title')}</h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
@@ -70,7 +72,7 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
             <p className="text-fg font-semibold text-lg">{studio.name}</p>
             {studio.capacity && (
               <p className="text-sm text-fg-muted mt-1 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" /> Capacity: {studio.capacity}
+                <Users className="w-3.5 h-3.5" /> {t('studioQr.capacityLabel')} {studio.capacity}
               </p>
             )}
           </div>
@@ -88,14 +90,13 @@ export default function StudioQRModal({ studio, gymId, onClose }: Props) {
           {/* Info */}
           <div className="bg-surface-3/40 rounded-xl px-4 py-3 mb-5">
             <p className="text-xs text-fg-muted text-center leading-relaxed">
-              This is a <span className="text-fg font-medium">permanent</span> studio QR code. Members scan it to be
-              validated against their booked session for this studio. Print and mount it at the studio entrance.
+              {t('studioQr.description')}
             </p>
           </div>
 
           <button onClick={handlePrint}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium transition-colors">
-            <Printer className="w-4 h-4" /> Print
+            <Printer className="w-4 h-4" /> {t('studioQr.print')}
           </button>
         </div>
       </div>

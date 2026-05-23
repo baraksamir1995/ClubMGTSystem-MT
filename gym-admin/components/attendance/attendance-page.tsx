@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Radio, ClipboardList, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations, useLocale } from 'next-intl';
+import { dateLocale } from '@/lib/date-locale';
 import { useRefresh } from '@/lib/use-refresh';
 import ManualLogModal from './manual-log-modal';
 import GymQRModal from './gym-qr-modal';
@@ -22,13 +24,20 @@ interface Props {
   permissions: Permission[] | null;
 }
 
-const METHODS: Record<string, string> = {
-  manual: 'Manual', qr: 'QR Code', app: 'App', card: 'Card', pin: 'PIN',
-};
-
 import { fmtTime12 as fmtTime, fmtDateGym as fmtDate, fmtDateTimeGym as fmtDateTime } from '@/lib/time';
 
 export default function AttendancePage({ initialLogs, members, accessPoints: initialAccessPoints, sessionEntryPoints, sessionOptions, gymId, branches, permissions }: Props) {
+  const t = useTranslations('attendance');
+  const tc = useTranslations('common');
+
+  const METHODS: Record<string, string> = {
+    manual: t('methods.manual'),
+    qr: t('methods.qr'),
+    app: t('methods.app'),
+    card: t('methods.card'),
+    pin: t('methods.pin'),
+  };
+
   const refresh = useRefresh();
   const [activeTab,     setActiveTab]     = useState<'live' | 'logs'>('live');
   const [logs,          setLogs]          = useState<AttendanceLog[]>(initialLogs);
@@ -121,16 +130,16 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
       if (filterPoint)   params.set('access_point', filterPoint);
       const res = await fetch(`/api/attendance?${params}`);
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to load logs'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('manualModal.failedToLoadLogs')); return; }
       setLogsData(data.logs ?? []);
       if (data.pagination) {
         setLogsPage(data.pagination.page);
         setLogsTotalPages(data.pagination.pages);
         setLogsTotal(data.pagination.total);
       }
-    } catch { toast.error('Failed to load logs'); }
+    } catch { toast.error(t('manualModal.failedToLoadLogs')); }
     finally { setLogsLoading(false); }
-  }, [fromDate, toDate, filterMember, filterPoint]);
+  }, [fromDate, toDate, filterMember, filterPoint, t]);
 
   useEffect(() => {
     if (activeTab === 'logs') fetchLogs(1);
@@ -155,16 +164,16 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Attendance & Access</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Live check-ins and logs</p>
+            <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={() => setShowQR(true)} leftIcon={<QrCode className="w-4 h-4" />}>
-              Gym QR Code
+              {t('gymQrCode')}
             </Button>
             {can(permissions, 'attendance', 'create') && (
               <Button variant="primary" onClick={() => setShowManual(true)} leftIcon={<Plus className="w-4 h-4" />}>
-                Manual Check-in
+                {t('manualCheckin')}
               </Button>
             )}
           </div>
@@ -174,10 +183,10 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'live' | 'logs')}>
           <Tabs.List>
             <Tabs.Trigger value="live" icon={Radio}>
-              Live Feed
+              {t('tabs.liveFeed')}
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             </Tabs.Trigger>
-            <Tabs.Trigger value="logs" icon={ClipboardList}>Logs &amp; Access</Tabs.Trigger>
+            <Tabs.Trigger value="logs" icon={ClipboardList}>{t('tabs.logsAccess')}</Tabs.Trigger>
           </Tabs.List>
         </Tabs>
 
@@ -187,30 +196,30 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                <span className="text-sm text-fg-muted">Updates on check-in · refreshes every 60s</span>
-                <span className="text-xs text-fg-faint">· Last: {fmtTime(lastRefresh.toISOString())}</span>
+                <span className="text-sm text-fg-muted">{t('live.statusLine')}</span>
+                <span className="text-xs text-fg-faint">{t('live.lastRefresh', { time: fmtTime(lastRefresh.toISOString()) })}</span>
               </div>
               <Button variant="secondary" size="sm" onClick={() => fetchLive(livePage)} disabled={liveLoading}
                 leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${liveLoading ? 'animate-spin' : ''}`} />}>
-                Refresh
+                {t('live.refresh')}
               </Button>
             </div>
 
             {logs.length === 0 ? (
               <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
                 <Radio className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-                <p className="text-sm text-fg-muted">No recent check-ins</p>
+                <p className="text-sm text-fg-muted">{t('live.noRecentCheckins')}</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {/* Hero card — magnified view of the most recent check-in on this page */}
-                <LatestScanHero log={logs[0]} isLive={livePage === 1} />
+                <LatestScanHero log={logs[0]} isLive={livePage === 1} methods={METHODS} />
 
                 {logs.length > 1 && (
                   <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
                     <div className="px-5 py-2.5 border-b border-line/50 flex items-center justify-between">
-                      <p className="text-xs text-fg-faint uppercase tracking-wider font-semibold">Recent</p>
-                      <p className="text-xs text-fg-faint">{logs.length - 1} earlier on this page</p>
+                      <p className="text-xs text-fg-faint uppercase tracking-wider font-semibold">{t('live.recentHeader')}</p>
+                      <p className="text-xs text-fg-faint">{t('live.earlierOnPage', { count: logs.length - 1 })}</p>
                     </div>
                     <div className="divide-y divide-line">
                       {logs.slice(1).map((log) => (
@@ -232,7 +241,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                               </span>
                             )}
                           </div>
-                          <div className="text-right flex-shrink-0">
+                          <div className="text-end flex-shrink-0">
                             <p className="text-sm text-fg">{fmtTime(log.check_in_at)}</p>
                             <p className="text-xs text-fg-faint">{fmtDate(log.check_in_at)}</p>
                           </div>
@@ -246,7 +255,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                     {liveTotalPages > 1 && (
                       <div className="flex items-center justify-between px-5 py-3 border-t border-line">
                         <p className="text-xs text-fg-faint">
-                          Showing {(livePage - 1) * LIVE_PAGE_SIZE + 1}–{Math.min(livePage * LIVE_PAGE_SIZE, liveTotal)} of {liveTotal}
+                          {t('live.showing', { from: (livePage - 1) * LIVE_PAGE_SIZE + 1, to: Math.min(livePage * LIVE_PAGE_SIZE, liveTotal), total: liveTotal })}
                         </p>
                         <div className="flex items-center gap-1">
                           <button onClick={() => fetchLive(Math.max(1, livePage - 1))} disabled={livePage === 1 || liveLoading}
@@ -283,40 +292,40 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
             <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2 mb-1">
                 <Filter className="w-4 h-4 text-fg-muted" />
-                <span className="text-sm font-medium text-fg">Filters</span>
+                <span className="text-sm font-medium text-fg">{tc('filters')}</span>
                 {(fromDate || toDate || filterMember || filterPoint) && (
-                  <Button variant="ghost" size="sm" className="ml-auto" onClick={() => { setFromDate(''); setToDate(''); setFilterMember(''); setFilterPoint(''); }}>Clear all</Button>
+                  <Button variant="ghost" size="sm" className="ms-auto" onClick={() => { setFromDate(''); setToDate(''); setFilterMember(''); setFilterPoint(''); }}>{t('logs.clearAll')}</Button>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-fg-faint mb-1">From</label>
+                  <label className="block text-xs text-fg-faint mb-1">{t('logs.from')}</label>
                   <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="[color-scheme:dark]" />
                 </div>
                 <div>
-                  <label className="block text-xs text-fg-faint mb-1">To</label>
+                  <label className="block text-xs text-fg-faint mb-1">{t('logs.to')}</label>
                   <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="[color-scheme:dark]" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-fg-faint mb-1">Member</label>
+                  <label className="block text-xs text-fg-faint mb-1">{t('logs.member')}</label>
                   <Select value={filterMember} onChange={e => setFilterMember(e.target.value)}>
-                    <option value="">All members</option>
+                    <option value="">{t('logs.allMembers')}</option>
                     {members.map(m => <option key={m.id} value={m.id}>{m.full_name ?? m.member_number}</option>)}
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-xs text-fg-faint mb-1">Entry Point</label>
+                  <label className="block text-xs text-fg-faint mb-1">{t('logs.entryPoint')}</label>
                   <Select value={filterPoint} onChange={e => setFilterPoint(e.target.value)}>
-                    <option value="">All entry points</option>
-                    <optgroup label="Gym">
+                    <option value="">{t('logs.allEntryPoints')}</option>
+                    <optgroup label={t('logs.gymGroup')}>
                       {allAccessPoints
                         .filter(p => !sessionEntryPoints.includes(p))
                         .map(p => <option key={p} value={p}>{p}</option>)}
                     </optgroup>
                     {sessionEntryPoints.length > 0 && (
-                      <optgroup label="Today's Classes">
+                      <optgroup label={t('logs.todaysClasses')}>
                         {sessionEntryPoints.map(p => <option key={p} value={p}>{p}</option>)}
                       </optgroup>
                     )}
@@ -324,27 +333,27 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                 </div>
               </div>
               <Button variant="primary" fullWidth onClick={() => fetchLogs(1)} isLoading={logsLoading}>
-                Apply Filters
+                {t('logs.applyFilters')}
               </Button>
             </div>
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint z-10" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint z-10" />
               <Input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name, ID, or entry point…"
-                className="pl-9" />
-              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg z-10"><X className="w-3.5 h-3.5" /></button>}
+                placeholder={t('logs.searchPlaceholder')}
+                className="ps-9" />
+              {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg z-10"><X className="w-3.5 h-3.5" /></button>}
             </div>
 
-            <div className="text-xs text-fg-faint">{logsTotal > 0 ? `${logsTotal} records` : `${displayedLogs.length} records`}</div>
+            <div className="text-xs text-fg-faint">{t('logs.recordCount', { count: logsTotal > 0 ? logsTotal : displayedLogs.length })}</div>
 
             {/* Table */}
             <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
               {displayedLogs.length === 0 ? (
                 <div className="p-12 text-center">
                   <ClipboardList className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-                  <p className="text-sm text-fg-muted">No logs found</p>
+                  <p className="text-sm text-fg-muted">{t('logs.noLogs')}</p>
                 </div>
               ) : (
                 <>
@@ -352,12 +361,12 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-line">
-                          <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">MEMBER</th>
-                          <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">CHECK-IN</th>
-                          <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">BRANCH</th>
-                          <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">ENTRY POINT</th>
-                          <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">SPECIALIST</th>
-                          <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">METHOD</th>
+                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colMember')}</th>
+                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colCheckin')}</th>
+                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colBranch')}</th>
+                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colEntryPoint')}</th>
+                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colSpecialist')}</th>
+                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colMethod')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
@@ -397,7 +406,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                   {logsTotalPages > 1 && (
                     <div className="flex items-center justify-between px-5 py-3 border-t border-line">
                       <p className="text-xs text-fg-faint">
-                        Showing {(logsPage - 1) * LOGS_PAGE_SIZE + 1}–{Math.min(logsPage * LOGS_PAGE_SIZE, logsTotal)} of {logsTotal}
+                        {t('logs.showing', { from: (logsPage - 1) * LOGS_PAGE_SIZE + 1, to: Math.min(logsPage * LOGS_PAGE_SIZE, logsTotal), total: logsTotal })}
                       </p>
                       <div className="flex items-center gap-1">
                         <button onClick={() => fetchLogs(Math.max(1, logsPage - 1))} disabled={logsPage === 1 || logsLoading}
@@ -473,14 +482,16 @@ function trainerName(log: AttendanceLog): string | null {
   return log.instructor_name || log.specialist_name;
 }
 
-function planLabel(log: AttendanceLog): string | null {
+function planLabel(log: AttendanceLog, t: ReturnType<typeof useTranslations>): string | null {
   if (log.plan_name) return log.plan_name;
   if (log.plan_type) {
-    return ({
-      sessions: 'Sessions plan',
-      duration: 'Duration plan',
-      duration_session: 'Duration + sessions',
-    } as Record<string, string>)[log.plan_type] ?? log.plan_type;
+    const key = log.plan_type === 'duration_session' ? 'durationSession' : log.plan_type;
+    const keyMap: Record<string, string> = {
+      sessions: 'planLabel.sessions',
+      duration: 'planLabel.duration',
+      duration_session: 'planLabel.durationSession',
+    };
+    return keyMap[log.plan_type] ? t(keyMap[log.plan_type] as Parameters<typeof t>[0]) : log.plan_type;
   }
   return null;
 }
@@ -526,16 +537,19 @@ function Avatar({ log, size, ring }: AvatarProps) {
 interface LatestScanHeroProps {
   log: AttendanceLog;
   isLive: boolean;
+  methods: Record<string, string>;
 }
 
-function LatestScanHero({ log, isLive }: LatestScanHeroProps) {
+function LatestScanHero({ log, isLive, methods }: LatestScanHeroProps) {
+  const t = useTranslations('attendance');
+  const locale = useLocale();
   const where = scanLocation(log);
   const trainer = trainerName(log);
-  const plan = planLabel(log);
+  const plan = planLabel(log, t);
   const dt = new Date(log.check_in_at);
   return (
     <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-gradient-to-br from-surface-2 via-surface-2 to-surface-2/60 p-6">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-success-soft blur-3xl" />
+      <div className="pointer-events-none absolute end-[-4rem] top-[-4rem] h-56 w-56 rounded-full bg-success-soft blur-3xl" />
       <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
         <div className="flex items-center gap-5">
           <Avatar log={log} size={88} ring={isLive} />
@@ -543,10 +557,10 @@ function LatestScanHero({ log, isLive }: LatestScanHeroProps) {
             <div className="flex items-center gap-2 mb-1">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success-soft text-success text-[10px] font-bold uppercase tracking-wider">
                 {isLive && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />}
-                Latest
+                {t('hero.latest')}
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-fg-faint">
-                {METHODS[log.method ?? ''] ?? log.method ?? 'Check-in'}
+                {methods[log.method ?? ''] ?? log.method ?? t('manualCheckin')}
               </span>
             </div>
             <p className="text-2xl font-bold text-fg truncate">{log.full_name ?? '—'}</p>
@@ -561,11 +575,11 @@ function LatestScanHero({ log, isLive }: LatestScanHeroProps) {
           </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 lg:border-l lg:border-line/60 lg:pl-8">
-          <HeroField icon={<MapPin className="w-3.5 h-3.5" />} label="Location" value={where ?? log.branch_name ?? 'Gym entrance'} sub={where && log.branch_name ? log.branch_name : null} />
-          <HeroField icon={<UserIcon className="w-3.5 h-3.5" />} label="Trainer" value={trainer ?? '—'} mute={!trainer} />
-          <HeroField icon={<Calendar className="w-3.5 h-3.5" />} label="Date" value={fmtDate(log.check_in_at)} sub={dt.toLocaleDateString('en-US', { weekday: 'long' })} />
-          <HeroField icon={<Clock className="w-3.5 h-3.5" />} label="Time" value={fmtTime(log.check_in_at)} sub={relativeTime(dt)} />
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 lg:border-s lg:border-line/60 lg:ps-8">
+          <HeroField icon={<MapPin className="w-3.5 h-3.5" />} label={t('hero.locationLabel')} value={where ?? log.branch_name ?? t('hero.gymEntrance')} sub={where && log.branch_name ? log.branch_name : null} />
+          <HeroField icon={<UserIcon className="w-3.5 h-3.5" />} label={t('hero.trainerLabel')} value={trainer ?? '—'} mute={!trainer} />
+          <HeroField icon={<Calendar className="w-3.5 h-3.5" />} label={t('hero.dateLabel')} value={fmtDate(log.check_in_at)} sub={dt.toLocaleDateString(dateLocale(locale), { weekday: 'long' })} />
+          <HeroField icon={<Clock className="w-3.5 h-3.5" />} label={t('hero.timeLabel')} value={fmtTime(log.check_in_at)} sub={relativeTime(dt, t)} />
         </div>
       </div>
     </div>
@@ -593,14 +607,14 @@ function HeroField({ icon, label, value, sub, mute }: HeroFieldProps) {
   );
 }
 
-function relativeTime(dt: Date): string {
+function relativeTime(dt: Date, t: ReturnType<typeof useTranslations>): string {
   const diffMs = Date.now() - dt.getTime();
   const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return 'just now';
+  if (sec < 60) return t('relativeTime.justNow');
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min} min ago`;
+  if (min < 60) return t('relativeTime.minAgo', { min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} hr ago`;
+  if (hr < 24) return t('relativeTime.hrAgo', { hr });
   const day = Math.floor(hr / 24);
-  return `${day} day${day === 1 ? '' : 's'} ago`;
+  return day === 1 ? t('relativeTime.dayAgo') : t('relativeTime.daysAgo', { day });
 }

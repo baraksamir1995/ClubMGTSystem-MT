@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Users, ShieldCheck, ClipboardList, Plus, Edit2, UserX, UserCheck,
   Trash2, RefreshCw, Download, Search, X, Check, ChevronRight,
@@ -10,26 +11,8 @@ import {
 import toast from 'react-hot-toast';
 import { can, type Permission } from '@/lib/get-permissions';
 
-/* ─── Constants ─────────────────────────────────────────────────────── */
-const MODULES = [
-  { key: 'overview',      label: 'Overview (Dashboard)' },
-  { key: 'members',       label: 'Members' },
-  { key: 'plans',         label: 'Subscription Plans' },
-  { key: 'payments',      label: 'Payments' },
-  { key: 'classes',       label: 'Classes & Schedule' },
-  { key: 'trainers',      label: 'Trainers' },
-  { key: 'promotions',    label: 'Promotions & Discounts' },
-  { key: 'attendance',    label: 'Attendance & Access' },
-  { key: 'content',       label: 'Content' },
-  { key: 'notifications', label: 'Communications' },
-  { key: 'analytics',     label: 'Analytics' },
-  { key: 'settings',      label: 'Settings' },
-  { key: 'staff',         label: 'Staff & Roles' },
-];
-const ACTIONS = ['view', 'create', 'edit', 'delete'] as const;
-const ACTION_LABELS: Record<string, string> = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete' };
-
-type ActionKey = typeof ACTIONS[number];
+/* ─── Types ──────────────────────────────────────────────────────────── */
+type ActionKey = 'view' | 'create' | 'edit' | 'delete';
 type PermSet = Record<string, Set<ActionKey>>;
 
 interface StaffMember {
@@ -53,10 +36,20 @@ interface OverviewData {
   roleBreakdown: { id: string; name: string; memberCount: number }[];
 }
 
+/* ─── Constants ─────────────────────────────────────────────────────── */
+const MODULE_KEYS = [
+  'overview', 'members', 'plans', 'payments', 'classes',
+  'trainers', 'promotions', 'attendance', 'content',
+  'notifications', 'analytics', 'settings', 'staff',
+] as const;
+type ModuleKey = typeof MODULE_KEYS[number];
+
+const ACTIONS = ['view', 'create', 'edit', 'delete'] as const;
+
 /* ─── helpers ────────────────────────────────────────────────────────── */
 function initPerms(permissions: { module: string; action: string }[]): PermSet {
   const ps: PermSet = {};
-  MODULES.forEach(m => { ps[m.key] = new Set(); });
+  MODULE_KEYS.forEach(k => { ps[k] = new Set(); });
   permissions.forEach(p => { ps[p.module]?.add(p.action as ActionKey); });
   return ps;
 }
@@ -84,6 +77,9 @@ interface PageProps {
 }
 
 export default function StaffPage({ permissions, initialStaff, initialRoles, initialOverview }: PageProps) {
+  const t = useTranslations('staff');
+  const tc = useTranslations('common');
+
   const [activeTab, setActiveTab] = useState<'overview' | 'accounts' | 'roles' | 'activity'>('overview');
 
   /* staff */
@@ -188,14 +184,14 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
     setStaffModal({ open: true, editing: s });
   };
   const saveStaff = async () => {
-    if (!sf.full_name.trim() || !sf.email.trim()) { toast.error('Name and email required'); return; }
+    if (!sf.full_name.trim() || !sf.email.trim()) { toast.error(t('staffModal.validationNameEmail')); return; }
     const editing = staffModal.editing;
     const url  = editing ? `/api/staff/${editing.id}` : '/api/staff';
     const method = editing ? 'PATCH' : 'POST';
     const res  = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sf) });
-    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? 'Error'); return; }
+    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? t('toasts.genericError')); return; }
     if (editing) {
-      toast.success('Staff updated');
+      toast.success(t('toasts.staffUpdated'));
       setStaffModal({ open: false, editing: null });
       fetchStaff();
       invalidateActivity();
@@ -209,7 +205,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
   const resetStaffPassword = async (staffId: string) => {
     const res = await fetch(`/api/staff/${staffId}/reset-password`, { method: 'POST' });
-    if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error ?? 'Failed to reset password'); return; }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error ?? t('resetPassword.toastFailed')); return; }
     const d = await res.json();
     setResetPwResult({ staffId, password: d.tempPassword });
   };
@@ -221,8 +217,8 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     });
-    if (!res.ok) { toast.error('Failed to update status'); return; }
-    toast.success(newStatus === 'active' ? 'Account reactivated' : 'Account deactivated');
+    if (!res.ok) { toast.error(t('toasts.statusFailed')); return; }
+    toast.success(newStatus === 'active' ? t('toasts.accountReactivated') : t('toasts.accountDeactivated'));
     setConfirmDeactivate(null);
     fetchStaff();
     invalidateActivity();
@@ -253,7 +249,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
     }));
   };
   const saveRole = async () => {
-    if (!rf.name.trim()) { toast.error('Role name required'); return; }
+    if (!rf.name.trim()) { toast.error(t('roleModal.validationRoleName')); return; }
     const editing = roleModal.editing;
     const url = editing ? `/api/staff/roles/${editing.id}` : '/api/staff/roles';
     const method = editing ? 'PATCH' : 'POST';
@@ -261,24 +257,23 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       method, headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...rf, permissions: permsToArray(rfPerms) }),
     });
-    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? 'Error'); return; }
-    toast.success(editing ? 'Role updated' : 'Role created');
+    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? t('toasts.genericError')); return; }
+    toast.success(editing ? t('roleModal.roleUpdated') : t('roleModal.roleCreated'));
     setRoleModal({ open: false, editing: null });
     fetchRoles();
     invalidateActivity();
   };
   const deleteRole = async (r: StaffRole) => {
-    if (!confirm(`Delete role "${r.name}"? This cannot be undone.`)) return;
+    if (!confirm(t('roleModal.deleteConfirm', { name: r.name }))) return;
     const res = await fetch(`/api/staff/roles/${r.id}`, { method: 'DELETE' });
-    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? 'Error'); return; }
-    toast.success('Role deleted');
+    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? t('toasts.genericError')); return; }
+    toast.success(t('roleModal.roleDeleted'));
     invalidateActivity();
     fetchRoles();
   };
 
   /* ── export logs ─────────────────────────────────────────── */
   const exportLogs = async () => {
-    // Fetch ALL matching logs (up to 10 000) for CSV export regardless of current page
     const p = new URLSearchParams();
     if (logFilter.staff_name)  p.set('staff_name', logFilter.staff_name);
     if (logFilter.from)        p.set('from', logFilter.from);
@@ -288,39 +283,47 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
     p.set('page', '1');
     const res = await fetch(`/api/staff/activity?${p}`);
     const allLogs: ActivityLog[] = res.ok ? (await res.json()).logs : logs;
-    const rows = [['Date', 'Staff', 'Module', 'Action', 'Description'],
-      ...allLogs.map(l => [fmtDate(l.created_at), l.staff_name, l.module ?? '', l.action_type, l.description ?? ''])];
+    const rows = [
+      [
+        t('activity.csvHeaders.date'),
+        t('activity.csvHeaders.staff'),
+        t('activity.csvHeaders.module'),
+        t('activity.csvHeaders.action'),
+        t('activity.csvHeaders.description'),
+      ],
+      ...allLogs.map(l => [fmtDate(l.created_at), l.staff_name, l.module ?? '', l.action_type, l.description ?? '']),
+    ];
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `activity_log_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   };
 
   /* ── tab class ───────────────────────────────────────────── */
-  const tabCls = (t: string) =>
-    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === t ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`;
+  const tabCls = (tab: string) =>
+    `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`;
   const inp = 'bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand';
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-fg">User & Role Management</h1>
-        <p className="text-sm text-fg-muted mt-0.5">Manage staff accounts, roles, permissions, and access logs</p>
+        <h1 className="text-2xl font-bold text-fg">{t('pageTitle')}</h1>
+        <p className="text-sm text-fg-muted mt-0.5">{t('pageSubtitle')}</p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit flex-wrap">
         <button onClick={() => setActiveTab('overview')} className={tabCls('overview')}>
-          <LayoutDashboard className="w-4 h-4" /> Overview
+          <LayoutDashboard className="w-4 h-4" /> {t('tabs.overview')}
         </button>
         <button onClick={() => setActiveTab('accounts')} className={tabCls('accounts')}>
-          <Users className="w-4 h-4" /> Staff Accounts
+          <Users className="w-4 h-4" /> {t('tabs.accounts')}
         </button>
         <button onClick={() => setActiveTab('roles')} className={tabCls('roles')}>
-          <ShieldCheck className="w-4 h-4" /> Roles & Permissions
+          <ShieldCheck className="w-4 h-4" /> {t('tabs.roles')}
         </button>
         <button onClick={() => setActiveTab('activity')} className={tabCls('activity')}>
-          <Activity className="w-4 h-4" /> Activity Log
+          <Activity className="w-4 h-4" /> {t('tabs.activity')}
         </button>
       </div>
 
@@ -340,7 +343,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <div className="w-9 h-9 rounded-lg bg-brand/15 flex items-center justify-center">
                       <Users className="w-4.5 h-4.5 text-brand" />
                     </div>
-                    <p className="text-xs text-fg-muted">Total Staff</p>
+                    <p className="text-xs text-fg-muted">{t('overview.totalStaff')}</p>
                   </div>
                   <p className="text-2xl font-bold text-fg">{overview.totalStaff}</p>
                 </div>
@@ -349,7 +352,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <div className="w-9 h-9 rounded-lg bg-emerald-600/15 flex items-center justify-center">
                       <UserCheck2 className="w-4.5 h-4.5 text-emerald-400" />
                     </div>
-                    <p className="text-xs text-fg-muted">Active</p>
+                    <p className="text-xs text-fg-muted">{t('overview.active')}</p>
                   </div>
                   <p className="text-2xl font-bold text-emerald-400">{overview.activeStaff}</p>
                 </div>
@@ -358,7 +361,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <div className="w-9 h-9 rounded-lg bg-red-600/15 flex items-center justify-center">
                       <UserX2 className="w-4.5 h-4.5 text-red-400" />
                     </div>
-                    <p className="text-xs text-fg-muted">Inactive</p>
+                    <p className="text-xs text-fg-muted">{t('overview.inactive')}</p>
                   </div>
                   <p className="text-2xl font-bold text-red-400">{overview.inactiveStaff}</p>
                 </div>
@@ -367,7 +370,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <div className="w-9 h-9 rounded-lg bg-blue-600/15 flex items-center justify-center">
                       <Shield className="w-4.5 h-4.5 text-blue-400" />
                     </div>
-                    <p className="text-xs text-fg-muted">Roles</p>
+                    <p className="text-xs text-fg-muted">{t('overview.roles')}</p>
                   </div>
                   <p className="text-2xl font-bold text-fg">{overview.totalRoles}</p>
                 </div>
@@ -377,12 +380,12 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 {/* Role breakdown */}
                 <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
                   <div className="px-5 py-4 border-b border-line">
-                    <h3 className="text-sm font-semibold text-fg">Roles & Members</h3>
+                    <h3 className="text-sm font-semibold text-fg">{t('overview.rolesAndMembers')}</h3>
                   </div>
                   {overview.roleBreakdown.length === 0 ? (
                     <div className="p-8 text-center">
                       <Shield className="w-8 h-8 text-fg-faint mx-auto mb-2" />
-                      <p className="text-sm text-fg-muted">No roles created yet</p>
+                      <p className="text-sm text-fg-muted">{t('overview.noRolesYet')}</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-700/50">
@@ -394,19 +397,20 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                             </div>
                             <span className="text-sm font-medium text-fg">{r.name}</span>
                           </div>
-                          <span className="text-xs text-fg-muted">{r.memberCount} member{r.memberCount !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-fg-muted">
+                            {t('roles.memberCount_other', { count: r.memberCount })}
+                          </span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-
               </div>
             </>
           ) : (
             <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
               <LayoutDashboard className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-              <p className="text-sm text-fg-muted">Failed to load overview data</p>
+              <p className="text-sm text-fg-muted">{t('overview.failedToLoad')}</p>
             </div>
           )}
         </div>
@@ -416,11 +420,13 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {activeTab === 'accounts' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-fg-muted">{staff.length} staff member{staff.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-fg-muted">
+              {t('accounts.staffCount_other', { count: staff.length })}
+            </p>
             {can(permissions, 'staff', 'create') && (
               <button onClick={openAddStaff}
                 className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                <Plus className="w-4 h-4" /> Add Staff
+                <Plus className="w-4 h-4" /> {t('accounts.addStaff')}
               </button>
             )}
           </div>
@@ -432,11 +438,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           ) : staff.length === 0 ? (
             <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
               <Users className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-              <p className="text-sm text-fg-muted mb-4">No staff members yet</p>
+              <p className="text-sm text-fg-muted mb-4">{t('accounts.noStaffYet')}</p>
               {can(permissions, 'staff', 'create') && (
                 <button onClick={openAddStaff}
                   className="px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                  Add First Staff Member
+                  {t('accounts.addFirstStaff')}
                 </button>
               )}
             </div>
@@ -445,12 +451,12 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wider">
-                    <th className="px-5 py-3 text-left">Name</th>
-                    <th className="px-5 py-3 text-left">Email</th>
-                    <th className="px-5 py-3 text-left">Phone</th>
-                    <th className="px-5 py-3 text-left">Roles</th>
-                    <th className="px-5 py-3 text-left">Status</th>
-                    <th className="px-5 py-3 text-right">Actions</th>
+                    <th className="px-5 py-3 text-start">{t('accounts.colName')}</th>
+                    <th className="px-5 py-3 text-start">{t('accounts.colEmail')}</th>
+                    <th className="px-5 py-3 text-start">{t('accounts.colPhone')}</th>
+                    <th className="px-5 py-3 text-start">{t('accounts.colRoles')}</th>
+                    <th className="px-5 py-3 text-start">{t('accounts.colStatus')}</th>
+                    <th className="px-5 py-3 text-end">{t('accounts.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700/50">
@@ -470,7 +476,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       <td className="px-5 py-3.5 text-fg-muted">{s.phone || '—'}</td>
                       <td className="px-5 py-3.5">
                         {s.roles.length === 0 ? (
-                          <span className="text-xs text-fg-faint">No roles</span>
+                          <span className="text-xs text-fg-faint">{t('accounts.noRolesAssigned')}</span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {s.roles.map(r => (
@@ -486,31 +492,31 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                           s.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-surface-4/40 text-fg-muted'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'active' ? 'bg-emerald-400' : 'bg-gray-500'}`} />
-                          {s.status === 'active' ? 'Active' : 'Inactive'}
+                          {s.status === 'active' ? t('accounts.statusActive') : t('accounts.statusInactive')}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
                           {can(permissions, 'staff', 'edit') && (
-                            <button onClick={() => openEditStaff(s)} title="Edit"
+                            <button onClick={() => openEditStaff(s)} title={t('accounts.editTooltip')}
                               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {can(permissions, 'staff', 'edit') && (
-                            <button onClick={() => resetStaffPassword(s.id)} title="Reset Password"
+                            <button onClick={() => resetStaffPassword(s.id)} title={t('accounts.resetPasswordTooltip')}
                               className="p-1.5 rounded-lg text-fg-muted hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
                               <KeyRound className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {s.status === 'active' && can(permissions, 'staff', 'edit') && (
-                            <button onClick={() => setConfirmDeactivate(s)} title="Deactivate"
+                            <button onClick={() => setConfirmDeactivate(s)} title={t('accounts.deactivateTooltip')}
                               className="p-1.5 rounded-lg text-fg-muted hover:text-amber-400 hover:bg-amber-400/10 transition-colors">
                               <UserX className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {s.status !== 'active' && can(permissions, 'staff', 'edit') && (
-                            <button onClick={() => toggleStatus(s)} title="Reactivate"
+                            <button onClick={() => toggleStatus(s)} title={t('accounts.reactivateTooltip')}
                               className="p-1.5 rounded-lg text-fg-muted hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
                               <UserCheck className="w-3.5 h-3.5" />
                             </button>
@@ -534,7 +540,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             {can(permissions, 'staff', 'create') && (
               <button onClick={openAddRole}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                <Plus className="w-4 h-4" /> Create Role
+                <Plus className="w-4 h-4" /> {t('roles.createRole')}
               </button>
             )}
 
@@ -543,13 +549,13 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             ) : roles.length === 0 ? (
               <div className="bg-surface-2 border border-line rounded-xl p-8 text-center">
                 <ShieldCheck className="w-8 h-8 text-fg-faint mx-auto mb-2" />
-                <p className="text-sm text-fg-muted">No roles yet</p>
+                <p className="text-sm text-fg-muted">{t('roles.noRolesYet')}</p>
               </div>
             ) : (
               <div className="space-y-1.5">
                 {roles.map(r => (
                   <button key={r.id} onClick={() => setSelectedRole(r)}
-                    className={`w-full text-left px-4 py-3.5 rounded-xl border transition-colors ${
+                    className={`w-full text-start px-4 py-3.5 rounded-xl border transition-colors ${
                       selectedRole?.id === r.id
                         ? 'bg-brand/10 border-brand/40 text-fg'
                         : 'bg-surface-2 border-line text-fg-muted hover:border-line'
@@ -559,8 +565,10 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                         <p className="font-medium truncate">{r.name}</p>
                         {r.description && <p className="text-xs text-fg-faint truncate mt-0.5">{r.description}</p>}
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <span className="text-xs text-fg-faint">{r.memberCount} member{r.memberCount !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0 ms-2">
+                        <span className="text-xs text-fg-faint">
+                          {t('roles.memberCount_other', { count: r.memberCount })}
+                        </span>
                         <ChevronRight className="w-4 h-4 text-fg-faint" />
                       </div>
                     </div>
@@ -575,7 +583,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             {!selectedRole ? (
               <div className="bg-surface-2 border border-line rounded-xl p-12 text-center h-full flex flex-col items-center justify-center">
                 <ShieldCheck className="w-10 h-10 text-fg-faint mb-3" />
-                <p className="text-sm text-fg-muted">Select a role to view its permissions</p>
+                <p className="text-sm text-fg-muted">{t('roles.selectRolePrompt')}</p>
               </div>
             ) : (
               <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
@@ -588,13 +596,13 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     {can(permissions, 'staff', 'edit') && (
                       <button onClick={() => openEditRole(selectedRole)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-3 hover:bg-surface-4 text-fg text-xs font-medium rounded-lg transition-colors">
-                        <Edit2 className="w-3.5 h-3.5" /> Edit
+                        <Edit2 className="w-3.5 h-3.5" /> {tc('edit')}
                       </button>
                     )}
                     {can(permissions, 'staff', 'delete') && (
                       <button onClick={() => deleteRole(selectedRole)}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-colors border border-red-500/20">
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                        <Trash2 className="w-3.5 h-3.5" /> {tc('delete')}
                       </button>
                     )}
                   </div>
@@ -605,18 +613,18 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wider">
-                        <th className="px-5 py-3 text-left">Module</th>
+                        <th className="px-5 py-3 text-start">{t('roles.colModule')}</th>
                         {ACTIONS.map(a => (
-                          <th key={a} className="px-4 py-3 text-center">{ACTION_LABELS[a]}</th>
+                          <th key={a} className="px-4 py-3 text-center">{t(`actions.${a}`)}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700/50">
-                      {MODULES.map(m => {
-                        const permsForMod = selectedRole.permissions.filter(p => p.module === m.key).map(p => p.action);
+                      {MODULE_KEYS.map(mk => {
+                        const permsForMod = selectedRole.permissions.filter(p => p.module === mk).map(p => p.action);
                         return (
-                          <tr key={m.key} className="hover:bg-surface-3/20">
-                            <td className="px-5 py-3 text-fg-muted font-medium">{m.label}</td>
+                          <tr key={mk} className="hover:bg-surface-3/20">
+                            <td className="px-5 py-3 text-fg-muted font-medium">{t(`modules.${mk}`)}</td>
                             {ACTIONS.map(a => (
                               <td key={a} className="px-4 py-3 text-center">
                                 {permsForMod.includes(a) ? (
@@ -636,8 +644,9 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 </div>
                 <div className="px-5 py-3 border-t border-line">
                   <p className="text-xs text-fg-faint">
-                    {selectedRole.permissions.length} permission{selectedRole.permissions.length !== 1 ? 's' : ''} granted
-                    · {selectedRole.memberCount} staff member{selectedRole.memberCount !== 1 ? 's' : ''} assigned
+                    {t('roles.permissionsGranted_other', { count: selectedRole.permissions.length })}
+                    {' · '}
+                    {t('roles.staffAssigned_other', { count: selectedRole.memberCount })}
                   </p>
                 </div>
               </div>
@@ -652,44 +661,44 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           {/* Filters */}
           <div className="bg-surface-2 border border-line rounded-xl p-4 flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-fg-muted">Staff</label>
+              <label className="text-xs text-fg-muted">{t('activity.colStaff')}</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-fg-faint" />
-                <input type="text" placeholder="Filter by name…" value={logFilter.staff_name}
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-fg-faint" />
+                <input type="text" placeholder={t('activity.filterByName')} value={logFilter.staff_name}
                   onChange={e => setLogFilter(p => ({ ...p, staff_name: e.target.value }))}
-                  className={`${inp} pl-8 w-44`} />
+                  className={`${inp} ps-8 w-44`} />
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-fg-muted">From</label>
+              <label className="text-xs text-fg-muted">{t('activity.colFrom')}</label>
               <input type="date" value={logFilter.from} onChange={e => setLogFilter(p => ({ ...p, from: e.target.value }))}
                 className={`${inp} [color-scheme:dark]`} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-fg-muted">To</label>
+              <label className="text-xs text-fg-muted">{t('activity.colTo')}</label>
               <input type="date" value={logFilter.to} onChange={e => setLogFilter(p => ({ ...p, to: e.target.value }))}
                 className={`${inp} [color-scheme:dark]`} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-fg-muted">Action</label>
+              <label className="text-xs text-fg-muted">{t('activity.colAction')}</label>
               <select value={logFilter.action_type} onChange={e => setLogFilter(p => ({ ...p, action_type: e.target.value }))}
                 className={inp}>
-                <option value="">All actions</option>
-                <option value="create">Create</option>
-                <option value="update">Update</option>
-                <option value="delete">Delete</option>
-                <option value="deactivate">Deactivate</option>
-                <option value="reactivate">Reactivate</option>
+                <option value="">{t('activity.allActions')}</option>
+                <option value="create">{t('activity.actionCreate')}</option>
+                <option value="update">{t('activity.actionUpdate')}</option>
+                <option value="delete">{t('activity.actionDelete')}</option>
+                <option value="deactivate">{t('activity.actionDeactivate')}</option>
+                <option value="reactivate">{t('activity.actionReactivate')}</option>
               </select>
             </div>
             <button onClick={() => fetchLogs(1)} disabled={logsLoad}
               className="flex items-center gap-1.5 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
               {logsLoad ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Filter className="w-3.5 h-3.5" />}
-              Apply
+              {tc('apply')}
             </button>
             <button onClick={exportLogs} disabled={logsLoad || logs.length === 0}
-              className="flex items-center gap-1.5 px-4 py-2 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors disabled:opacity-40 ml-auto">
-              <Download className="w-3.5 h-3.5" /> Export CSV
+              className="flex items-center gap-1.5 px-4 py-2 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors disabled:opacity-40 ms-auto">
+              <Download className="w-3.5 h-3.5" /> {t('activity.exportCsv')}
             </button>
           </div>
 
@@ -700,12 +709,14 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           ) : logs.length === 0 ? (
             <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
               <ClipboardList className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-              <p className="text-sm text-fg-muted">No activity logs found</p>
+              <p className="text-sm text-fg-muted">{t('activity.noLogsFound')}</p>
             </div>
           ) : (
             <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-line flex items-center justify-between">
-                <p className="text-xs text-fg-muted">{logTotal} log entr{logTotal !== 1 ? 'ies' : 'y'}</p>
+                <p className="text-xs text-fg-muted">
+                  {t('activity.logCount_other', { count: logTotal })}
+                </p>
               </div>
               <div className="divide-y divide-gray-700/50">
                 {logs.map(log => (
@@ -733,15 +744,17 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               {/* Pagination */}
               {logPages > 1 && (
                 <div className="px-5 py-3 border-t border-line flex items-center justify-between">
-                  <p className="text-xs text-fg-faint">Page {logPage} of {logPages}</p>
+                  <p className="text-xs text-fg-faint">
+                    {t('activity.pageOf', { page: logPage, pages: logPages })}
+                  </p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => fetchLogs(logPage - 1)} disabled={logPage <= 1 || logsLoad}
                       className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 text-fg-muted hover:bg-surface-4 disabled:opacity-40 transition-colors">
-                      Previous
+                      {tc('previous')}
                     </button>
                     <button onClick={() => fetchLogs(logPage + 1)} disabled={logPage >= logPages || logsLoad}
                       className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 text-fg-muted hover:bg-surface-4 disabled:opacity-40 transition-colors">
-                      Next
+                      {tc('next')}
                     </button>
                   </div>
                 </div>
@@ -757,7 +770,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">
-                {createdCreds ? 'Staff Created' : staffModal.editing ? 'Edit Staff Member' : 'Add Staff Member'}
+                {createdCreds
+                  ? t('staffModal.titleCreated')
+                  : staffModal.editing
+                    ? t('staffModal.titleEdit')
+                    : t('staffModal.titleCreate')}
               </h2>
               <button onClick={() => { setStaffModal({ open: false, editing: null }); setCreatedCreds(null); }}
                 className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
@@ -775,24 +792,24 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               <>
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Full Name *</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('staffModal.labelFullName')}</label>
                     <input type="text" value={sf.full_name} onChange={e => setSf(p => ({ ...p, full_name: e.target.value }))}
-                      placeholder="e.g. Jane Smith" className={`${inp} w-full`} />
+                      placeholder={t('staffModal.placeholderFullName')} className={`${inp} w-full`} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Email *</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('staffModal.labelEmail')}</label>
                     <input type="email" value={sf.email} onChange={e => setSf(p => ({ ...p, email: e.target.value }))}
-                      placeholder="jane@example.com" className={`${inp} w-full`} />
+                      placeholder={t('staffModal.placeholderEmail')} className={`${inp} w-full`} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Phone</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('staffModal.labelPhone')}</label>
                     <input type="tel" value={sf.phone} onChange={e => setSf(p => ({ ...p, phone: e.target.value }))}
-                      placeholder="+1 555 000 0000" className={`${inp} w-full`} />
+                      placeholder={t('staffModal.placeholderPhone')} className={`${inp} w-full`} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">Assign Roles</label>
+                    <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('staffModal.labelAssignRoles')}</label>
                     {roles.length === 0 ? (
-                      <p className="text-xs text-fg-faint">No roles created yet. Create roles first in the Roles & Permissions tab.</p>
+                      <p className="text-xs text-fg-faint">{t('staffModal.noRolesHint')}</p>
                     ) : (
                       <div className="space-y-1.5">
                         {roles.map(r => (
@@ -812,16 +829,16 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-fg-faint">A temporary password will be auto-generated. The staff member must change it on first login.</p>
+                  <p className="text-xs text-fg-faint">{t('staffModal.tempPasswordHint')}</p>
                 </div>
                 <div className="flex gap-3 px-6 pb-6">
                   <button onClick={() => setStaffModal({ open: false, editing: null })}
                     className="flex-1 py-2.5 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors">
-                    Cancel
+                    {tc('cancel')}
                   </button>
                   <button onClick={saveStaff}
                     className="flex-1 py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                    {staffModal.editing ? 'Save Changes' : 'Create Staff'}
+                    {staffModal.editing ? t('staffModal.btnSave') : t('staffModal.btnCreate')}
                   </button>
                 </div>
               </>
@@ -836,7 +853,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">
-                {roleModal.editing ? 'Edit Role' : 'Create Role'}
+                {roleModal.editing ? t('roleModal.titleEdit') : t('roleModal.titleCreate')}
               </h2>
               <button onClick={() => setRoleModal({ open: false, editing: null })}
                 className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
@@ -846,47 +863,47 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-fg-muted mb-1.5 block">Role Name *</label>
+                  <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('roleModal.labelRoleName')}</label>
                   <input type="text" value={rf.name} onChange={e => setRf(p => ({ ...p, name: e.target.value }))}
-                    placeholder="e.g. Manager, Trainer" className={`${inp} w-full`} />
+                    placeholder={t('roleModal.placeholderRoleName')} className={`${inp} w-full`} />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-fg-muted mb-1.5 block">Description</label>
+                  <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('roleModal.labelDescription')}</label>
                   <input type="text" value={rf.description} onChange={e => setRf(p => ({ ...p, description: e.target.value }))}
-                    placeholder="Brief description…" className={`${inp} w-full`} />
+                    placeholder={t('roleModal.placeholderDescription')} className={`${inp} w-full`} />
                 </div>
               </div>
 
               {/* Permissions matrix */}
               <div>
-                <label className="text-xs font-medium text-fg-muted mb-2 block">Permissions</label>
+                <label className="text-xs font-medium text-fg-muted mb-2 block">{t('roleModal.labelPermissions')}</label>
                 <div className="border border-line rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-surface-3/50 text-xs text-fg-muted uppercase tracking-wider">
-                        <th className="px-4 py-2.5 text-left">Module</th>
+                        <th className="px-4 py-2.5 text-start">{t('roles.colModule')}</th>
                         {ACTIONS.map(a => (
-                          <th key={a} className="px-3 py-2.5 text-center">{ACTION_LABELS[a]}</th>
+                          <th key={a} className="px-3 py-2.5 text-center">{t(`actions.${a}`)}</th>
                         ))}
-                        <th className="px-3 py-2.5 text-center">All</th>
+                        <th className="px-3 py-2.5 text-center">{t('roles.colAll')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700/50">
-                      {MODULES.map(m => {
-                        const allChecked = ACTIONS.every(a => rfPerms[m.key]?.has(a));
+                      {MODULE_KEYS.map(mk => {
+                        const allChecked = ACTIONS.every(a => rfPerms[mk]?.has(a));
                         return (
-                          <tr key={m.key} className="hover:bg-surface-3/20">
-                            <td className="px-4 py-2.5 text-fg-muted">{m.label}</td>
+                          <tr key={mk} className="hover:bg-surface-3/20">
+                            <td className="px-4 py-2.5 text-fg-muted">{t(`modules.${mk}`)}</td>
                             {ACTIONS.map(a => (
                               <td key={a} className="px-3 py-2.5 text-center">
-                                <input type="checkbox" checked={rfPerms[m.key]?.has(a) ?? false}
-                                  onChange={() => togglePerm(m.key, a)}
+                                <input type="checkbox" checked={rfPerms[mk]?.has(a) ?? false}
+                                  onChange={() => togglePerm(mk, a)}
                                   className="w-4 h-4 accent-brand cursor-pointer" />
                               </td>
                             ))}
                             <td className="px-3 py-2.5 text-center">
                               <input type="checkbox" checked={allChecked}
-                                onChange={() => toggleModule(m.key, allChecked)}
+                                onChange={() => toggleModule(mk, allChecked)}
                                 className="w-4 h-4 accent-brand cursor-pointer" />
                             </td>
                           </tr>
@@ -900,11 +917,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             <div className="flex gap-3 px-6 pb-6 pt-2">
               <button onClick={() => setRoleModal({ open: false, editing: null })}
                 className="flex-1 py-2.5 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors">
-                Cancel
+                {tc('cancel')}
               </button>
               <button onClick={saveRole}
                 className="flex-1 py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                {roleModal.editing ? 'Save Changes' : 'Create Role'}
+                {roleModal.editing ? t('roleModal.btnSave') : t('roleModal.btnCreate')}
               </button>
             </div>
           </div>
@@ -920,22 +937,21 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 <AlertTriangle className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h2 className="font-semibold text-fg">Deactivate Account</h2>
-                <p className="text-xs text-fg-muted mt-0.5">This will revoke their access immediately</p>
+                <h2 className="font-semibold text-fg">{t('deactivateModal.title')}</h2>
+                <p className="text-xs text-fg-muted mt-0.5">{t('deactivateModal.subtitle')}</p>
               </div>
             </div>
             <p className="text-sm text-fg-muted">
-              Are you sure you want to deactivate <span className="text-fg font-medium">{confirmDeactivate.full_name}</span>?
-              You can reactivate them at any time.
+              {t('deactivateModal.body', { name: confirmDeactivate.full_name })}
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDeactivate(null)}
                 className="flex-1 py-2.5 bg-surface-3 hover:bg-surface-4 text-fg text-sm font-medium rounded-lg transition-colors">
-                Cancel
+                {tc('cancel')}
               </button>
               <button onClick={() => toggleStatus(confirmDeactivate)}
                 className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-fg text-sm font-medium rounded-lg transition-colors">
-                Deactivate
+                {t('deactivateModal.btnDeactivate')}
               </button>
             </div>
           </div>
@@ -949,20 +965,20 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-base font-semibold text-fg">Password Reset</h2>
+                <h2 className="text-base font-semibold text-fg">{t('resetPassword.title')}</h2>
               </div>
               <button onClick={() => setResetPwResult(null)} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-fg-muted">Share this temporary password with the staff member. They must change it on next login.</p>
+            <p className="text-xs text-fg-muted">{t('resetPassword.hint')}</p>
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 flex items-center gap-3 overflow-hidden">
               <span className="text-base font-bold text-fg tracking-wide flex-1 break-all">{resetPwResult.password}</span>
               <CopyButton text={resetPwResult.password} />
             </div>
             <button onClick={() => setResetPwResult(null)}
               className="w-full py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-              Done
+              {tc('done')}
             </button>
           </div>
         </div>
@@ -983,19 +999,21 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function StaffCreatedCard({ email, password, onDone }: { email: string; password: string; onDone: () => void }) {
+  const t = useTranslations('staff');
+  const tc = useTranslations('common');
   return (
     <div className="p-6 space-y-4">
       <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-        <p className="text-green-400 font-semibold text-sm mb-1">Staff member created!</p>
-        <p className="text-fg-muted text-xs">Share these credentials. They must change their password on first login.</p>
+        <p className="text-green-400 font-semibold text-sm mb-1">{t('createdCard.successTitle')}</p>
+        <p className="text-fg-muted text-xs">{t('createdCard.successHint')}</p>
       </div>
       <div className="bg-surface-3/50 rounded-xl p-4 space-y-3">
         <div>
-          <p className="text-xs text-fg-muted mb-1">Email</p>
+          <p className="text-xs text-fg-muted mb-1">{t('createdCard.labelEmail')}</p>
           <p className="text-sm text-fg font-medium">{email}</p>
         </div>
         <div>
-          <p className="text-xs text-fg-muted mb-1">Temporary password</p>
+          <p className="text-xs text-fg-muted mb-1">{t('createdCard.labelTempPassword')}</p>
           <div className="flex items-center gap-2 overflow-hidden">
             <span className="text-base font-bold text-fg tracking-wide break-all flex-1">{password}</span>
             <CopyButton text={password} />
@@ -1003,7 +1021,7 @@ function StaffCreatedCard({ email, password, onDone }: { email: string; password
         </div>
       </div>
       <button onClick={onDone} className="w-full py-2.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-        Done
+        {tc('done')}
       </button>
     </div>
   );

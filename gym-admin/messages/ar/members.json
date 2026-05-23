@@ -1,0 +1,490 @@
+{
+  "moduleTabs": {
+    "members": "الأعضاء",
+    "memberships": "الاشتراكات"
+  },
+
+  "list": {
+    "title": "الأعضاء",
+    "subtitle": "{total} عضو مسجل في صالتك",
+    "addMember": "إضافة عضو",
+    "searchPlaceholder": "ابحث بالاسم أو البريد أو الهاتف أو رقم العضو…",
+    "noMemberId": "لا يوجد رقم عضوية بعد",
+    "noMembersFiltered": "لا يوجد أعضاء يطابقون الفلاتر",
+    "noMembersYet": "لا يوجد أعضاء بعد",
+    "addFirstMember": "أضف أول عضو",
+    "totalCount": "{total} عضو",
+    "sort": {
+      "newest": "تاريخ الانضمام (الأحدث)",
+      "oldest": "تاريخ الانضمام (الأقدم)"
+    },
+    "status": {
+      "all": "جميع الحالات",
+      "active": "نشط",
+      "inactive": "غير نشط / منتهٍ",
+      "suspended": "موقوف"
+    },
+    "col": {
+      "member": "العضو",
+      "memberNumber": "رقم العضو",
+      "phone": "الهاتف",
+      "joined": "الانضمام",
+      "status": "الحالة"
+    },
+    "action": {
+      "viewProfile": "عرض الملف",
+      "editMember": "تعديل العضو"
+    }
+  },
+
+  "modal": {
+    "addTitle": "إضافة عضو",
+    "editTitle": "تعديل العضو",
+    "sectionPersonal": "المعلومات الشخصية",
+    "sectionMembership": "تفاصيل العضوية",
+    "fullName": "الاسم الكامل",
+    "fullNamePlaceholder": "مثال: أحمد محمد",
+    "emailPlaceholder": "example@email.com",
+    "phonePlaceholder": "01012345678",
+    "gender": "الجنس",
+    "genderSelect": "— اختر —",
+    "genderMale": "ذكر",
+    "genderFemale": "أنثى",
+    "dateOfBirth": "تاريخ الميلاد",
+    "address": "العنوان",
+    "addressPlaceholder": "القاهرة، شارع …",
+    "status": "الحالة",
+    "statusActive": "نشط",
+    "statusInactive": "غير نشط",
+    "statusSuspended": "موقوف",
+    "notesPlaceholder": "ملاحظات اختيارية…",
+    "saveChanges": "حفظ التغييرات",
+    "addMemberSubmit": "إضافة عضو",
+    "toast": {
+      "nameRequired": "الاسم الكامل مطلوب",
+      "updated": "تم تحديث العضو",
+      "added": "تمت إضافة العضو"
+    }
+  },
+
+  "detail": {
+    "breadcrumb": "الأعضاء",
+    "joined": "انضم {date}",
+    "personalInfo": "المعلومات الشخصية",
+    "email": "البريد الإلكتروني",
+    "verified": "موثّق",
+    "unverified": "غير موثّق",
+    "activeServices": "الخدمات النشطة",
+    "noActiveServices": "لا توجد خدمات نشطة.",
+    "transferredSessionsOnly": "جلسات محوّلة فقط",
+    "noActiveSubscription": "لا يوجد اشتراك نشط — جلسات مستلمة من أعضاء آخرين",
+    "startDate": "تاريخ البدء",
+    "expiryDate": "تاريخ الانتهاء",
+    "noExpiry": "بدون انتهاء",
+    "sessionsUsed": "الجلسات المستخدمة",
+    "sessionsRemaining": "متبقية {count} جلسة",
+    "sessionsRemainingPlural": "متبقية {count} جلسات",
+    "includesTransfers": "يشمل {count} جلسة من التحويلات",
+    "includesTransfersPlural": "يشمل {count} جلسات من التحويلات",
+    "transfersExpireSoonest": " · تنتهي {date}",
+    "transfersExpireSoonestEarliest": " · أقرب انتهاء {date}",
+    "freezeHistory": "سجل التجميد",
+    "frozenUntil": "مجمّد حتى {date}",
+    "freezeDaysUsed": "الأيام المستخدمة",
+    "freezesUsed": "مرات التجميد",
+    "noFreezeHistory": "لا يوجد سجل تجميد بعد.",
+    "freezeResumed": "مُستأنف",
+    "freezeActive": "نشط",
+    "withTrainer": "مع {name}",
+    "expiredAgo": "انتهى منذ {days} يوم",
+    "expiringIn": "ينتهي خلال {days} يوم",
+    "noSessionsLeft": "لا توجد جلسات متبقية",
+    "sessionsLeftOne": "متبقية {count} جلسة",
+    "sessionsLeftMany": "متبقية {count} جلسات",
+    "planType": "خطة {type}",
+    "phone": "الهاتف",
+    "address": "العنوان",
+    "dateOfBirth": "تاريخ الميلاد",
+    "gender": "الجنس",
+    "notes": "ملاحظات",
+    "planHistory": "سجل الخطط",
+    "planHistoryRecords": "{count} سجل",
+    "planHistoryCol": {
+      "plan": "الخطة",
+      "start": "البدء",
+      "expiry": "الانتهاء",
+      "pricePaid": "السعر المدفوع",
+      "status": "الحالة"
+    },
+    "page": "صفحة {page} من {total}",
+    "errorTitle": "تعذّر تحميل العضو",
+    "errorDesc": "حدث خطأ أثناء تحميل الصفحة. جرّب التحديث أو العودة إلى قائمة الأعضاء.",
+    "backToMembers": "العودة إلى الأعضاء"
+  },
+
+  "tabs": {
+    "overview": "نظرة عامة",
+    "payments": "المدفوعات",
+    "attendance": "الحضور",
+    "transfers": "سجل التحويلات"
+  },
+
+  "actions": {
+    "addSessions": "إضافة جلسات",
+    "extend": "تمديد",
+    "unfreeze": "إلغاء التجميد",
+    "freeze": "تجميد",
+    "transfer": "نقل",
+    "removePlan": "إزالة الخطة؟",
+    "detachPlan": "فصل الخطة",
+    "assignPlan": "تعيين خطة",
+    "changePlan": "تغيير الخطة",
+    "allFreezeDaysUsed": "تم استنفاد أيام التجميد كاملاً",
+    "maxFreezeCountReached": "تم الوصول إلى الحد الأقصى لعدد مرات التجميد",
+    "toast": {
+      "planDetached": "تم فصل الخطة. تم تعيين العضو كغير نشط.",
+      "detachFailed": "فشل فصل الخطة"
+    }
+  },
+
+  "assignPlan": {
+    "title": "تعيين خطة",
+    "titleChange": "تغيير الخطة",
+    "selectPlan": "اختر الخطة *",
+    "noPlans": "لا توجد خطط متاحة. أنشئ خططاً أولاً.",
+    "applyDiscount": "تطبيق خصم",
+    "noDiscount": "بدون خصم — السعر الكامل",
+    "promotionalPrice": "سعر ترويجي",
+    "promoValidUntil": "{price} · صالح حتى {date}",
+    "promoSave": "وفّر {amount}",
+    "applyPromoCode": "تطبيق كود خصم",
+    "selectCode": "— اختر كوداً —",
+    "startDate": "تاريخ البدء *",
+    "summaryPlan": "الخطة:",
+    "summaryExpires": "ينتهي:",
+    "summarySessions": "الجلسات:",
+    "summaryOriginalPrice": "السعر الأصلي:",
+    "summaryDiscount": "الخصم:",
+    "summaryTotal": "الإجمالي:",
+    "warningPlanChange": "سيتم إلغاء الخطة الحالية واستبدالها.",
+    "toast": {
+      "selectPlan": "يرجى اختيار خطة",
+      "setStartDate": "يرجى تحديد تاريخ البدء",
+      "planChanged": "تم تغيير الخطة بنجاح",
+      "planAssigned": "تم تعيين الخطة بنجاح"
+    }
+  },
+
+  "extend": {
+    "title": "تمديد العضوية",
+    "subtitle": "تمديد العضوية للعضو {name}",
+    "currentExpiry": "تاريخ الانتهاء الحالي: ",
+    "quickSelect": "اختيار سريع",
+    "customDays": "أو أدخل عدداً مخصصاً من الأيام",
+    "daysUnit": "يوم",
+    "customPlaceholder": "مثال: 45",
+    "newExpiry": "تاريخ الانتهاء الجديد: ",
+    "extendButton": "تمديد {days}",
+    "toast": {
+      "enterDays": "أدخل عدد الأيام",
+      "extended": "تم تمديد العضوية بمقدار {days} يوم"
+    }
+  },
+
+  "addSessions": {
+    "title": "إضافة جلسات",
+    "subtitle": "إضافة جلسات للعضو {name}",
+    "current": "الحالي: ",
+    "currentDetail": "{used} مستخدمة / {total} إجمالي",
+    "currentRemaining": "({remaining} متبقية)",
+    "quickSelect": "اختيار سريع",
+    "customAmount": "أو أدخل عدداً مخصصاً",
+    "sessionsUnit": "جلسات",
+    "customPlaceholder": "مثال: 15",
+    "newTotal": "الإجمالي الجديد: ",
+    "newTotalSessions": "{total} جلسة",
+    "addButton": "إضافة {count} جلسة",
+    "toast": {
+      "enterSessions": "أدخل عدد الجلسات",
+      "added": "تمت إضافة {count} جلسة"
+    }
+  },
+
+  "freeze": {
+    "titleFreeze": "تجميد العضوية",
+    "titleUnfreeze": "إلغاء تجميد العضوية",
+    "plan": "الخطة",
+    "freezeDaysAvailable": "أيام التجميد المتاحة",
+    "freezesUsed": "مرات التجميد المستخدمة",
+    "limitReachedDays": "تم استخدام جميع أيام التجميد الـ {max} لهذه الخطة.",
+    "limitReachedCount": "تم الوصول إلى الحد الأقصى لعدد مرات التجميد ({max}) لهذه الخطة.",
+    "limitReachedSuffix": " لا يُسمح بمزيد من التجميد.",
+    "howManyDays": "كم يوماً؟",
+    "maxDays": "الحد الأقصى {max} يوم",
+    "newExpiry": "تاريخ الانتهاء الجديد: ",
+    "resumeDesc": "العضوية مجمّدة حالياً وستستأنف في {date}. الاستئناف الآن سيُعيد أيام التجميد غير المستخدمة إلى تاريخ الانتهاء.",
+    "resumeNow": "استئناف الآن",
+    "freezePlan": "تجميد الخطة",
+    "toast": {
+      "freezeFailed": "فشل تجميد العضوية",
+      "unfreezeFailed": "فشل إلغاء تجميد العضوية"
+    }
+  },
+
+  "transfer": {
+    "title": "نقل العضوية",
+    "transferringFrom": "النقل من",
+    "noActiveMembership": "لا توجد عضوية نشطة",
+    "searchDestination": "ابحث عن العضو المستلم",
+    "searchPlaceholder": "الاسم أو رقم العضو أو البريد…",
+    "noMembersFound": "لا يوجد أعضاء",
+    "review": "مراجعة",
+    "from": "من",
+    "to": "إلى",
+    "membershipBeingTransferred": "العضوية المنقولة",
+    "expiry": "الانتهاء",
+    "sessionsRemaining": "الجلسات المتبقية",
+    "warningText": "سيتم إلغاء الخطة النشطة للعضو المصدر ونقل المدة المتبقية إلى العضو المستلم. لا يمكن التراجع عن هذا الإجراء.",
+    "confirmTransfer": "تأكيد النقل",
+    "toast": {
+      "transferFailed": "فشل النقل",
+      "transferred": "تم نقل العضوية بنجاح"
+    }
+  },
+
+  "attendance": {
+    "totalCheckins": "إجمالي تسجيلات الحضور",
+    "thisPeriod": "هذه الفترة",
+    "lastVisit": "آخر زيارة",
+    "filterByDate": "تصفية بالتاريخ",
+    "from": "من",
+    "to": "إلى",
+    "recordsFound": "تم العثور على {count} سجل",
+    "recordsFoundPlural": "تم العثور على {count} سجلات",
+    "checkInHistory": "سجل الحضور",
+    "entries": "{count} إدخال",
+    "noAttendance": "لا توجد سجلات حضور",
+    "noAttendanceRange": "لا توجد سجلات حضور لهذه الفترة.",
+    "col": {
+      "date": "التاريخ",
+      "checkIn": "وقت الحضور",
+      "branch": "الفرع",
+      "entryPoint": "نقطة الدخول",
+      "method": "الطريقة"
+    }
+  },
+
+  "payments": {
+    "totalPaid": "إجمالي المدفوع",
+    "outstanding": "المتأخرات",
+    "refunded": "المُسترَد",
+    "payments": "{count} دفعة",
+    "pending": "{count} معلّق",
+    "refunds": "{count} مسترداد",
+    "filterPeriod": "تصفية الفترة",
+    "downloadStatement": "تحميل كشف الحساب",
+    "from": "من",
+    "to": "إلى",
+    "transactions": "المعاملات",
+    "records": "{count} سجل",
+    "noPayments": "لا توجد مدفوعات مسجّلة.",
+    "noPaymentsRange": "لا توجد مدفوعات في هذه الفترة.",
+    "paidOn": "مدفوع {date}",
+    "col": {
+      "date": "التاريخ",
+      "serviceItem": "الخدمة / البند",
+      "method": "الطريقة",
+      "source": "المصدر",
+      "status": "الحالة",
+      "amount": "المبلغ"
+    },
+    "source": {
+      "mobile": "التطبيق",
+      "admin": "الإدارة"
+    },
+    "method": {
+      "cash": "نقداً",
+      "bank_transfer": "تحويل بنكي",
+      "card": "بطاقة",
+      "other": "أخرى"
+    },
+    "paymentStatus": {
+      "paid": "مدفوع",
+      "pending": "قيد الانتظار",
+      "overdue": "متأخر",
+      "refunded": "مُسترَد",
+      "partRefunded": "مسترداد جزئي"
+    }
+  },
+
+  "sessionTransfers": {
+    "title": "تحويلات الجلسات",
+    "sentReceived": "{sent} مُرسَلة · {received} مستلمة",
+    "noTransfers": "لا توجد تحويلات بعد.",
+    "sentTo": "أُرسِل إلى {name}",
+    "receivedFrom": "مستلَم من {name}",
+    "sessionSingle": "{count} جلسة",
+    "sessionPlural": "{count} جلسات"
+  },
+
+  "memberships": {
+    "title": "الاشتراكات",
+    "subtitleWithCount": "{total} اشتراك في صالتك",
+    "subtitleEmpty": "عرض إجمالي لمتابعة التجديدات",
+    "activeLabel": "الاشتراكات النشطة",
+    "expiringLabel": "تنتهي خلال {days} يوم",
+    "expiringLabelPlural": "تنتهي خلال {days} أيام",
+    "expiredLabel": "منتهية",
+    "searchPlaceholder": "ابحث بالاسم أو رقم العضو…",
+    "dateFilters": "فلاتر التاريخ",
+    "refresh": "تحديث",
+    "export": "تصدير",
+    "exportSelected": "تصدير ({count})",
+    "startDateFrom": "تاريخ البدء من",
+    "startDateTo": "تاريخ البدء إلى",
+    "endDateFrom": "تاريخ الانتهاء من",
+    "endDateTo": "تاريخ الانتهاء إلى",
+    "expiringThreshold": "حد الانتهاء القريب",
+    "daysBeforeEndDate": "يوماً قبل تاريخ الانتهاء",
+    "noMembershipsFiltered": "لا توجد اشتراكات تطابق هذه الفلاتر.",
+    "noMembershipsYet": "لا توجد اشتراكات بعد.",
+    "showingRange": "عرض {from}–{to} من {total}",
+    "selected": "· {count} محدد",
+    "agoLabel": "منذ {days} يوم",
+    "leftLabel": "متبقي",
+    "usedLabel": "{used} / {total} مستخدمة",
+    "neverCheckedIn": "لا يوجد",
+    "transferred": "محوَّل",
+    "col": {
+      "member": "العضو",
+      "plan": "الخطة",
+      "start": "البدء",
+      "end": "الانتهاء",
+      "status": "الحالة",
+      "daysLeft": "الأيام المتبقية",
+      "sessionsLeft": "الجلسات المتبقية",
+      "lastCheckIn": "آخر حضور",
+      "view": "عرض"
+    },
+    "planType": {
+      "all": "جميع أنواع الخطط",
+      "sessions": "جلسات",
+      "duration": "مدة زمنية",
+      "durationSession": "مدة + جلسات"
+    },
+    "statusFilter": {
+      "all": "جميع الحالات",
+      "active": "نشط",
+      "expiringSoon": "ينتهي قريباً",
+      "expired": "منتهٍ"
+    },
+    "sourceFilter": {
+      "subscription": "الاشتراكات فقط",
+      "all": "جميع المصادر",
+      "transfer": "المحوَّلة فقط"
+    },
+    "displayStatus": {
+      "active": "نشط",
+      "expiringSoon": "ينتهي قريباً",
+      "expired": "منتهٍ"
+    },
+    "toast": {
+      "nothingToExport": "لا يوجد شيء للتصدير",
+      "exported": "تم تصدير {count} صف",
+      "exportedPlural": "تم تصدير {count} صفوف"
+    },
+    "csvHeaders": {
+      "memberName": "اسم العضو",
+      "memberNumber": "رقم العضو",
+      "plan": "الخطة",
+      "planType": "نوع الخطة",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "status": "الحالة",
+      "daysRemaining": "الأيام المتبقية",
+      "sessionsRemaining": "الجلسات المتبقية",
+      "lastCheckIn": "آخر حضور"
+    }
+  },
+
+  "exportModal": {
+    "title": "تصدير الأعضاء",
+    "available": "{count} عضو متاح للتصدير",
+    "formatLabel": "صيغة التصدير",
+    "csvDesc": "قيم مفصولة بفواصل",
+    "excelDesc": "Microsoft Excel ‏(.xlsx)",
+    "selectMembersLabel": "اختر الأعضاء",
+    "deselectAll": "إلغاء تحديد الكل",
+    "selectAllLabel": "تحديد الكل",
+    "selectedCount": "{count} عضو محدد",
+    "selectedCountPlural": "{count} أعضاء محددون",
+    "exportCsv": "تصدير CSV",
+    "exportExcel": "تصدير Excel"
+  },
+
+  "servicePackages": {
+    "title": "باقات الخدمات",
+    "assigned": "{count} مُعيَّنة",
+    "specialist": "المتخصص: {name}",
+    "sessionsUsed": "الجلسات المستخدمة",
+    "page": "صفحة {page} من {total}",
+    "serviceType": {
+      "personal_trainer": "تدريب شخصي",
+      "nutritionist": "تغذية",
+      "physiotherapist": "علاج طبيعي"
+    }
+  },
+
+  "assignService": {
+    "title": "تعيين باقة خدمة",
+    "serviceTypeLabel": "نوع الخدمة",
+    "packageLabel": "الباقة",
+    "loadingPackages": "جاري تحميل الباقات…",
+    "noPackages": "لا توجد باقات متاحة لهذا النوع من الخدمة.",
+    "sessionsCount": "{count} جلسة",
+    "specialistLabel": "المتخصص",
+    "paymentMethodLabel": "طريقة الدفع",
+    "notesLabel": "ملاحظات",
+    "summaryPackage": "الباقة",
+    "summarySessions": "الجلسات",
+    "summaryAmountDue": "المبلغ المستحق",
+    "assignPackage": "تعيين الباقة",
+    "notAssigned": "— غير مُعيَّن —",
+    "notesPlaceholder": "مثال: يبدأ الاثنين القادم",
+    "toast": {
+      "assigned": "تم تعيين باقة الخدمة",
+      "selectPackage": "يرجى اختيار باقة",
+      "failed": "فشل تعيين الباقة"
+    }
+  },
+
+  "delete": {
+    "confirmMessage": "هل أنت متأكد من إزالة \"{name}\" من هذه الصالة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "titleAttr": "إزالة عضو",
+    "toast": {
+      "removed": "تمت إزالة {name}",
+      "failed": "فشل حذف العضو"
+    }
+  },
+
+  "toggleStatus": {
+    "deactivateTitle": "إيقاف العضو",
+    "reactivateTitle": "إعادة تفعيل العضو",
+    "confirmDeactivate": "إيقاف {name}؟ سيتم الاحتفاظ ببياناته ويمكن إعادة تفعيله لاحقاً.",
+    "confirmReactivate": "إعادة تفعيل {name}؟ سيسترجع حالة العضو النشط.",
+    "toast": {
+      "deactivated": "تم إيقاف العضو",
+      "reactivated": "تمت إعادة تفعيل العضو",
+      "failed": "فشلت العملية"
+    }
+  },
+
+  "verifyEmail": {
+    "titleAttr": "توثيق البريد الإلكتروني",
+    "confirmMessage": "توثيق البريد الإلكتروني للعضو {name}؟ هذا يؤكد أن عنوان بريده صحيح.",
+    "toast": {
+      "verified": "تم توثيق البريد الإلكتروني",
+      "failed": "فشل توثيق البريد الإلكتروني"
+    }
+  }
+}

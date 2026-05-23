@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Building2, Clock, Upload, Loader2, Check, Dumbbell, Smartphone, GitBranch, Users, ChevronDown, CreditCard, ShieldCheck, Eye, EyeOff, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymSettings, OperatingHours, DayHours } from '@/lib/settings-types';
 import { DEFAULT_HOURS } from '@/lib/settings-types';
 import { can, type Permission } from '@/lib/get-permissions';
@@ -11,10 +12,6 @@ import type { GymBranch } from '@/app/dashboard/branches/page';
 import type { GymStudio } from '@/app/dashboard/classes/page';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
-const DAY_LABELS: Record<string, string> = {
-  monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
-  thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
-};
 
 interface Props {
   gym: GymSettings;
@@ -30,6 +27,9 @@ const ALL_SECTIONS = ['profile', 'branding', 'app', 'operations'] as const;
 type SectionKey = typeof ALL_SECTIONS[number];
 
 export default function SettingsPage({ gym, permissions, initialBranches, initialStudios, maxBranches, pricePerBranch, gymId }: Props) {
+  const t = useTranslations('settings');
+  const tc = useTranslations('common');
+
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
     profile: false, branding: false, app: false, operations: false,
   });
@@ -80,7 +80,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand';
 
   const saveProfile = async () => {
-    if (!profile.name.trim()) { toast.error('Gym name is required'); return; }
+    if (!profile.name.trim()) { toast.error(t('profile.gymNameRequired')); return; }
     setSavingProfile(true);
     try {
       const res = await fetch('/api/settings', {
@@ -95,9 +95,9 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
-      toast.success('Profile saved');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(data.error ?? t('failedSave')); return; }
+      toast.success(t('profile.savedProfile'));
+    } catch { toast.error(t('networkError')); }
     finally { setSavingProfile(false); }
   };
 
@@ -110,9 +110,9 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
         body: JSON.stringify({ operatingHours: hours }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
-      toast.success('Operating hours saved');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(data.error ?? t('failedSave')); return; }
+      toast.success(t('hours.savedHours'));
+    } catch { toast.error(t('networkError')); }
     finally { setSavingHours(false); }
   };
 
@@ -123,10 +123,10 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
       fd.append('file', file);
       const res = await fetch('/api/settings/logo', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Upload failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('failedUpload')); return; }
       setLogoUrl(data.logo_url);
-      toast.success('Logo updated');
-    } catch { toast.error('Network error'); }
+      toast.success(t('profile.logoUpdated'));
+    } catch { toast.error(t('networkError')); }
     finally { setUploadingLogo(false); }
   };
 
@@ -139,9 +139,9 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
         body: JSON.stringify({ mobilePaymentsEnabled, sessionTransferEnabled }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
-      toast.success('App settings saved');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(data.error ?? t('failedSave')); return; }
+      toast.success(t('app.savedAppSettings'));
+    } catch { toast.error(t('networkError')); }
     finally { setSavingAppSettings(false); }
   };
 
@@ -159,16 +159,16 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
-      toast.success('App colors saved — members will see the changes next time they open the app');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(data.error ?? t('failedSave')); return; }
+      toast.success(t('branding.savedColors'));
+    } catch { toast.error(t('networkError')); }
     finally { setSavingBranding(false); }
   };
 
   const saveCapacity = async () => {
     const cap = parseInt(maxCapacity, 10);
     if (capacityEnabled && (isNaN(cap) || cap <= 0)) {
-      toast.error('Max capacity must be a positive number');
+      toast.error(t('capacity.maxCapacityRequired'));
       return;
     }
     setSavingCapacity(true);
@@ -179,9 +179,9 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
         body: JSON.stringify({ capacityEnabled, maxCapacity: cap }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
-      toast.success('Capacity settings saved');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(data.error ?? t('failedSave')); return; }
+      toast.success(t('capacity.savedCapacity'));
+    } catch { toast.error(t('networkError')); }
     finally { setSavingCapacity(false); }
   };
 
@@ -199,7 +199,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
   const savePaymentConfig = async () => {
     if (!paymentForm.secretKey || !paymentForm.publicKey || !paymentForm.integrationId) {
-      toast.error('Secret key, public key, and card integration ID are required');
+      toast.error(t('app.paymentConfigRequired'));
       return;
     }
     setSavingPayment(true);
@@ -211,14 +211,14 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        toast.error(data.error ?? 'Failed to save payment config');
+        toast.error(data.error ?? t('failedSave'));
         return;
       }
-      toast.success('Payment gateway configured successfully');
+      toast.success(t('app.paymentConfigSaved'));
       setPaymentForm({ secretKey: '', publicKey: '', integrationId: '', valuIntegrationId: '', applepayIntegrationId: '' });
       setShowSecretKey(false);
       loadPaymentStatus();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(t('networkError')); }
     finally { setSavingPayment(false); }
   };
 
@@ -260,15 +260,15 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-fg">Settings</h1>
-        <p className="text-sm text-fg-muted mt-0.5">Manage your gym profile, operations, and integrations</p>
+        <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+        <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 1: GYM PROFILE (Logo + Profile fields)
          ══════════════════════════════════════════════════════════════════════ */}
       <div className="bg-surface-2 border border-line rounded-xl p-6">
-        <SectionHeader sectionKey="profile" icon={<Building2 className="w-4 h-4 text-brand" />} title="Gym Profile" />
+        <SectionHeader sectionKey="profile" icon={<Building2 className="w-4 h-4 text-brand" />} title={t('sections.gymProfile')} />
         {open.profile && (
           <div className="space-y-6 mt-5">
             {/* Logo */}
@@ -276,11 +276,11 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               <div className="w-20 h-20 rounded-xl bg-surface-3 border border-line flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoUrl
                   // eslint-disable-next-line @next/next/no-img-element -- user-uploaded gym logo on external host
-                  ? <img src={logoUrl} alt="Gym logo" className="w-full h-full object-cover" />
+                  ? <img src={logoUrl} alt={t('profile.logoAlt')} className="w-full h-full object-cover" />
                   : <Dumbbell className="w-8 h-8 text-fg-faint" />}
               </div>
               <div>
-                <p className="text-sm text-fg-muted mb-2">Used in the member app and splash screen</p>
+                <p className="text-sm text-fg-muted mb-2">{t('profile.logoUsage')}</p>
                 {can(permissions, 'settings', 'edit') && (
                   <>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden"
@@ -288,8 +288,8 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                     <button onClick={() => fileRef.current?.click()} disabled={uploadingLogo}
                       className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-4 border border-line text-gray-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                       {uploadingLogo
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
-                        : <><Upload className="w-4 h-4" /> Upload Logo</>}
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('profile.uploading')}</>
+                        : <><Upload className="w-4 h-4" /> {t('profile.uploadLogo')}</>}
                     </button>
                   </>
                 )}
@@ -301,37 +301,39 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {/* Profile fields */}
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">Gym Name <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('profile.gymName')} <span className="text-red-400">*</span></label>
                 <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Iron Fitness Club" className={inp} />
+                  placeholder={t('profile.gymNamePlaceholder')} className={inp} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-fg-muted mb-1.5">Email</label>
+                  <label className="block text-xs text-fg-muted mb-1.5">{tc('email')}</label>
                   <input type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-                    placeholder="contact@gym.com" className={inp} />
+                    placeholder={t('profile.emailPlaceholder')} className={inp} />
                 </div>
                 <div>
-                  <label className="block text-xs text-fg-muted mb-1.5">Phone</label>
+                  <label className="block text-xs text-fg-muted mb-1.5">{tc('phone')}</label>
                   <input value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
-                    placeholder="+1 234 567 8900" className={inp} />
+                    placeholder={t('profile.phonePlaceholder')} className={inp} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">Address</label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('profile.address')}</label>
                 <input value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
-                  placeholder="123 Main St, City, Country" className={inp} />
+                  placeholder={t('profile.addressPlaceholder')} className={inp} />
               </div>
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">Description <span className="text-fg-faint">(shown on app splash screen)</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">
+                  {t('profile.description')} <span className="text-fg-faint">{t('profile.descriptionHint')}</span>
+                </label>
                 <textarea value={profile.description} onChange={e => setProfile(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Brief description of your gym…" rows={3}
+                  placeholder={t('profile.descriptionPlaceholder')} rows={3}
                   className={inp + ' resize-none'} />
               </div>
               {can(permissions, 'settings', 'edit') && (
                 <button onClick={saveProfile} disabled={savingProfile}
                   className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                  {savingProfile ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save Profile</>}
+                  {savingProfile ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('profile.saveProfile')}</>}
                 </button>
               )}
             </div>
@@ -343,18 +345,18 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
           SECTION: APP BRANDING (Colors)
          ══════════════════════════════════════════════════════════════════════ */}
       <div className="bg-surface-2 border border-line rounded-xl p-6">
-        <SectionHeader sectionKey="branding" icon={<Palette className="w-4 h-4 text-brand" />} title="App Branding" />
+        <SectionHeader sectionKey="branding" icon={<Palette className="w-4 h-4 text-brand" />} title={t('sections.appBranding')} />
         {open.branding && (
           <div className="space-y-6 mt-5">
             <p className="text-xs text-fg-muted">
-              Customize the colors members see in the mobile app. Changes take effect next time a member opens the app.
+              {t('branding.subtitle')}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Primary color */}
               <div>
-                <label className="block text-sm font-medium text-fg mb-2">Primary Color</label>
-                <p className="text-xs text-fg-muted mb-3">Used for buttons, links, navigation highlights, and main accents.</p>
+                <label className="block text-sm font-medium text-fg mb-2">{t('branding.primaryColor')}</label>
+                <p className="text-xs text-fg-muted mb-3">{t('branding.primaryColorDesc')}</p>
                 <div className="flex items-center gap-3">
                   <label className="relative cursor-pointer">
                     <input
@@ -382,8 +384,8 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
               {/* Secondary color */}
               <div>
-                <label className="block text-sm font-medium text-fg mb-2">Secondary Color</label>
-                <p className="text-xs text-fg-muted mb-3">Used for badges, tags, secondary buttons, and subtle highlights.</p>
+                <label className="block text-sm font-medium text-fg mb-2">{t('branding.secondaryColor')}</label>
+                <p className="text-xs text-fg-muted mb-3">{t('branding.secondaryColorDesc')}</p>
                 <div className="flex items-center gap-3">
                   <label className="relative cursor-pointer">
                     <input
@@ -412,19 +414,19 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
             {/* Preview */}
             <div>
-              <p className="text-xs text-fg-muted mb-3">Preview</p>
+              <p className="text-xs text-fg-muted mb-3">{t('branding.preview')}</p>
               <div className="flex items-center gap-3 flex-wrap">
                 <button className="px-5 py-2 rounded-lg text-fg text-sm font-medium" style={{ backgroundColor: primaryColor }}>
-                  Primary Button
+                  {t('branding.primaryButton')}
                 </button>
                 <button className="px-5 py-2 rounded-lg text-fg text-sm font-medium" style={{ backgroundColor: secondaryColor }}>
-                  Secondary Button
+                  {t('branding.secondaryButton')}
                 </button>
                 <span className="px-3 py-1 rounded-full text-xs font-medium text-fg" style={{ backgroundColor: primaryColor }}>
-                  Badge
+                  {t('branding.badge')}
                 </span>
                 <span className="px-3 py-1 rounded-full text-xs font-medium text-fg" style={{ backgroundColor: secondaryColor }}>
-                  Tag
+                  {t('branding.tag')}
                 </span>
               </div>
             </div>
@@ -432,7 +434,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {can(permissions, 'settings', 'edit') && (
               <button onClick={saveBranding} disabled={savingBranding}
                 className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                {savingBranding ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save Colors</>}
+                {savingBranding ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('branding.saveColors')}</>}
               </button>
             )}
           </div>
@@ -443,16 +445,15 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
           SECTION: MOBILE APP & PAYMENTS (Toggle + Payment Gateway)
          ══════════════════════════════════════════════════════════════════════ */}
       <div className="bg-surface-2 border border-line rounded-xl p-6">
-        <SectionHeader sectionKey="app" icon={<Smartphone className="w-4 h-4 text-brand" />} title="Mobile App & Payments" />
+        <SectionHeader sectionKey="app" icon={<Smartphone className="w-4 h-4 text-brand" />} title={t('sections.mobileApp')} />
         {open.app && (
           <div className="space-y-6 mt-5">
             {/* Mobile payments toggle */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-fg">Mobile Payments</p>
+                <p className="text-sm font-medium text-fg">{t('app.mobilePayments')}</p>
                 <p className="text-xs text-fg-muted mt-0.5">
-                  Allow members to pay for memberships, programmes, and packages directly in the app.
-                  When disabled, all payment buttons are hidden from the member app.
+                  {t('app.mobilePaymentsDesc')}
                 </p>
               </div>
               <button
@@ -462,6 +463,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                   mobilePaymentsEnabled ? 'bg-brand' : 'bg-surface-4'
                 } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
                 aria-pressed={mobilePaymentsEnabled}
+                aria-label={t('app.mobilePayments')}
               >
                 <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
                   mobilePaymentsEnabled ? 'translate-x-5' : 'translate-x-0'
@@ -472,10 +474,9 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {/* Session transfers toggle */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-fg">Session Transfers</p>
+                <p className="text-sm font-medium text-fg">{t('app.sessionTransfers')}</p>
                 <p className="text-xs text-fg-muted mt-0.5">
-                  Allow members to transfer sessions to another member from their profile.
-                  When disabled, the &quot;Share sessions&quot; entry point is hidden in the member app.
+                  {t('app.sessionTransfersDesc')}
                 </p>
               </div>
               <button
@@ -485,6 +486,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                   sessionTransferEnabled ? 'bg-brand' : 'bg-surface-4'
                 } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
                 aria-pressed={sessionTransferEnabled}
+                aria-label={t('app.sessionTransfers')}
               >
                 <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
                   sessionTransferEnabled ? 'translate-x-5' : 'translate-x-0'
@@ -494,7 +496,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {can(permissions, 'settings', 'edit') && (
               <button onClick={saveAppSettings} disabled={savingAppSettings}
                 className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                {savingAppSettings ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save</>}
+                {savingAppSettings ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('app.saveAppSettings')}</>}
               </button>
             )}
 
@@ -504,7 +506,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 <div className="border-t border-line" />
                 <div className="flex items-center gap-2 mb-1">
                   <CreditCard className="w-4 h-4 text-brand" />
-                  <h3 className="text-sm font-semibold text-fg">Payment Gateway</h3>
+                  <h3 className="text-sm font-semibold text-fg">{t('app.paymentGateway')}</h3>
                 </div>
 
                 {/* Current status */}
@@ -514,21 +516,21 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                     <div className="flex items-center gap-2 mb-2">
                       <ShieldCheck className={`w-4 h-4 ${paymentStatus.configured ? 'text-emerald-400' : 'text-amber-400'}`} />
                       <p className={`text-sm font-medium ${paymentStatus.configured ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {paymentStatus.configured ? 'Payment gateway configured' : 'Payment gateway not configured'}
+                        {paymentStatus.configured ? t('app.gatewayConfigured') : t('app.gatewayNotConfigured')}
                       </p>
                     </div>
                     {paymentStatus.configured && (
                       <div className="text-xs text-fg-muted space-y-1">
-                        <p>Provider: <span className="text-fg font-medium capitalize">{paymentStatus.provider}</span></p>
-                        {paymentStatus.secret_key_hint && <p>Secret key: <span className="text-fg font-mono">{paymentStatus.secret_key_hint}</span></p>}
-                        {paymentStatus.public_key_hint && <p>Public key: <span className="text-fg font-mono">{paymentStatus.public_key_hint}</span></p>}
+                        <p>{t('app.provider')}: <span className="text-fg font-medium capitalize">{paymentStatus.provider}</span></p>
+                        {paymentStatus.secret_key_hint && <p>{t('app.secretKeyHint')}: <span className="text-fg font-mono">{paymentStatus.secret_key_hint}</span></p>}
+                        {paymentStatus.public_key_hint && <p>{t('app.publicKeyHint')}: <span className="text-fg font-mono">{paymentStatus.public_key_hint}</span></p>}
                         <div className="flex gap-3 mt-1">
-                          <span className={paymentStatus.has_card ? 'text-emerald-400' : 'text-fg-faint'}>Card {paymentStatus.has_card ? '✓' : '✗'}</span>
-                          <span className={paymentStatus.has_valu ? 'text-emerald-400' : 'text-fg-faint'}>ValU {paymentStatus.has_valu ? '✓' : '✗'}</span>
-                          <span className={paymentStatus.has_applepay ? 'text-emerald-400' : 'text-fg-faint'}>Apple Pay {paymentStatus.has_applepay ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_card ? 'text-emerald-400' : 'text-fg-faint'}>{t('app.cardMethod')} {paymentStatus.has_card ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_valu ? 'text-emerald-400' : 'text-fg-faint'}>{t('app.valuMethod')} {paymentStatus.has_valu ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_applepay ? 'text-emerald-400' : 'text-fg-faint'}>{t('app.applePayMethod')} {paymentStatus.has_applepay ? '✓' : '✗'}</span>
                         </div>
                         {paymentStatus.updated_at && (
-                          <p className="text-fg-faint mt-1">Last updated: {new Date(paymentStatus.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          <p className="text-fg-faint mt-1">{t('app.lastUpdated')}: {new Date(paymentStatus.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                         )}
                       </div>
                     )}
@@ -536,59 +538,58 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 )}
 
                 <p className="text-xs text-fg-muted">
-                  Enter your Paymob credentials below. For security, saved credentials are never displayed.
-                  Submitting new values will overwrite the existing configuration.
+                  {t('app.paymobHint')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">Secret Key <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.secretKey')} <span className="text-red-400">*</span></label>
                     <div className="relative">
                       <input
                         type={showSecretKey ? 'text' : 'password'}
                         value={paymentForm.secretKey}
                         onChange={e => setPaymentForm(p => ({ ...p, secretKey: e.target.value }))}
-                        placeholder="sk_live_•••••••••••"
-                        className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full pr-10 focus:outline-none focus:border-brand"
+                        placeholder={t('app.secretKeyPlaceholder')}
+                        className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full pe-10 focus:outline-none focus:border-brand"
                       />
                       <button type="button" onClick={() => setShowSecretKey(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg">
+                        className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg">
                         {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">Public Key <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.publicKey')} <span className="text-red-400">*</span></label>
                     <input type="text" value={paymentForm.publicKey}
                       onChange={e => setPaymentForm(p => ({ ...p, publicKey: e.target.value }))}
-                      placeholder="pk_live_•••••••••••"
+                      placeholder={t('app.publicKeyPlaceholder')}
                       className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">Card Integration ID <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.cardIntegrationId')} <span className="text-red-400">*</span></label>
                     <input type="text" value={paymentForm.integrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, integrationId: e.target.value }))}
-                      placeholder="e.g. 123456"
+                      placeholder={t('app.cardIntegrationIdPlaceholder')}
                       className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">ValU Integration ID <span className="text-fg-faint">(optional)</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.valuIntegrationId')} <span className="text-fg-faint">({tc('optional')})</span></label>
                     <input type="text" value={paymentForm.valuIntegrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, valuIntegrationId: e.target.value }))}
-                      placeholder="e.g. 789012"
+                      placeholder={t('app.valuIntegrationIdPlaceholder')}
                       className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">Apple Pay Integration ID <span className="text-fg-faint">(optional)</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.applepayIntegrationId')} <span className="text-fg-faint">({tc('optional')})</span></label>
                     <input type="text" value={paymentForm.applepayIntegrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, applepayIntegrationId: e.target.value }))}
-                      placeholder="e.g. 345678"
+                      placeholder={t('app.applepayIntegrationIdPlaceholder')}
                       className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
                   </div>
                 </div>
 
                 <button onClick={savePaymentConfig} disabled={savingPayment}
                   className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                  {savingPayment ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><CreditCard className="w-4 h-4" /> Save Payment Config</>}
+                  {savingPayment ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><CreditCard className="w-4 h-4" /> {t('app.savePaymentConfig')}</>}
                 </button>
               </>
             )}
@@ -600,14 +601,14 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
           SECTION 3: BRANCHES & OPERATIONS (Hours + Capacity + Branches)
          ══════════════════════════════════════════════════════════════════════ */}
       <div className="bg-surface-2 border border-line rounded-xl p-6">
-        <SectionHeader sectionKey="operations" icon={<GitBranch className="w-4 h-4 text-brand" />} title="Branches & Operations" />
+        <SectionHeader sectionKey="operations" icon={<GitBranch className="w-4 h-4 text-brand" />} title={t('sections.branchesOps')} />
         {open.operations && (
           <div className="space-y-6 mt-5">
             {/* Operating Hours */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-4 h-4 text-fg-muted" />
-                <h3 className="text-sm font-semibold text-fg">Operating Hours</h3>
+                <h3 className="text-sm font-semibold text-fg">{t('hours.title')}</h3>
               </div>
               <div className="space-y-3">
                 {DAYS.map(day => {
@@ -620,17 +621,17 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                             onChange={e => updateDay(day, 'closed', !e.target.checked)}
                             className="w-4 h-4 rounded border-line bg-surface-3 text-brand focus:ring-brand" />
                           <span className={`text-sm font-medium capitalize ${dh.closed ? 'text-fg-faint' : 'text-fg'}`}>
-                            {DAY_LABELS[day]}
+                            {t(`hours.days.${day}`)}
                           </span>
                         </label>
                       </div>
                       {dh.closed ? (
-                        <span className="text-xs text-fg-faint italic">Closed</span>
+                        <span className="text-xs text-fg-faint italic">{t('hours.closed')}</span>
                       ) : (
                         <div className="flex items-center gap-2 flex-1">
                           <input type="time" value={dh.open} onChange={e => updateDay(day, 'open', e.target.value)}
                             className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]" />
-                          <span className="text-fg-faint text-xs">to</span>
+                          <span className="text-fg-faint text-xs">{t('hours.to')}</span>
                           <input type="time" value={dh.close} onChange={e => updateDay(day, 'close', e.target.value)}
                             className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]" />
                         </div>
@@ -642,7 +643,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               {can(permissions, 'settings', 'edit') && (
                 <button onClick={saveHours} disabled={savingHours}
                   className="mt-5 flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                  {savingHours ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save Hours</>}
+                  {savingHours ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('hours.saveHours')}</>}
                 </button>
               )}
             </div>
@@ -653,14 +654,14 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-4 h-4 text-fg-muted" />
-                <h3 className="text-sm font-semibold text-fg">Gym Capacity</h3>
+                <h3 className="text-sm font-semibold text-fg">{t('capacity.title')}</h3>
               </div>
               <div className="space-y-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-fg">Enable Capacity Tracking</p>
+                    <p className="text-sm font-medium text-fg">{t('capacity.enableTracking')}</p>
                     <p className="text-xs text-fg-muted mt-0.5">
-                      Show members how busy the gym is right now. Based on check-ins in the last 2 hours.
+                      {t('capacity.enableTrackingDesc')}
                     </p>
                   </div>
                   <button type="button"
@@ -669,6 +670,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                       capacityEnabled ? 'bg-brand' : 'bg-surface-4'
                     } ${!can(permissions, 'settings', 'edit') ? 'opacity-40 cursor-not-allowed' : ''}`}
                     aria-pressed={capacityEnabled}
+                    aria-label={t('capacity.enableTracking')}
                   >
                     <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
                       capacityEnabled ? 'translate-x-5' : 'translate-x-0'
@@ -678,28 +680,28 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
                 {capacityEnabled && (
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">Maximum Gym Capacity <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('capacity.maxCapacity')} <span className="text-red-400">*</span></label>
                     <input type="number" min={1} value={maxCapacity}
-                      onChange={e => setMaxCapacity(e.target.value)} placeholder="e.g. 100"
+                      onChange={e => setMaxCapacity(e.target.value)} placeholder={t('capacity.maxCapacityPlaceholder')}
                       className="w-48 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                       readOnly={!can(permissions, 'settings', 'edit')} />
-                    <p className="text-xs text-fg-faint mt-1">Total number of members allowed in the gym at once</p>
+                    <p className="text-xs text-fg-faint mt-1">{t('capacity.maxCapacityHint')}</p>
                   </div>
                 )}
 
                 {capacityEnabled && liveCapacity && (
                   <div className="bg-surface border border-line rounded-lg p-4">
-                    <p className="text-xs text-fg-muted font-semibold uppercase tracking-wider mb-3">Live Preview</p>
+                    <p className="text-xs text-fg-muted font-semibold uppercase tracking-wider mb-3">{t('capacity.livePreview')}</p>
                     <div className="flex items-center gap-3 mb-2">
                       <span className={`inline-block w-2 h-2 rounded-full ${
                         liveCapacity.status === 'not_busy' ? 'bg-green-500' :
                         liveCapacity.status === 'moderate' ? 'bg-amber-500' : 'bg-red-500'
                       }`} />
                       <span className="text-sm font-semibold text-fg">
-                        {liveCapacity.status === 'not_busy' ? 'Not crowded' :
-                         liveCapacity.status === 'moderate' ? 'Moderately busy' : 'Very busy'}
+                        {liveCapacity.status === 'not_busy' ? t('capacity.notCrowded') :
+                         liveCapacity.status === 'moderate' ? t('capacity.moderatelyBusy') : t('capacity.veryBusy')}
                       </span>
-                      <span className={`ml-auto text-sm font-bold ${
+                      <span className={`ms-auto text-sm font-bold ${
                         liveCapacity.status === 'not_busy' ? 'text-green-400' :
                         liveCapacity.status === 'moderate' ? 'text-amber-400' : 'text-red-400'
                       }`}>{liveCapacity.capacity_percentage}%</span>
@@ -711,7 +713,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                       }`} style={{ width: `${liveCapacity.capacity_percentage}%` }} />
                     </div>
                     <p className="text-xs text-fg-faint mt-2">
-                      {liveCapacity.active_users} active members out of {liveCapacity.max_capacity} capacity
+                      {t('capacity.activeOf', { active: liveCapacity.active_users, max: liveCapacity.max_capacity })}
                     </p>
                   </div>
                 )}
@@ -719,7 +721,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 {can(permissions, 'settings', 'edit') && (
                   <button onClick={saveCapacity} disabled={savingCapacity}
                     className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
-                    {savingCapacity ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save</>}
+                    {savingCapacity ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('capacity.saveCapacity')}</>}
                   </button>
                 )}
               </div>

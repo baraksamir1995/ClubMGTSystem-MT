@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Layers, Plus, Trash2, Upload, ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymProgram } from '@/app/dashboard/services/page';
@@ -20,6 +21,8 @@ const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text
 const labelCls = 'block text-xs font-medium text-fg-muted mb-1.5';
 
 export default function ProgramModal({ program, gymId, onClose, onSaved }: Props) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const isEdit = !!program;
 
   const [title, setTitle]                     = useState(program?.title ?? '');
@@ -72,8 +75,8 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
     if (!file) return;
 
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowed.includes(file.type)) { toast.error('Only JPEG, PNG, WebP or GIF allowed'); return; }
-    if (file.size > 5 * 1024 * 1024)  { toast.error('Image must be under 5 MB'); return; }
+    if (!allowed.includes(file.type)) { toast.error(t('programModal.imageBadType')); return; }
+    if (file.size > 5 * 1024 * 1024)  { toast.error(t('programModal.imageTooBig')); return; }
 
     setUploading(true);
     try {
@@ -82,13 +85,13 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
       formData.append('bucket', 'program-images');
       const res = await fetch('/api/files/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (!res.ok) { toast.error('Upload failed: ' + (data.error ?? 'Unknown error')); return; }
+      if (!res.ok) { toast.error(t('programModal.imageUploadFailed') + ': ' + (data.error ?? tc('somethingWrong'))); return; }
 
       setImageUrl(data.url);
       setStoragePath(data.path ?? '');
-      toast.success('Image uploaded');
+      toast.success(t('programModal.imageUploadedToast'));
     } catch {
-      toast.error('Upload failed');
+      toast.error(t('programModal.imageUploadFailed'));
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -99,7 +102,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error('Title is required'); return; }
+    if (!title.trim()) { toast.error(t('programModal.titleRequired')); return; }
 
     setSaving(true);
     const payload = {
@@ -130,12 +133,12 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
         },
       );
       const json = await res.json();
-      if (!res.ok) { toast.error(json.error ?? 'Failed to save program'); return; }
-      toast.success(isEdit ? 'Program updated' : 'Program created');
+      if (!res.ok) { toast.error(json.error ?? t('programModal.failedSaveToast')); return; }
+      toast.success(isEdit ? t('programModal.updatedToast') : t('programModal.createdToast'));
       onSaved(json as GymProgram);
       onClose();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setSaving(false);
     }
@@ -152,7 +155,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               <Layers className="w-4 h-4 text-brand" />
             </div>
             <h2 className="text-base font-semibold text-fg">
-              {isEdit ? 'Edit Program' : 'New Program'}
+              {isEdit ? t('programModal.editTitle') : t('programModal.addTitle')}
             </h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
@@ -165,17 +168,17 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
           {/* Status */}
           <div>
-            <label className={labelCls}>Status</label>
+            <label className={labelCls}>{t('programModal.fieldStatus')}</label>
             <div className="grid grid-cols-2 gap-2">
               {([
-                { value: 'draft',     label: 'Draft',     hint: 'Not visible on mobile' },
-                { value: 'published', label: 'Published', hint: 'Visible in Explore feed' },
+                { value: 'draft',     label: t('programModal.statusDraft'),     hint: t('programModal.draftHint') },
+                { value: 'published', label: t('programModal.statusPublished'), hint: t('programModal.publishedHint') },
               ] as const).map(s => (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => setStatus(s.value)}
-                  className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-colors ${
+                  className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-start transition-colors ${
                     status === s.value
                       ? 'border-brand bg-brand/10'
                       : 'border-line hover:border-line'
@@ -190,30 +193,30 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
           {/* Cover image */}
           <div>
-            <label className={labelCls}>Cover Image</label>
+            <label className={labelCls}>{t('programModal.fieldCoverImage')}</label>
             {imageUrl ? (
               <div className="relative rounded-xl overflow-hidden bg-surface border border-line">
                 <img src={imageUrl} alt="Cover" className="w-full h-44 object-cover"
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <button type="button"
                   onClick={() => { setImageUrl(''); setStoragePath(''); if (fileRef.current) fileRef.current.value = ''; }}
-                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors">
+                  className="absolute top-2 end-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors">
+                  className="absolute bottom-2 end-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors">
                   <Upload className="w-3 h-3" />
-                  {uploading ? 'Uploading…' : 'Replace'}
+                  {uploading ? t('programModal.uploading') : t('programModal.replaceBtn')}
                 </button>
               </div>
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                 className="w-full flex flex-col items-center justify-center gap-2 h-36 bg-surface border border-dashed border-line hover:border-brand rounded-xl text-fg-faint hover:text-brand disabled:opacity-50 transition-colors">
-                {uploading ? <span className="text-sm">Uploading…</span> : (
+                {uploading ? <span className="text-sm">{t('programModal.uploading')}</span> : (
                   <>
                     <ImageIcon className="w-6 h-6" />
-                    <span className="text-sm">Click to upload cover image</span>
-                    <span className="text-xs text-fg-faint">JPEG, PNG, WebP · max 5 MB</span>
+                    <span className="text-sm">{t('programModal.uploadPrompt')}</span>
+                    <span className="text-xs text-fg-faint">{t('programModal.uploadHint')}</span>
                   </>
                 )}
               </button>
@@ -223,7 +226,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
           {/* Title */}
           <div>
-            <label className={labelCls}>Title <span className="text-red-400">*</span></label>
+            <label className={labelCls}>{t('programModal.fieldTitle')} <span className="text-red-400">*</span></label>
             <input className={inputCls} value={title} onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Fight Camp" maxLength={120} required />
           </div>
@@ -231,23 +234,23 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           {/* Description */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className={labelCls.replace('mb-1.5', '')}>Description</label>
+              <label className={labelCls.replace('mb-1.5', '')}>{t('programModal.fieldDescription')}</label>
               <span className={`text-xs ${description.length > 600 ? 'text-red-400' : 'text-fg-faint'}`}>
                 {description.length}/600
               </span>
             </div>
             <textarea className={`${inputCls} resize-none`} rows={4} value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Shown on the program detail screen" maxLength={600} />
+              placeholder={t('programModal.descriptionPlaceholder')} maxLength={600} />
           </div>
 
           {/* Price */}
           <div>
-            <label className={labelCls}>Programme Price (EGP)</label>
+            <label className={labelCls}>{t('programModal.fieldPrice')}</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
+              <span className="absolute start-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
               <input
-                className={`${inputCls} pl-12`}
+                className={`${inputCls} ps-12`}
                 type="number"
                 min={0}
                 step={1}
@@ -261,17 +264,17 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           {/* Duration · Sessions · Min/class */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className={labelCls}>Duration (weeks)</label>
+              <label className={labelCls}>{t('programModal.fieldDuration')}</label>
               <input className={inputCls} type="number" min={1} max={52} value={durationWeeks}
                 onChange={e => setDurationWeeks(e.target.value)} placeholder="e.g. 8" />
             </div>
             <div>
-              <label className={labelCls}>Total Sessions</label>
+              <label className={labelCls}>{t('programModal.fieldTotalSessions')}</label>
               <input className={inputCls} type="number" min={1} value={totalSessions}
                 onChange={e => setTotalSessions(e.target.value)} placeholder="e.g. 24" />
             </div>
             <div>
-              <label className={labelCls}>Min / Class</label>
+              <label className={labelCls}>{t('programModal.fieldMinClass')}</label>
               <input className={inputCls} type="number" min={1} value={sessionMinutes}
                 onChange={e => setSessionMinutes(e.target.value)} placeholder="e.g. 90" />
             </div>
@@ -279,7 +282,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
           {/* Level */}
           <div>
-            <label className={labelCls}>Level</label>
+            <label className={labelCls}>{t('programModal.fieldLevel')}</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {LEVEL_PRESETS.map(l => (
                 <button key={l} type="button" onClick={() => setLevel(level === l ? '' : l)}
@@ -289,12 +292,12 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               ))}
             </div>
             <input className={inputCls} value={level} onChange={e => setLevel(e.target.value)}
-              placeholder="Or type a custom level" />
+              placeholder={t('programModal.levelCustomPlaceholder')} />
           </div>
 
           {/* Category */}
           <div>
-            <label className={labelCls}>Category</label>
+            <label className={labelCls}>{t('programModal.fieldCategory')}</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {CATEGORY_PRESETS.map(c => (
                 <button key={c} type="button" onClick={() => setCategory(category === c ? '' : c)}
@@ -304,36 +307,36 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               ))}
             </div>
             <input className={inputCls} value={category} onChange={e => setCategory(e.target.value)}
-              placeholder="Or type a custom category" />
+              placeholder={t('programModal.categoryCustomPlaceholder')} />
           </div>
 
           {/* Trainer + Schedule */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Lead Trainer</label>
+              <label className={labelCls}>{t('programModal.fieldLeadTrainer')}</label>
               <select
                 className={inputCls}
                 value={trainerName}
                 onChange={e => setTrainerName(e.target.value)}
               >
-                <option value="">— No trainer —</option>
-                {trainers.map(t => (
-                  <option key={t.id} value={t.name}>{t.name}</option>
+                <option value="">{t('programModal.noTrainer')}</option>
+                {trainers.map(tr => (
+                  <option key={tr.id} value={tr.name}>{tr.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Schedule</label>
+              <label className={labelCls}>{t('programModal.fieldSchedule')}</label>
               <input className={inputCls} value={scheduleText} onChange={e => setScheduleText(e.target.value)}
-                placeholder="e.g. Mon / Wed / Fri" />
+                placeholder={t('programModal.schedulePlaceholder')} />
             </div>
           </div>
 
           {/* Focus areas */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className={labelCls.replace('mb-1.5', '')}>What You&apos;ll Work On</label>
-              <span className="text-xs text-fg-faint">{focusAreas.length} areas</span>
+              <label className={labelCls.replace('mb-1.5', '')}>{t('programModal.fieldFocusAreas')}</label>
+              <span className="text-xs text-fg-faint">{t('programModal.focusAreasCount', { count: focusAreas.length })}</span>
             </div>
             {/* Presets */}
             <div className="flex flex-wrap gap-2 mb-2">
@@ -362,7 +365,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               <input ref={focusRef} className={`${inputCls} flex-1`} value={focusInput}
                 onChange={e => setFocusInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFocusArea(); } }}
-                placeholder="Add a focus area and press Enter" />
+                placeholder={t('programModal.focusInputPlaceholder')} />
               <button type="button" onClick={() => addFocusArea()} disabled={!focusInput.trim()}
                 className="flex items-center gap-1.5 px-3 py-2 bg-surface-3 hover:bg-surface-4 disabled:opacity-40 text-fg text-sm rounded-lg transition-colors">
                 <Plus className="w-4 h-4" />
@@ -372,11 +375,11 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
           {/* Display order */}
           <div>
-            <label className={labelCls}>Display Order</label>
+            <label className={labelCls}>{t('programModal.fieldDisplayOrder')}</label>
             <input className={inputCls} type="number" min={0} value={displayOrder}
               onChange={e => setDisplayOrder(e.target.value)}
-              placeholder="0 = first" />
-            <p className="text-xs text-fg-faint mt-1">Lower number = shown first in the Explore feed.</p>
+              placeholder={t('programModal.displayOrderPlaceholder')} />
+            <p className="text-xs text-fg-faint mt-1">{t('programModal.displayOrderHint')}</p>
           </div>
 
         </form>
@@ -385,11 +388,11 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-line flex-shrink-0">
           <button type="button" onClick={onClose}
             className="px-4 py-2 text-sm text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
-            Cancel
+            {tc('cancel')}
           </button>
           <button type="submit" form="program-form" disabled={saving || uploading}
             className="px-5 py-2 bg-brand hover:bg-brand disabled:opacity-50 text-brand-ink text-sm font-medium rounded-lg transition-colors">
-            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Program'}
+            {saving ? t('programModal.savingBtn') : isEdit ? t('programModal.saveChangesBtn') : t('programModal.createProgramBtn')}
           </button>
         </div>
       </div>

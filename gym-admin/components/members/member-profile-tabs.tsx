@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import AttendanceTab from './attendance-tab';
 import PaymentHistoryTab from './payment-history-tab';
 import SessionTransfersList from './session-transfers-list';
@@ -20,7 +21,7 @@ interface Props {
   gymMemberId: string;
 }
 
-const tabs = ['Overview', 'Payments', 'Attendance', 'Transfers History'] as const;
+type TabId = 'overview' | 'payments' | 'attendance' | 'transfers';
 
 export default function MemberProfileTabs({
   attendanceLogs,
@@ -33,21 +34,29 @@ export default function MemberProfileTabs({
   memberNumber,
   gymMemberId,
 }: Props) {
-  const [active, setActive] = useState<typeof tabs[number]>('Overview');
+  const t = useTranslations('members.tabs');
+  const [active, setActive] = useState<TabId>('overview');
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'overview',   label: t('overview') },
+    { id: 'payments',   label: t('payments') },
+    { id: 'attendance', label: t('attendance') },
+    { id: 'transfers',  label: t('transfers') },
+  ];
 
   return (
     <div className="space-y-5">
       {/* Tab bar */}
-      <Tabs value={active} onValueChange={(v) => setActive(v as typeof tabs[number])}>
+      <Tabs value={active} onValueChange={(v) => setActive(v as TabId)}>
         <Tabs.List>
           {tabs.map(tab => (
-            <Tabs.Trigger key={tab} value={tab}>
-              {tab}
-              {tab === 'Attendance' && (
-                <Badge variant="neutral" size="sm" className="ml-1.5">{attendanceLogs.length}</Badge>
+            <Tabs.Trigger key={tab.id} value={tab.id}>
+              {tab.label}
+              {tab.id === 'attendance' && (
+                <Badge variant="neutral" size="sm" className="ms-1.5">{attendanceLogs.length}</Badge>
               )}
-              {tab === 'Payments' && payments.length > 0 && (
-                <Badge variant="neutral" size="sm" className="ml-1.5">{payments.length}</Badge>
+              {tab.id === 'payments' && payments.length > 0 && (
+                <Badge variant="neutral" size="sm" className="ms-1.5">{payments.length}</Badge>
               )}
             </Tabs.Trigger>
           ))}
@@ -55,15 +64,15 @@ export default function MemberProfileTabs({
       </Tabs>
 
       {/* Content */}
-      {active === 'Overview' && overviewContent}
-      {active === 'Payments' && (
+      {active === 'overview' && overviewContent}
+      {active === 'payments' && (
         <PaymentHistoryTab
           payments={payments}
           memberName={memberName}
           memberNumber={memberNumber}
         />
       )}
-      {active === 'Attendance' && (
+      {active === 'attendance' && (
         <AttendanceTab
           logs={attendanceLogs}
           membershipStart={membershipStart}
@@ -71,7 +80,7 @@ export default function MemberProfileTabs({
           planName={planName}
         />
       )}
-      {active === 'Transfers History' && (
+      {active === 'transfers' && (
         <SessionTransfersList gymMemberId={gymMemberId} />
       )}
     </div>

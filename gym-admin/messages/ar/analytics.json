@@ -1,0 +1,114 @@
+{
+  "title": "التقارير والتحليلات",
+  "subtitle": "رؤى النمو والتراجع والإيرادات",
+
+  "tabs": {
+    "dashboard": "لوحة المعلومات",
+    "members": "نمو الأعضاء والتراجع",
+    "revenue": "الإيرادات والمدفوعات",
+    "classes": "حضور الحصص"
+  },
+
+  "export": {
+    "csv": "CSV",
+    "excel": "Excel (.xlsx)",
+    "print": "طباعة / PDF",
+    "excelDownloaded": "تم تنزيل ملف Excel",
+    "noData": "لا توجد بيانات للتصدير"
+  },
+
+  "period": {
+    "today": "اليوم",
+    "thisWeek": "هذا الأسبوع",
+    "thisMonth": "هذا الشهر",
+    "last30": "آخر 30 يوماً",
+    "last90": "آخر 90 يوماً",
+    "last6months": "آخر 6 أشهر",
+    "last12months": "آخر 12 شهراً"
+  },
+
+  "dateRange": {
+    "custom": "مخصص:",
+    "to": "إلى",
+    "apply": "تطبيق",
+    "selectBothDates": "اختر التاريخين"
+  },
+
+  "fallback": {
+    "noAnalyticsData": "لا توجد بيانات تحليلات متاحة لهذه الصفحة.",
+    "networkError": "خطأ في الشبكة — تعذّر الوصول إلى الخادم. حاول مرة أخرى.",
+    "httpError": "تعذّر تحميل التحليلات (HTTP {status}). حاول مرة أخرى.",
+    "dashboardHttpError": "تعذّر تحميل لوحة المعلومات (HTTP {status}). حاول مرة أخرى."
+  },
+
+  "dashboard": {
+    "performanceOverPeriod": "الأداء خلال الفترة",
+    "kpi": {
+      "activeMembers": "الأعضاء النشطون",
+      "revenue": "الإيرادات",
+      "checkins": "الحضور",
+      "gymEntries": "دخول النادي",
+      "sessions": "الحصص",
+      "newSuffix": "+{count} جديد",
+      "collected": "محصّل",
+      "bookings": "{count} حجز"
+    }
+  },
+
+  "members": {
+    "newMembers": "الأعضاء الجدد",
+    "cancellations": "الإلغاءات",
+    "netGrowth": "صافي النمو",
+    "churnRate": "معدل التراجع",
+    "growthVsChurn": "النمو مقابل التراجع حسب الشهر",
+    "netGrowthTrend": "اتجاه صافي النمو",
+    "chartLegend": {
+      "newMembers": "الأعضاء الجدد",
+      "cancellations": "الإلغاءات",
+      "netGrowth": "صافي النمو"
+    }
+  },
+
+  "revenue": {
+    "totalCollected": "إجمالي المحصّل",
+    "paidTransactions": "المعاملات المدفوعة",
+    "overdueAmount": "المبلغ المتأخر",
+    "pendingAmount": "المبلغ المعلّق",
+    "outstandingBalances": "الأرصدة المستحقة",
+    "outstandingDetail": "{overdue} متأخر على {count} دفعة",
+    "outstandingDetailPlural": "{overdue} متأخر على {count} دفعات",
+    "pendingSuffix": " · {pending} معلّق",
+    "revenueByMonth": "الإيرادات حسب الشهر",
+    "revenueByPlan": "الإيرادات حسب الخطة",
+    "planBreakdown": "تفصيل الخطط",
+    "percentOfTotal": "{pct}% من الإجمالي",
+    "paymentCount": "{count} دفعة",
+    "paymentCountPlural": "{count} دفعات",
+    "chartLegend": {
+      "revenue": "الإيرادات"
+    }
+  },
+
+  "classes": {
+    "totalSessions": "إجمالي الحصص",
+    "totalBookings": "إجمالي الحجوزات",
+    "mostPopular": "الأكثر شعبية",
+    "leastPopular": "الأقل شعبية",
+    "classesByAttendance": "الحصص حسب الحضور",
+    "noSessionsInPeriod": "لا توجد حصص في هذه الفترة",
+    "sessionCount": "{count} حصة",
+    "sessionCountPlural": "{count} حصص",
+    "bookingCount": "{count} حجز",
+    "avgPerSession": "متوسط {avg}/حصة",
+    "fillRate": "{rate}% نسبة الإشغال",
+    "bookingsByDay": "الحجوزات حسب يوم الأسبوع",
+    "peakDay": "الأخضر = يوم الذروة",
+    "bookingsByTime": "الحجوزات حسب وقت البدء",
+    "peakHour": "الأصفر = ساعة الذروة",
+    "chartLegend": {
+      "bookings": "الحجوزات"
+    }
+  },
+
+  "emptyChart": "لا توجد بيانات لهذه الفترة"
+}

@@ -6,6 +6,7 @@ import {
   ExternalLink, Smartphone, ChevronDown, ChevronUp, Pencil, Check, X, Tag,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymBanner } from '@/app/dashboard/content/page';
 import { can, type Permission } from '@/lib/get-permissions';
 
@@ -16,20 +17,6 @@ interface Props {
 
 type ActionType = 'none' | 'external_link' | 'internal' | 'sponsor';
 
-const ACTION_LABELS: Record<ActionType, string> = {
-  none:          'No action',
-  external_link: 'Open URL',
-  internal:      'Internal screen',
-  sponsor:       'Sponsor offer',
-};
-
-const INTERNAL_SCREENS = [
-  { value: 'schedule',   label: 'Schedule' },
-  { value: 'membership', label: 'Membership' },
-  { value: 'checkin',    label: 'Check-in' },
-  { value: 'profile',    label: 'Profile' },
-];
-
 interface UploadForm {
   caption: string;
   description: string;
@@ -38,7 +25,6 @@ interface UploadForm {
   actionType: ActionType;
   actionValue: string;
   sortOrder: string;
-  // Sponsor variant: shown when actionType === 'sponsor'.
   sponsorPromoCode: string;
   sponsorExternalUrl: string;
   sponsorTerms: string;
@@ -50,6 +36,9 @@ const emptyForm = (): UploadForm => ({
 });
 
 export default function BannersTab({ initialBanners, permissions }: Props) {
+  const t = useTranslations('content');
+  const tc = useTranslations('common');
+
   const [banners,    setBanners]    = useState<GymBanner[]>(initialBanners);
   const [uploading,  setUploading]  = useState(false);
   const [form,       setForm]       = useState<UploadForm>(emptyForm());
@@ -62,9 +51,21 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceFileRef = useRef<HTMLInputElement>(null);
-  // Tracks which banner row a click on the hidden replace-image input
-  // belongs to, so we know which row to PATCH when the file is picked.
   const pendingReplaceIdRef = useRef<string | null>(null);
+
+  const ACTION_LABELS: Record<ActionType, string> = {
+    none:          t('banners.noAction'),
+    external_link: t('banners.openUrl'),
+    internal:      t('banners.internalScreen'),
+    sponsor:       t('banners.sponsorOffer'),
+  };
+
+  const INTERNAL_SCREENS = [
+    { value: 'schedule',   label: t('popups.screens.schedule') },
+    { value: 'membership', label: t('popups.screens.membership') },
+    { value: 'checkin',    label: t('popups.screens.checkin') },
+    { value: 'profile',    label: t('popups.screens.profile') },
+  ];
 
   // ─── Upload ────────────────────────────────────────────────────────────────
   const upload = async (file: File) => {
@@ -77,8 +78,6 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
       fd.append('tag',         form.tag);
       fd.append('tagColor',    form.tag ? form.tagColor : '');
       fd.append('actionType',  form.actionType);
-      // Sponsor variant uses dedicated columns instead of actionValue, so
-      // null actionValue out for that type to keep the union semantics clean.
       fd.append('actionValue', form.actionType === 'none' || form.actionType === 'sponsor' ? '' : form.actionValue);
       fd.append('sortOrder',   form.sortOrder);
       if (form.actionType === 'sponsor') {
@@ -89,12 +88,12 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
 
       const res  = await fetch('/api/content/banners', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Upload failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('banners.uploadFailed')); return; }
       setBanners(prev => [...prev, data.banner]);
       setForm(emptyForm());
       setShowForm(false);
-      toast.success('Banner added');
-    } catch { toast.error('Network error'); }
+      toast.success(t('banners.addedSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setUploading(false); }
   };
 
@@ -108,13 +107,13 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
         body: JSON.stringify({ isActive: !banner.is_active }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setBanners(prev => prev.map(b => b.id === banner.id ? data.banner : b));
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setTogglingId(null); }
   };
 
-  // ─── Replace image only (no other field changes) ──────────────────────────
+  // ─── Replace image only ───────────────────────────────────────────────────
   const replaceImage = async (bannerId: string, file: File) => {
     setReplacingId(bannerId);
     try {
@@ -122,11 +121,11 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
       fd.append('file', file);
       const res = await fetch(`/api/content/banners/${bannerId}/image`, { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Image upload failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('banners.imageUploadFailed')); return; }
       const updated = data.banner ?? data;
       setBanners(prev => prev.map(b => b.id === bannerId ? updated : b));
-      toast.success('Image updated');
-    } catch { toast.error('Network error'); }
+      toast.success(t('banners.imageUpdatedSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setReplacingId(null); }
   };
 
@@ -169,24 +168,24 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setBanners(prev => prev.map(b => b.id === banner.id ? data.banner : b));
       setEditingId(null);
-      toast.success('Banner updated');
-    } catch { toast.error('Network error'); }
+      toast.success(t('banners.updatedSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setSavingId(null); }
   };
 
   // ─── Delete ────────────────────────────────────────────────────────────────
   const deleteBanner = async (banner: GymBanner) => {
-    if (!confirm('Delete this banner?')) return;
+    if (!confirm(t('banners.confirmDelete'))) return;
     setDeletingId(banner.id);
     try {
       const res = await fetch(`/api/content/banners/${banner.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete'); return; }
+      if (!res.ok) { toast.error(tc('somethingWrong')); return; }
       setBanners(prev => prev.filter(b => b.id !== banner.id));
-      toast.success('Banner deleted');
-    } catch { toast.error('Network error'); }
+      toast.success(t('banners.deletedSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setDeletingId(null); }
   };
 
@@ -195,9 +194,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
   return (
     <div className="space-y-6">
 
-      {/* Always-mounted hidden input for the per-row Replace-image overlay.
-          Lives at the root so it's available regardless of whether the
-          create/upload form is currently expanded. */}
+      {/* Always-mounted hidden input for the per-row Replace-image overlay. */}
       <input
         ref={replaceFileRef} type="file" accept="image/*" className="hidden"
         onChange={e => {
@@ -217,7 +214,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
             className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-medium text-fg hover:bg-surface-3 transition-colors">
             <span className="flex items-center gap-2">
               <Upload className="w-4 h-4 text-brand" />
-              Add New Banner
+              {t('banners.addNew')}
             </span>
             {showForm ? <ChevronUp className="w-4 h-4 text-fg-muted" /> : <ChevronDown className="w-4 h-4 text-fg-muted" />}
           </button>
@@ -228,14 +225,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                 <input
                   value={form.caption}
                   onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
-                  placeholder="Caption (optional)"
+                  placeholder={t('banners.captionPlaceholder')}
                   className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
                 <input
                   value={form.sortOrder}
                   onChange={e => setForm(f => ({ ...f, sortOrder: e.target.value }))}
                   type="number"
-                  placeholder="Sort order (0 = first)"
+                  placeholder={t('banners.sortOrderPlaceholder')}
                   className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
               </div>
@@ -243,7 +240,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
               <textarea
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Description (shown on banner detail screen)"
+                placeholder={t('banners.descriptionPlaceholder')}
                 rows={2}
                 className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
               />
@@ -252,11 +249,11 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                 <input
                   value={form.tag}
                   onChange={e => setForm(f => ({ ...f, tag: e.target.value }))}
-                  placeholder="Tag label (e.g. New, Promo, Event)"
+                  placeholder={t('banners.tagPlaceholder')}
                   className="flex-1 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <label className="text-xs text-fg-muted whitespace-nowrap">Tag color</label>
+                  <label className="text-xs text-fg-muted whitespace-nowrap">{t('banners.tagColor')}</label>
                   <input
                     type="color"
                     value={form.tagColor}
@@ -297,7 +294,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     value={form.actionValue}
                     onChange={e => setForm(f => ({ ...f, actionValue: e.target.value }))}
                     className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
-                    <option value="">Select screen…</option>
+                    <option value="">{t('banners.selectScreen')}</option>
                     {INTERNAL_SCREENS.map(s => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
@@ -310,19 +307,19 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                   <input
                     value={form.sponsorPromoCode}
                     onChange={e => setForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
-                    placeholder="Promo code (e.g. CLBY15) — optional"
+                    placeholder={t('banners.sponsorPromoPlaceholder')}
                     className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                   />
                   <input
                     value={form.sponsorExternalUrl}
                     onChange={e => setForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
-                    placeholder="External URL (e.g. proteinhouse.com) — optional"
+                    placeholder={t('banners.sponsorUrlPlaceholder')}
                     className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                   />
                   <input
                     value={form.sponsorTerms}
                     onChange={e => setForm(f => ({ ...f, sponsorTerms: e.target.value }))}
-                    placeholder="Fine-print terms — optional"
+                    placeholder={t('banners.sponsorTermsPlaceholder')}
                     className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand sm:col-span-2"
                   />
                 </div>
@@ -338,11 +335,11 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                   disabled={uploading}
                   className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {uploading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
-                    : <><Upload className="w-4 h-4" /> Choose Image & Upload</>}
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('banners.uploading')}</>
+                    : <><Upload className="w-4 h-4" /> {t('banners.chooseImageUpload')}</>}
                 </button>
                 <p className="text-xs text-fg-faint">
-                  Recommended <span className="text-fg-muted font-medium">1170×534 px</span> (2.19∶1) · JPG or PNG · &lt; 500 KB
+                  {t('banners.imageSpec', { dims: '1170×534 px' })}
                 </p>
               </div>
             </div>
@@ -354,7 +351,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
       {sortedBanners.length === 0 ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <ImageIcon className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-          <p className="text-sm text-fg-muted">No banners yet — add one above</p>
+          <p className="text-sm text-fg-muted">{t('banners.empty')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -375,13 +372,13 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded banner on external host */}
                     <img
                       src={banner.image_url}
-                      alt={banner.caption ?? 'Banner'}
+                      alt={banner.caption ?? t('banners.addNew')}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-1.5 left-1.5 flex gap-1 flex-wrap">
+                    <div className="absolute top-1.5 start-1.5 flex gap-1 flex-wrap">
                       {!banner.is_active && (
                         <span className="text-xs bg-surface/90 text-fg-muted px-1.5 py-0.5 rounded-full">
-                          Inactive
+                          {t('banners.inactive')}
                         </span>
                       )}
                     </div>
@@ -393,11 +390,11 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           pendingReplaceIdRef.current = banner.id;
                           replaceFileRef.current?.click();
                         }}
-                        title="Replace image"
+                        title={t('banners.replaceImage')}
                         className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/0 hover:bg-black/55 text-fg text-xs font-medium opacity-0 hover:opacity-100 transition-all disabled:opacity-100 disabled:bg-black/55">
                         {replacingId === banner.id
-                          ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> Uploading…</>
-                          : <><Upload className="w-3.5 h-3.5"/> Replace image</>}
+                          ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> {t('banners.uploading')}</>
+                          : <><Upload className="w-3.5 h-3.5"/> {t('banners.replaceImage')}</>}
                       </button>
                     )}
                   </div>
@@ -410,21 +407,21 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           <input
                             value={ef.caption}
                             onChange={e => setEditForm(f => ({ ...f, caption: e.target.value }))}
-                            placeholder="Caption"
+                            placeholder={t('banners.captionEditPlaceholder')}
                             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                           <input
                             value={ef.sortOrder}
                             onChange={e => setEditForm(f => ({ ...f, sortOrder: e.target.value }))}
                             type="number"
-                            placeholder="Sort order"
+                            placeholder={t('banners.sortOrderEditPlaceholder')}
                             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                         </div>
                         <textarea
                           value={ef.description}
                           onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
-                          placeholder="Description"
+                          placeholder={t('banners.descriptionEditPlaceholder')}
                           rows={2}
                           className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
                         />
@@ -432,11 +429,11 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           <input
                             value={ef.tag}
                             onChange={e => setEditForm(f => ({ ...f, tag: e.target.value }))}
-                            placeholder="Tag label (optional)"
+                            placeholder={t('banners.tagEditPlaceholder')}
                             className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <label className="text-xs text-fg-muted whitespace-nowrap">Color</label>
+                            <label className="text-xs text-fg-muted whitespace-nowrap">{t('banners.tagColorShort')}</label>
                             <input
                               type="color"
                               value={ef.tagColor ?? '#FFFFFF'}
@@ -452,9 +449,6 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             onChange={e => setEditForm(f => ({
                               ...f,
                               actionType: e.target.value as ActionType,
-                              // Clear all variant-specific fields so toggling
-                              // sponsor → external → sponsor doesn't re-surface
-                              // stale promo code / URL / terms.
                               actionValue: '',
                               sponsorPromoCode: '',
                               sponsorExternalUrl: '',
@@ -478,7 +472,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                               value={ef.actionValue}
                               onChange={e => setEditForm(f => ({ ...f, actionValue: e.target.value }))}
                               className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
-                              <option value="">Select screen…</option>
+                              <option value="">{t('banners.selectScreen')}</option>
                               {INTERNAL_SCREENS.map(s => (
                                 <option key={s.value} value={s.value}>{s.label}</option>
                               ))}
@@ -491,19 +485,19 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             <input
                               value={ef.sponsorPromoCode ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
-                              placeholder="Promo code"
+                              placeholder={t('banners.sponsorPromoEditPlaceholder')}
                               className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                             />
                             <input
                               value={ef.sponsorExternalUrl ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
-                              placeholder="External URL"
+                              placeholder={t('banners.sponsorUrlEditPlaceholder')}
                               className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                             />
                             <input
                               value={ef.sponsorTerms ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorTerms: e.target.value }))}
-                              placeholder="Terms"
+                              placeholder={t('banners.sponsorTermsEditPlaceholder')}
                               className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand sm:col-span-2"
                             />
                           </div>
@@ -512,7 +506,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     ) : (
                       <>
                         <p className="text-sm font-medium text-fg truncate">
-                          {banner.caption || <span className="text-fg-faint italic">No caption</span>}
+                          {banner.caption || <span className="text-fg-faint italic">{t('banners.noCaption')}</span>}
                         </p>
                         {banner.description && (
                           <p className="text-xs text-fg-muted mt-0.5 line-clamp-2">{banner.description}</p>
@@ -530,21 +524,30 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                               {banner.tag}
                             </span>
                           )}
-                          <ActionBadge type={banner.action_type as ActionType} value={banner.action_value} />
-                          <span className="text-xs text-fg-faint">Order: {banner.sort_order ?? 0}</span>
+                          <ActionBadge
+                            type={banner.action_type as ActionType}
+                            value={banner.action_value}
+                            labels={{
+                              urlNotSet: t('banners.urlNotSet'),
+                              screenNotSet: t('banners.screenNotSet'),
+                              sponsor: t('banners.sponsor'),
+                              noAction: t('banners.noAction'),
+                            }}
+                          />
+                          <span className="text-xs text-fg-faint">{t('banners.orderLabel', { order: banner.sort_order ?? 0 })}</span>
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 border-l border-line">
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 border-s border-line">
                     {isEditing ? (
                       <>
                         <button
                           onClick={() => saveEdit(banner)}
                           disabled={savingId === banner.id}
-                          title="Save"
+                          title={tc('save')}
                           className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/40 text-green-400 transition-colors">
                           {savingId === banner.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -552,7 +555,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          title="Cancel"
+                          title={tc('cancel')}
                           className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                           <X className="w-4 h-4" />
                         </button>
@@ -562,7 +565,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         {can(permissions, 'content', 'edit') && (
                           <button
                             onClick={() => startEdit(banner)}
-                            title="Edit"
+                            title={tc('edit')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -571,7 +574,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           <button
                             onClick={() => toggleActive(banner)}
                             disabled={togglingId === banner.id}
-                            title={banner.is_active ? 'Deactivate' : 'Activate'}
+                            title={banner.is_active ? t('banners.deactivate') : t('banners.activate')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             {togglingId === banner.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -584,7 +587,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           <button
                             onClick={() => deleteBanner(banner)}
                             disabled={deletingId === banner.id}
-                            title="Delete"
+                            title={tc('delete')}
                             className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors">
                             {deletingId === banner.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -604,14 +607,20 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
   );
 }
 
-function ActionBadge({ type, value }: { type: ActionType; value: string | null }) {
+interface ActionBadgeProps {
+  type: ActionType;
+  value: string | null;
+  labels: { urlNotSet: string; screenNotSet: string; sponsor: string; noAction: string };
+}
+
+function ActionBadge({ type, value, labels }: ActionBadgeProps) {
   if (type === 'external_link') {
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
         <ExternalLink className="w-3 h-3" />
         {value ? (
           <span className="max-w-[120px] truncate">{value}</span>
-        ) : 'URL not set'}
+        ) : labels.urlNotSet}
       </span>
     );
   }
@@ -619,7 +628,7 @@ function ActionBadge({ type, value }: { type: ActionType; value: string | null }
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-brand/15 text-brand px-2 py-0.5 rounded-full border border-brand/20">
         <Smartphone className="w-3 h-3" />
-        {value || 'Screen not set'}
+        {value || labels.screenNotSet}
       </span>
     );
   }
@@ -627,11 +636,11 @@ function ActionBadge({ type, value }: { type: ActionType; value: string | null }
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/20">
         <Tag className="w-3 h-3" />
-        Sponsor
+        {labels.sponsor}
       </span>
     );
   }
   return (
-    <span className="text-xs text-fg-faint">No action</span>
+    <span className="text-xs text-fg-faint">{labels.noAction}</span>
   );
 }

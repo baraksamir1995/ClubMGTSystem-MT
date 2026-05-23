@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { Button, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 
 interface MemberWithProfile {
@@ -28,6 +29,8 @@ interface Props {
 }
 
 export default function MemberModal({ member, onClose }: Props) {
+  const t = useTranslations('members.modal');
+  const tc = useTranslations('common');
   const router = useRouter();
   const isEditing = !!member;
 
@@ -50,7 +53,7 @@ export default function MemberModal({ member, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.full_name.trim()) {
-      toast.error('Full name is required');
+      toast.error(t('toast.nameRequired'));
       return;
     }
 
@@ -78,15 +81,15 @@ export default function MemberModal({ member, onClose }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error ?? 'Something went wrong');
+        toast.error(data.error ?? tc('somethingWrong'));
         return;
       }
 
-      toast.success(isEditing ? 'Member updated' : 'Member added');
+      toast.success(isEditing ? t('toast.updated') : t('toast.added'));
       onClose();
       router.refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setLoading(false);
     }
@@ -94,51 +97,51 @@ export default function MemberModal({ member, onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} size="md">
-      <Modal.Header>{isEditing ? 'Edit Member' : 'Add Member'}</Modal.Header>
+      <Modal.Header>{isEditing ? t('editTitle') : t('addTitle')}</Modal.Header>
       <Modal.Body>
         <form id="member-form" onSubmit={handleSubmit} className="space-y-5">
           {/* ── Personal Info ── */}
           <div>
             <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
-              Personal Info
+              {t('sectionPersonal')}
             </p>
             <div className="space-y-3">
-              <Field label="Full Name" required>
+              <Field label={t('fullName')} required>
                 <Input
                   value={form.full_name}
                   onChange={(e) => set('full_name', e.target.value)}
-                  placeholder="Jane Doe"
+                  placeholder={t('fullNamePlaceholder')}
                   required
                 />
               </Field>
 
-              <Field label="Email">
+              <Field label={tc('email')}>
                 <Input
                   type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
-                  placeholder="jane@example.com"
+                  placeholder={t('emailPlaceholder')}
                 />
               </Field>
 
-              <Field label="Phone">
+              <Field label={tc('phone')}>
                 <Input
                   type="tel"
                   value={form.phone}
                   onChange={(e) => set('phone', e.target.value)}
-                  placeholder="01012345678"
+                  placeholder={t('phonePlaceholder')}
                 />
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Gender">
+                <Field label={t('gender')}>
                   <Select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-                    <option value="">— Select —</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
+                    <option value="">{t('genderSelect')}</option>
+                    <option value="male">{t('genderMale')}</option>
+                    <option value="female">{t('genderFemale')}</option>
                   </Select>
                 </Field>
-                <Field label="Date of Birth">
+                <Field label={t('dateOfBirth')}>
                   <Input
                     type="date"
                     value={form.date_of_birth}
@@ -148,11 +151,11 @@ export default function MemberModal({ member, onClose }: Props) {
                 </Field>
               </div>
 
-              <Field label="Address">
+              <Field label={t('address')}>
                 <Input
                   value={form.address}
                   onChange={(e) => set('address', e.target.value)}
-                  placeholder="123 Main St, Cairo"
+                  placeholder={t('addressPlaceholder')}
                 />
               </Field>
             </div>
@@ -164,22 +167,22 @@ export default function MemberModal({ member, onClose }: Props) {
           {/* ── Membership Details ── */}
           <div>
             <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
-              Membership Details
+              {t('sectionMembership')}
             </p>
             <div className="space-y-3">
-              <Field label="Status">
+              <Field label={t('status')}>
                 <Select value={form.status} onChange={(e) => set('status', e.target.value)}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="active">{t('statusActive')}</option>
+                  <option value="inactive">{t('statusInactive')}</option>
+                  <option value="suspended">{t('statusSuspended')}</option>
                 </Select>
               </Field>
 
-              <Field label="Notes">
+              <Field label={tc('notes')}>
                 <Textarea
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
-                  placeholder="Optional notes..."
+                  placeholder={t('notesPlaceholder')}
                   rows={3}
                   className="resize-none"
                 />
@@ -191,10 +194,10 @@ export default function MemberModal({ member, onClose }: Props) {
 
       <Modal.Footer>
         <Button type="button" variant="secondary" fullWidth onClick={onClose} disabled={loading}>
-          Cancel
+          {tc('cancel')}
         </Button>
         <Button type="submit" form="member-form" variant="primary" fullWidth isLoading={loading}>
-          {isEditing ? 'Save Changes' : 'Add Member'}
+          {isEditing ? t('saveChanges') : t('addMemberSubmit')}
         </Button>
       </Modal.Footer>
     </Modal>

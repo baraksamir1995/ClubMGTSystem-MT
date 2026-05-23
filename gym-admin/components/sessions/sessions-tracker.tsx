@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Search, Plus, ExternalLink, AlertTriangle,
   Clock, RefreshCw, History, Users,
@@ -59,6 +60,11 @@ type Tab = 'members' | 'history';
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SessionsTracker({ initialMembers }: Props) {
+  const t  = useTranslations('classes');
+  const tc = useTranslations('common');
+  const locale = useLocale();
+  const dateLocale = locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US';
+
   const [activeTab, setActiveTab]   = useState<Tab>('members');
   const [members, setMembers]       = useState<SessionsMember[]>(initialMembers);
   const [logs, setLogs]             = useState<SessionLog[]>([]);
@@ -225,24 +231,24 @@ export default function SessionsTracker({ initialMembers }: Props) {
 
   function statusBadge(m: SessionsMember) {
     if (m.sessionsRemaining === 0)
-      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">Exhausted</span>;
+      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">{t('sessionsTracker.exhausted')}</span>;
     if (m.pctUsed >= 80)
-      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">Low</span>;
-    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">Active</span>;
+      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">{t('sessionsTracker.low')}</span>;
+    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">{tc('active')}</span>;
   }
 
   function expiryWarning(endDate: string | null) {
     if (!endDate) return null;
     const days = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
-    if (days < 0)  return <span className="text-xs text-red-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Expired</span>;
-    if (days <= 7) return <span className="text-xs text-amber-400 flex items-center gap-1"><Clock className="w-3 h-3" />{days}d left</span>;
+    if (days < 0)  return <span className="text-xs text-red-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{t('sessionsTracker.expired')}</span>;
+    if (days <= 7) return <span className="text-xs text-amber-400 flex items-center gap-1"><Clock className="w-3 h-3" />{t('sessionsTracker.daysLeft', { days })}</span>;
     return null;
   }
 
   function sourceLabel(source: string) {
-    if (source === 'class_qr') return { label: 'QR Scan', cls: 'bg-blue-500/20 text-blue-400' };
-    if (source === 'manual')   return { label: 'Manual',  cls: 'bg-amber-500/20 text-amber-400' };
-    return                            { label: source,    cls: 'bg-gray-500/20 text-fg-muted' };
+    if (source === 'class_qr') return { label: t('sessionsTracker.sourceQr'),     cls: 'bg-blue-500/20 text-blue-400' };
+    if (source === 'manual')   return { label: t('sessionsTracker.sourceManual'), cls: 'bg-amber-500/20 text-amber-400' };
+    return                            { label: source,                             cls: 'bg-gray-500/20 text-fg-muted' };
   }
 
   const sortArrow = (key: SortKey) =>
@@ -255,10 +261,10 @@ export default function SessionsTracker({ initialMembers }: Props) {
       {/* ── Stats ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Members on plan',      value: members.length, sub: 'Sessions-based plans' },
-          { label: 'Total sessions issued', value: totalSessions,  sub: 'Across all members' },
-          { label: 'Sessions consumed',     value: totalUsed,      sub: `${overallPct}% overall usage` },
-          { label: 'Sessions remaining',    value: totalRemaining, sub: 'Across all members' },
+          { label: t('sessionsTracker.statMembersOnPlan'),      value: members.length, sub: t('sessionsTracker.statMembersOnPlanSub') },
+          { label: t('sessionsTracker.statTotalIssued'),        value: totalSessions,  sub: t('sessionsTracker.statAcrossAllMembers') },
+          { label: t('sessionsTracker.statConsumed'),           value: totalUsed,      sub: t('sessionsTracker.statOverallPct', { pct: overallPct }) },
+          { label: t('sessionsTracker.statRemaining'),          value: totalRemaining, sub: t('sessionsTracker.statAcrossAllMembers') },
         ].map((stat) => (
           <div key={stat.label} className="bg-surface-2 rounded-xl p-4 border border-line">
             <p className="text-2xl font-bold text-fg">{stat.value}</p>
@@ -279,7 +285,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
           }`}
         >
           <Users className="w-4 h-4" />
-          Members Overview
+          {t('sessionsTracker.tabMembers')}
         </button>
         <button
           onClick={() => switchTab('history')}
@@ -290,7 +296,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
           }`}
         >
           <History className="w-4 h-4" />
-          Scan History
+          {t('sessionsTracker.tabHistory')}
           {logsLoaded && logs.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-xs bg-surface-3 text-fg-muted">
               {logs.length}
@@ -302,17 +308,17 @@ export default function SessionsTracker({ initialMembers }: Props) {
       {/* ── Search + Refresh ────────────────────────────────────────── */}
       <div className="flex gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
           <input
             type="text"
             placeholder={
               activeTab === 'history'
-                ? 'Search by name, member #, plan, or class…'
-                : 'Search by name, email, member #, or plan…'
+                ? t('sessionsTracker.searchHistoryPlaceholder')
+                : t('sessionsTracker.searchMembersPlaceholder')
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full ps-9 pe-4 py-2.5 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
         {activeTab === 'members' && (
@@ -322,7 +328,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
             className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-line hover:bg-surface-3 rounded-lg text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('sessionsTracker.refresh')}
           </button>
         )}
         {activeTab === 'history' && (
@@ -332,7 +338,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
             className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-line hover:bg-surface-3 rounded-lg text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${logsLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('sessionsTracker.refresh')}
           </button>
         )}
       </div>
@@ -344,36 +350,36 @@ export default function SessionsTracker({ initialMembers }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-4 py-3 text-start">
                     <button onClick={() => toggleSort('name')} className="hover:text-fg transition-colors">
-                      Member{sortArrow('name')}
+                      {t('sessionsTracker.colMember')}{sortArrow('name')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left">Plan</th>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-4 py-3 text-start">{t('sessionsTracker.colPlan')}</th>
+                  <th className="px-4 py-3 text-start">
                     <button onClick={() => toggleSort('pctUsed')} className="hover:text-fg transition-colors">
-                      Sessions usage{sortArrow('pctUsed')}
+                      {t('sessionsTracker.colSessionsUsage')}{sortArrow('pctUsed')}
                     </button>
                   </th>
                   <th className="px-4 py-3 text-center">
                     <button onClick={() => toggleSort('sessionsRemaining')} className="hover:text-fg transition-colors">
-                      Remaining{sortArrow('sessionsRemaining')}
+                      {t('sessionsTracker.colRemaining')}{sortArrow('sessionsRemaining')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-4 py-3 text-start">
                     <button onClick={() => toggleSort('endDate')} className="hover:text-fg transition-colors">
-                      Expires{sortArrow('endDate')}
+                      {t('sessionsTracker.colExpires')}{sortArrow('endDate')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 text-center">{tc('status')}</th>
+                  <th className="px-4 py-3 text-end">{tc('actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {filteredMembers.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-fg-faint">
-                      No members found
+                      {t('sessionsTracker.noMembersFound')}
                     </td>
                   </tr>
                 )}
@@ -408,7 +414,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                               onClick={() => saveEdit(m.membershipId, m.sessionCount)}
                               disabled={loadingId === m.membershipId}
                               className="px-2 py-1 bg-brand hover:bg-brand-dim rounded text-brand-ink text-xs font-medium transition-colors disabled:opacity-50"
-                            >Save</button>
+                            >{tc('save')}</button>
                             <button
                               onClick={() => setEditId(null)}
                               className="px-2 py-1 bg-surface-3 hover:bg-surface-4 rounded text-fg-muted text-xs transition-colors"
@@ -417,10 +423,10 @@ export default function SessionsTracker({ initialMembers }: Props) {
                         ) : (
                           <button
                             onClick={() => { setEditId(m.membershipId); setEditValue(String(m.sessionsUsed)); }}
-                            className="group flex-1" title="Click to edit"
+                            className="group flex-1" title={t('sessionsTracker.clickToEdit')}
                           >
                             <div className="flex justify-between text-xs mb-1">
-                              <span className="text-fg-muted group-hover:text-gray-200 transition-colors">{m.sessionsUsed} used</span>
+                              <span className="text-fg-muted group-hover:text-gray-200 transition-colors">{t('sessionsTracker.sessionsUsedLabel', { count: m.sessionsUsed })}</span>
                               <span className="text-fg-faint">{m.pctUsed}%</span>
                             </div>
                             <div className="h-1.5 bg-surface-3 rounded-full overflow-hidden w-36">
@@ -431,7 +437,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                                 style={{ width: `${m.pctUsed}%` }}
                               />
                             </div>
-                            <p className="text-xs text-fg-faint mt-0.5">of {m.sessionCount} sessions</p>
+                            <p className="text-xs text-fg-faint mt-0.5">{t('sessionsTracker.ofSessionsTotal', { count: m.sessionCount })}</p>
                           </button>
                         )}
                       </div>
@@ -447,7 +453,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                       <div className="space-y-0.5">
                         <p className="text-fg-muted text-xs">
                           {m.endDate
-                            ? new Date(m.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            ? new Date(m.endDate).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' })
                             : '—'}
                         </p>
                         {expiryWarning(m.endDate)}
@@ -462,11 +468,12 @@ export default function SessionsTracker({ initialMembers }: Props) {
                           className="flex items-center gap-1 px-3 py-1.5 bg-brand hover:bg-brand-dim disabled:opacity-40 rounded-lg text-brand-ink text-xs font-medium transition-colors"
                         >
                           <Plus className="w-3 h-3" />
-                          Session
+                          {t('sessionsTracker.logSession')}
                         </button>
                         <Link
                           href={`/dashboard/members/${m.memberId}`}
                           className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted hover:text-fg transition-colors"
+                          title={t('sessionsTracker.colProfile')}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Link>
@@ -484,26 +491,26 @@ export default function SessionsTracker({ initialMembers }: Props) {
       {activeTab === 'history' && (
         <div className="bg-surface-2 rounded-xl border border-line overflow-hidden">
           {logsLoading ? (
-            <div className="py-16 text-center text-fg-faint text-sm">Loading history…</div>
+            <div className="py-16 text-center text-fg-faint text-sm">{tc('loading')}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="px-4 py-3 text-left">Date & Time</th>
-                    <th className="px-4 py-3 text-left">Member</th>
-                    <th className="px-4 py-3 text-left">Plan</th>
-                    <th className="px-4 py-3 text-left">Class / Source</th>
-                    <th className="px-4 py-3 text-center">Sessions at time</th>
-                    <th className="px-4 py-3 text-center">Source</th>
-                    <th className="px-4 py-3 text-right">Profile</th>
+                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colDateTime')}</th>
+                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colMember')}</th>
+                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colPlan')}</th>
+                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colClassSource')}</th>
+                    <th className="px-4 py-3 text-center">{t('sessionsTracker.colSessionsAtTime')}</th>
+                    <th className="px-4 py-3 text-center">{t('sessionsTracker.colSource')}</th>
+                    <th className="px-4 py-3 text-end">{t('sessionsTracker.colProfile')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {filteredLogs.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-fg-faint">
-                        {logsLoaded ? 'No scan history found' : 'Switch to this tab to load history'}
+                        {logsLoaded ? t('sessionsTracker.noHistoryFound') : t('sessionsTracker.switchToLoadHistory')}
                       </td>
                     </tr>
                   )}
@@ -515,13 +522,13 @@ export default function SessionsTracker({ initialMembers }: Props) {
                         {/* Date */}
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="text-fg text-xs font-medium">
-                            {new Date(l.consumedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {new Date(l.consumedAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                           <p className="text-fg-faint text-xs">
                             {fmtTime12(new Date(l.consumedAt))}
                           </p>
                           {isReversed && (
-                            <p className="text-xs text-red-400 mt-0.5">Reversed</p>
+                            <p className="text-xs text-red-400 mt-0.5">{t('sessionsTracker.reversed')}</p>
                           )}
                         </td>
 
@@ -539,7 +546,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                             l.membershipStatus === 'exhausted' ? 'bg-red-500/10 text-red-400' :
                             l.membershipStatus === 'expired'   ? 'bg-gray-500/10 text-fg-muted' :
                             'bg-gray-500/10 text-fg-muted'
-                          }`}>{l.membershipStatus}</span>
+                          }`}>{l.membershipStatus === 'active' ? tc('active') : l.membershipStatus === 'exhausted' ? t('sessionsTracker.exhausted') : l.membershipStatus === 'expired' ? t('sessionsTracker.expired') : l.membershipStatus}</span>
                         </td>
 
                         {/* Class */}
@@ -556,7 +563,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                                 <p className="text-gray-200 text-xs font-medium">{l.className}</p>
                                 {l.sessionDate && (
                                   <p className="text-fg-faint text-xs">
-                                    {new Date(l.sessionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                    {new Date(l.sessionDate).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
                                     {l.sessionTime && ` · ${fmt12(l.sessionTime)}`}
                                   </p>
                                 )}
@@ -586,11 +593,12 @@ export default function SessionsTracker({ initialMembers }: Props) {
                         </td>
 
                         {/* Profile link */}
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-end">
                           {l.memberId && (
                             <Link
                               href={`/dashboard/members/${l.memberId}`}
                               className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted hover:text-fg transition-colors inline-flex"
+                              title={t('sessionsTracker.colProfile')}
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                             </Link>
@@ -608,9 +616,9 @@ export default function SessionsTracker({ initialMembers }: Props) {
 
       <p className="text-xs text-fg-faint text-center">
         {activeTab === 'members'
-          ? `${filteredMembers.length} of ${members.length} members shown`
-          : `${filteredLogs.length} of ${logs.length} entries shown`}
-        {search && ` · filtered by "${search}"`}
+          ? t('sessionsTracker.footerMembers', { shown: filteredMembers.length, total: members.length })
+          : t('sessionsTracker.footerEntries', { shown: filteredLogs.length, total: logs.length })}
+        {search && ` · ${t('sessionsTracker.filteredBy', { query: search })}`}
       </p>
     </div>
   );

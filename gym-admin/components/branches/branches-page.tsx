@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Plus, Pencil, Trash2, GitBranch, Check, X, ToggleLeft, ToggleRight, AlertCircle, MapPin, Image as ImageIcon, Upload, ExternalLink, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { useRefresh } from '@/lib/use-refresh';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import type { GymStudio } from '@/app/dashboard/classes/page';
@@ -29,6 +30,9 @@ function fmt(iso: string) {
 }
 
 export default function BranchesPage({ initialBranches, initialStudios, maxBranches, pricePerBranch, gymId, permissions, hideHeader = false }: Props) {
+  const t = useTranslations('settings');
+  const tc = useTranslations('common');
+
   const refresh = useRefresh();
   const [activeTab, setActiveTab] = useState<'branches' | 'studios'>('branches');
   const [branches, setBranches]     = useState<GymBranch[]>(initialBranches);
@@ -67,7 +71,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
   /* ── Save edit ── */
   const saveEdit = async (id: string) => {
     const name = editName.trim();
-    if (!name) { toast.error('Name is required'); return; }
+    if (!name) { toast.error(t('branches.nameRequired')); return; }
     setSavingId(id);
     try {
       const res = await fetch(`/api/branches/${id}`, {
@@ -81,15 +85,15 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}));
-        toast.error(error ?? 'Failed to save'); return;
+        toast.error(error ?? t('failedSave')); return;
       }
       const { branch } = await res.json();
       setBranches(prev => prev.map(b => b.id === id ? { ...b, ...branch } : b));
       setEditingId(null);
-      toast.success('Branch updated');
+      toast.success(t('branches.branchUpdated'));
       refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(t('networkError'));
     } finally {
       setSavingId(null);
     }
@@ -107,13 +111,13 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}));
-        toast.error(error ?? 'Upload failed'); return;
+        toast.error(error ?? t('failedUpload')); return;
       }
       const { image_url } = await res.json();
       setBranches(prev => prev.map(b => b.id === branchId ? { ...b, image_url } : b));
-      toast.success('Image uploaded');
+      toast.success(t('branches.imageUploaded'));
     } catch {
-      toast.error('Network error');
+      toast.error(t('networkError'));
     } finally {
       setUploadingId(null);
     }
@@ -130,12 +134,12 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}));
-        toast.error(error ?? 'Failed to update'); return;
+        toast.error(error ?? t('failedUpdate')); return;
       }
       const { branch } = await res.json();
       setBranches(prev => prev.map(x => x.id === b.id ? { ...x, ...branch } : x));
     } catch {
-      toast.error('Network error');
+      toast.error(t('networkError'));
     } finally {
       setTogglingId(null);
     }
@@ -143,19 +147,19 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
 
   /* ── Delete ── */
   const handleDelete = async (b: GymBranch) => {
-    if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return;
+    if (!confirm(t('branches.deleteConfirm', { name: b.name }))) return;
     setDeletingId(b.id);
     try {
       const res = await fetch(`/api/branches/${b.id}`, { method: 'DELETE' });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}));
-        toast.error(error ?? 'Failed to delete'); return;
+        toast.error(error ?? t('failedDelete')); return;
       }
       setBranches(prev => prev.filter(x => x.id !== b.id));
-      toast.success('Branch deleted');
+      toast.success(t('branches.branchDeleted'));
       refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(t('networkError'));
     } finally {
       setDeletingId(null);
     }
@@ -164,7 +168,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
   /* ── Create ── */
   const handleCreate = async () => {
     const name = createName.trim();
-    if (!name) { toast.error('Name is required'); return; }
+    if (!name) { toast.error(t('branches.nameRequired')); return; }
     setCreating(true);
     try {
       const res = await fetch('/api/branches', {
@@ -178,7 +182,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       });
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({}));
-        toast.error(error ?? 'Failed to create'); return;
+        toast.error(error ?? t('failedCreate')); return;
       }
       const { branch } = await res.json();
       setBranches(prev => [...prev, { ...branch, session_count: 0 }]);
@@ -186,10 +190,10 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       setCreateAddress('');
       setCreateMapsUrl('');
       setShowCreate(false);
-      toast.success('Branch created');
+      toast.success(t('branches.branchCreated'));
       refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(t('networkError'));
     } finally {
       setCreating(false);
     }
@@ -204,15 +208,15 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       {!hideHeader && (
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Branches & Studios</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Manage your gym locations and studio spaces</p>
+            <h1 className="text-2xl font-bold text-fg">{t('branches.title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('branches.subtitle')}</p>
           </div>
           {activeTab === 'branches' && can(permissions, 'branches', 'create') && !atLimit && (
             <button
               onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" /> Add Branch
+              <Plus className="w-4 h-4" /> {t('branches.addBranch')}
             </button>
           )}
         </div>
@@ -223,7 +227,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
           >
-            <Plus className="w-4 h-4" /> Add Branch
+            <Plus className="w-4 h-4" /> {t('branches.addBranch')}
           </button>
         </div>
       )}
@@ -232,12 +236,12 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'branches' | 'studios')}>
         <Tabs.List>
           <Tabs.Trigger value="branches" icon={GitBranch}>
-            Branches
-            <Badge variant="neutral" size="sm" className="ml-1">{initialBranches.length}</Badge>
+            {t('branches.tabBranches')}
+            <Badge variant="neutral" size="sm" className="ms-1">{initialBranches.length}</Badge>
           </Tabs.Trigger>
           <Tabs.Trigger value="studios" icon={Building2}>
-            Studios
-            <Badge variant="neutral" size="sm" className="ml-1">{initialStudios.length}</Badge>
+            {t('branches.tabStudios')}
+            <Badge variant="neutral" size="sm" className="ms-1">{initialStudios.length}</Badge>
           </Tabs.Trigger>
         </Tabs.List>
       </Tabs>
@@ -261,7 +265,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
         <GitBranch className="w-5 h-5 text-brand flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between mb-1.5">
-            <span className="text-sm font-medium text-fg">Branch usage</span>
+            <span className="text-sm font-medium text-fg">{t('branches.branchUsage')}</span>
             <span className="text-sm text-fg-muted">{branches.length} / {maxBranches}</span>
           </div>
           <div className="w-full bg-surface-3 rounded-full h-1.5">
@@ -273,7 +277,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
         </div>
         {pricePerBranch != null && (
           <span className="text-xs text-fg-faint flex-shrink-0">
-            +${pricePerBranch}/mo per extra branch
+            {t('branches.perExtraBranch', { price: pricePerBranch })}
           </span>
         )}
       </div>
@@ -283,7 +287,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
         <div className="flex items-center gap-3 bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">
           <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
           <span className="text-amber-400 text-sm">
-            Branch limit reached ({maxBranches}). Contact support to increase your limit.
+            {t('branches.limitReached', { max: maxBranches })}
           </span>
         </div>
       )}
@@ -291,41 +295,41 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       {/* Create form */}
       {showCreate && (
         <div className="bg-surface-2 border border-brand/50 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-medium text-fg">New Branch</p>
+          <p className="text-sm font-medium text-fg">{t('branches.newBranch')}</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-fg-muted">Name *</label>
+              <label className="text-xs text-fg-muted">{tc('name')} *</label>
               <input
                 autoFocus
                 type="text"
                 value={createName}
                 onChange={e => setCreateName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowCreate(false); }}
-                placeholder="e.g. Main Branch"
+                placeholder={t('branches.namePlaceholder')}
                 className={`${inputCls} w-full`}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-fg-muted">Address (optional)</label>
+              <label className="text-xs text-fg-muted">{t('branches.addressOptional')}</label>
               <input
                 type="text"
                 value={createAddress}
                 onChange={e => setCreateAddress(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') setShowCreate(false); }}
-                placeholder="e.g. 123 Main St, Cairo"
+                placeholder={t('branches.addressPlaceholder')}
                 className={`${inputCls} w-full`}
               />
             </div>
           </div>
           <div className="space-y-1">
             <label className="text-xs text-fg-muted flex items-center gap-1">
-              <MapPin className="w-3 h-3" /> Google Maps Link (optional)
+              <MapPin className="w-3 h-3" /> {t('branches.mapsLink')}
             </label>
             <input
               type="url"
               value={createMapsUrl}
               onChange={e => setCreateMapsUrl(e.target.value)}
-              placeholder="https://maps.google.com/..."
+              placeholder={t('branches.mapsPlaceholder')}
               className={`${inputCls} w-full`}
             />
           </div>
@@ -334,14 +338,14 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
               onClick={() => { setShowCreate(false); setCreateName(''); setCreateAddress(''); setCreateMapsUrl(''); }}
               className="px-3 py-1.5 text-sm text-fg-muted hover:text-fg transition-colors"
             >
-              Cancel
+              {tc('cancel')}
             </button>
             <button
               onClick={handleCreate}
               disabled={creating}
               className="flex items-center gap-1.5 px-4 py-1.5 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
             >
-              {creating ? 'Creating…' : <><Check className="w-3.5 h-3.5" /> Create</>}
+              {creating ? t('branches.creating') : <><Check className="w-3.5 h-3.5" /> {t('branches.create')}</>}
             </button>
           </div>
         </div>
@@ -351,13 +355,13 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       {branches.length === 0 ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <GitBranch className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-          <p className="text-fg-muted text-sm">No branches yet. Add your first branch to get started.</p>
+          <p className="text-fg-muted text-sm">{t('branches.noBranches')}</p>
           {can(permissions, 'branches', 'create') && (
             <button
               onClick={() => setShowCreate(true)}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" /> Add Branch
+              <Plus className="w-4 h-4" /> {t('branches.addBranch')}
             </button>
           )}
         </div>
@@ -380,7 +384,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-fg-faint">
                       <ImageIcon className="w-8 h-8" />
-                      <span className="text-xs">No image</span>
+                      <span className="text-xs">{t('branches.noImage')}</span>
                     </div>
                   )}
 
@@ -402,13 +406,14 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                         onClick={() => fileInputRefs.current[b.id]?.click()}
                         disabled={uploadingId === b.id}
                         className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-fg text-sm font-medium"
+                        aria-label={b.image_url ? t('branches.changeImage') : t('branches.uploadImage')}
                       >
                         {uploadingId === b.id ? (
-                          <span className="text-xs">Uploading…</span>
+                          <span className="text-xs">{t('branches.uploading')}</span>
                         ) : (
                           <>
                             <Upload className="w-4 h-4" />
-                            {b.image_url ? 'Change image' : 'Upload image'}
+                            {b.image_url ? t('branches.changeImage') : t('branches.uploadImage')}
                           </>
                         )}
                       </button>
@@ -416,8 +421,8 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   )}
 
                   {/* Status badge */}
-                  <Badge variant={b.is_active ? 'success' : 'neutral'} size="sm" className="absolute top-2 right-2">
-                    {b.is_active ? 'Active' : 'Inactive'}
+                  <Badge variant={b.is_active ? 'success' : 'neutral'} size="sm" className="absolute top-2 end-2">
+                    {b.is_active ? tc('active') : tc('inactive')}
                   </Badge>
                 </div>
 
@@ -426,7 +431,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   {isEditing ? (
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <label className="text-xs text-fg-faint">Name *</label>
+                        <label className="text-xs text-fg-faint">{tc('name')} *</label>
                         <input
                           autoFocus
                           type="text"
@@ -437,26 +442,26 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-fg-faint">Address</label>
+                        <label className="text-xs text-fg-faint">{t('profile.address')}</label>
                         <input
                           type="text"
                           value={editAddress}
                           onChange={e => setEditAddress(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') saveEdit(b.id); if (e.key === 'Escape') cancelEdit(); }}
-                          placeholder="Address (optional)"
+                          placeholder={t('branches.addressEditPlaceholder')}
                           className={`${inputCls} w-full`}
                         />
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs text-fg-faint flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> Google Maps Link
+                          <MapPin className="w-3 h-3" /> {t('branches.mapsLinkLabel')}
                         </label>
                         <input
                           type="url"
                           value={editMapsUrl}
                           onChange={e => setEditMapsUrl(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') saveEdit(b.id); if (e.key === 'Escape') cancelEdit(); }}
-                          placeholder="https://maps.google.com/..."
+                          placeholder={t('branches.mapsPlaceholder')}
                           className={`${inputCls} w-full`}
                         />
                       </div>
@@ -464,6 +469,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                         <button
                           onClick={cancelEdit}
                           className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors"
+                          aria-label={tc('cancel')}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -471,6 +477,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                           onClick={() => saveEdit(b.id)}
                           disabled={savingId === b.id}
                           className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40"
+                          aria-label={tc('save')}
                         >
                           <Check className="w-4 h-4" />
                         </button>
@@ -498,7 +505,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                           className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dim transition-colors truncate"
                         >
                           <MapPin className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">Google Maps</span>
+                          <span className="truncate">{t('branches.mapsLinkText')}</span>
                           <ExternalLink className="w-3 h-3 flex-shrink-0" />
                         </a>
                       )}
@@ -510,20 +517,20 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                             <button
                               onClick={() => toggleActive(b)}
                               disabled={togglingId === b.id}
-                              title={b.is_active ? 'Deactivate' : 'Activate'}
+                              title={b.is_active ? t('branches.deactivate') : t('branches.activate')}
                               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors disabled:opacity-40"
                             >
                               {b.is_active
-                                ? <><ToggleRight className="w-3.5 h-3.5" /> Deactivate</>
-                                : <><ToggleLeft  className="w-3.5 h-3.5" /> Activate</>
+                                ? <><ToggleRight className="w-3.5 h-3.5" /> {t('branches.deactivate')}</>
+                                : <><ToggleLeft  className="w-3.5 h-3.5" /> {t('branches.activate')}</>
                               }
                             </button>
                             <button
                               onClick={() => startEdit(b)}
-                              title="Edit"
+                              title={tc('edit')}
                               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors"
                             >
-                              <Pencil className="w-3.5 h-3.5" /> Edit
+                              <Pencil className="w-3.5 h-3.5" /> {tc('edit')}
                             </button>
                           </>
                         )}
@@ -531,10 +538,10 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                           <button
                             onClick={() => handleDelete(b)}
                             disabled={deletingId === b.id}
-                            title="Delete"
+                            title={tc('delete')}
                             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors disabled:opacity-40"
                           >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                            <Trash2 className="w-3.5 h-3.5" /> {tc('delete')}
                           </button>
                         )}
                       </div>

@@ -27,7 +27,7 @@ export default async function StudiosRoute() {
 
   const { getMe } = await import('@/lib/get-permissions');
   const me = await getMe(token);
-  
+
   const gymId = me?.gym_id;
 
   const { getStaffPermissions } = await import('@/lib/get-permissions');

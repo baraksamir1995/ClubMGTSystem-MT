@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Building2, QrCode, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { useRefresh } from '@/lib/use-refresh';
 import type { GymStudio } from '@/app/dashboard/classes/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
@@ -26,6 +27,8 @@ const EMPTY_FORM: StudioForm = { name: '', branchId: '' };
 
 export default function StudiosPageClient({ initialStudios, branches, gymId, permissions, hideHeader = false }: Props) {
   const refresh = useRefresh();
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
   const [studios, setStudios] = useState<GymStudio[]>(initialStudios);
   const [form, setForm]       = useState<StudioForm | null>(null); // null = closed, object = open
   const [editId, setEditId]   = useState<string | null>(null);
@@ -49,8 +52,8 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
   const closeForm = () => { setForm(null); setEditId(null); };
 
   const handleSave = async () => {
-    if (!form || !form.name.trim()) { toast.error('Studio name is required'); return; }
-    if (!form.branchId) { toast.error('Please select a branch'); return; }
+    if (!form || !form.name.trim()) { toast.error(t('studios.studioNameRequired')); return; }
+    if (!form.branchId) { toast.error(t('studios.selectBranchRequired')); return; }
     setSaving(true);
     try {
       const body = {
@@ -63,7 +66,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('studios.failedToSave')); return; }
 
       const saved: GymStudio = {
         id:        editId ?? data.id,
@@ -75,22 +78,22 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
       setStudios(prev =>
         editId ? prev.map(s => s.id === editId ? saved : s) : [saved, ...prev]
       );
-      toast.success(editId ? 'Studio updated' : 'Studio created');
+      toast.success(editId ? t('studios.studioUpdated') : t('studios.studioCreated'));
       refresh();
       closeForm();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (studio: GymStudio) => {
-    if (!window.confirm(`Delete studio "${studio.name}"? Active sessions will lose their studio assignment.`)) return;
+    if (!window.confirm(t('studios.deleteConfirm', { name: studio.name }))) return;
     try {
       const res = await fetch(`/api/studios/${studio.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete'); return; }
+      if (!res.ok) { toast.error(t('studios.failedToDelete')); return; }
       setStudios(prev => prev.filter(s => s.id !== studio.id));
-      toast.success('Studio deleted');
+      toast.success(t('studios.studioDeleted'));
       refresh();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
   };
 
   const branchMap = Object.fromEntries(branches.map(b => [b.id, b.name]));
@@ -112,13 +115,13 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
         {!hideHeader && (
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-fg">Studios</h1>
-              <p className="text-sm text-fg-muted mt-0.5">Manage studio spaces and their static QR codes</p>
+              <h1 className="text-2xl font-bold text-fg">{t('studios.pageTitle')}</h1>
+              <p className="text-sm text-fg-muted mt-0.5">{t('studios.pageSubtitle')}</p>
             </div>
             {can(permissions, 'classes', 'create') && (
               <button onClick={openCreate}
                 className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                <Plus className="w-4 h-4" /> New Studio
+                <Plus className="w-4 h-4" /> {t('studios.newStudio')}
               </button>
             )}
           </div>
@@ -127,7 +130,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
           <div className="flex justify-end">
             <button onClick={openCreate}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> New Studio
+              <Plus className="w-4 h-4" /> {t('studios.newStudio')}
             </button>
           </div>
         )}
@@ -136,10 +139,14 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
         {branches.length > 1 && (
           <div className="flex gap-3 items-center">
             <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className={selectCls}>
-              <option value="all">All branches</option>
+              <option value="all">{t('studios.allBranches')}</option>
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
-            <span className="text-xs text-fg-faint">{studios.length} studio{studios.length !== 1 ? 's' : ''}</span>
+            <span className="text-xs text-fg-faint">
+              {studios.length !== 1
+                ? t('studios.studioCountPlural', { count: studios.length })
+                : t('studios.studioCount', { count: studios.length })}
+            </span>
           </div>
         )}
 
@@ -148,22 +155,22 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
           <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
             <Building2 className="w-10 h-10 text-fg-faint mx-auto mb-3" />
             <p className="text-fg-muted text-sm">
-              {studios.length === 0 ? 'No studios yet — create one to assign sessions and generate QR codes' : 'No studios match the filter'}
+              {studios.length === 0 ? t('studios.noStudiosYet') : t('studios.noStudiosMatch')}
             </p>
             {studios.length === 0 && can(permissions, 'classes', 'create') && (
               <button onClick={openCreate}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                <Plus className="w-4 h-4" /> Create first studio
+                <Plus className="w-4 h-4" /> {t('studios.createFirst')}
               </button>
             )}
           </div>
         ) : (
           <div className="space-y-6">
-            {Object.entries(grouped).map(([branchId, branchStudios]) => (
-              <div key={branchId}>
+            {Object.entries(grouped).map(([bId, branchStudios]) => (
+              <div key={bId}>
                 {branches.length > 1 && (
                   <h2 className="text-xs text-fg-faint uppercase tracking-wider font-semibold mb-3">
-                    {branchMap[branchId] ?? 'Unknown branch'}
+                    {branchMap[bId] ?? t('studios.unknownBranch')}
                   </h2>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -192,7 +199,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
 
                       <button onClick={() => setQrStudio(studio)}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-brand/20 hover:bg-brand/30 text-brand text-sm font-medium transition-colors">
-                        <QrCode className="w-4 h-4" /> View QR Code
+                        <QrCode className="w-4 h-4" /> {t('studios.viewQrCode')}
                       </button>
                     </div>
                   ))}
@@ -210,7 +217,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
             <div className="flex items-center justify-between px-5 py-4 border-b border-line">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-brand" />
-                <h2 className="text-base font-semibold text-fg">{editId ? 'Edit Studio' : 'New Studio'}</h2>
+                <h2 className="text-base font-semibold text-fg">{editId ? t('studios.editStudio') : t('studios.newStudioTitle')}</h2>
               </div>
               <button onClick={closeForm} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
                 <X className="w-4 h-4" />
@@ -220,29 +227,29 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
             <div className="p-5 space-y-4">
               {branches.length > 1 && (
                 <div>
-                  <label className="block text-xs text-fg-muted mb-1.5">Branch <span className="text-red-400">*</span></label>
+                  <label className="block text-xs text-fg-muted mb-1.5">{t('studios.labelBranch')} <span className="text-red-400">*</span></label>
                   <select value={form.branchId} onChange={e => setForm(f => f && ({ ...f, branchId: e.target.value }))}
                     className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
-                    <option value="">Select branch…</option>
+                    <option value="">{t('studios.selectBranch')}</option>
                     {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">Studio name <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('studios.labelStudioName')} <span className="text-red-400">*</span></label>
                 <input value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Studio A"
+                  placeholder={t('studios.studioNamePlaceholder')}
                   className={inputCls} />
               </div>
 
             </div>
 
             <div className="flex gap-2 px-5 py-4 border-t border-line">
-              <button onClick={closeForm} className="flex-1 py-2 rounded-lg border border-line text-fg-muted text-sm hover:bg-surface-3 transition-colors">Cancel</button>
+              <button onClick={closeForm} className="flex-1 py-2 rounded-lg border border-line text-fg-muted text-sm hover:bg-surface-3 transition-colors">{tc('cancel')}</button>
               <button onClick={handleSave} disabled={saving}
                 className="flex-1 py-2 rounded-lg bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium transition-colors disabled:opacity-40">
-                {saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Studio'}
+                {saving ? tc('saving') : editId ? t('studios.saveChanges') : t('studios.createStudio')}
               </button>
             </div>
           </div>

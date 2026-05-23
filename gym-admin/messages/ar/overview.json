@@ -1,0 +1,10 @@
+{
+  "title": "نظرة عامة",
+  "subtitle": "نظرة شاملة على نادیك",
+  "stats": {
+    "totalMembers": "إجمالي الأعضاء",
+    "activeStaff": "الموظفون النشطون",
+    "thisMonthRevenue": "إيرادات هذا الشهر",
+    "totalRevenue": "إجمالي الإيرادات"
+  }
+}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreditCard, Tag, Percent, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { Button, Input, Modal, Select } from '@/components/ui';
 
 interface Plan {
@@ -42,6 +43,8 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 
 export default function AssignPlanModal({ memberId, plans, currentPlanId, onClose }: Props) {
+  const t = useTranslations('members.assignPlan');
+  const tc = useTranslations('common');
   const router = useRouter();
   const [selectedPlanId,    setSelectedPlanId]    = useState(currentPlanId ?? '');
   const [startDate,         setStartDate]         = useState(new Date().toISOString().slice(0, 10));
@@ -109,8 +112,8 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanId) { toast.error('Please select a plan'); return; }
-    if (!startDate)      { toast.error('Please set a start date'); return; }
+    if (!selectedPlanId) { toast.error(t('toast.selectPlan')); return; }
+    if (!startDate)      { toast.error(t('toast.setStartDate')); return; }
 
     setLoading(true);
     try {
@@ -124,12 +127,12 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
-      toast.success(isChange ? 'Plan changed successfully' : 'Plan assigned successfully');
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
+      toast.success(isChange ? t('toast.planChanged') : t('toast.planAssigned'));
       onClose();
       router.refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setLoading(false);
     }
@@ -139,7 +142,7 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
         <span className="inline-flex items-center gap-2">
-          <CreditCard className="w-4 h-4 text-brand" /> {isChange ? 'Change Plan' : 'Assign Plan'}
+          <CreditCard className="w-4 h-4 text-brand" /> {isChange ? t('titleChange') : t('title')}
         </span>
       </Modal.Header>
 
@@ -147,10 +150,10 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
         <form id="assign-plan-form" onSubmit={handleSubmit} className="space-y-4">
           {/* Plan selection */}
           <div>
-            <label className="block text-xs text-fg-muted mb-2">Select Plan *</label>
+            <label className="block text-xs text-fg-muted mb-2">{t('selectPlan')}</label>
             <div className="space-y-2 max-h-52 overflow-y-auto">
               {plans.length === 0 && (
-                <p className="text-sm text-fg-faint">No plans available. Create plans first.</p>
+                <p className="text-sm text-fg-faint">{t('noPlans')}</p>
               )}
               {plans.map(plan => (
                 <label
@@ -188,12 +191,14 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
           {/* Discount section */}
           {selectedPlanId && !loadingDiscounts && (planPromo || promoCodes.length > 0) && (
             <div className="space-y-2">
-              <label className="block text-xs text-fg-muted">Apply Discount <span className="text-fg-faint">(optional)</span></label>
+              <label className="block text-xs text-fg-muted">
+                {t('applyDiscount')} <span className="text-fg-faint">({tc('optional')})</span>
+              </label>
 
               {/* No discount option */}
               <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${discountMode === 'none' ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong bg-surface-3/30'}`}>
                 <input type="radio" name="discount" checked={discountMode === 'none'} onChange={() => setDiscountMode('none')} className="accent-brand" />
-                <span className="text-sm text-fg-muted">No discount — full price</span>
+                <span className="text-sm text-fg-muted">{t('noDiscount')}</span>
               </label>
 
               {/* Plan promotion */}
@@ -202,13 +207,13 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
                   <input type="radio" name="discount" checked={discountMode === 'plan_promo'} onChange={() => { setDiscountMode('plan_promo'); setSelectedPromoId(''); }} className="accent-success" />
                   <Percent className="w-4 h-4 text-success flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm text-fg font-medium">Promotional Price</p>
+                    <p className="text-sm text-fg font-medium">{t('promotionalPrice')}</p>
                     <p className="text-xs text-fg-muted">
-                      {fmt(planPromo.promo_price, currency)} · valid until {new Date(planPromo.valid_until).toLocaleDateString('en-GB')}
+                      {fmt(planPromo.promo_price, currency)} · {t('promoValidUntil', { price: '', date: new Date(planPromo.valid_until).toLocaleDateString('en-GB') }).replace(' · ', '')}
                     </p>
                   </div>
                   <span className="text-xs text-success font-medium flex-shrink-0">
-                    Save {fmt(originalPrice - planPromo.promo_price, currency)}
+                    {t('promoSave', { amount: fmt(originalPrice - planPromo.promo_price, currency) })}
                   </span>
                 </label>
               )}
@@ -219,8 +224,8 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
                   <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${discountMode === 'promo_code' ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong bg-surface-3/30'}`}>
                     <input type="radio" name="discount" checked={discountMode === 'promo_code'} onChange={() => setDiscountMode('promo_code')} className="accent-brand" />
                     <Tag className="w-4 h-4 text-brand flex-shrink-0" />
-                    <span className="text-sm text-fg-muted">Apply Promo Code</span>
-                    <ChevronDown className="w-4 h-4 text-fg-faint ml-auto" />
+                    <span className="text-sm text-fg-muted">{t('applyPromoCode')}</span>
+                    <ChevronDown className="w-4 h-4 text-fg-faint ms-auto" />
                   </label>
                   {discountMode === 'promo_code' && (
                     <Select
@@ -228,7 +233,7 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
                       onChange={e => setSelectedPromoId(e.target.value)}
                       className="mt-1.5"
                     >
-                      <option value="">— Select a code —</option>
+                      <option value="">{t('selectCode')}</option>
                       {promoCodes.map(c => (
                         <option key={c.id} value={c.id}>
                           {c.code} — {c.name} ({c.discount_type === 'percentage' ? `${c.discount_value}% off` : `${fmt(c.discount_value, currency)} off`})
@@ -243,7 +248,7 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
 
           {/* Start date */}
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">Start Date *</label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('startDate')}</label>
             <Input
               type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
               className="[color-scheme:dark]"
@@ -254,33 +259,33 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
           {/* Summary */}
           {selectedPlan && (
             <div className="bg-surface-3/40 rounded-lg p-3 text-xs text-fg-muted space-y-1.5">
-              <p><span className="text-fg-faint">Plan:</span> <span className="text-fg">{selectedPlan.name}</span></p>
+              <p><span className="text-fg-faint">{t('summaryPlan')}</span> <span className="text-fg">{selectedPlan.name}</span></p>
               {selectedPlan.duration_days && startDate && (
-                <p><span className="text-fg-faint">Expires:</span> <span className="text-fg">
+                <p><span className="text-fg-faint">{t('summaryExpires')}</span> <span className="text-fg">
                   {(() => { const d = new Date(startDate); d.setDate(d.getDate() + selectedPlan.duration_days!); return d.toLocaleDateString('en-GB'); })()}
                 </span></p>
               )}
               {selectedPlan.session_count && (
-                <p><span className="text-fg-faint">Sessions:</span> <span className="text-fg">{selectedPlan.session_count}</span></p>
+                <p><span className="text-fg-faint">{t('summarySessions')}</span> <span className="text-fg">{selectedPlan.session_count}</span></p>
               )}
               <div className="border-t border-line pt-1.5 space-y-1">
                 <p className="flex justify-between">
-                  <span className="text-fg-faint">Original price:</span>
+                  <span className="text-fg-faint">{t('summaryOriginalPrice')}</span>
                   <span className="text-fg">{fmt(originalPrice, currency)}</span>
                 </p>
                 {discountAmount > 0 && (
                   <p className="flex justify-between">
-                    <span className="text-fg-faint">Discount:</span>
+                    <span className="text-fg-faint">{t('summaryDiscount')}</span>
                     <span className="text-success">− {fmt(discountAmount, currency)}</span>
                   </p>
                 )}
                 <p className="flex justify-between font-medium">
-                  <span className="text-fg-muted">Total:</span>
+                  <span className="text-fg-muted">{t('summaryTotal')}</span>
                   <span className={discountAmount > 0 ? 'text-success font-semibold' : 'text-fg'}>{fmt(finalPrice, currency)}</span>
                 </p>
               </div>
               {isChange && (
-                <p className="text-amber-400 mt-1">⚠ Current plan will be cancelled and replaced.</p>
+                <p className="text-amber-400 mt-1">⚠ {t('warningPlanChange')}</p>
               )}
             </div>
           )}
@@ -289,9 +294,9 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{tc('cancel')}</Button>
         <Button type="submit" form="assign-plan-form" variant="primary" fullWidth disabled={!selectedPlanId} isLoading={loading}>
-          {isChange ? 'Change Plan' : 'Assign Plan'}
+          {isChange ? t('titleChange') : t('title')}
         </Button>
       </Modal.Footer>
     </Modal>

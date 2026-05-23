@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Download, FileText, Table2, CheckSquare, Square } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Avatar, Badge, type BadgeProps, Button, Modal } from '@/components/ui';
 
 interface MemberWithProfile {
@@ -73,6 +74,8 @@ async function downloadExcel(rows: ReturnType<typeof toRow>[]) {
 }
 
 export default function ExportModal({ members, onClose }: Props) {
+  const t = useTranslations('members.exportModal');
+  const tc = useTranslations('common');
   const [selected, setSelected] = useState<Set<string>>(() => new Set(members.map(m => m.id)));
   const [format, setFormat] = useState<Format>('csv');
   const [loading, setLoading] = useState(false);
@@ -108,23 +111,23 @@ export default function ExportModal({ members, onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} size="lg">
-      <Modal.Header>Export Members</Modal.Header>
+      <Modal.Header>{t('title')}</Modal.Header>
 
       <Modal.Body className="space-y-5">
-        <p className="text-xs text-fg-muted -mt-1">{members.length} members available to export</p>
+        <p className="text-xs text-fg-muted -mt-1">{t('available', { count: members.length })}</p>
 
         {/* Format picker */}
         <div>
-          <p className="text-xs text-fg-muted uppercase tracking-wide mb-3">Export Format</p>
+          <p className="text-xs text-fg-muted uppercase tracking-wide mb-3">{t('formatLabel')}</p>
           <div className="grid grid-cols-2 gap-3">
             {([
-              { value: 'csv',   icon: FileText, label: 'CSV', desc: 'Comma-separated values' },
-              { value: 'excel', icon: Table2,   label: 'Excel', desc: 'Microsoft Excel (.xlsx)' },
+              { value: 'csv',   icon: FileText, label: 'CSV', desc: t('csvDesc') },
+              { value: 'excel', icon: Table2,   label: 'Excel', desc: t('excelDesc') },
             ] as const).map(({ value, icon: Icon, label, desc }) => (
               <button
                 key={value}
                 onClick={() => setFormat(value)}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
+                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-start ${
                   format === value
                     ? 'border-brand bg-brand/10'
                     : 'border-line hover:border-line-strong'
@@ -143,19 +146,19 @@ export default function ExportModal({ members, onClose }: Props) {
         {/* Member selection */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-fg-muted uppercase tracking-wide">Select Members</p>
+            <p className="text-xs text-fg-muted uppercase tracking-wide">{t('selectMembersLabel')}</p>
             <button
               onClick={toggleAll}
               className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dim transition-colors"
             >
               {allSelected ? (
-                <><CheckSquare className="w-3.5 h-3.5" /> Deselect all</>
+                <><CheckSquare className="w-3.5 h-3.5" /> {t('deselectAll')}</>
               ) : (
-                <><Square className="w-3.5 h-3.5" /> Select all</>
+                <><Square className="w-3.5 h-3.5" /> {t('selectAllLabel')}</>
               )}
             </button>
           </div>
-          <div className="max-h-[40vh] overflow-y-auto space-y-1 pr-1">
+          <div className="max-h-[40vh] overflow-y-auto space-y-1 pe-1">
             {members.map(m => {
               const isChecked = selected.has(m.id);
               return (
@@ -186,10 +189,11 @@ export default function ExportModal({ members, onClose }: Props) {
 
       <Modal.Footer className="items-center justify-between">
         <p className="text-sm text-fg-muted">
-          <span className="text-fg font-medium">{selected.size}</span> member{selected.size !== 1 ? 's' : ''} selected
+          <span className="text-fg font-medium">{selected.size}</span>{' '}
+          {selected.size === 1 ? t('selectedCount', { count: selected.size }) : t('selectedCountPlural', { count: selected.size })}
         </p>
         <div className="flex gap-3">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>{tc('cancel')}</Button>
           <Button
             variant="primary"
             onClick={handleExport}
@@ -197,7 +201,7 @@ export default function ExportModal({ members, onClose }: Props) {
             isLoading={loading}
             leftIcon={<Download className="w-4 h-4" />}
           >
-            Export {format.toUpperCase()}
+            {format === 'csv' ? t('exportCsv') : t('exportExcel')}
           </Button>
         </div>
       </Modal.Footer>

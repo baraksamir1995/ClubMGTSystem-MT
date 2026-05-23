@@ -12,6 +12,29 @@ export type { Locale } from './config';
  * on the server; the chosen locale + its messages flow into every server
  * component and the client provider in the root layout.
  */
+// One namespace per file under messages/<locale>/<ns>.json. Each module owns
+// its own namespace so they can be edited independently. Add new modules here
+// as they're localized.
+export const namespaces = [
+  'common',
+  'nav',
+  'layout',
+  'auth',
+  'overview',
+  'members',
+  'plans',
+  'payments',
+  'classes',
+  'promotions',
+  'services',
+  'attendance',
+  'invitations',
+  'content',
+  'analytics',
+  'staff',
+  'settings',
+] as const;
+
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
   const requested = cookieStore.get(LOCALE_COOKIE)?.value;
@@ -19,8 +42,17 @@ export default getRequestConfig(async () => {
     ? (requested as Locale)
     : defaultLocale;
 
+  // Merge every namespace file into a single messages object keyed by
+  // namespace (the shape next-intl expects: messages[ns][key]).
+  const entries = await Promise.all(
+    namespaces.map(async (ns) => {
+      const mod = await import(`../messages/${locale}/${ns}.json`);
+      return [ns, mod.default] as const;
+    }),
+  );
+
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: Object.fromEntries(entries),
   };
 });

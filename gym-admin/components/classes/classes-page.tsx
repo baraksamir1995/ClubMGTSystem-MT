@@ -5,6 +5,7 @@ import { Plus, CalendarDays, Dumbbell, Pencil, XCircle, Search, X, ChevronLeft, 
 import { fmt12 } from '@/lib/time';
 import { useRefresh } from '@/lib/use-refresh';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import ClassModal from './class-modal';
 import SessionModal from './session-modal';
 import CancelSessionModal from './cancel-session-modal';
@@ -41,6 +42,8 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default function ClassesPageClient({ initialClasses, initialSessions, initialSessionsMembers, initialClassTypes, initialBranches, initialStudios, gymId, gym, permissions }: Props) {
   const refresh = useRefresh();
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
   const [classes, setClasses]       = useState<GymClass[]>(initialClasses);
   const [sessions, setSessions]     = useState<ClassSession[]>(initialSessions);
   const [classTypes, setClassTypes] = useState<{ id: string; name: string }[]>(initialClassTypes);
@@ -111,10 +114,10 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !cls.is_active }),
       });
-      if (!res.ok) { toast.error('Failed to update'); return; }
+      if (!res.ok) { toast.error(t('classes.failedUpdate')); return; }
       setClasses(prev => prev.map(c => c.id === cls.id ? { ...c, is_active: !c.is_active } : c));
-      toast.success(cls.is_active ? 'Class deactivated' : 'Class activated');
-    } catch { toast.error('Network error'); }
+      toast.success(cls.is_active ? t('classes.deactivated') : t('classes.activated'));
+    } catch { toast.error(tc('networkError')); }
   };
 
   const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
@@ -125,25 +128,25 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Classes & Schedule</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Manage class templates and scheduled sessions</p>
+            <h1 className="text-2xl font-bold text-fg">{t('pageTitle')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('pageSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             {activeTab === 'classes' && can(permissions, 'classes', 'create') && (
               <Button variant="primary" onClick={() => setClassModal({ open: true })} leftIcon={<Plus className="w-4 h-4" />}>
-                New Class
+                {t('classes.newClass')}
               </Button>
             )}
             {activeTab === 'sessions' && can(permissions, 'classes', 'create') && (
               <Button variant="primary" onClick={() => setSessionModal({ open: true })}
                 disabled={classes.filter(c => c.is_active).length === 0}
-                title={classes.filter(c => c.is_active).length === 0 ? 'Create a class first' : ''}
+                title={classes.filter(c => c.is_active).length === 0 ? t('sessionModal.titleNew') : ''}
                 leftIcon={<Plus className="w-4 h-4" />}>
-                Schedule Session
+                {t('sessionModal.titleNew')}
               </Button>
             )}
             {activeTab === 'schedule' && (
-              <div className="text-xs text-fg-faint py-2">Weekly recurring template</div>
+              <div className="text-xs text-fg-faint py-2">{t('schedule.weeklyTemplate')}</div>
             )}
           </div>
         </div>
@@ -152,17 +155,17 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
           <Tabs.List>
             {([
-              ['sessions',    CalendarDays,  'Sessions',       sessions.filter(s => s.status === 'scheduled' && s.session_date >= monthStart && s.session_date < nextMonthStart).length],
-              ['schedule',    CalendarRange, 'Schedule',       null],
-              ['classes',     Dumbbell,      'Classes',        classes.filter(c => c.is_active).length],
-              ['tracker',     Layers,        'Sessions Tracker', initialSessionsMembers.length],
-              ['reviews',     Star,          'Reviews',          null],
-              ['class-types', Tag,           'Class Types',      null],
+              ['sessions',    CalendarDays,  t('tabs.sessions'),    sessions.filter(s => s.status === 'scheduled' && s.session_date >= monthStart && s.session_date < nextMonthStart).length],
+              ['schedule',    CalendarRange, t('tabs.schedule'),    null],
+              ['classes',     Dumbbell,      t('tabs.classes'),     classes.filter(c => c.is_active).length],
+              ['tracker',     Layers,        t('tabs.tracker'),     initialSessionsMembers.length],
+              ['reviews',     Star,          t('tabs.reviews'),     null],
+              ['class-types', Tag,           t('tabs.classTypes'),  null],
             ] as const).map(([tab, Icon, label, count]) => (
               <Tabs.Trigger key={tab} value={tab} icon={Icon}>
                 {label}
                 {count !== null && (
-                  <Badge variant="neutral" size="sm" className="ml-1">{count}</Badge>
+                  <Badge variant="neutral" size="sm" className="ms-1">{count}</Badge>
                 )}
               </Tabs.Trigger>
             ))}
@@ -175,12 +178,12 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
             {/* Summary */}
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: 'This Month', value: sessions.filter(s => s.session_date >= monthStart && s.session_date < nextMonthStart && s.status === 'scheduled').length, color: 'text-brand', filter: 'upcoming' },
-                { label: 'Past',     value: sessions.filter(s => s.session_date < today).length,                              color: 'text-fg-muted',   filter: 'past' },
-                { label: 'Cancelled',value: sessions.filter(s => s.status === 'cancelled').length,                            color: 'text-red-400',    filter: 'cancelled' },
+                { label: t('sessions.thisMonth'), value: sessions.filter(s => s.session_date >= monthStart && s.session_date < nextMonthStart && s.status === 'scheduled').length, color: 'text-brand', filter: 'upcoming' },
+                { label: t('sessions.past'),      value: sessions.filter(s => s.session_date < today).length,                              color: 'text-fg-muted',   filter: 'past' },
+                { label: t('sessions.cancelled'), value: sessions.filter(s => s.status === 'cancelled').length,                            color: 'text-red-400',    filter: 'cancelled' },
               ].map(s => (
                 <button key={s.filter} onClick={() => { setStatusFilter(s.filter); setPage(1); }}
-                  className={`bg-surface-2 border rounded-xl p-4 text-left transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}>
+                  className={`bg-surface-2 border rounded-xl p-4 text-start transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}>
                   <p className="text-xs text-fg-muted mb-1">{s.label}</p>
                   <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
                 </button>
@@ -190,20 +193,20 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
             {/* Search + Filter */}
             <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-                  placeholder="Search by class name, instructor, location…"
-                  className="w-full pl-9 pr-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand" />
-                {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-4 h-4" /></button>}
+                  placeholder={t('sessions.searchPlaceholder')}
+                  className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand" />
+                {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-4 h-4" /></button>}
               </div>
               <div className="flex gap-3 items-center">
                 <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className={selectCls}>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="past">Past</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="all">All Sessions</option>
+                  <option value="upcoming">{t('sessions.upcoming')}</option>
+                  <option value="past">{t('sessions.past')}</option>
+                  <option value="cancelled">{t('sessions.cancelled')}</option>
+                  <option value="all">{t('sessions.allSessions')}</option>
                 </select>
-                <span className="ml-auto text-xs text-fg-faint">{filteredSessions.length} sessions</span>
+                <span className="ms-auto text-xs text-fg-faint">{t('sessions.count', { count: filteredSessions.length })}</span>
               </div>
             </div>
 
@@ -213,20 +216,20 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
               paginatedSessions.length === 0 ? (
                 <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
                   <XCircle className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-                  <p className="text-fg-muted text-sm">No cancelled sessions</p>
+                  <p className="text-fg-muted text-sm">{t('sessions.noCancelled')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {paginatedSessions.map(session => (
                     <div key={session.id} className="bg-surface-2 border border-line rounded-xl p-5">
                       <div className="flex items-start justify-between gap-4">
-                        {/* Left: class info */}
+                        {/* Start: class info */}
                         <div className="flex items-start gap-3 min-w-0">
                           <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: session.color }} />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-fg font-semibold">{session.class_name}</p>
-                              <Badge variant="danger" size="sm">Cancelled</Badge>
+                              <Badge variant="danger" size="sm">{t('sessions.cancelled')}</Badge>
                             </div>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-fg-muted">
                               <span>
@@ -250,16 +253,20 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                           </div>
                         </div>
 
-                        {/* Right: members + cancelled at */}
-                        <div className="flex-shrink-0 text-right">
+                        {/* End: members + cancelled at */}
+                        <div className="flex-shrink-0 text-end">
                           <div className="flex items-center gap-1 text-xs text-fg-muted justify-end">
                             <Users className="w-3 h-3" />
-                            <span>{session.booked_count} member{session.booked_count !== 1 ? 's' : ''} booked</span>
+                            <span>
+                              {session.booked_count !== 1
+                                ? t('sessions.bookedCountPlural', { count: session.booked_count })
+                                : t('sessions.bookedCount', { count: session.booked_count })}
+                            </span>
                           </div>
                           {session.cancelled_at && (
                             <p className="text-xs text-fg-faint mt-1">
                               {new Date(session.cancelled_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              {' '}at{' '}
+                              {' '}{t('sessions.cancelledAt')}{' '}
                               {new Date(session.cancelled_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           )}
@@ -269,7 +276,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                       {/* Reason */}
                       {session.cancel_reason && (
                         <div className="mt-3 pt-3 border-t border-line">
-                          <p className="text-xs text-fg-faint mb-1 font-medium uppercase tracking-wide">Reason for cancellation</p>
+                          <p className="text-xs text-fg-faint mb-1 font-medium uppercase tracking-wide">{t('sessions.reasonForCancellation')}</p>
                           <p className="text-sm text-fg-muted">{session.cancel_reason}</p>
                         </div>
                       )}
@@ -278,7 +285,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
 
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between px-1 py-2">
-                      <p className="text-xs text-fg-faint">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filteredSessions.length)} of {filteredSessions.length}</p>
+                      <p className="text-xs text-fg-faint">{tc('showingResults', { from: (page-1)*PAGE_SIZE+1, to: Math.min(page*PAGE_SIZE, filteredSessions.length), total: filteredSessions.length })}</p>
                       <div className="flex items-center gap-1">
                         <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
                         {Array.from({ length: totalPages }, (_, i) => i+1).map(n => (
@@ -296,10 +303,10 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                 {paginatedSessions.length === 0 ? (
                   <div className="p-12 text-center">
                     <CalendarDays className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-                    <p className="text-fg-muted text-sm">{sessions.length === 0 ? 'No sessions scheduled yet' : 'No sessions match your filters'}</p>
+                    <p className="text-fg-muted text-sm">{sessions.length === 0 ? t('sessions.noScheduled') : t('sessions.noMatch')}</p>
                     {sessions.length === 0 && classes.filter(c => c.is_active).length > 0 && can(permissions, 'classes', 'create') && (
                       <Button variant="primary" className="mt-4" onClick={() => setSessionModal({ open: true })} leftIcon={<Plus className="w-4 h-4" />}>
-                        Schedule first session
+                        {t('sessions.scheduleFirst')}
                       </Button>
                     )}
                   </div>
@@ -309,13 +316,13 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                            <th className="text-left px-5 py-3">Class</th>
-                            <th className="text-left px-5 py-3">Date</th>
-                            <th className="text-left px-5 py-3">Time</th>
-                            <th className="text-left px-5 py-3">Location</th>
-                            <th className="text-left px-5 py-3">Capacity</th>
-                            <th className="text-left px-5 py-3">Status</th>
-                            <th className="text-right px-5 py-3">Actions</th>
+                            <th className="text-start px-5 py-3">{t('sessions.colClass')}</th>
+                            <th className="text-start px-5 py-3">{t('sessions.colDate')}</th>
+                            <th className="text-start px-5 py-3">{t('sessions.colTime')}</th>
+                            <th className="text-start px-5 py-3">{t('sessions.colLocation')}</th>
+                            <th className="text-start px-5 py-3">{t('sessions.colCapacity')}</th>
+                            <th className="text-start px-5 py-3">{t('sessions.colStatus')}</th>
+                            <th className="text-end px-5 py-3">{t('sessions.colActions')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-line">
@@ -329,10 +336,10 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                       <p className="text-xs text-fg-faint capitalize">{session.class_type}</p>
                                       {session.session_type === 'popup' && (
-                                        <Badge variant="warning" size="sm">Pop-up</Badge>
+                                        <Badge variant="warning" size="sm">{t('sessions.popup')}</Badge>
                                       )}
                                       {session.session_type === 'recurring' && (
-                                        <Badge variant="brand" size="sm">Recurring</Badge>
+                                        <Badge variant="brand" size="sm">{t('sessions.recurring')}</Badge>
                                       )}
                                     </div>
                                   </div>
@@ -358,29 +365,29 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                               </td>
                               <td className="px-5 py-3.5">
                                 {session.status === 'scheduled' && (
-                                  <Badge variant="success">Scheduled</Badge>
+                                  <Badge variant="success">{t('sessions.statusScheduled')}</Badge>
                                 )}
                                 {session.status === 'completed' && (
-                                  <Badge variant="neutral">Completed</Badge>
+                                  <Badge variant="neutral">{t('sessions.statusCompleted')}</Badge>
                                 )}
                               </td>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center justify-end gap-1">
                                   <button onClick={() => setBookingsSession(session)}
-                                    title="View bookings"
+                                    title={t('sessions.titleViewBookings')}
                                     className="p-1.5 rounded-lg text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
                                     <Users className="w-4 h-4" />
                                   </button>
                                   {session.status === 'scheduled' && can(permissions, 'classes', 'edit') && (
                                     <button onClick={() => setSessionModal({ open: true, existing: session })}
-                                      title="Edit session"
+                                      title={t('sessions.titleEditSession')}
                                       className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
                                       <Pencil className="w-4 h-4" />
                                     </button>
                                   )}
                                   {session.status === 'scheduled' && can(permissions, 'classes', 'delete') && (
                                     <button onClick={() => setCancelModal(session)}
-                                      title="Cancel session"
+                                      title={t('sessions.titleCancelSession')}
                                       className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors">
                                       <XCircle className="w-4 h-4" />
                                     </button>
@@ -394,7 +401,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                     </div>
                     {totalPages > 1 && (
                       <div className="flex items-center justify-between px-5 py-3 border-t border-line">
-                        <p className="text-xs text-fg-faint">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filteredSessions.length)} of {filteredSessions.length}</p>
+                        <p className="text-xs text-fg-faint">{tc('showingResults', { from: (page-1)*PAGE_SIZE+1, to: Math.min(page*PAGE_SIZE, filteredSessions.length), total: filteredSessions.length })}</p>
                         <div className="flex items-center gap-1">
                           <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
                           {Array.from({ length: totalPages }, (_, i) => i+1).map(n => (
@@ -425,17 +432,17 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
 
             onPublished={() => setSessions(prev => prev.map(s => ({ ...s, is_published: true })))}
             onStopRecurring={async (templateId) => {
-              if (!window.confirm('Stop this recurring series? All future sessions will be cancelled.')) return;
+              if (!window.confirm(t('schedule.stopRecurringConfirm'))) return;
               try {
                 const res = await fetch(`/api/sessions/recurring/${templateId}/stop`, { method: 'POST' });
-                if (!res.ok) { toast.error('Failed to stop recurring series'); return; }
+                if (!res.ok) { toast.error(t('schedule.failedToStopRecurring')); return; }
                 setSessions(prev => prev.map(s =>
                   s.recurring_template_id === templateId && s.session_date > today
                     ? { ...s, status: 'cancelled' }
                     : s
                 ));
-                toast.success('Recurring series stopped — future sessions cancelled');
-              } catch { toast.error('Network error'); }
+                toast.success(t('schedule.stopRecurringSuccess'));
+              } catch { toast.error(tc('networkError')); }
             }}
           />
         )}
@@ -446,20 +453,20 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
             {/* Search */}
             <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
                 <input value={classSearch} onChange={e => setClassSearch(e.target.value)}
-                  placeholder="Search classes…"
-                  className="w-full pl-9 pr-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand" />
-                {classSearch && <button onClick={() => setClassSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-4 h-4" /></button>}
+                  placeholder={t('classes.searchPlaceholder')}
+                  className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand" />
+                {classSearch && <button onClick={() => setClassSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-4 h-4" /></button>}
               </div>
               <div className="flex gap-3 items-center">
                 <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={selectCls}>
-                  <option value="all">All Types</option>
-                  {classTypes.map(t => (
-                    <option key={t.id} value={t.name} className="capitalize">{t.name.charAt(0).toUpperCase()+t.name.slice(1)}</option>
+                  <option value="all">{t('classes.allTypes')}</option>
+                  {classTypes.map(tp => (
+                    <option key={tp.id} value={tp.name} className="capitalize">{tp.name.charAt(0).toUpperCase()+tp.name.slice(1)}</option>
                   ))}
                 </select>
-                <span className="ml-auto text-xs text-fg-faint">{filteredClasses.length} classes</span>
+                <span className="ms-auto text-xs text-fg-faint">{t('classes.count', { count: filteredClasses.length })}</span>
               </div>
             </div>
 
@@ -467,10 +474,10 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
             {filteredClasses.length === 0 ? (
               <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
                 <Dumbbell className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-                <p className="text-fg-muted text-sm">{classes.length === 0 ? 'No classes created yet' : 'No classes match your search'}</p>
+                <p className="text-fg-muted text-sm">{classes.length === 0 ? t('classes.noClassesYet') : t('classes.noMatch')}</p>
                 {classes.length === 0 && can(permissions, 'classes', 'create') && (
                   <Button variant="primary" className="mt-4" onClick={() => setClassModal({ open: true })} leftIcon={<Plus className="w-4 h-4" />}>
-                    Create first class
+                    {t('classes.createFirst')}
                   </Button>
                 )}
               </div>
@@ -507,20 +514,20 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
 
                       <div className="flex items-center justify-between pt-3 border-t border-line">
                         <span className="text-xs text-fg-muted">
-                          <span className="text-fg font-medium">{sessionCount}</span> upcoming session{sessionCount !== 1 ? 's' : ''}
+                          {sessionCount !== 1 ? t('classes.upcomingSessionsPlural', { count: sessionCount }) : t('classes.upcomingSessions', { count: sessionCount })}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {can(permissions, 'classes', 'create') && (
                             <button onClick={() => setSessionModal({ open: true, defaultClassId: cls.id })}
                               disabled={!cls.is_active}
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand/15 hover:bg-brand/25 text-brand text-xs font-medium transition-colors disabled:opacity-40">
-                              <Plus className="w-3 h-3" /> Session
+                              <Plus className="w-3 h-3" /> {t('classes.addSession')}
                             </button>
                           )}
                           {can(permissions, 'classes', 'edit') && (
                             <button onClick={() => toggleClass(cls)}
                               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${cls.is_active ? 'bg-surface-3 hover:bg-surface-4 text-fg-muted' : 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400'}`}>
-                              {cls.is_active ? 'Deactivate' : 'Activate'}
+                              {cls.is_active ? t('classes.deactivate') : t('classes.activate')}
                             </button>
                           )}
                         </div>
@@ -534,7 +541,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
               {classTotalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-xs text-fg-faint">
-                    Showing {(classPage - 1) * CLASS_PAGE_SIZE + 1}–{Math.min(classPage * CLASS_PAGE_SIZE, filteredClasses.length)} of {filteredClasses.length}
+                    {tc('showingResults', { from: (classPage - 1) * CLASS_PAGE_SIZE + 1, to: Math.min(classPage * CLASS_PAGE_SIZE, filteredClasses.length), total: filteredClasses.length })}
                   </p>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setClassPage(p => Math.max(1, p - 1))} disabled={classPage === 1}

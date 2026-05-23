@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { Layers } from 'lucide-react';
 import SessionsTracker, {
   type SessionsMember,
@@ -29,6 +30,8 @@ export default async function SessionsPage() {
   const { getMe } = await import('@/lib/get-permissions');
   const me = await getMe(token);
   if (!me?.gym_id) redirect('/dashboard');
+
+  const t = await getTranslations('classes');
 
   // Fetch sessions members data from Laravel
   // This would ideally be a dedicated endpoint; for now use members with sessions plans
@@ -76,9 +79,9 @@ export default async function SessionsPage() {
           <Layers className="w-5 h-5 text-brand" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-fg">Sessions Tracker</h1>
+          <h1 className="text-xl font-bold text-fg">{t('sessionTracker.pageTitle')}</h1>
           <p className="text-sm text-fg-muted">
-            Monitor session consumption for all sessions-plan members
+            {t('sessionTracker.pageSubtitle')}
           </p>
         </div>
       </div>

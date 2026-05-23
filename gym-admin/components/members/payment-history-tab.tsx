@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Download, Filter, DollarSign, CheckCircle, Clock, AlertCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge, type BadgeProps, Button, Input } from '@/components/ui';
+import { useTranslations } from 'next-intl';
 
 const PAGE_SIZE = 5;
 
@@ -38,22 +39,21 @@ const fmt = (amount: number, currency?: string | null) => {
   }
 };
 
-const methodLabel: Record<string, string> = {
-  cash: 'Cash', bank_transfer: 'Bank Transfer', card: 'Card', other: 'Other',
-};
-
-const statusConfig: Record<string, { label: string; variant: BadgeProps['variant']; icon: React.ElementType }> = {
-  paid:          { label: 'Paid',          variant: 'success', icon: CheckCircle },
-  pending:       { label: 'Pending',       variant: 'warning', icon: Clock },
-  overdue:       { label: 'Overdue',       variant: 'danger',  icon: AlertCircle },
-  refunded:      { label: 'Refunded',      variant: 'neutral', icon: RotateCcw },
-  partial_refund:{ label: 'Part. Refunded',variant: 'neutral', icon: RotateCcw },
-};
-
 export default function PaymentHistoryTab({ payments, memberName, memberNumber }: Props) {
+  const t = useTranslations('members.payments');
+  const tc = useTranslations('common');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate]     = useState('');
   const [page, setPage]         = useState(1);
+
+  // Build status config from translations
+  const statusConfig: Record<string, { label: string; variant: BadgeProps['variant']; icon: React.ElementType }> = {
+    paid:          { label: t('paymentStatus.paid'),         variant: 'success', icon: CheckCircle },
+    pending:       { label: t('paymentStatus.pending'),      variant: 'warning', icon: Clock },
+    overdue:       { label: t('paymentStatus.overdue'),      variant: 'danger',  icon: AlertCircle },
+    refunded:      { label: t('paymentStatus.refunded'),     variant: 'neutral', icon: RotateCcw },
+    partial_refund:{ label: t('paymentStatus.partRefunded'), variant: 'neutral', icon: RotateCcw },
+  };
 
   const filtered = useMemo(() => {
     setPage(1);
@@ -76,20 +76,23 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
   const downloadStatement = () => {
     const currency = filtered[0]?.currency ?? 'EGP';
     const rows = [
-      ['Date', 'Service / Item', 'Specialist', 'Method', 'Amount', 'Currency', 'Status', 'Notes'],
+      [
+        t('col.date'), t('col.serviceItem'), 'Specialist', t('col.method'),
+        tc('amount'), tc('currency'), tc('status'), tc('notes'),
+      ],
       ...filtered.map(p => [
         new Date(p.created_at).toLocaleDateString('en-GB'),
         p.item_name ?? '',
         p.specialist_name ?? '',
-        methodLabel[p.payment_method] ?? p.payment_method,
+        t(`method.${p.payment_method}` as any) ?? p.payment_method,
         p.amount.toString(),
         p.currency,
         p.status,
         p.notes ?? '',
       ]),
       [],
-      ['Total Paid', '', fmt(totalPaid, currency)],
-      ['Total Pending', '', fmt(totalPending, currency)],
+      [t('totalPaid'), '', fmt(totalPaid, currency)],
+      [t('outstanding'), '', fmt(totalPending, currency)],
     ];
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
@@ -104,19 +107,25 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
-          <p className="text-xs text-fg-faint mb-1">Total Paid</p>
+          <p className="text-xs text-fg-faint mb-1">{t('totalPaid')}</p>
           <p className="text-xl font-bold text-emerald-400">{fmt(totalPaid, filtered[0]?.currency ?? 'EGP')}</p>
-          <p className="text-xs text-fg-faint mt-0.5">{filtered.filter(p => p.status === 'paid').length} payments</p>
+          <p className="text-xs text-fg-faint mt-0.5">
+            {t('payments', { count: filtered.filter(p => p.status === 'paid').length })}
+          </p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
-          <p className="text-xs text-fg-faint mb-1">Outstanding</p>
+          <p className="text-xs text-fg-faint mb-1">{t('outstanding')}</p>
           <p className="text-xl font-bold text-amber-400">{fmt(totalPending, filtered[0]?.currency ?? 'EGP')}</p>
-          <p className="text-xs text-fg-faint mt-0.5">{filtered.filter(p => p.status === 'pending' || p.status === 'overdue').length} pending</p>
+          <p className="text-xs text-fg-faint mt-0.5">
+            {t('pending', { count: filtered.filter(p => p.status === 'pending' || p.status === 'overdue').length })}
+          </p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
-          <p className="text-xs text-fg-faint mb-1">Refunded</p>
+          <p className="text-xs text-fg-faint mb-1">{t('refunded')}</p>
           <p className="text-xl font-bold text-blue-400">{fmt(totalRefunded, filtered[0]?.currency ?? 'EGP')}</p>
-          <p className="text-xs text-fg-faint mt-0.5">{filtered.filter(p => p.status === 'refunded' || p.status === 'partial_refund').length} refunds</p>
+          <p className="text-xs text-fg-faint mt-0.5">
+            {t('refunds', { count: filtered.filter(p => p.status === 'refunded' || p.status === 'partial_refund').length })}
+          </p>
         </div>
       </div>
 
@@ -124,26 +133,26 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
       <div className="bg-surface-2 border border-line rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="w-4 h-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Filter Period</span>
+          <span className="text-sm font-medium text-fg">{t('filterPeriod')}</span>
           {(fromDate || toDate) && (
-            <Button variant="ghost" size="sm" className="ml-auto" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</Button>
+            <Button variant="ghost" size="sm" className="ms-auto" onClick={() => { setFromDate(''); setToDate(''); }}>{tc('clear')}</Button>
           )}
           <Button
             variant="primary"
             size="sm"
             onClick={downloadStatement}
             leftIcon={<Download className="w-3.5 h-3.5" />}
-            className={fromDate || toDate ? '' : 'ml-auto'}>
-            Download Statement
+            className={fromDate || toDate ? '' : 'ms-auto'}>
+            {t('downloadStatement')}
           </Button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-fg-faint mb-1">From</label>
+            <label className="block text-xs text-fg-faint mb-1">{t('from')}</label>
             <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="[color-scheme:dark]" />
           </div>
           <div>
-            <label className="block text-xs text-fg-faint mb-1">To</label>
+            <label className="block text-xs text-fg-faint mb-1">{t('to')}</label>
             <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="[color-scheme:dark]" />
           </div>
         </div>
@@ -153,14 +162,16 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
       <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-line flex items-center gap-2">
           <DollarSign className="w-4 h-4 text-fg-muted" />
-          <span className="text-sm font-medium text-fg">Transactions</span>
-          <span className="ml-auto text-xs text-fg-faint">{filtered.length} records</span>
+          <span className="text-sm font-medium text-fg">{t('transactions')}</span>
+          <span className="ms-auto text-xs text-fg-faint">{t('records', { count: filtered.length })}</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="p-10 text-center">
             <DollarSign className="w-8 h-8 text-fg-faint mx-auto mb-2" />
-            <p className="text-sm text-fg-faint">No payments{(fromDate || toDate) ? ' in this period' : ' recorded'}.</p>
+            <p className="text-sm text-fg-faint">
+              {(fromDate || toDate) ? t('noPaymentsRange') : t('noPayments')}
+            </p>
           </div>
         ) : (
           <>
@@ -168,12 +179,12 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-left px-4 py-3">Date</th>
-                    <th className="text-left px-4 py-3">Service / Item</th>
-                    <th className="text-left px-4 py-3">Method</th>
-                    <th className="text-left px-4 py-3">Source</th>
-                    <th className="text-left px-4 py-3">Status</th>
-                    <th className="text-right px-4 py-3">Amount</th>
+                    <th className="text-start px-4 py-3">{t('col.date')}</th>
+                    <th className="text-start px-4 py-3">{t('col.serviceItem')}</th>
+                    <th className="text-start px-4 py-3">{t('col.method')}</th>
+                    <th className="text-start px-4 py-3">{t('col.source')}</th>
+                    <th className="text-start px-4 py-3">{t('col.status')}</th>
+                    <th className="text-end px-4 py-3">{t('col.amount')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -188,7 +199,7 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                         </p>
                         {p.paid_at && p.status === 'paid' && (
                           <p className="text-xs text-fg-faint">
-                            Paid {new Date(p.paid_at).toLocaleDateString('en-GB')}
+                            {t('paidOn', { date: new Date(p.paid_at).toLocaleDateString('en-GB') })}
                           </p>
                         )}
                       </td>
@@ -203,11 +214,11 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                         )}
                       </td>
                       <td className="px-4 py-3 text-fg-muted">
-                        {methodLabel[p.payment_method] ?? p.payment_method}
+                        {t(`method.${p.payment_method}` as any) ?? p.payment_method}
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={p.source === 'mobile_app' ? 'neutral' : 'brand'} size="sm">
-                          {p.source === 'mobile_app' ? 'Mobile' : 'Admin'}
+                          {p.source === 'mobile_app' ? t('source.mobile') : t('source.admin')}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
@@ -219,7 +230,7 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                           <p className="text-xs text-fg-faint mt-0.5 max-w-[180px] truncate" title={p.notes}>{p.notes}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         {isRefundEntry(p) ? (
                           <span className="font-semibold text-blue-400">
                             -{fmt(p.amount, p.currency)}

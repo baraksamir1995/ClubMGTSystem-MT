@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Users, CreditCard, UserCheck, TrendingUp } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,8 @@ export default async function DashboardPage() {
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
   if (!token) redirect('/login');
 
+  const t = await getTranslations('overview');
+
   const statsData = await fetchApi('/dashboard/stats', token);
 
   const totalMembers = statsData?.total_members ?? 0;
@@ -35,17 +38,17 @@ export default async function DashboardPage() {
     new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
 
   const stats = [
-    { label: 'Total Members', value: totalMembers.toLocaleString(), icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Active Staff', value: activeStaff.toLocaleString(), icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'This Month Revenue', value: fmt(monthRevenue), icon: TrendingUp, color: 'text-brand', bg: 'bg-brand/10' },
-    { label: 'Total Revenue', value: fmt(totalRevenue), icon: CreditCard, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: t('stats.totalMembers'), value: totalMembers.toLocaleString(), icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { label: t('stats.activeStaff'), value: activeStaff.toLocaleString(), icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: t('stats.thisMonthRevenue'), value: fmt(monthRevenue), icon: TrendingUp, color: 'text-brand', bg: 'bg-brand/10' },
+    { label: t('stats.totalRevenue'), value: fmt(totalRevenue), icon: CreditCard, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-fg">Overview</h1>
-        <p className="text-sm text-fg-muted mt-0.5">Your gym at a glance</p>
+        <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+        <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

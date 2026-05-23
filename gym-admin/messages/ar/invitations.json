@@ -1,0 +1,40 @@
+{
+  "title": "دعوات الضيوف",
+  "subtitle": "تتبع وإدارة دعوات ضيوف الأعضاء",
+
+  "status_pending": "قيد الانتظار",
+  "status_accepted": "مقبولة",
+  "status_active": "نشط",
+  "status_expired": "منتهٍ",
+  "status_invalidated": "ملغاة",
+
+  "col_guest": "الضيف",
+  "col_invitedBy": "بدعوة من",
+  "col_passType": "نوع التصريح",
+  "col_status": "الحالة",
+  "col_sent": "أُرسلت",
+  "col_expires": "ينتهي",
+
+  "passTimeBased": "تصريح {days} أيام",
+  "passVisit": "زيارة واحدة",
+  "passVisitPlural": "{visits} زيارات",
+  "visitsUsed": "{count} مُستخدَم",
+
+  "passCountdown_expired": "منتهٍ",
+  "passCountdown_days": "باقي {days} يوم",
+  "passCountdown_hours": "باقي {hours} ساعة",
+  "passLabel": "التصريح: {countdown}",
+
+  "guestUnknown": "غير معروف",
+
+  "filterAll": "الكل ({count})",
+
+  "emptyState": "لا توجد دعوات",
+
+  "invalidateButton": "إلغاء الدعوة",
+  "cancellingButton": "جارٍ الإلغاء…",
+  "invalidateConfirm": "إلغاء هذه الدعوة؟ سيُعاد التصريح إلى رصيد العضو.",
+  "invalidateSuccess": "تم إلغاء الدعوة. أُعيد التصريح إلى رصيد العضو.",
+  "invalidateErrorDefault": "فشل إلغاء الدعوة",
+  "networkError": "خطأ في الشبكة"
+}

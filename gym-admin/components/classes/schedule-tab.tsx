@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Clock, MapPin, User, Users, Pencil, XCircle, Globe, EyeOff, AlertTriangle, Loader2, StopCircle, CalendarPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymClass, ClassSession, GymBranch } from '@/app/dashboard/classes/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { fmt12 } from '@/lib/time';
@@ -39,8 +40,8 @@ interface ScheduleSettings {
   last_updated_at: string;
 }
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const DAY_FULL   = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+const DAY_FULL_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -82,6 +83,8 @@ export default function ScheduleTab({
   sessions, classes, branches, permissions,
   onCreateSession, onEditSession, onCancelSession, onViewBookings, onStopRecurring, onPublished,
 }: Props) {
+  const t = useTranslations('classes');
+  const tc = useTranslations('common');
   const [weekOffset,    setWeekOffset]    = useState(0);
   const [activeBranchId, setActiveBranchId] = useState<string | null>(
     branches.length > 0 ? branches[0].id : null
@@ -101,7 +104,7 @@ export default function ScheduleTab({
         // Record sessions count at the time settings were loaded
         initialSessionCount.current = sessions.length;
       })
-      .catch(() => toast.error('Failed to load schedule settings'))
+      .catch(() => toast.error(t('schedule.failedToLoadSettings')))
       .finally(() => setLoadingSettings(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -132,7 +135,7 @@ export default function ScheduleTab({
         body: JSON.stringify({ publish }),
       });
       const json = await res.json();
-      if (!res.ok) { toast.error(json.error ?? 'Failed to publish'); return; }
+      if (!res.ok) { toast.error(json.error ?? t('schedule.failedToPublish')); return; }
       const now = new Date().toISOString();
       setSettings(prev => prev ? {
         ...prev,
@@ -145,8 +148,8 @@ export default function ScheduleTab({
         initialSessionCount.current = sessions.length;
         onPublished?.();
       }
-      toast.success(publish ? 'Schedule published — members can now see it' : 'Schedule unpublished');
-    } catch { toast.error('Network error'); }
+      toast.success(publish ? t('schedule.publishSuccess') : t('schedule.unpublishSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setPublishing(false); }
   };
 
@@ -181,18 +184,18 @@ export default function ScheduleTab({
                 <>
                   <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-amber-300">Unpublished changes</p>
-                    <p className="text-xs text-fg-muted mt-0.5">Re-publish to push updates to the member app</p>
+                    <p className="text-sm font-medium text-amber-300">{t('schedule.unpublishedChanges')}</p>
+                    <p className="text-xs text-fg-muted mt-0.5">{t('schedule.republishHint')}</p>
                   </div>
                 </>
               ) : (
                 <>
                   <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-emerald-300">Schedule is live</p>
+                    <p className="text-sm font-medium text-emerald-300">{t('schedule.scheduleIsLive')}</p>
                     {settings?.published_at && (
                       <p className="text-xs text-fg-muted mt-0.5">
-                        Published {new Date(settings.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {t('schedule.publishedOn', { date: new Date(settings.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
                       </p>
                     )}
                   </div>
@@ -202,8 +205,8 @@ export default function ScheduleTab({
               <>
                 <EyeOff className="w-4 h-4 text-fg-muted flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-fg-muted">Schedule not published</p>
-                  <p className="text-xs text-fg-faint mt-0.5">Members cannot see sessions until you publish</p>
+                  <p className="text-sm font-medium text-fg-muted">{t('schedule.notPublished')}</p>
+                  <p className="text-xs text-fg-faint mt-0.5">{t('schedule.notPublishedHint')}</p>
                 </div>
               </>
             )}
@@ -212,7 +215,7 @@ export default function ScheduleTab({
             {isPublished && (
               <button onClick={() => handlePublish(false)} disabled={publishing}
                 className="px-3 py-1.5 rounded-lg border border-line text-fg-muted text-xs hover:bg-surface-3 transition-colors disabled:opacity-40">
-                Unpublish
+                {t('schedule.unpublish')}
               </button>
             )}
             <button
@@ -222,7 +225,7 @@ export default function ScheduleTab({
                 (isPublished && !hasUnpublishedChanges) ||
                 (!isPublished && !hasPublishableContent)
               }
-              title={!isPublished && !hasPublishableContent ? 'Add at least one session to publish' : undefined}
+              title={!isPublished && !hasPublishableContent ? t('schedule.noSessionsToPublish') : undefined}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 ${
                 (isPublished && !hasUnpublishedChanges) || (!isPublished && !hasPublishableContent)
                   ? 'bg-surface-3 text-fg-faint cursor-default'
@@ -231,7 +234,7 @@ export default function ScheduleTab({
               {publishing
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <Globe className="w-3.5 h-3.5" />}
-              {isPublished ? (hasUnpublishedChanges ? 'Push Changes' : 'Published') : 'Publish Schedule'}
+              {isPublished ? (hasUnpublishedChanges ? t('schedule.pushChanges') : t('schedule.publishedLabel')) : t('schedule.publishSchedule')}
             </button>
           </div>
         </div>
@@ -245,7 +248,7 @@ export default function ScheduleTab({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line hover:border-brand/50 hover:bg-brand/5 text-fg-muted hover:text-brand-dim text-xs font-medium transition-colors"
           >
             <CalendarPlus className="w-3.5 h-3.5" />
-            Copy this month to next month
+            {t('schedule.copyToNextMonth')}
           </button>
         </div>
       )}
@@ -287,7 +290,7 @@ export default function ScheduleTab({
         {weekOffset !== 0 && (
           <button onClick={() => setWeekOffset(0)}
             className="text-xs text-brand hover:text-brand-dim transition-colors">
-            Today
+            {t('schedule.today')}
           </button>
         )}
       </div>
@@ -295,10 +298,10 @@ export default function ScheduleTab({
       {/* ── Legend ── */}
       <div className="flex items-center gap-4 text-xs text-fg-faint">
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Pop-up (one-off)
+          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> {t('schedule.legendPopup')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-brand inline-block" /> Recurring (every week)
+          <span className="w-2 h-2 rounded-full bg-brand inline-block" /> {t('schedule.legendRecurring')}
         </span>
       </div>
 
@@ -309,6 +312,8 @@ export default function ScheduleTab({
           const isToday    = dateStr === todayStr;
           const isPast     = dateStr < todayStr;
           const daySessions = getSessionsForDay(visibleSessions, date);
+          const dayKey = DAY_KEYS[idx];
+          const dayFullKey = DAY_FULL_KEYS[idx];
 
           return (
             <div key={dateStr}>
@@ -316,7 +321,7 @@ export default function ScheduleTab({
               <div className={`flex items-center justify-between mb-2 pb-2 border-b ${isToday ? 'border-brand' : 'border-line'}`}>
                 <div>
                   <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-brand' : isPast ? 'text-fg-faint' : 'text-fg-muted'}`}>
-                    {DAY_LABELS[idx]}
+                    {t(`schedule.days.${dayKey}`)}
                   </p>
                   <p className={`text-sm font-bold leading-none mt-0.5 ${isToday ? 'text-brand' : isPast ? 'text-fg-faint' : 'text-fg'}`}>
                     {date.getDate()}
@@ -325,7 +330,7 @@ export default function ScheduleTab({
                 {can(permissions, 'classes', 'create') && (
                   <button
                     onClick={() => onCreateSession(dateStr, activeBranchId ?? undefined)}
-                    title={`Add session on ${DAY_FULL[idx]}`}
+                    title={t('schedule.addSessionOn', { day: t(`schedule.daysFull.${dayFullKey}`) })}
                     className="p-0.5 rounded text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -368,7 +373,7 @@ export default function ScheduleTab({
                       <button
                         onClick={() => onCreateSession(dateStr)}
                         className="w-full py-1.5 text-xs text-fg-faint hover:text-fg-muted rounded-lg border border-dashed border-line/50 hover:border-line transition-colors flex items-center justify-center gap-1">
-                        <Plus className="w-3 h-3" /> Add
+                        <Plus className="w-3 h-3" /> {t('schedule.add')}
                       </button>
                     )}
                   </>
@@ -409,6 +414,7 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
   onStopRecurring?: () => void;
   isUnpublished?: boolean;
 }) {
+  const t = useTranslations('classes');
   const isPopup     = session.session_type === 'popup';
   const isRecurring = session.session_type === 'recurring';
 
@@ -422,7 +428,7 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
       {isUnpublished && (
         <div className="flex items-center gap-1 mb-1.5">
           <EyeOff className="w-2.5 h-2.5 text-amber-400/70" />
-          <span className="text-xs text-amber-400/70 font-medium">Unpublished</span>
+          <span className="text-xs text-amber-400/70 font-medium">{t('schedule.unpublishedLabel')}</span>
         </div>
       )}
       {/* Color dot + name + type badge */}
@@ -431,10 +437,10 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
         <div className="min-w-0">
           <p className="text-xs font-semibold text-fg leading-tight line-clamp-2">{session.class_name}</p>
           {isPopup && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-medium mt-1 inline-block">Pop-up</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-medium mt-1 inline-block">{t('sessions.popup')}</span>
           )}
           {isRecurring && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-medium mt-1 inline-block">Recurring</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-medium mt-1 inline-block">{t('sessions.recurring')}</span>
           )}
         </div>
       </div>
@@ -460,29 +466,29 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
 
       <div className="flex items-center gap-1 text-xs text-fg-faint">
         <Users className="w-2.5 h-2.5 flex-shrink-0" />
-        <span>{session.booked_count}{session.capacity ? `/${session.capacity}` : ''} booked</span>
+        <span>{t('schedule.bookedSlots', { booked: `${session.booked_count}${session.capacity ? `/${session.capacity}` : ''}` })}</span>
       </div>
 
       {/* Hover actions */}
       <div className="flex items-center gap-1 mt-2 pt-2 border-t border-line opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onBookings} title="Bookings"
+        <button onClick={onBookings} title={t('schedule.titleBookings')}
           className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
           <Users className="w-3 h-3" />
         </button>
         {can(permissions, 'classes', 'edit') && (
-          <button onClick={onEdit} title="Edit this session"
+          <button onClick={onEdit} title={t('schedule.titleEditSession')}
             className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
             <Pencil className="w-3 h-3" />
           </button>
         )}
         {can(permissions, 'classes', 'delete') && (
-          <button onClick={onCancel} title="Cancel this session"
+          <button onClick={onCancel} title={t('schedule.titleCancelSession')}
             className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors">
             <XCircle className="w-3 h-3" />
           </button>
         )}
         {isRecurring && onStopRecurring && can(permissions, 'classes', 'delete') && (
-          <button onClick={onStopRecurring} title="Stop this recurring series"
+          <button onClick={onStopRecurring} title={t('schedule.titleStopRecurring')}
             className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-orange-400 hover:bg-orange-400/10 transition-colors">
             <StopCircle className="w-3 h-3" />
           </button>

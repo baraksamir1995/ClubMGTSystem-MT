@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Star, MessageSquare, TrendingUp, Users, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 // Uses /api/reviews server route (admin client bypasses RLS)
 import type { GymClass } from '@/app/dashboard/classes/page';
 import { fmt12 } from '@/lib/time';
@@ -97,9 +98,10 @@ function SkeletonCard() {
   );
 }
 
-const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors appearance-none pr-8';
+const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors appearance-none pe-8';
 
 export default function ReviewsTab({ gymId, classes }: Props) {
+  const t = useTranslations('classes');
   const [reviews, setReviews] = useState<Review[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [loading, setLoading] = useState(true);
@@ -186,7 +188,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5" /> Avg Session Rating
+            <TrendingUp className="w-3.5 h-3.5" /> {t('reviews.avgSessionRating')}
           </p>
           {loading ? (
             <div className="h-8 bg-surface-3 rounded w-16 animate-pulse mt-1" />
@@ -204,7 +206,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
 
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
-            <Star className="w-3.5 h-3.5" /> Avg Trainer Rating
+            <Star className="w-3.5 h-3.5" /> {t('reviews.avgTrainerRating')}
           </p>
           {loading ? (
             <div className="h-8 bg-surface-3 rounded w-16 animate-pulse mt-1" />
@@ -222,7 +224,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
 
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> Total Reviews
+            <Users className="w-3.5 h-3.5" /> {t('reviews.totalReviews')}
           </p>
           {loading ? (
             <div className="h-8 bg-surface-3 rounded w-12 animate-pulse mt-1" />
@@ -242,12 +244,12 @@ export default function ReviewsTab({ gymId, classes }: Props) {
               onChange={e => setClassFilter(e.target.value)}
               className={selectCls}
             >
-              <option value="all">All Classes</option>
+              <option value="all">{t('reviews.allClasses')}</option>
               {classes.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
+            <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           {/* Trainer filter */}
@@ -257,12 +259,12 @@ export default function ReviewsTab({ gymId, classes }: Props) {
               onChange={e => setTrainerFilter(e.target.value)}
               className={selectCls}
             >
-              <option value="all">All Trainers</option>
-              {trainers.map(t => (
-                <option key={t} value={t}>{t}</option>
+              <option value="all">{t('reviews.allTrainers')}</option>
+              {trainers.map(tr => (
+                <option key={tr} value={tr}>{tr}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
+            <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           {/* Rating filter */}
@@ -272,15 +274,15 @@ export default function ReviewsTab({ gymId, classes }: Props) {
               onChange={e => setRatingFilter(e.target.value as 'all' | 'positive' | 'negative')}
               className={selectCls}
             >
-              <option value="all">All Ratings</option>
-              <option value="positive">Positive (4–5)</option>
-              <option value="negative">Negative (1–2)</option>
+              <option value="all">{t('reviews.allRatings')}</option>
+              <option value="positive">{t('reviews.positive')}</option>
+              <option value="negative">{t('reviews.negative')}</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
+            <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
-          <span className="ml-auto text-xs text-fg-faint">
-            {loading ? '...' : `${filtered.length} review${filtered.length !== 1 ? 's' : ''}`}
+          <span className="ms-auto text-xs text-fg-faint">
+            {loading ? '...' : (filtered.length !== 1 ? t('reviews.countPlural', { count: filtered.length }) : t('reviews.count', { count: filtered.length }))}
           </span>
         </div>
       </div>
@@ -294,7 +296,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <MessageSquare className="w-10 h-10 text-fg-faint mx-auto mb-3" />
           <p className="text-fg-muted text-sm">
-            {reviews.length === 0 ? 'No reviews yet' : 'No reviews match your filters'}
+            {reviews.length === 0 ? t('reviews.noReviewsYet') : t('reviews.noReviewsMatch')}
           </p>
         </div>
       ) : (
@@ -318,7 +320,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
             return (
               <button key={review.id} type="button"
                 onClick={() => setExpandedId(isExpanded ? null : review.id)}
-                className="w-full text-left bg-surface-2 border border-line rounded-xl p-5 hover:border-line-strong transition-colors">
+                className="w-full text-start bg-surface-2 border border-line rounded-xl p-5 hover:border-line-strong transition-colors">
 
                 {/* Collapsed: member name, class, rating, time */}
                 <div className="flex items-center gap-3">
@@ -368,7 +370,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                     {/* Trainer */}
                     {instructor && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-fg-faint">Trainer:</span>
+                        <span className="text-xs text-fg-faint">{t('reviews.trainerLabel')}</span>
                         <span className="text-xs text-fg-muted font-medium">{instructor}</span>
                       </div>
                     )}
@@ -376,12 +378,12 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                     {/* Ratings */}
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-fg-muted">Session:</span>
+                        <span className="text-xs text-fg-muted">{t('reviews.sessionLabel')}</span>
                         <StarRating value={review.session_rating} />
                       </div>
                       {review.trainer_rating != null && (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-fg-muted">Trainer:</span>
+                          <span className="text-xs text-fg-muted">{t('reviews.trainerRatingLabel')}</span>
                           <StarRating value={review.trainer_rating} />
                         </div>
                       )}
@@ -404,7 +406,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
             <p className="text-xs text-fg-faint">
-              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+              {filtered.length !== 1 ? t('reviews.countPlural', { count: filtered.length }) : t('reviews.count', { count: filtered.length })}
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}

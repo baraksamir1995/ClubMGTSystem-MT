@@ -6,6 +6,7 @@ import {
   Smartphone, ExternalLink, ChevronDown, ChevronUp, ImageIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymPopup } from '@/app/dashboard/content/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Button } from '@/components/ui';
@@ -16,22 +17,6 @@ interface Props {
 }
 
 type ActionType = 'none' | 'internal' | 'external_link';
-
-const ACTION_LABELS: Record<ActionType, string> = {
-  none:          'No action',
-  external_link: 'Open URL',
-  internal:      'Deep link to screen',
-};
-
-const INTERNAL_SCREENS = [
-  { value: 'schedule',    label: 'Classes / Schedule' },
-  { value: 'membership',  label: 'Memberships' },
-  { value: 'trainers',    label: 'Trainers' },
-  { value: 'billing',     label: 'Payments' },
-  { value: 'offers',      label: 'Offers' },
-  { value: 'checkin',     label: 'Check-in' },
-  { value: 'profile',     label: 'Profile' },
-];
 
 interface PopupForm {
   title: string;
@@ -48,6 +33,9 @@ const emptyForm = (): PopupForm => ({
 });
 
 export default function PopupsTab({ initialPopups, permissions }: Props) {
+  const t = useTranslations('content');
+  const tc = useTranslations('common');
+
   const [popups,     setPopups]     = useState<GymPopup[]>(initialPopups);
   const [saving,     setSaving]     = useState(false);
   const [form,       setForm]       = useState<PopupForm>(emptyForm());
@@ -60,9 +48,25 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
+  const ACTION_LABELS: Record<ActionType, string> = {
+    none:          t('popups.noAction'),
+    external_link: t('popups.openUrl'),
+    internal:      t('popups.deepLink'),
+  };
+
+  const INTERNAL_SCREENS = [
+    { value: 'schedule',   label: t('popups.screens.schedule') },
+    { value: 'membership', label: t('popups.screens.membership') },
+    { value: 'trainers',   label: t('popups.screens.trainers') },
+    { value: 'billing',    label: t('popups.screens.billing') },
+    { value: 'offers',     label: t('popups.screens.offers') },
+    { value: 'checkin',    label: t('popups.screens.checkin') },
+    { value: 'profile',    label: t('popups.screens.profile') },
+  ];
+
   // ─── Create ────────────────────────────────────────────────────────────────
   const create = async () => {
-    if (!form.title.trim()) { toast.error('Title is required'); return; }
+    if (!form.title.trim()) { toast.error(t('popups.titleRequired')); return; }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -76,13 +80,13 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
 
       const res  = await fetch('/api/content/popups', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to create'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setPopups(prev => [data.popup, ...prev]);
       setForm(emptyForm());
       setPendingFile(null);
       setShowForm(false);
-      toast.success('Pop-up created');
-    } catch { toast.error('Network error'); }
+      toast.success(t('popups.createdSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setSaving(false); }
   };
 
@@ -96,9 +100,9 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
         body: JSON.stringify({ isActive: !popup.is_active }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setPopups(prev => prev.map(p => p.id === popup.id ? data.popup : p));
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(tc('networkError')); }
     finally { setTogglingId(null); }
   };
 
@@ -117,7 +121,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
 
   const saveEdit = async (popup: GymPopup) => {
     const ef = editForm as PopupForm;
-    if (!ef.title?.trim()) { toast.error('Title is required'); return; }
+    if (!ef.title?.trim()) { toast.error(t('popups.titleRequired')); return; }
     setSavingId(popup.id);
     try {
       const res = await fetch(`/api/content/popups/${popup.id}`, {
@@ -133,24 +137,24 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed'); return; }
+      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
       setPopups(prev => prev.map(p => p.id === popup.id ? data.popup : p));
       setEditingId(null);
-      toast.success('Pop-up updated');
-    } catch { toast.error('Network error'); }
+      toast.success(t('popups.updatedSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setSavingId(null); }
   };
 
   // ─── Delete ────────────────────────────────────────────────────────────────
   const deletePopup = async (popup: GymPopup) => {
-    if (!confirm('Delete this pop-up?')) return;
+    if (!confirm(t('popups.confirmDelete'))) return;
     setDeletingId(popup.id);
     try {
       const res = await fetch(`/api/content/popups/${popup.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to delete'); return; }
+      if (!res.ok) { toast.error(tc('somethingWrong')); return; }
       setPopups(prev => prev.filter(p => p.id !== popup.id));
-      toast.success('Pop-up deleted');
-    } catch { toast.error('Network error'); }
+      toast.success(t('popups.deletedSuccess'));
+    } catch { toast.error(tc('networkError')); }
     finally { setDeletingId(null); }
   };
 
@@ -167,7 +171,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
             className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-medium text-fg hover:bg-surface-3 transition-colors">
             <span className="flex items-center gap-2">
               <Plus className="w-4 h-4 text-brand" />
-              Add New Pop-up
+              {t('popups.addNew')}
             </span>
             {showForm ? <ChevronUp className="w-4 h-4 text-fg-muted" /> : <ChevronDown className="w-4 h-4 text-fg-muted" />}
           </button>
@@ -179,14 +183,14 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                 <input
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="Title *"
+                  placeholder={t('popups.titlePlaceholder')}
                   className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
                 <input
                   value={form.priority}
                   onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
                   type="number"
-                  placeholder="Priority (higher = shown first)"
+                  placeholder={t('popups.priorityPlaceholder')}
                   className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                 />
               </div>
@@ -194,7 +198,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
               <textarea
                 value={form.subtitle}
                 onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
-                placeholder="Subtitle / description (optional)"
+                placeholder={t('popups.subtitlePlaceholder')}
                 rows={2}
                 className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
               />
@@ -202,7 +206,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
               <input
                 value={form.ctaLabel}
                 onChange={e => setForm(f => ({ ...f, ctaLabel: e.target.value }))}
-                placeholder="CTA button text (e.g. Claim offer, Book now)"
+                placeholder={t('popups.ctaPlaceholder')}
                 className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
               />
 
@@ -229,7 +233,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                     value={form.ctaActionValue}
                     onChange={e => setForm(f => ({ ...f, ctaActionValue: e.target.value }))}
                     className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
-                    <option value="">Select screen…</option>
+                    <option value="">{t('popups.selectScreen')}</option>
                     {INTERNAL_SCREENS.map(s => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
@@ -248,7 +252,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                   onClick={() => fileRef.current?.click()}
                   className="flex items-center gap-2 px-3 py-2 bg-surface-3 hover:bg-surface-4 text-fg-muted text-sm rounded-lg transition-colors">
                   <ImageIcon className="w-4 h-4" />
-                  {pendingFile ? pendingFile.name : 'Choose image (optional)'}
+                  {pendingFile ? pendingFile.name : t('popups.chooseImage')}
                 </button>
                 {pendingFile && (
                   <button
@@ -261,7 +265,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
               </div>
 
               <Button variant="primary" onClick={create} isLoading={saving} leftIcon={<Plus className="w-4 h-4" />}>
-                Create Pop-up
+                {t('popups.create')}
               </Button>
             </div>
           )}
@@ -272,9 +276,9 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
       {sortedPopups.length === 0 ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <Smartphone className="w-10 h-10 text-fg-faint mx-auto mb-3" />
-          <p className="text-sm text-fg-muted">No pop-ups yet — add one above</p>
+          <p className="text-sm text-fg-muted">{t('popups.empty')}</p>
           <p className="text-xs text-fg-faint mt-1">
-            Active pop-ups appear on app open after the splash screen
+            {t('popups.emptyHint')}
           </p>
         </div>
       ) : (
@@ -304,8 +308,8 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                       <Smartphone className="w-8 h-8 text-fg-faint" />
                     )}
                     {popup.is_active && (
-                      <span className="absolute top-1.5 left-1.5 text-xs bg-green-500/90 text-fg px-1.5 py-0.5 rounded-full font-medium">
-                        Active
+                      <span className="absolute top-1.5 start-1.5 text-xs bg-green-500/90 text-fg px-1.5 py-0.5 rounded-full font-medium">
+                        {t('popups.active')}
                       </span>
                     )}
                   </div>
@@ -318,28 +322,28 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                           <input
                             value={ef.title}
                             onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
-                            placeholder="Title *"
+                            placeholder={t('popups.titleEditPlaceholder')}
                             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                           <input
                             value={ef.priority}
                             onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
                             type="number"
-                            placeholder="Priority"
+                            placeholder={t('popups.priorityEditPlaceholder')}
                             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                           />
                         </div>
                         <textarea
                           value={ef.subtitle}
                           onChange={e => setEditForm(f => ({ ...f, subtitle: e.target.value }))}
-                          placeholder="Subtitle (optional)"
+                          placeholder={t('popups.subtitleEditPlaceholder')}
                           rows={2}
                           className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
                         />
                         <input
                           value={ef.ctaLabel}
                           onChange={e => setEditForm(f => ({ ...f, ctaLabel: e.target.value }))}
-                          placeholder="CTA button text"
+                          placeholder={t('popups.ctaEditPlaceholder')}
                           className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
                         />
                         <div className="flex gap-2">
@@ -364,7 +368,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                               value={ef.ctaActionValue}
                               onChange={e => setEditForm(f => ({ ...f, ctaActionValue: e.target.value }))}
                               className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
-                              <option value="">Select screen…</option>
+                              <option value="">{t('popups.selectScreen')}</option>
                               {INTERNAL_SCREENS.map(s => (
                                 <option key={s.value} value={s.value}>{s.label}</option>
                               ))}
@@ -384,21 +388,29 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                               {popup.cta_label}
                             </span>
                           )}
-                          <CtaActionBadge type={popup.cta_action_type as ActionType} value={popup.cta_action_value} />
-                          <span className="text-xs text-fg-faint">Priority: {popup.priority ?? 0}</span>
+                          <CtaActionBadge
+                            type={popup.cta_action_type as ActionType}
+                            value={popup.cta_action_value}
+                            labels={{
+                              urlNotSet: t('popups.urlNotSet'),
+                              screenNotSet: t('popups.screenNotSet'),
+                              noAction: t('popups.noAction'),
+                            }}
+                          />
+                          <span className="text-xs text-fg-faint">{t('popups.priorityLabel', { priority: popup.priority ?? 0 })}</span>
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 border-l border-line">
+                  <div className="flex flex-col items-center justify-center gap-1.5 px-3 border-s border-line">
                     {isEditing ? (
                       <>
                         <button
                           onClick={() => saveEdit(popup)}
                           disabled={savingId === popup.id}
-                          title="Save"
+                          title={tc('save')}
                           className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/40 text-green-400 transition-colors">
                           {savingId === popup.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -406,7 +418,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          title="Cancel"
+                          title={tc('cancel')}
                           className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                           <X className="w-4 h-4" />
                         </button>
@@ -416,7 +428,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                         {can(permissions, 'content', 'edit') && (
                           <button
                             onClick={() => startEdit(popup)}
-                            title="Edit"
+                            title={tc('edit')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -425,7 +437,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                           <button
                             onClick={() => toggleActive(popup)}
                             disabled={togglingId === popup.id}
-                            title={popup.is_active ? 'Deactivate' : 'Activate'}
+                            title={popup.is_active ? t('popups.deactivate') : t('popups.activate')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             {togglingId === popup.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -438,7 +450,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                           <button
                             onClick={() => deletePopup(popup)}
                             disabled={deletingId === popup.id}
-                            title="Delete"
+                            title={tc('delete')}
                             className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors">
                             {deletingId === popup.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -458,12 +470,18 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
   );
 }
 
-function CtaActionBadge({ type, value }: { type: ActionType; value: string | null }) {
+interface CtaActionBadgeProps {
+  type: ActionType;
+  value: string | null;
+  labels: { urlNotSet: string; screenNotSet: string; noAction: string };
+}
+
+function CtaActionBadge({ type, value, labels }: CtaActionBadgeProps) {
   if (type === 'external_link') {
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
         <ExternalLink className="w-3 h-3" />
-        {value ? <span className="max-w-[100px] truncate">{value}</span> : 'URL not set'}
+        {value ? <span className="max-w-[100px] truncate">{value}</span> : labels.urlNotSet}
       </span>
     );
   }
@@ -471,9 +489,9 @@ function CtaActionBadge({ type, value }: { type: ActionType; value: string | nul
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-brand/15 text-brand px-2 py-0.5 rounded-full border border-brand/20">
         <Smartphone className="w-3 h-3" />
-        {value || 'Screen not set'}
+        {value || labels.screenNotSet}
       </span>
     );
   }
-  return <span className="text-xs text-fg-faint">No action</span>;
+  return <span className="text-xs text-fg-faint">{labels.noAction}</span>;
 }

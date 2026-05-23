@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MailCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 
 interface Props {
   memberId: string;
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function VerifyEmailButton({ memberId, memberName, emailVerified, onVerified }: Props) {
+  const t = useTranslations('members.verifyEmail');
+  const tc = useTranslations('common');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +23,7 @@ export default function VerifyEmailButton({ memberId, memberName, emailVerified,
 
   const handleVerify = async () => {
     const confirmed = window.confirm(
-      `Verify email for ${memberName}? This confirms their email address is valid.`
+      t('confirmMessage', { name: memberName })
     );
     if (!confirmed) return;
 
@@ -31,12 +34,12 @@ export default function VerifyEmailButton({ memberId, memberName, emailVerified,
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to verify email'); return; }
-      toast.success('Email verified');
+      if (!res.ok) { toast.error(data.error ?? t('toast.failed')); return; }
+      toast.success(t('toast.verified'));
       if (onVerified) onVerified();
       else router.refresh();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setLoading(false);
     }
@@ -46,7 +49,7 @@ export default function VerifyEmailButton({ memberId, memberName, emailVerified,
     <button
       onClick={handleVerify}
       disabled={loading}
-      title="Verify email"
+      title={t('titleAttr')}
       className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40"
     >
       <MailCheck className="w-4 h-4" />

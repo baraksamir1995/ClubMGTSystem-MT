@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, Pencil, Archive, ArchiveRestore, UserX, UserCheck, X, User, Dumbbell, QrCode } from 'lucide-react';
 import { Button, Card, EmptyState } from '@/components/ui';
 import toast from 'react-hot-toast';
@@ -45,6 +46,8 @@ function PackageModal({
   onClose: () => void;
   onSaved: (pkg: SessionPackage) => void;
 }) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const [name,         setName]         = useState(existing?.name ?? '');
   const [sessions,     setSessions]     = useState(String(existing?.session_count ?? ''));
   const [price,        setPrice]        = useState(String(existing?.price ?? ''));
@@ -54,11 +57,11 @@ function PackageModal({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { toast.error('Name is required'); return; }
+    if (!name.trim()) { toast.error(t('packageModal.nameRequired')); return; }
     const parsedSessions = parseInt(sessions);
     const parsedPrice    = parseFloat(price);
-    if (!parsedSessions || parsedSessions < 1) { toast.error('Enter a valid session count'); return; }
-    if (isNaN(parsedPrice) || parsedPrice < 0)  { toast.error('Enter a valid price'); return; }
+    if (!parsedSessions || parsedSessions < 1) { toast.error(t('packageModal.invalidSessionCount')); return; }
+    if (isNaN(parsedPrice) || parsedPrice < 0)  { toast.error(t('packageModal.invalidPrice')); return; }
 
     setSaving(true);
     try {
@@ -87,16 +90,16 @@ function PackageModal({
       }
 
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? 'Failed to save package'); return; }
+      if (!res.ok) { toast.error(data.error ?? t('packageModal.failedSaveToast')); return; }
 
       const saved: SessionPackage = existing
         ? { ...existing, ...body }
         : { id: data.id, ...body, is_active: true };
-      toast.success(existing ? 'Package updated' : 'Package created');
+      toast.success(existing ? t('packageModal.packageUpdatedToast') : t('packageModal.packageCreatedToast'));
       onSaved(saved);
       onClose();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setSaving(false);
     }
@@ -110,44 +113,44 @@ function PackageModal({
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
-          <h2 className="text-base font-semibold text-fg">{existing ? 'Edit Package' : 'Add Package'}</h2>
+          <h2 className="text-base font-semibold text-fg">{existing ? t('packageModal.editTitle') : t('packageModal.addTitle')}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSave} className="px-5 py-4 space-y-4">
           <div>
-            <label className={labelCls}>Package name *</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 10-session pack" className={inputCls} required />
+            <label className={labelCls}>{t('packageModal.fieldName')}</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder={t('packageModal.fieldNamePlaceholder')} className={inputCls} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Sessions *</label>
+              <label className={labelCls}>{t('packageModal.fieldSessions')}</label>
               <input type="number" min="1" value={sessions} onChange={e => setSessions(e.target.value)} placeholder="10" className={inputCls} required />
             </div>
             <div>
-              <label className={labelCls}>Price *</label>
+              <label className={labelCls}>{t('packageModal.fieldPrice')}</label>
               <input type="number" min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="0" className={inputCls} required />
             </div>
           </div>
           <div>
-            <label className={labelCls}>Currency</label>
+            <label className={labelCls}>{t('packageModal.fieldCurrency')}</label>
             <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputCls}>
               {['EGP','USD','EUR','GBP','SAR','AED'].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Description <span className="text-fg-faint">(optional)</span></label>
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. 600 min · Save 15%" className={inputCls} />
+            <label className={labelCls}>{t('packageModal.fieldDescription')} <span className="text-fg-faint">{t('packageModal.fieldDescriptionOptional')}</span></label>
+            <input value={description} onChange={e => setDescription(e.target.value)} placeholder={t('packageModal.fieldDescriptionPlaceholder')} className={inputCls} />
           </div>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} disabled={saving}
               className="flex-1 px-4 py-2 rounded-lg border border-line text-sm text-fg-muted hover:bg-surface-3 transition-colors disabled:opacity-50">
-              Cancel
+              {tc('cancel')}
             </button>
             <button type="submit" disabled={saving}
               className="flex-1 px-4 py-2 rounded-lg bg-brand hover:bg-brand text-sm font-medium text-brand-ink transition-colors disabled:opacity-40">
-              {saving ? 'Saving…' : (existing ? 'Save changes' : 'Add package')}
+              {saving ? tc('saving') : (existing ? tc('saveChanges') : t('packageModal.addPackageBtn'))}
             </button>
           </div>
         </form>
@@ -162,6 +165,8 @@ export default function SessionServiceTab({
   serviceType, serviceName, trainers: initialTrainers, packages: initialPackages,
   gymId, permissions, branches = [],
 }: Props) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const [trainers,       setTrainers]       = useState<TrainerProfile[]>(initialTrainers);
   const [packages,       setPackages]       = useState<SessionPackage[]>(initialPackages);
   const [trainerModal,   setTrainerModal]   = useState<{ open: boolean; existing?: TrainerProfile }>({ open: false });
@@ -187,18 +192,18 @@ export default function SessionServiceTab({
           isActive:        !trainer.is_active,
         }),
       });
-      if (!res.ok) { toast.error('Failed to update'); return; }
-      setTrainers(prev => prev.map(t => t.id === trainer.id ? { ...t, is_active: !t.is_active } : t));
-      toast.success(trainer.is_active ? 'Specialist deactivated' : 'Specialist reactivated');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(t('specialists.failedUpdateToast')); return; }
+      setTrainers(prev => prev.map(tr => tr.id === trainer.id ? { ...tr, is_active: !tr.is_active } : tr));
+      toast.success(trainer.is_active ? t('specialists.deactivatedToast') : t('specialists.reactivatedToast'));
+    } catch { toast.error(tc('networkError')); }
     finally { setTogglingId(null); }
   };
 
   const handleTrainerSaved = (saved: TrainerProfile) => {
     if (saved.trainer_type !== serviceType) return; // ignore if type was changed
     setTrainers(prev => {
-      const idx = prev.findIndex(t => t.id === saved.id);
-      return idx >= 0 ? prev.map(t => t.id === saved.id ? saved : t) : [...prev, saved];
+      const idx = prev.findIndex(tr => tr.id === saved.id);
+      return idx >= 0 ? prev.map(tr => tr.id === saved.id ? saved : tr) : [...prev, saved];
     });
   };
 
@@ -212,14 +217,14 @@ export default function SessionServiceTab({
   };
 
   const archivePackage = async (pkg: SessionPackage) => {
-    if (!confirm(`Archive "${pkg.name}"? It stays in the database and won't be available for new purchases. You can reactivate it later.`)) return;
+    if (!confirm(t('packages.archiveConfirm', { name: pkg.name }))) return;
     setDeletingId(pkg.id);
     try {
       const res = await fetch(`/api/service-packages/${pkg.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error('Failed to archive package'); return; }
+      if (!res.ok) { toast.error(t('packages.failedArchiveToast')); return; }
       setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, is_active: false } : p));
-      toast.success('Package archived');
-    } catch { toast.error('Network error'); }
+      toast.success(t('packages.archivedToast'));
+    } catch { toast.error(tc('networkError')); }
     finally { setDeletingId(null); }
   };
 
@@ -231,15 +236,15 @@ export default function SessionServiceTab({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: true }),
       });
-      if (!res.ok) { toast.error('Failed to reactivate package'); return; }
+      if (!res.ok) { toast.error(t('packages.failedReactivateToast')); return; }
       setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, is_active: true } : p));
-      toast.success('Package reactivated');
-    } catch { toast.error('Network error'); }
+      toast.success(t('packages.reactivatedToast'));
+    } catch { toast.error(tc('networkError')); }
     finally { setDeletingId(null); }
   };
 
-  const activeTrainers   = trainers.filter(t => t.is_active);
-  const inactiveTrainers = trainers.filter(t => !t.is_active);
+  const activeTrainers   = trainers.filter(tr => tr.is_active);
+  const inactiveTrainers = trainers.filter(tr => !tr.is_active);
 
   const fmtPrice = (price: number, currency: string) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(price);
@@ -250,17 +255,17 @@ export default function SessionServiceTab({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-fg">Specialists</h3>
+            <h3 className="text-base font-semibold text-fg">{t('specialists.heading')}</h3>
             <p className="text-xs text-fg-muted mt-0.5">
-              {activeTrainers.length} active
-              {inactiveTrainers.length > 0 && ` · ${inactiveTrainers.length} inactive`}
+              {t('specialists.activeCount', { count: activeTrainers.length })}
+              {inactiveTrainers.length > 0 && ` · ${t('specialists.inactiveCount', { count: inactiveTrainers.length })}`}
             </p>
           </div>
           {can(permissions, 'classes', 'create') && (
             <button
               onClick={() => setTrainerModal({ open: true })}
               className="flex items-center gap-2 px-3 py-1.5 bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium rounded-lg transition-colors">
-              <Plus className="w-3.5 h-3.5" /> Add Specialist
+              <Plus className="w-3.5 h-3.5" /> {t('specialists.addBtn')}
             </button>
           )}
         </div>
@@ -269,10 +274,10 @@ export default function SessionServiceTab({
           <Card padding="none">
             <EmptyState
               icon={User}
-              title="No specialists added yet"
+              title={t('specialists.emptyTitle')}
               action={can(permissions, 'classes', 'create') ? (
                 <Button variant="ghost" size="sm" onClick={() => setTrainerModal({ open: true })}>
-                  + Add your first specialist
+                  {t('specialists.emptyAction')}
                 </Button>
               ) : undefined}
             />
@@ -299,7 +304,7 @@ export default function SessionServiceTab({
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                         trainer.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-400/10 text-fg-muted'
                       }`}>
-                        {trainer.is_active ? 'Active' : 'Inactive'}
+                        {trainer.is_active ? t('specialists.statusActive') : t('specialists.statusInactive')}
                       </span>
                     </div>
                     {(trainer.specialisations ?? []).length > 0 && (
@@ -333,15 +338,15 @@ export default function SessionServiceTab({
                     <>
                       <button onClick={() => setTrainerModal({ open: true, existing: trainer })}
                         className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
-                        <Pencil className="w-3 h-3" /> Edit
+                        <Pencil className="w-3 h-3" /> {t('specialists.editBtn')}
                       </button>
                       <button
                         onClick={() => toggleTrainer(trainer)}
                         disabled={togglingId === trainer.id}
                         className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors disabled:opacity-50">
                         {trainer.is_active
-                          ? <><UserX className="w-3 h-3" /> Deactivate</>
-                          : <><UserCheck className="w-3 h-3" /> Reactivate</>}
+                          ? <><UserX className="w-3 h-3" /> {t('specialists.deactivateBtn')}</>
+                          : <><UserCheck className="w-3 h-3" /> {t('specialists.reactivateBtn')}</>}
                       </button>
                     </>
                   )}
@@ -349,7 +354,7 @@ export default function SessionServiceTab({
                       scan this to use a session with this specialist. */}
                   <button
                     onClick={() => setQrTrainer(trainer)}
-                    title="Session QR code"
+                    title={t('qr.sessionQrTitle')}
                     className="flex items-center justify-center gap-1.5 py-1.5 px-2.5 text-xs text-fg-muted hover:text-brand hover:bg-surface-3 rounded-lg transition-colors">
                     <QrCode className="w-3.5 h-3.5" /> QR
                   </button>
@@ -364,16 +369,18 @@ export default function SessionServiceTab({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-fg">Session Packages</h3>
+            <h3 className="text-base font-semibold text-fg">{t('packages.heading')}</h3>
             <p className="text-xs text-fg-muted mt-0.5">
-              {packages.length} package{packages.length !== 1 ? 's' : ''} · shown in mobile app
+              {packages.length === 1
+                ? t('packages.countSingle', { count: packages.length })
+                : t('packages.countPlural', { count: packages.length })}
             </p>
           </div>
           {can(permissions, 'plans', 'create') && (
             <button
               onClick={() => setPackageModal({ open: true })}
               className="flex items-center gap-2 px-3 py-1.5 bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium rounded-lg transition-colors">
-              <Plus className="w-3.5 h-3.5" /> Add Package
+              <Plus className="w-3.5 h-3.5" /> {t('packages.addBtn')}
             </button>
           )}
         </div>
@@ -382,10 +389,10 @@ export default function SessionServiceTab({
           <Card padding="none">
             <EmptyState
               icon={Dumbbell}
-              title="No packages for this service yet"
+              title={t('packages.emptyTitle')}
               action={can(permissions, 'plans', 'create') ? (
                 <Button variant="ghost" size="sm" onClick={() => setPackageModal({ open: true })}>
-                  + Add your first package
+                  {t('packages.emptyAction')}
                 </Button>
               ) : undefined}
             />
@@ -395,10 +402,10 @@ export default function SessionServiceTab({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-line">
-                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Package</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Sessions</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Price</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-4 py-3">Per session</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPackage')}</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colSessions')}</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPrice')}</th>
+                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPerSession')}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -415,7 +422,7 @@ export default function SessionServiceTab({
                           <p className="text-sm font-medium text-fg">{pkg.name}</p>
                           {isArchived && (
                             <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400">
-                              Archived
+                              {t('packages.archived')}
                             </span>
                           )}
                         </div>
@@ -439,13 +446,13 @@ export default function SessionServiceTab({
                           {can(permissions, 'plans', 'delete') && (
                             isArchived ? (
                               <button onClick={() => reactivatePackage(pkg)} disabled={deletingId === pkg.id}
-                                title="Reactivate package"
+                                title={t('packages.reactivateTitle')}
                                 className="p-1.5 rounded-lg text-fg-faint hover:text-emerald-400 hover:bg-surface-3 transition-colors disabled:opacity-50">
                                 <ArchiveRestore className="w-3.5 h-3.5" />
                               </button>
                             ) : (
                               <button onClick={() => archivePackage(pkg)} disabled={deletingId === pkg.id}
-                                title="Archive package"
+                                title={t('packages.archiveTitle')}
                                 className="p-1.5 rounded-lg text-fg-faint hover:text-amber-400 hover:bg-surface-3 transition-colors disabled:opacity-50">
                                 <Archive className="w-3.5 h-3.5" />
                               </button>

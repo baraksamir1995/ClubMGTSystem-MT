@@ -1,0 +1,490 @@
+{
+  "moduleTabs": {
+    "members": "Members",
+    "memberships": "Memberships"
+  },
+
+  "list": {
+    "title": "Members",
+    "subtitle": "{total} members registered to your gym",
+    "addMember": "Add Member",
+    "searchPlaceholder": "Search by name, email, phone, or member #…",
+    "noMemberId": "No Member ID yet",
+    "noMembersFiltered": "No members match your filters",
+    "noMembersYet": "No members yet",
+    "addFirstMember": "Add your first member",
+    "totalCount": "{total} members",
+    "sort": {
+      "newest": "Join Date (Newest)",
+      "oldest": "Join Date (Oldest)"
+    },
+    "status": {
+      "all": "All Statuses",
+      "active": "Active",
+      "inactive": "Inactive / Expired",
+      "suspended": "Deactivated"
+    },
+    "col": {
+      "member": "Member",
+      "memberNumber": "Member #",
+      "phone": "Phone",
+      "joined": "Joined",
+      "status": "Status"
+    },
+    "action": {
+      "viewProfile": "View profile",
+      "editMember": "Edit member"
+    }
+  },
+
+  "modal": {
+    "addTitle": "Add Member",
+    "editTitle": "Edit Member",
+    "sectionPersonal": "Personal Info",
+    "sectionMembership": "Membership Details",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Jane Doe",
+    "emailPlaceholder": "jane@example.com",
+    "phonePlaceholder": "01012345678",
+    "gender": "Gender",
+    "genderSelect": "— Select —",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "dateOfBirth": "Date of Birth",
+    "address": "Address",
+    "addressPlaceholder": "123 Main St, Cairo",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "statusSuspended": "Suspended",
+    "notesPlaceholder": "Optional notes…",
+    "saveChanges": "Save Changes",
+    "addMemberSubmit": "Add Member",
+    "toast": {
+      "nameRequired": "Full name is required",
+      "updated": "Member updated",
+      "added": "Member added"
+    }
+  },
+
+  "detail": {
+    "breadcrumb": "Members",
+    "joined": "Joined {date}",
+    "personalInfo": "Personal Information",
+    "email": "Email",
+    "verified": "Verified",
+    "unverified": "Unverified",
+    "activeServices": "Active Services",
+    "noActiveServices": "No active services.",
+    "transferredSessionsOnly": "Transferred sessions only",
+    "noActiveSubscription": "No active subscription — sessions received from other members",
+    "startDate": "Start Date",
+    "expiryDate": "Expiry Date",
+    "noExpiry": "No expiry",
+    "sessionsUsed": "Sessions Used",
+    "sessionsRemaining": "{count} session remaining",
+    "sessionsRemainingPlural": "{count} sessions remaining",
+    "includesTransfers": "Includes {count} session from transfers",
+    "includesTransfersPlural": "Includes {count} sessions from transfers",
+    "transfersExpireSoonest": " · expires {date}",
+    "transfersExpireSoonestEarliest": " · expires earliest {date}",
+    "freezeHistory": "Freeze History",
+    "frozenUntil": "Frozen until {date}",
+    "freezeDaysUsed": "Days used",
+    "freezesUsed": "Freezes used",
+    "noFreezeHistory": "No freeze history yet.",
+    "freezeResumed": "Resumed",
+    "freezeActive": "Active",
+    "withTrainer": "with {name}",
+    "expiredAgo": "Expired {days}d ago",
+    "expiringIn": "Expiring in {days}d",
+    "noSessionsLeft": "No sessions left",
+    "sessionsLeftOne": "{count} session left",
+    "sessionsLeftMany": "{count} sessions left",
+    "planType": "{type} plan",
+    "phone": "Phone",
+    "address": "Address",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "notes": "Notes",
+    "planHistory": "Plan History",
+    "planHistoryRecords": "{count} records",
+    "planHistoryCol": {
+      "plan": "Plan",
+      "start": "Start",
+      "expiry": "Expiry",
+      "pricePaid": "Price Paid",
+      "status": "Status"
+    },
+    "page": "Page {page} of {total}",
+    "errorTitle": "Could not load member",
+    "errorDesc": "Something went wrong rendering this page. Try refreshing, or go back to the member list.",
+    "backToMembers": "Back to Members"
+  },
+
+  "tabs": {
+    "overview": "Overview",
+    "payments": "Payments",
+    "attendance": "Attendance",
+    "transfers": "Transfers History"
+  },
+
+  "actions": {
+    "addSessions": "Add Sessions",
+    "extend": "Extend",
+    "unfreeze": "Unfreeze",
+    "freeze": "Freeze",
+    "transfer": "Transfer",
+    "removePlan": "Remove plan?",
+    "detachPlan": "Detach Plan",
+    "assignPlan": "Assign Plan",
+    "changePlan": "Change Plan",
+    "allFreezeDaysUsed": "All freeze days used",
+    "maxFreezeCountReached": "Max freeze count reached",
+    "toast": {
+      "planDetached": "Plan detached. Member set to inactive.",
+      "detachFailed": "Failed to detach plan"
+    }
+  },
+
+  "assignPlan": {
+    "title": "Assign Plan",
+    "titleChange": "Change Plan",
+    "selectPlan": "Select Plan *",
+    "noPlans": "No plans available. Create plans first.",
+    "applyDiscount": "Apply Discount",
+    "noDiscount": "No discount — full price",
+    "promotionalPrice": "Promotional Price",
+    "promoValidUntil": "{price} · valid until {date}",
+    "promoSave": "Save {amount}",
+    "applyPromoCode": "Apply Promo Code",
+    "selectCode": "— Select a code —",
+    "startDate": "Start Date *",
+    "summaryPlan": "Plan:",
+    "summaryExpires": "Expires:",
+    "summarySessions": "Sessions:",
+    "summaryOriginalPrice": "Original price:",
+    "summaryDiscount": "Discount:",
+    "summaryTotal": "Total:",
+    "warningPlanChange": "Current plan will be cancelled and replaced.",
+    "toast": {
+      "selectPlan": "Please select a plan",
+      "setStartDate": "Please set a start date",
+      "planChanged": "Plan changed successfully",
+      "planAssigned": "Plan assigned successfully"
+    }
+  },
+
+  "extend": {
+    "title": "Extend Membership",
+    "subtitle": "Extending membership for {name}",
+    "currentExpiry": "Current expiry: ",
+    "quickSelect": "Quick select",
+    "customDays": "Or enter custom days",
+    "daysUnit": "days",
+    "customPlaceholder": "e.g. 45",
+    "newExpiry": "New expiry: ",
+    "extendButton": "Extend {days}",
+    "toast": {
+      "enterDays": "Enter number of days",
+      "extended": "Membership extended by {days} days"
+    }
+  },
+
+  "addSessions": {
+    "title": "Add Sessions",
+    "subtitle": "Adding sessions for {name}",
+    "current": "Current: ",
+    "currentDetail": "{used} used / {total} total",
+    "currentRemaining": "({remaining} remaining)",
+    "quickSelect": "Quick select",
+    "customAmount": "Or enter custom amount",
+    "sessionsUnit": "sessions",
+    "customPlaceholder": "e.g. 15",
+    "newTotal": "New total: ",
+    "newTotalSessions": "{total} sessions",
+    "addButton": "Add {count} Sessions",
+    "toast": {
+      "enterSessions": "Enter number of sessions",
+      "added": "{count} sessions added"
+    }
+  },
+
+  "freeze": {
+    "titleFreeze": "Freeze Membership",
+    "titleUnfreeze": "Unfreeze Membership",
+    "plan": "Plan",
+    "freezeDaysAvailable": "Freeze days available",
+    "freezesUsed": "Freezes used",
+    "limitReachedDays": "All {max} freeze days have been used for this plan.",
+    "limitReachedCount": "Maximum freeze count ({max}) has been reached for this plan.",
+    "limitReachedSuffix": " No further freezes are allowed.",
+    "howManyDays": "How many days?",
+    "maxDays": "Max {max} days",
+    "newExpiry": "New expiry: ",
+    "resumeDesc": "The membership is currently frozen and will resume on {date}. Resuming now will refund any unused freeze days back to the expiry date.",
+    "resumeNow": "Resume Now",
+    "freezePlan": "Freeze Plan",
+    "toast": {
+      "freezeFailed": "Failed to freeze membership",
+      "unfreezeFailed": "Failed to unfreeze membership"
+    }
+  },
+
+  "transfer": {
+    "title": "Transfer Membership",
+    "transferringFrom": "Transferring FROM",
+    "noActiveMembership": "No active membership",
+    "searchDestination": "Search destination member",
+    "searchPlaceholder": "Name, member #, or email…",
+    "noMembersFound": "No members found",
+    "review": "Review",
+    "from": "From",
+    "to": "To",
+    "membershipBeingTransferred": "Membership being transferred",
+    "expiry": "Expiry",
+    "sessionsRemaining": "Sessions remaining",
+    "warningText": "This will cancel the source member's active plan and transfer the remaining duration to the destination member. This cannot be undone.",
+    "confirmTransfer": "Confirm Transfer",
+    "toast": {
+      "transferFailed": "Transfer failed",
+      "transferred": "Membership transferred successfully"
+    }
+  },
+
+  "attendance": {
+    "totalCheckins": "Total Check-ins",
+    "thisPeriod": "This Period",
+    "lastVisit": "Last Visit",
+    "filterByDate": "Filter by date range",
+    "from": "From",
+    "to": "To",
+    "recordsFound": "{count} record found",
+    "recordsFoundPlural": "{count} records found",
+    "checkInHistory": "Check-in History",
+    "entries": "{count} entries",
+    "noAttendance": "No attendance records",
+    "noAttendanceRange": "No attendance records for this date range.",
+    "col": {
+      "date": "Date",
+      "checkIn": "Check In",
+      "branch": "Branch",
+      "entryPoint": "Entry Point",
+      "method": "Method"
+    }
+  },
+
+  "payments": {
+    "totalPaid": "Total Paid",
+    "outstanding": "Outstanding",
+    "refunded": "Refunded",
+    "payments": "{count} payments",
+    "pending": "{count} pending",
+    "refunds": "{count} refunds",
+    "filterPeriod": "Filter Period",
+    "downloadStatement": "Download Statement",
+    "from": "From",
+    "to": "To",
+    "transactions": "Transactions",
+    "records": "{count} records",
+    "noPayments": "No payments recorded.",
+    "noPaymentsRange": "No payments in this period.",
+    "paidOn": "Paid {date}",
+    "col": {
+      "date": "Date",
+      "serviceItem": "Service / Item",
+      "method": "Method",
+      "source": "Source",
+      "status": "Status",
+      "amount": "Amount"
+    },
+    "source": {
+      "mobile": "Mobile",
+      "admin": "Admin"
+    },
+    "method": {
+      "cash": "Cash",
+      "bank_transfer": "Bank Transfer",
+      "card": "Card",
+      "other": "Other"
+    },
+    "paymentStatus": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "refunded": "Refunded",
+      "partRefunded": "Part. Refunded"
+    }
+  },
+
+  "sessionTransfers": {
+    "title": "Session Transfers",
+    "sentReceived": "{sent} sent · {received} received",
+    "noTransfers": "No transfers yet.",
+    "sentTo": "Sent to {name}",
+    "receivedFrom": "Received from {name}",
+    "sessionSingle": "{count} session",
+    "sessionPlural": "{count} sessions"
+  },
+
+  "memberships": {
+    "title": "Memberships",
+    "subtitleWithCount": "{total} memberships across your gym",
+    "subtitleEmpty": "Aggregated view for follow-ups and renewals",
+    "activeLabel": "Active memberships",
+    "expiringLabel": "Expiring in {days} day",
+    "expiringLabelPlural": "Expiring in {days} days",
+    "expiredLabel": "Expired",
+    "searchPlaceholder": "Search name or member number…",
+    "dateFilters": "Date filters",
+    "refresh": "Refresh",
+    "export": "Export",
+    "exportSelected": "Export ({count})",
+    "startDateFrom": "Start date from",
+    "startDateTo": "Start date to",
+    "endDateFrom": "End date from",
+    "endDateTo": "End date to",
+    "expiringThreshold": "Expiring threshold",
+    "daysBeforeEndDate": "days before end date",
+    "noMembershipsFiltered": "No memberships match these filters.",
+    "noMembershipsYet": "No memberships yet.",
+    "showingRange": "Showing {from}–{to} of {total}",
+    "selected": "· {count} selected",
+    "agoLabel": "{days} ago",
+    "leftLabel": "left",
+    "usedLabel": "{used} / {total} used",
+    "neverCheckedIn": "Never",
+    "transferred": "Transferred",
+    "col": {
+      "member": "Member",
+      "plan": "Plan",
+      "start": "Start",
+      "end": "End",
+      "status": "Status",
+      "daysLeft": "Days left",
+      "sessionsLeft": "Sessions left",
+      "lastCheckIn": "Last check-in",
+      "view": "View"
+    },
+    "planType": {
+      "all": "All plan types",
+      "sessions": "Sessions",
+      "duration": "Duration",
+      "durationSession": "Duration + Sessions"
+    },
+    "statusFilter": {
+      "all": "All statuses",
+      "active": "Active",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired"
+    },
+    "sourceFilter": {
+      "subscription": "Subscriptions only",
+      "all": "All sources",
+      "transfer": "Transferred only"
+    },
+    "displayStatus": {
+      "active": "Active",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired"
+    },
+    "toast": {
+      "nothingToExport": "Nothing to export",
+      "exported": "Exported {count} row",
+      "exportedPlural": "Exported {count} rows"
+    },
+    "csvHeaders": {
+      "memberName": "Member Name",
+      "memberNumber": "Member Number",
+      "plan": "Plan",
+      "planType": "Plan Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "status": "Status",
+      "daysRemaining": "Days Remaining",
+      "sessionsRemaining": "Sessions Remaining",
+      "lastCheckIn": "Last Check-in"
+    }
+  },
+
+  "exportModal": {
+    "title": "Export Members",
+    "available": "{count} members available to export",
+    "formatLabel": "Export Format",
+    "csvDesc": "Comma-separated values",
+    "excelDesc": "Microsoft Excel (.xlsx)",
+    "selectMembersLabel": "Select Members",
+    "deselectAll": "Deselect all",
+    "selectAllLabel": "Select all",
+    "selectedCount": "{count} member selected",
+    "selectedCountPlural": "{count} members selected",
+    "exportCsv": "Export CSV",
+    "exportExcel": "Export EXCEL"
+  },
+
+  "servicePackages": {
+    "title": "Service Packages",
+    "assigned": "{count} assigned",
+    "specialist": "Specialist: {name}",
+    "sessionsUsed": "Sessions used",
+    "page": "Page {page} of {total}",
+    "serviceType": {
+      "personal_trainer": "Personal Training",
+      "nutritionist": "Nutrition",
+      "physiotherapist": "Physiotherapy"
+    }
+  },
+
+  "assignService": {
+    "title": "Assign Service Package",
+    "serviceTypeLabel": "Service Type",
+    "packageLabel": "Package",
+    "loadingPackages": "Loading packages…",
+    "noPackages": "No packages available for this service type.",
+    "sessionsCount": "{count} sessions",
+    "specialistLabel": "Specialist",
+    "paymentMethodLabel": "Payment Method",
+    "notesLabel": "Notes",
+    "summaryPackage": "Package",
+    "summarySessions": "Sessions",
+    "summaryAmountDue": "Amount due",
+    "assignPackage": "Assign Package",
+    "notAssigned": "— Not assigned —",
+    "notesPlaceholder": "e.g. Start next Monday",
+    "toast": {
+      "assigned": "Service package assigned",
+      "selectPackage": "Please select a package",
+      "failed": "Failed to assign package"
+    }
+  },
+
+  "delete": {
+    "confirmMessage": "Are you sure you want to remove \"{name}\" from this gym? This action cannot be undone.",
+    "titleAttr": "Remove member",
+    "toast": {
+      "removed": "{name} has been removed",
+      "failed": "Failed to delete member"
+    }
+  },
+
+  "toggleStatus": {
+    "deactivateTitle": "Deactivate member",
+    "reactivateTitle": "Reactivate member",
+    "confirmDeactivate": "Deactivate {name}? Their data will be preserved and can be reactivated later.",
+    "confirmReactivate": "Reactivate {name}? They will regain active member status.",
+    "toast": {
+      "deactivated": "Member deactivated",
+      "reactivated": "Member reactivated",
+      "failed": "Failed"
+    }
+  },
+
+  "verifyEmail": {
+    "titleAttr": "Verify email",
+    "confirmMessage": "Verify email for {name}? This confirms their email address is valid.",
+    "toast": {
+      "verified": "Email verified",
+      "failed": "Failed to verify email"
+    }
+  }
+}

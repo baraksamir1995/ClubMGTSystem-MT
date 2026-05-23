@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import PaymentsTable from '@/components/payments/payments-table';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 
@@ -91,6 +92,7 @@ async function fetchApi(path: string, token: string) {
   }
 }
 export default async function PaymentsPage() {
+  const t = await getTranslations('payments');
   const cookieStore = await cookies();
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
   if (!token) redirect('/login');
@@ -184,8 +186,23 @@ export default async function PaymentsPage() {
     if (pp.plan_id) promoByPlan[pp.plan_id] = { price: Number(pp.promo_price), id: pp.id };
   });
 
-  const cycleLabel = (c: string | null) => ({ monthly: '/ month', yearly: '/ year', quarterly: '/ quarter', one_time: 'one time' }[c ?? ''] ?? '');
-  const trainerTypeLabel = (t: string | null) => ({ personal_trainer: 'Personal Training', physiotherapist: 'Physiotherapy', nutritionist: 'Nutrition' }[t ?? ''] ?? t ?? '');
+  const cycleLabel = (c: string | null): string => {
+    const map: Record<string, string> = {
+      monthly:    t('billingCycles.monthly'),
+      yearly:     t('billingCycles.yearly'),
+      quarterly:  t('billingCycles.quarterly'),
+      one_time:   t('billingCycles.one_time'),
+    };
+    return map[c ?? ''] ?? '';
+  };
+  const trainerTypeLabel = (tt: string | null): string => {
+    const map: Record<string, string> = {
+      personal_trainer: t('trainerTypeShort.personal_trainer'),
+      physiotherapist:  t('trainerTypeShort.physiotherapist'),
+      nutritionist:     t('trainerTypeShort.nutritionist'),
+    };
+    return map[tt ?? ''] ?? (tt ?? '');
+  };
 
   const serviceOptions: ServiceOption[] = [
     ...rawPlans.filter((p: any) => p.plan_type !== 'sessions' && p.is_active).map((p: any): ServiceOption => {
@@ -195,7 +212,7 @@ export default async function PaymentsPage() {
         price: promo ? promo.price : p.price,
         original_price: promo ? p.price : null,
         currency: p.currency ?? 'EGP',
-        subtitle: promo ? `${cycleLabel(p.billing_cycle)} \u00b7 was ${p.price}` : cycleLabel(p.billing_cycle),
+        subtitle: promo ? `${cycleLabel(p.billing_cycle)} \u00b7 ${t('subtitles.was', { price: p.price })}` : cycleLabel(p.billing_cycle),
         creates_assignment: false, trainer_type: null,
         allowed_branch_ids: p.access_scope === 'specific_branches' ? (p.allowed_branch_ids ?? null) : null,
         plan_promotion_id: promo?.id ?? null,
@@ -209,8 +226,8 @@ export default async function PaymentsPage() {
         original_price: promo ? p.price : null,
         currency: p.currency ?? 'EGP',
         subtitle: promo
-          ? `${p.session_count ? `${p.session_count} sessions` : ''} \u00b7 was ${p.price}`
-          : (p.session_count ? `${p.session_count} sessions` : ''),
+          ? `${p.session_count ? t('subtitles.sessions', { count: p.session_count }) : ''} \u00b7 ${t('subtitles.was', { price: p.price })}`
+          : (p.session_count ? t('subtitles.sessions', { count: p.session_count }) : ''),
         creates_assignment: false, trainer_type: null,
         allowed_branch_ids: p.access_scope === 'specific_branches' ? (p.allowed_branch_ids ?? null) : null,
         plan_promotion_id: promo?.id ?? null,
@@ -218,20 +235,20 @@ export default async function PaymentsPage() {
     }),
     ...rawPrograms.filter((p: any) => p.status === 'published').map((p: any): ServiceOption => ({
       id: p.id, type: 'program', name: p.title,
-      price: p.price, original_price: null, currency: 'EGP', subtitle: 'programme',
+      price: p.price, original_price: null, currency: 'EGP', subtitle: t('subtitles.programme'),
       creates_assignment: false, trainer_type: null,
       allowed_branch_ids: null, plan_promotion_id: null,
     })),
     ...rawOffers.filter((o: any) => o.status === 'active').map((o: any): ServiceOption => ({
       id: o.id, type: 'offer', name: o.title,
-      price: o.offer_price, original_price: null, currency: 'EGP', subtitle: 'offer',
+      price: o.offer_price, original_price: null, currency: 'EGP', subtitle: t('subtitles.offer'),
       creates_assignment: false, trainer_type: null,
       allowed_branch_ids: null, plan_promotion_id: null,
     })),
     ...rawSvcPackages.filter((p: any) => p.is_active).map((p: any): ServiceOption => ({
       id: p.id, type: 'session_package', name: p.name,
       price: p.price, original_price: null, currency: p.currency ?? 'EGP',
-      subtitle: `${trainerTypeLabel(p.trainer_type)}${p.session_count ? ` \u00b7 ${p.session_count} sessions` : ''}`,
+      subtitle: `${trainerTypeLabel(p.trainer_type)}${p.session_count ? ` \u00b7 ${t('subtitles.sessions', { count: p.session_count })}` : ''}`,
       creates_assignment: true, trainer_type: p.trainer_type ?? null,
       allowed_branch_ids: null, plan_promotion_id: null,
     })),

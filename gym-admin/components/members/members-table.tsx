@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Plus, Pencil, Eye, Download, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import MemberModal from './member-modal';
 import ToggleStatusButton from './toggle-status-button';
 import VerifyEmailButton from './verify-email-button';
@@ -63,19 +64,22 @@ const statusVariant: Record<string, BadgeProps['variant']> = {
   cancelled: 'neutral',
 };
 
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Join Date (Newest)' },
-  { value: 'oldest', label: 'Join Date (Oldest)' },
-];
-
-const STATUS_OPTIONS = [
-  { value: 'all',       label: 'All Statuses' },
-  { value: 'active',    label: 'Active' },
-  { value: 'inactive',  label: 'Inactive / Expired' },
-  { value: 'suspended', label: 'Deactivated' },
-];
-
 export default function MembersTable({ members: initialMembers, initialPagination, permissions }: Props) {
+  const t = useTranslations('members.list');
+  const tc = useTranslations('common');
+
+  const SORT_OPTIONS = [
+    { value: 'newest', label: t('sort.newest') },
+    { value: 'oldest', label: t('sort.oldest') },
+  ];
+
+  const STATUS_OPTIONS = [
+    { value: 'all',       label: t('status.all') },
+    { value: 'active',    label: t('status.active') },
+    { value: 'inactive',  label: t('status.inactive') },
+    { value: 'suspended', label: t('status.suspended') },
+  ];
+
   // Server-side paginated state
   const [members, setMembers]     = useState<MemberWithProfile[]>(initialMembers);
   const [loading, setLoading]     = useState(false);
@@ -148,7 +152,7 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
   const columns: DataTableColumn<MemberWithProfile>[] = [
     {
       key: 'member',
-      header: 'Member',
+      header: t('col.member'),
       cell: (m) => (
         <Link href={`/dashboard/members/${m.id}`} className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity">
           <Avatar name={m.profile?.full_name ?? String(m.member_number ?? '?')} size={32} />
@@ -161,24 +165,24 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
     },
     {
       key: 'member_number',
-      header: 'Member #',
+      header: t('col.memberNumber'),
       cell: (m) => (
         <span className="font-mono">
           {m.member_number
             ? <span className="text-fg-muted">{m.member_number}</span>
-            : <span className="text-fg-faint text-xs italic">No Member ID yet</span>}
+            : <span className="text-fg-faint text-xs italic">{t('noMemberId')}</span>}
         </span>
       ),
     },
     {
       key: 'phone',
-      header: 'Phone',
+      header: t('col.phone'),
       hideOnMobile: true,
       cell: (m) => <span className="text-fg-muted">{m.profile?.phone ?? '—'}</span>,
     },
     {
       key: 'joined',
-      header: 'Joined',
+      header: t('col.joined'),
       hideOnMobile: true,
       cell: (m) => (
         <span className="text-fg-muted">{m.joined_at ? new Date(m.joined_at).toLocaleDateString('en-GB') : '—'}</span>
@@ -186,7 +190,7 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('col.status'),
       cell: (m) => (
         <Badge variant={statusVariant[m.status] ?? 'neutral'} className="capitalize">{m.status}</Badge>
       ),
@@ -197,11 +201,11 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
       align: 'right',
       cell: (m) => (
         <div className="flex items-center justify-end gap-1">
-          <Link href={`/dashboard/members/${m.id}`} title="View profile" className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
+          <Link href={`/dashboard/members/${m.id}`} title={t('action.viewProfile')} className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
             <Eye className="w-4 h-4" />
           </Link>
           {can(permissions, 'members', 'edit') && (
-            <button onClick={() => openEdit(m)} title="Edit member" className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-surface-3 transition-colors">
+            <button onClick={() => openEdit(m)} title={t('action.editMember')} className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-surface-3 transition-colors">
               <Pencil className="w-4 h-4" />
             </button>
           )}
@@ -222,16 +226,16 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Members</h1>
-            <p className="text-sm text-fg-muted mt-0.5">{total} members registered to your gym</p>
+            <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('subtitle', { total })}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={() => setExportOpen(true)} leftIcon={<Download className="w-4 h-4" />}>
-              Export
+              {tc('export')}
             </Button>
             {can(permissions, 'members', 'create') && (
               <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
-                Add Member
+                {t('addMember')}
               </Button>
             )}
           </div>
@@ -243,20 +247,20 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
             value={search}
             onValueChange={setSearch}
             onSearch={setDebouncedSearch}
-            placeholder="Search by name, email, phone, or member #…"
+            placeholder={t('searchPlaceholder')}
           />
 
           <div className="flex flex-wrap gap-2 items-center">
-            <FilterDropdown label="Status" value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
-            <FilterDropdown label="Sort" value={sort} onChange={setSort} options={SORT_OPTIONS} />
+            <FilterDropdown label={tc('status')} value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+            <FilterDropdown label={tc('filter')} value={sort} onChange={setSort} options={SORT_OPTIONS} />
 
             {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>Clear all</Button>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>{tc('clear')}</Button>
             )}
 
-            <span className="ml-auto text-xs text-fg-faint flex items-center gap-2">
+            <span className="ms-auto text-xs text-fg-faint flex items-center gap-2">
               {loading && <RefreshCw className="w-3 h-3 animate-spin" />}
-              {total} members
+              {t('totalCount', { total })}
             </span>
           </div>
         </div>
@@ -270,10 +274,10 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
           empty={
             <EmptyState
               icon={Users}
-              title={hasFilters ? 'No members match your filters' : 'No members yet'}
+              title={hasFilters ? t('noMembersFiltered') : t('noMembersYet')}
               action={
                 !hasFilters && can(permissions, 'members', 'create')
-                  ? <Button variant="primary" size="sm" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>Add your first member</Button>
+                  ? <Button variant="primary" size="sm" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('addFirstMember')}</Button>
                   : undefined
               }
             />

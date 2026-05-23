@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, Pencil, UserX, UserCheck, CalendarDays, Search, X, User, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TrainerModal, { type TrainerProfile } from './trainer-modal';
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export default function TrainersPage({ initialTrainers, branches = [], permissions, gymId }: Props) {
+  const t = useTranslations('services');
+  const tc = useTranslations('common');
   const refresh = useRefresh();
   const [trainers,       setTrainers]       = useState<TrainerProfile[]>(initialTrainers);
   const [filter,         setFilter]         = useState<'active' | 'inactive' | 'all'>('active');
@@ -29,13 +32,13 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
 
   const filtered = useMemo(() => {
     let list = [...trainers];
-    if (filter === 'active')   list = list.filter(t => t.is_active);
-    if (filter === 'inactive') list = list.filter(t => !t.is_active);
+    if (filter === 'active')   list = list.filter(tr => tr.is_active);
+    if (filter === 'inactive') list = list.filter(tr => !tr.is_active);
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(t =>
-        t.name.toLowerCase().includes(q) ||
-        t.specialisations.some(s => s.toLowerCase().includes(q))
+      list = list.filter(tr =>
+        tr.name.toLowerCase().includes(q) ||
+        tr.specialisations.some(s => s.toLowerCase().includes(q))
       );
     }
     return list;
@@ -56,16 +59,24 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
           isActive:        !trainer.is_active,
         }),
       });
-      if (!res.ok) { toast.error('Failed to update'); return; }
-      setTrainers(prev => prev.map(t => t.id === trainer.id ? { ...t, is_active: !t.is_active } : t));
-      toast.success(trainer.is_active ? 'Trainer deactivated' : 'Trainer reactivated');
-    } catch { toast.error('Network error'); }
+      if (!res.ok) { toast.error(t('trainersPage.failedUpdateToast')); return; }
+      setTrainers(prev => prev.map(tr => tr.id === trainer.id ? { ...tr, is_active: !tr.is_active } : tr));
+      toast.success(trainer.is_active ? t('trainersPage.deactivatedToast') : t('trainersPage.reactivatedToast'));
+    } catch { toast.error(tc('networkError')); }
     finally { setTogglingId(null); }
   };
 
+  const trainerTypeLabel = (type: string): string => {
+    switch (type) {
+      case 'nutritionist':     return t('trainerModal.typeNutritionist');
+      case 'physiotherapist':  return t('trainerModal.typePhysio');
+      default:                 return t('trainerModal.typePT');
+    }
+  };
+
   const counts = {
-    active:   trainers.filter(t => t.is_active).length,
-    inactive: trainers.filter(t => !t.is_active).length,
+    active:   trainers.filter(tr => tr.is_active).length,
+    inactive: trainers.filter(tr => !tr.is_active).length,
   };
 
   return (
@@ -74,13 +85,13 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-fg">Trainers</h1>
-            <p className="text-sm text-fg-muted mt-0.5">Manage trainer profiles assigned to classes</p>
+            <h1 className="text-2xl font-bold text-fg">{t('trainersPage.title')}</h1>
+            <p className="text-sm text-fg-muted mt-0.5">{t('trainersPage.subtitle')}</p>
           </div>
           {can(permissions, 'classes', 'create') && (
             <button onClick={() => setTrainerModal({ open: true })}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-              <Plus className="w-4 h-4" /> Add Trainer
+              <Plus className="w-4 h-4" /> {t('trainersPage.addBtn')}
             </button>
           )}
         </div>
@@ -88,7 +99,11 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
         {/* Filter + Search */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1">
-            {([['active', 'Active', counts.active], ['inactive', 'Inactive', counts.inactive], ['all', 'All', trainers.length]] as const).map(([val, label, count]) => (
+            {([
+              ['active',   t('trainersPage.filterActive'),   counts.active],
+              ['inactive', t('trainersPage.filterInactive'), counts.inactive],
+              ['all',      t('trainersPage.filterAll'),      trainers.length],
+            ] as const).map(([val, label, count]) => (
               <button key={val} onClick={() => setFilter(val)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === val ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`}>
                 {label}
@@ -98,11 +113,11 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
           </div>
 
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search trainers…"
-              className="w-full pl-9 pr-8 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand" />
-            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-3.5 h-3.5" /></button>}
+              placeholder={t('trainersPage.searchPlaceholder')}
+              className="w-full ps-9 pe-8 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand" />
+            {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-3.5 h-3.5" /></button>}
           </div>
         </div>
 
@@ -111,12 +126,12 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
           <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
             <User className="w-10 h-10 text-fg-faint mx-auto mb-3" />
             <p className="text-fg-muted text-sm">
-              {trainers.length === 0 ? 'No trainers yet' : 'No trainers match your search'}
+              {trainers.length === 0 ? t('trainersPage.emptyNoTrainers') : t('trainersPage.emptyNoMatch')}
             </p>
             {trainers.length === 0 && can(permissions, 'classes', 'create') && (
               <button onClick={() => setTrainerModal({ open: true })}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-                <Plus className="w-4 h-4" /> Add first trainer
+                <Plus className="w-4 h-4" /> {t('trainersPage.addFirstBtn')}
               </button>
             )}
           </div>
@@ -147,7 +162,7 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                           ? 'bg-emerald-400/10 text-emerald-400'
                           : 'bg-surface-4/30 text-fg-muted'
                       }`}>
-                        {trainer.is_active ? 'Active' : 'Inactive'}
+                        {trainer.is_active ? t('specialists.statusActive') : t('specialists.statusInactive')}
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         trainer.trainer_type === 'nutritionist'
@@ -156,11 +171,7 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                           ? 'bg-blue-400/10 text-blue-400'
                           : 'bg-brand/10 text-brand'
                       }`}>
-                        {trainer.trainer_type === 'nutritionist'
-                          ? 'Nutritionist'
-                          : trainer.trainer_type === 'physiotherapist'
-                          ? 'Physiotherapist'
-                          : 'Personal Trainer'}
+                        {trainerTypeLabel(trainer.trainer_type)}
                       </span>
                     </div>
                   </div>
@@ -203,9 +214,12 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                   <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>
                     <span className="text-fg font-medium group-hover:text-brand">{trainer.upcoming_sessions}</span>
-                    {' '}upcoming session{trainer.upcoming_sessions !== 1 ? 's' : ''}
+                    {' '}
+                    {trainer.upcoming_sessions !== 1
+                      ? t('trainersPage.sessionsSuffix')
+                      : t('trainersPage.sessionSuffix')}
                   </span>
-                  <span className="text-brand opacity-0 group-hover:opacity-100 transition-opacity ml-auto text-xs">View →</span>
+                  <span className="text-brand opacity-0 group-hover:opacity-100 transition-opacity ms-auto text-xs">{t('trainersPage.viewArrow')}</span>
                 </button>
 
                 {/* Actions */}
@@ -214,7 +228,7 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                     <button
                       onClick={() => setTrainerModal({ open: true, existing: trainer })}
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-line text-fg-muted text-xs hover:bg-surface-3 transition-colors">
-                      <Pencil className="w-3.5 h-3.5" /> Edit
+                      <Pencil className="w-3.5 h-3.5" /> {t('trainersPage.editBtn')}
                     </button>
                   )}
                   {can(permissions, 'classes', 'edit') && (
@@ -227,16 +241,16 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                           : 'border border-emerald-500/30 text-emerald-400 hover:bg-emerald-400/10'
                       }`}>
                       {trainer.is_active
-                        ? <><UserX className="w-3.5 h-3.5" /> Deactivate</>
-                        : <><UserCheck className="w-3.5 h-3.5" /> Activate</>}
+                        ? <><UserX className="w-3.5 h-3.5" /> {t('trainersPage.deactivateBtn')}</>
+                        : <><UserCheck className="w-3.5 h-3.5" /> {t('trainersPage.activateBtn')}</>}
                     </button>
                   )}
                   {/* Session QR — members scan this to use a session with
                       this specialist. Icon-only to keep the row compact. */}
                   <button
                     onClick={() => setQrTrainer(trainer)}
-                    title="Session QR code"
-                    aria-label="Session QR code"
+                    title={t('trainersPage.sessionQrTitle')}
+                    aria-label={t('qr.ariaLabel')}
                     className="flex-shrink-0 flex items-center justify-center w-8 py-1.5 rounded-lg border border-line text-fg-muted hover:text-brand hover:border-brand/40 hover:bg-surface-3 transition-colors">
                     <QrCode className="w-3.5 h-3.5" />
                   </button>
@@ -253,10 +267,10 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
           branches={branches}
           gymId={gymId}
           onClose={() => setTrainerModal({ open: false })}
-          onSaved={t => {
+          onSaved={tr => {
             setTrainers(prev => trainerModal.existing
-              ? prev.map(x => x.id === t.id ? t : x)
-              : [t, ...prev]
+              ? prev.map(x => x.id === tr.id ? tr : x)
+              : [tr, ...prev]
             );
             refresh();
           }}

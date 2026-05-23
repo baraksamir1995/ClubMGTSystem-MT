@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Gift, Plus, Trash2, Upload, ImageIcon, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import type { GymOffer } from '@/app/dashboard/content/page';
 import { Button, Modal } from '@/components/ui';
 
@@ -30,12 +31,6 @@ const TAG_COLORS = [
   { label: 'Orange', value: '#F97316' },
 ];
 
-const STATUS_OPTIONS = [
-  { value: 'draft',   label: 'Draft',   hint: 'Not visible on mobile' },
-  { value: 'active',  label: 'Active',  hint: 'Visible to members now' },
-  { value: 'expired', label: 'Expired', hint: 'Hidden, expired' },
-];
-
 const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors';
 const labelCls = 'block text-xs font-medium text-fg-muted mb-1.5';
 
@@ -45,6 +40,8 @@ function toDateInputValue(iso: string | null | undefined): string {
 }
 
 export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
+  const t  = useTranslations('promotions');
+  const tc = useTranslations('common');
   const isEdit = !!offer;
 
   const [title, setTitle]                   = useState(offer?.title ?? '');
@@ -126,11 +123,11 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowed.includes(file.type)) {
-      toast.error('Only JPEG, PNG, WebP or GIF images are allowed');
+      toast.error(t('imageTypeError'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be under 5 MB');
+      toast.error(t('imageSizeError'));
       return;
     }
 
@@ -141,12 +138,12 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
       formData.append('bucket', 'offer-images');
       const res = await fetch('/api/files/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (!res.ok) { toast.error('Upload failed: ' + (data.error ?? 'Unknown error')); return; }
+      if (!res.ok) { toast.error(t('uploadFailedWith', { error: data.error ?? 'Unknown error' })); return; }
 
       setHeroUrl(data.url);
-      toast.success('Image uploaded');
+      toast.success(t('imageUploaded'));
     } catch {
-      toast.error('Upload failed');
+      toast.error(t('uploadFailed'));
     } finally {
       setUploading(false);
       // reset so the same file can be re-selected if needed
@@ -156,9 +153,9 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error('Title is required'); return; }
-    if (!expiresAt)    { toast.error('Expiry date is required'); return; }
-    if (tagLabel.length > 12) { toast.error('Tag label must be 12 characters or fewer'); return; }
+    if (!title.trim()) { toast.error(t('titleRequired')); return; }
+    if (!expiresAt)    { toast.error(t('expiryRequired')); return; }
+    if (tagLabel.length > 12) { toast.error(t('tagLabelTooLong')); return; }
 
     setSaving(true);
     const linked_plan_id    = linkedOption?.type === 'plan'    ? linkedId || null : null;
@@ -189,16 +186,22 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!res.ok) { toast.error(json.error ?? 'Failed to save offer'); return; }
-      toast.success(isEdit ? 'Offer updated' : 'Offer created');
+      if (!res.ok) { toast.error(json.error ?? t('failedToSaveOffer')); return; }
+      toast.success(isEdit ? t('offerUpdated') : t('offerCreated'));
       onSaved(json as GymOffer);
       onClose();
     } catch {
-      toast.error('Network error');
+      toast.error(tc('networkError'));
     } finally {
       setSaving(false);
     }
   };
+
+  const STATUS_OPTIONS = [
+    { value: 'draft',   label: t('offerStatusDraft'),   hint: t('offerStatusDraftHint') },
+    { value: 'active',  label: t('offerStatusActive'),  hint: t('offerStatusActiveHint') },
+    { value: 'expired', label: t('offerStatusExpired'), hint: t('offerStatusExpiredHint') },
+  ];
 
   return (
     <Modal open onClose={onClose} size="xl">
@@ -207,7 +210,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           <span className="w-8 h-8 bg-brand/20 rounded-lg flex items-center justify-center">
             <Gift className="w-4 h-4 text-brand" />
           </span>
-          {isEdit ? 'Edit Offer' : 'New Offer'}
+          {isEdit ? t('editOffer') : t('newOffer')}
         </span>
       </Modal.Header>
 
@@ -216,14 +219,14 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
           {/* Status */}
           <div>
-            <label className={labelCls}>Status</label>
+            <label className={labelCls}>{t('labelStatus')}</label>
             <div className="grid grid-cols-3 gap-2">
               {STATUS_OPTIONS.map(s => (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => setStatus(s.value as typeof status)}
-                  className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-colors ${
+                  className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-start transition-colors ${
                     status === s.value
                       ? 'border-brand bg-brand/10'
                       : 'border-line hover:border-line-strong'
@@ -238,12 +241,12 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
           {/* Title */}
           <div>
-            <label className={labelCls}>Title <span className="text-red-400">*</span></label>
+            <label className={labelCls}>{t('labelTitle')} <span className="text-red-400">*</span></label>
             <input
               className={inputCls}
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Personal Training Bundle"
+              placeholder={t('placeholderTitle')}
               maxLength={120}
               required
             />
@@ -252,9 +255,9 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           {/* Short description */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className={labelCls.replace('mb-1.5', '')}>Short Description</label>
+              <label className={labelCls.replace('mb-1.5', '')}>{t('labelShortDescription')}</label>
               <span className={`text-xs ${shortDesc.length > 150 ? 'text-red-400' : 'text-fg-faint'}`}>
-                {shortDesc.length}/150
+                {t('hintShortDesc', { count: shortDesc.length })}
               </span>
             </div>
             <textarea
@@ -262,7 +265,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
               rows={2}
               value={shortDesc}
               onChange={e => setShortDesc(e.target.value)}
-              placeholder="Shown on the offer card in the Explore feed"
+              placeholder={t('placeholderShortDesc')}
               maxLength={150}
             />
           </div>
@@ -270,9 +273,9 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           {/* Full description */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className={labelCls.replace('mb-1.5', '')}>Full Description</label>
+              <label className={labelCls.replace('mb-1.5', '')}>{t('labelFullDescription')}</label>
               <span className={`text-xs ${fullDesc.length > 500 ? 'text-red-400' : 'text-fg-faint'}`}>
-                {fullDesc.length}/500
+                {t('hintFullDesc', { count: fullDesc.length })}
               </span>
             </div>
             <textarea
@@ -280,7 +283,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
               rows={4}
               value={fullDesc}
               onChange={e => setFullDesc(e.target.value)}
-              placeholder="Shown on the offer detail screen"
+              placeholder={t('placeholderFullDesc')}
               maxLength={500}
             />
           </div>
@@ -288,25 +291,25 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           {/* Pricing */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className={labelCls}>Offer Price (EGP)</label>
+              <label className={labelCls}>{t('labelOfferPrice')}</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
-                <input className={`${inputCls} pl-12`} type="number" min={0} step={1}
-                  value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder="e.g. 1200" />
+                <span className="absolute start-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
+                <input className={`${inputCls} ps-12`} type="number" min={0} step={1}
+                  value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder={t('placeholderOfferPrice')} />
               </div>
             </div>
             <div>
-              <label className={labelCls}>Original Price (EGP)</label>
+              <label className={labelCls}>{t('labelOriginalPriceOffer')}</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
-                <input className={`${inputCls} pl-12`} type="number" min={0} step={1}
-                  value={originalPrice} onChange={e => setOriginalPrice(e.target.value)} placeholder="e.g. 1500" />
+                <span className="absolute start-3 top-1/2 -translate-y-1/2 text-sm text-fg-faint">EGP</span>
+                <input className={`${inputCls} ps-12`} type="number" min={0} step={1}
+                  value={originalPrice} onChange={e => setOriginalPrice(e.target.value)} placeholder={t('placeholderOriginalPrice')} />
               </div>
             </div>
             <div>
-              <label className={labelCls}>Sessions</label>
+              <label className={labelCls}>{t('labelSessions')}</label>
               <input className={inputCls} type="number" min={1}
-                value={sessionCount} onChange={e => setSessionCount(e.target.value)} placeholder="e.g. 12" />
+                value={sessionCount} onChange={e => setSessionCount(e.target.value)} placeholder={t('placeholderSessions')} />
             </div>
           </div>
 
@@ -314,21 +317,21 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className={labelCls.replace('mb-1.5', '')}>Tag Label</label>
+                <label className={labelCls.replace('mb-1.5', '')}>{t('labelTagLabel')}</label>
                 <span className={`text-xs ${tagLabel.length > 12 ? 'text-red-400' : 'text-fg-faint'}`}>
-                  {tagLabel.length}/12
+                  {t('hintTagLabel', { count: tagLabel.length })}
                 </span>
               </div>
               <input
                 className={inputCls}
                 value={tagLabel}
                 onChange={e => setTagLabel(e.target.value)}
-                placeholder="e.g. 20% off"
+                placeholder={t('placeholderTagLabel')}
                 maxLength={12}
               />
             </div>
             <div>
-              <label className={labelCls}>Tag Color</label>
+              <label className={labelCls}>{t('labelTagColor')}</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {TAG_COLORS.map(c => (
                   <button
@@ -348,7 +351,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
           {/* Hero image upload */}
           <div>
-            <label className={labelCls}>Hero Image</label>
+            <label className={labelCls}>{t('labelHeroImage')}</label>
             {heroUrl ? (
               <div className="relative rounded-xl overflow-hidden bg-surface border border-line">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -361,7 +364,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                 <button
                   type="button"
                   onClick={() => { setHeroUrl(''); if (fileRef.current) fileRef.current.value = ''; }}
-                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors"
+                  className="absolute top-2 end-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -369,10 +372,10 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors"
+                  className="absolute bottom-2 end-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors"
                 >
                   <Upload className="w-3 h-3" />
-                  {uploading ? 'Uploading…' : 'Replace'}
+                  {uploading ? t('uploading') : t('replaceImage')}
                 </button>
               </div>
             ) : (
@@ -383,12 +386,12 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                 className="w-full flex flex-col items-center justify-center gap-2 h-32 bg-surface border border-dashed border-line hover:border-brand rounded-xl text-fg-faint hover:text-brand disabled:opacity-50 transition-colors"
               >
                 {uploading ? (
-                  <span className="text-sm">Uploading…</span>
+                  <span className="text-sm">{t('uploading')}</span>
                 ) : (
                   <>
                     <ImageIcon className="w-6 h-6" />
-                    <span className="text-sm">Click to upload image</span>
-                    <span className="text-xs text-fg-faint">JPEG, PNG, WebP or GIF · max 5 MB</span>
+                    <span className="text-sm">{t('imageUploadCta')}</span>
+                    <span className="text-xs text-fg-faint">{t('imageUploadHint')}</span>
                   </>
                 )}
               </button>
@@ -404,7 +407,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
           {/* Expiry date */}
           <div>
-            <label className={labelCls}>Expiry Date <span className="text-red-400">*</span></label>
+            <label className={labelCls}>{t('labelExpiryDate')} <span className="text-red-400">*</span></label>
             <input
               className={inputCls}
               type="date"
@@ -419,7 +422,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Link2 className="w-3.5 h-3.5 text-brand" />
-              <label className={labelCls.replace('mb-1.5', '')}>Link to Plan or Package</label>
+              <label className={labelCls.replace('mb-1.5', '')}>{t('labelLinkPlanPackage')}</label>
             </div>
             <select
               className={inputCls}
@@ -427,16 +430,16 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
               onChange={e => setLinkedId(e.target.value)}
               disabled={loadingOptions}
             >
-              <option value="">— None (record payment only) —</option>
+              <option value="">{t('linkPlanNone')}</option>
               {planOptions.filter(p => p.type === 'plan').length > 0 && (
-                <optgroup label="Membership Plans">
+                <optgroup label={t('linkPlanGroupPlans')}>
                   {planOptions.filter(p => p.type === 'plan').map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </optgroup>
               )}
               {planOptions.filter(p => p.type === 'package').length > 0 && (
-                <optgroup label="Service Packages">
+                <optgroup label={t('linkPlanGroupPackages')}>
                   {planOptions.filter(p => p.type === 'package').map(p => (
                     <option key={p.id} value={p.id}>
                       {p.name}{p.category ? ` (${p.category})` : ''}
@@ -449,48 +452,48 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
               <div className="mt-2 flex flex-wrap gap-2">
                 {linkedOption.price != null && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand/10 text-brand text-xs rounded-full">
-                    Original price: {linkedOption.price.toLocaleString()} EGP
+                    {t('originalPriceTag', { price: linkedOption.price.toLocaleString() })}
                   </span>
                 )}
                 {linkedOption.session_count != null && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600/10 text-blue-300 text-xs rounded-full">
-                    {linkedOption.session_count} sessions
+                    {t('sessionsTag', { count: linkedOption.session_count })}
                   </span>
                 )}
                 {linkedOption.duration_days != null && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-600/10 text-teal-300 text-xs rounded-full">
-                    {linkedOption.duration_days} days
+                    {t('daysTag', { count: linkedOption.duration_days })}
                   </span>
                 )}
               </div>
             )}
             <p className="text-xs text-fg-faint mt-1">
-              When set, buying this offer activates the linked plan or service package at the offer price. Original price and sessions auto-filled from the plan.
+              {t('hintLinkPlan')}
             </p>
           </div>
 
           {/* CTA label only */}
           <div>
-            <label className={labelCls}>CTA Button Label</label>
+            <label className={labelCls}>{t('labelCtaButtonLabel')}</label>
             <input
               className={inputCls}
               value={ctaLabel}
               onChange={e => setCtaLabel(e.target.value)}
-              placeholder="e.g. Buy Now"
+              placeholder={t('placeholderCtaLabel')}
             />
           </div>
 
           {/* Terms & conditions */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className={labelCls.replace('mb-1.5', '')}>Terms &amp; Conditions</label>
-              <span className="text-xs text-fg-faint">{terms.length}/10</span>
+              <label className={labelCls.replace('mb-1.5', '')}>{t('labelTermsConditions')}</label>
+              <span className="text-xs text-fg-faint">{t('hintTermsCount', { count: terms.length })}</span>
             </div>
             {terms.length > 0 && (
               <ul className="space-y-1.5 mb-2">
-                {terms.map((t, i) => (
+                {terms.map((termItem, i) => (
                   <li key={i} className="flex items-start gap-2 bg-surface border border-line rounded-lg px-3 py-2">
-                    <span className="text-sm text-fg-muted flex-1">{t}</span>
+                    <span className="text-sm text-fg-muted flex-1">{termItem}</span>
                     <button
                       type="button"
                       onClick={() => removeTerm(i)}
@@ -510,7 +513,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                   value={termInput}
                   onChange={e => setTermInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTerm(); } }}
-                  placeholder="Add a term and press Enter"
+                  placeholder={t('placeholderAddTerm')}
                 />
                 <button
                   type="button"
@@ -528,9 +531,9 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
       {/* Footer */}
       <Modal.Footer className="justify-end">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" onClick={onClose}>{tc('cancel')}</Button>
         <Button type="submit" form="offer-form" variant="primary" disabled={uploading} isLoading={saving}>
-          {isEdit ? 'Save Changes' : 'Create Offer'}
+          {isEdit ? tc('saveChanges') : t('createOffer')}
         </Button>
       </Modal.Footer>
     </Modal>

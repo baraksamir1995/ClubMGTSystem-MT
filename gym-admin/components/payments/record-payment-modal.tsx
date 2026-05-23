@@ -2,18 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { X, DollarSign, Search, Link2, Copy, Check, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { MemberOption, ServiceOption, TrainerOption, PromoCode } from '@/app/dashboard/payments/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Button, Modal } from '@/components/ui';
-
-const TRAINER_TYPE_LABELS: Record<string, string> = {
-  personal_trainer: 'Personal Trainer',
-  nutritionist:     'Nutritionist',
-  physiotherapist:  'Physiotherapist',
-  coach:            'Coach',
-};
 
 interface Props {
   memberOptions: MemberOption[];
@@ -25,29 +19,44 @@ interface Props {
 }
 
 const METHODS  = ['cash', 'bank_transfer', 'card', 'other', 'payment_link'];
-const METHOD_LABELS: Record<string, string> = {
-  cash: 'Cash', bank_transfer: 'Bank', card: 'Card', other: 'Other', payment_link: 'Payment Link',
-};
-const STATUSES = [
-  { value: 'paid',    label: 'Paid',    color: 'text-emerald-400' },
-  { value: 'pending', label: 'Pending', color: 'text-amber-400' },
-  { value: 'overdue', label: 'Overdue', color: 'text-red-400' },
-];
 const CURRENCIES = ['EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED'];
 
 const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
-const TYPE_LABELS: Record<string, string> = {
-  membership:      'Membership',
-  session_package: 'Session Package',
-  program:         'Programme',
-  offer:           'Offer',
-  other:           'Other',
-};
-
 export default function RecordPaymentModal({ memberOptions, serviceOptions, trainerOptions, branches, promoCodes, onClose }: Props) {
   const router = useRouter();
+  const t  = useTranslations('payments');
+
+  const TRAINER_TYPE_LABELS: Record<string, string> = {
+    personal_trainer: t('trainerTypes.personal_trainer'),
+    nutritionist:     t('trainerTypes.nutritionist'),
+    physiotherapist:  t('trainerTypes.physiotherapist'),
+    coach:            t('trainerTypes.coach'),
+  };
+
+  const METHOD_LABELS: Record<string, string> = {
+    cash:          t('method.cash'),
+    bank_transfer: t('method.bankTransfer'),
+    card:          t('method.card'),
+    other:         t('method.other'),
+    payment_link:  t('method.paymentLink'),
+  };
+
+  const STATUSES = [
+    { value: 'paid',    label: t('status.paid'),    color: 'text-emerald-400' },
+    { value: 'pending', label: t('status.pending'), color: 'text-amber-400' },
+    { value: 'overdue', label: t('status.overdue'), color: 'text-red-400' },
+  ];
+
+  const TYPE_LABELS: Record<string, string> = {
+    membership:      t('serviceTypes.membership'),
+    session_package: t('serviceTypes.session_package'),
+    program:         t('serviceTypes.program'),
+    offer:           t('serviceTypes.offer'),
+    other:           t('serviceTypes.other'),
+  };
+
   const [search, setSearch]           = useState('');
   const [selectedMember, setSelectedMember] = useState<MemberOption | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
@@ -78,16 +87,6 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
     }
     return groups;
   }, [serviceOptions]);
-
-  const groupedTrainers = useMemo(() => {
-    const groups: Record<string, TrainerOption[]> = {};
-    for (const t of trainerOptions) {
-      const key = t.trainer_type ?? 'personal_trainer';
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(t);
-    }
-    return groups;
-  }, [trainerOptions]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return memberOptions;
@@ -152,17 +151,17 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
   const handleWhatsApp = () => {
     if (!generatedLink) return;
-    const msg = encodeURIComponent(`Hi! Here is your payment link to complete your payment:\n\n${generatedLink}`);
+    const msg = encodeURIComponent(t('recordModal.whatsAppMessage', { link: generatedLink }));
     const num = phone.replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMember) { toast.error('Select a member'); return; }
-    if (!amount || parseFloat(amount) <= 0) { toast.error('Enter a valid amount'); return; }
-    if (isOther && !otherName.trim()) { toast.error('Enter a description for Other'); return; }
-    if (isPaymentLink && !phone.trim()) { toast.error('Mobile number is required for payment links'); return; }
+    if (!selectedMember) { toast.error(t('recordModal.selectMemberError')); return; }
+    if (!amount || parseFloat(amount) <= 0) { toast.error(t('recordModal.invalidAmountError')); return; }
+    if (isOther && !otherName.trim()) { toast.error(t('recordModal.otherDescriptionError')); return; }
+    if (isPaymentLink && !phone.trim()) { toast.error(t('recordModal.mobileRequiredError')); return; }
 
     setLoading(true);
     try {
@@ -189,9 +188,9 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
           body: JSON.stringify({ ...commonPayload, phone }),
         });
         const data = await res.json();
-        if (!res.ok) { toast.error(data.error ?? 'Failed to generate link'); return; }
+        if (!res.ok) { toast.error(data.error ?? t('recordModal.failedToGenerateLink')); return; }
         setGeneratedLink(data.payment_link_url);
-        toast.success('Payment link generated!');
+        toast.success(t('recordModal.linkGeneratedSuccess'));
       } else {
         // ── Regular payment record flow ───────────────────────────────────
         const res = await fetch('/api/payments', {
@@ -205,13 +204,13 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
           }),
         });
         const data = await res.json();
-        if (!res.ok) { toast.error(data.error ?? 'Failed to record payment'); return; }
-        toast.success('Payment recorded');
+        if (!res.ok) { toast.error(data.error ?? t('recordModal.failedToRecord')); return; }
+        toast.success(t('recordModal.paymentRecorded'));
         onClose();
         router.refresh();
       }
     } catch {
-      toast.error('Network error');
+      toast.error(t('toast.networkError'));
     } finally {
       setLoading(false);
     }
@@ -227,7 +226,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
           <span className="w-8 h-8 rounded-lg bg-success-soft flex items-center justify-center">
             <DollarSign className="w-4 h-4 text-success" />
           </span>
-          Create Payment
+          {t('recordModal.title')}
         </span>
       </Modal.Header>
 
@@ -236,7 +235,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
             {/* Member selector */}
             <div>
-              <label className={labelCls}>Member *</label>
+              <label className={labelCls}>{t('recordModal.member')} *</label>
               {selectedMember ? (
                 <div className="flex items-center gap-3 p-3 bg-surface-3/50 rounded-xl border border-brand/40">
                   <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
@@ -256,19 +255,19 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               ) : (
                 <div>
                   <div className="relative mb-2">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
                     <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Search by name, email, or member #…"
-                      className="w-full pl-9 pr-3 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
+                      placeholder={t('recordModal.memberSearchPlaceholder')}
+                      className="w-full ps-9 pe-3 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
                     />
                   </div>
                   {search && (
                     <div className="max-h-40 overflow-y-auto bg-surface border border-line rounded-xl">
                       {filtered.length === 0 ? (
-                        <p className="text-sm text-fg-faint px-3 py-3 text-center">No members found</p>
+                        <p className="text-sm text-fg-faint px-3 py-3 text-center">{t('recordModal.noMembersFound')}</p>
                       ) : filtered.slice(0, 8).map(m => (
                         <button key={m.id} type="button" onClick={() => handleSelectMember(m)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-3 transition-colors text-left">
+                          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-3 transition-colors text-start">
                           <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
                             {String(m.full_name ?? m.member_number ?? '?').slice(0, 2).toUpperCase()}
                           </div>
@@ -287,13 +286,13 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
             {/* Service selector */}
             <div>
-              <label className={labelCls}>Service / Item <span className="text-fg-faint">(optional)</span></label>
+              <label className={labelCls}>{t('recordModal.serviceItem')} <span className="text-fg-faint">({t('recordModal.serviceOptional')})</span></label>
               <select
                 value={isOther ? '__other__' : (selectedService?.id ?? '')}
                 onChange={e => handleSelectService(e.target.value)}
                 className={inputCls}
               >
-                <option value="">— Select a service —</option>
+                <option value="">{t('recordModal.selectService')}</option>
                 {Object.entries(grouped).map(([type, items]) => (
                   <optgroup key={type} label={TYPE_LABELS[type] ?? type}>
                     {items.map(s => (
@@ -304,7 +303,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   </optgroup>
                 ))}
                 <optgroup label="──────────────">
-                  <option value="__other__">Other (custom description)</option>
+                  <option value="__other__">{t('recordModal.otherCustom')}</option>
                 </optgroup>
               </select>
 
@@ -325,17 +324,17 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               {/* Trainer picker — shown for service packages that create an assignment */}
               {selectedService?.creates_assignment && (
                 <div className="mt-2">
-                  <label className="block text-xs text-fg-faint mb-1">Specialist <span className="text-fg-faint">(optional)</span></label>
+                  <label className="block text-xs text-fg-faint mb-1">{t('recordModal.specialist')} <span className="text-fg-faint">({t('recordModal.specialistOptional')})</span></label>
                   <select
                     value={selectedTrainer?.id ?? ''}
                     onChange={e => setSelectedTrainer(trainerOptions.find(t => t.id === e.target.value) ?? null)}
                     className={inputCls}
                   >
-                    <option value="">— No specialist assigned —</option>
+                    <option value="">{t('recordModal.noSpecialistAssigned')}</option>
                     {trainerOptions
-                      .filter(t => !selectedService.trainer_type || t.trainer_type === selectedService.trainer_type)
-                      .map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
+                      .filter(tr => !selectedService.trainer_type || tr.trainer_type === selectedService.trainer_type)
+                      .map(tr => (
+                        <option key={tr.id} value={tr.id}>{tr.name}</option>
                       ))}
                   </select>
                 </div>
@@ -348,7 +347,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     type="text"
                     value={otherName}
                     onChange={e => setOtherName(e.target.value)}
-                    placeholder="Describe the service or item…"
+                    placeholder={t('recordModal.otherDescribePlaceholder')}
                     className={`${inputCls} flex-1`}
                   />
                   <button type="button" onClick={() => handleSelectService('')} className="p-2 text-fg-faint hover:text-fg transition-colors flex-shrink-0">
@@ -366,10 +365,10 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-medium text-emerald-400">Active Promotion</p>
+                        <p className="text-xs font-medium text-emerald-400">{t('recordModal.activePromotion')}</p>
                         <p className="text-xs text-fg-muted mt-0.5">
-                          Discounted: {selectedService.price} {selectedService.currency}
-                          <span className="line-through ml-2 text-fg-faint">{selectedService.original_price}</span>
+                          {t('recordModal.discounted')} {selectedService.price} {selectedService.currency}
+                          <span className="line-through ms-2 text-fg-faint">{selectedService.original_price}</span>
                         </p>
                       </div>
                       <button
@@ -385,7 +384,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                             : 'bg-emerald-600/20 text-emerald-400'
                         }`}
                       >
-                        {useOriginalPrice ? 'Using original price' : 'Using promo price'}
+                        {useOriginalPrice ? t('recordModal.usingOriginalPrice') : t('recordModal.usingPromoPrice')}
                       </button>
                     </div>
                   </div>
@@ -394,7 +393,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                 {/* Promo code selector */}
                 {promoCodes.length > 0 && !selectedService.plan_promotion_id && (
                   <div>
-                    <label className={labelCls}>Promo Code</label>
+                    <label className={labelCls}>{t('recordModal.promoCode')}</label>
                     <select
                       value={selectedPromoId}
                       onChange={e => {
@@ -415,10 +414,10 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                       }}
                       className={inputCls}
                     >
-                      <option value="">— No promo code —</option>
+                      <option value="">{t('recordModal.noPromoCode')}</option>
                       {promoCodes.map(c => (
                         <option key={c.id} value={c.id}>
-                          {c.code} ({c.discount_type === 'percentage' ? `${c.discount_value}%` : `${c.discount_value} off`})
+                          {c.code} ({c.discount_type === 'percentage' ? `${c.discount_value}%` : t('recordModal.promoOff', { value: c.discount_value })})
                         </option>
                       ))}
                     </select>
@@ -435,14 +434,14 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                 : branches;
               return (
                 <div>
-                  <label className={labelCls}>Branch</label>
+                  <label className={labelCls}>{t('recordModal.branch')}</label>
                   <select value={branchId} onChange={e => setBranchId(e.target.value)} className={inputCls}>
-                    <option value="">— Select branch —</option>
+                    <option value="">{t('recordModal.selectBranch')}</option>
                     {filteredBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                   {allowedIds && (
                     <p className="mt-1 text-xs text-fg-faint">
-                      This plan is limited to {filteredBranches.map(b => b.name).join(', ')}
+                      {t('recordModal.planLimitedTo', { branches: filteredBranches.map(b => b.name).join(', ') })}
                     </p>
                   )}
                 </div>
@@ -451,12 +450,12 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
             {/* Amount + Currency */}
             <div>
-              <label className={labelCls}>Amount *</label>
+              <label className={labelCls}>{t('recordModal.amount')} *</label>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">{currency}</span>
+                  <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs text-fg-faint">{currency}</span>
                   <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
-                    placeholder="0.00" className={`${inputCls} pl-12`} required />
+                    placeholder="0.00" className={`${inputCls} ps-12`} required />
                 </div>
                 <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputCls}>
                   {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -466,7 +465,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
             {/* Payment Method */}
             <div>
-              <label className={labelCls}>Payment Method</label>
+              <label className={labelCls}>{t('recordModal.paymentMethod')}</label>
               <div className="grid grid-cols-5 gap-2">
                 {METHODS.map(m => (
                   <button key={m} type="button"
@@ -485,7 +484,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               {isPaymentLink && (
                 <p className="mt-2 text-xs text-blue-400 flex items-center gap-1.5">
                   <Link2 className="w-3 h-3 flex-shrink-0" />
-                  A secure Paymob checkout link will be generated and shared with the customer.
+                  {t('recordModal.paymentLinkNote')}
                 </p>
               )}
             </div>
@@ -493,7 +492,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
             {/* Mobile number — shown only for payment link */}
             {isPaymentLink && (
               <div>
-                <label className={labelCls}>Customer Mobile Number *</label>
+                <label className={labelCls}>{t('recordModal.customerMobile')} *</label>
                 <input
                   type="tel"
                   value={phone}
@@ -502,16 +501,16 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   className={inputCls}
                   required={isPaymentLink}
                 />
-                <p className="mt-1 text-xs text-fg-faint">Include country code — e.g. +201001234567</p>
+                <p className="mt-1 text-xs text-fg-faint">{t('recordModal.mobileHint')}</p>
               </div>
             )}
 
             {/* Status — disabled for payment links */}
             <div>
               <label className={labelCls}>
-                Status
+                {t('recordModal.statusLabel')}
                 {isPaymentLink && (
-                  <span className="ml-2 text-blue-400 font-normal">— set automatically by payment</span>
+                  <span className="ms-2 text-blue-400 font-normal">{t('recordModal.statusAutomatic')}</span>
                 )}
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -536,9 +535,9 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
           {/* Notes */}
           <div>
-            <label className={labelCls}>Notes <span className="text-fg-faint">(optional)</span></label>
+            <label className={labelCls}>{t('recordModal.notes')} <span className="text-fg-faint">({t('recordModal.notesOptional')})</span></label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="e.g. Cash received at front desk…" rows={2}
+              placeholder={t('recordModal.notesPlaceholder')} rows={2}
               className={`${inputCls} resize-none`} />
           </div>
         </form>
@@ -547,7 +546,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
       {/* Footer */}
       {generatedLink ? (
         <Modal.Footer className="flex-col items-stretch gap-3">
-          <p className="text-xs text-fg-muted">Payment link generated — share it with the customer:</p>
+          <p className="text-xs text-fg-muted">{t('recordModal.linkGenerated')}</p>
           <div className="flex items-center gap-2 p-3 bg-surface border border-blue-500/30 rounded-xl">
             <Link2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
             <p className="text-xs text-blue-300 truncate flex-1">{generatedLink}</p>
@@ -555,21 +554,21 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
           <div className="flex gap-2">
             <Button variant="secondary" fullWidth onClick={handleCopy}
               leftIcon={copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}>
-              {copied ? 'Copied!' : 'Copy Link'}
+              {copied ? t('recordModal.copied') : t('recordModal.copyLink')}
             </Button>
             <button type="button" onClick={handleWhatsApp}
               className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium text-fg transition-colors">
               <MessageCircle className="w-4 h-4" />
-              Send via WhatsApp
+              {t('recordModal.sendWhatsApp')}
             </button>
           </div>
-          <Button variant="ghost" fullWidth onClick={() => { onClose(); router.refresh(); }}>Done</Button>
+          <Button variant="ghost" fullWidth onClick={() => { onClose(); router.refresh(); }}>{t('recordModal.done')}</Button>
         </Modal.Footer>
       ) : (
         <Modal.Footer>
-          <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{t('recordModal.cancel')}</Button>
           <Button type="submit" form="record-payment-form" variant="primary" fullWidth disabled={!selectedMember} isLoading={loading}>
-            {isPaymentLink ? 'Generate Payment Link' : 'Create Payment'}
+            {isPaymentLink ? t('recordModal.generateLink') : t('createPayment')}
           </Button>
         </Modal.Footer>
       )}

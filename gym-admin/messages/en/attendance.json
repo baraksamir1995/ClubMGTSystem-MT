@@ -1,0 +1,121 @@
+{
+  "title": "Attendance & Access",
+  "subtitle": "Live check-ins and logs",
+
+  "gymQrCode": "Gym QR Code",
+  "manualCheckin": "Manual Check-in",
+
+  "tabs": {
+    "liveFeed": "Live Feed",
+    "logsAccess": "Logs & Access"
+  },
+
+  "live": {
+    "statusLine": "Updates on check-in · refreshes every 60s",
+    "lastRefresh": "· Last: {time}",
+    "refresh": "Refresh",
+    "noRecentCheckins": "No recent check-ins",
+    "recentHeader": "Recent",
+    "earlierOnPage": "{count} earlier on this page",
+    "showing": "Showing {from}–{to} of {total}"
+  },
+
+  "hero": {
+    "latest": "Latest",
+    "locationLabel": "Location",
+    "trainerLabel": "Trainer",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
+    "gymEntrance": "Gym entrance"
+  },
+
+  "relativeTime": {
+    "justNow": "just now",
+    "minAgo": "{min} min ago",
+    "hrAgo": "{hr} hr ago",
+    "dayAgo": "{day} day ago",
+    "daysAgo": "{day} days ago"
+  },
+
+  "planLabel": {
+    "sessions": "Sessions plan",
+    "duration": "Duration plan",
+    "durationSession": "Duration + sessions"
+  },
+
+  "methods": {
+    "manual": "Manual",
+    "qr": "QR Code",
+    "app": "App",
+    "card": "Card",
+    "pin": "PIN"
+  },
+
+  "logs": {
+    "filters": "Filters",
+    "clearAll": "Clear all",
+    "from": "From",
+    "to": "To",
+    "member": "Member",
+    "allMembers": "All members",
+    "entryPoint": "Entry Point",
+    "allEntryPoints": "All entry points",
+    "gymGroup": "Gym",
+    "todaysClasses": "Today's Classes",
+    "applyFilters": "Apply Filters",
+    "searchPlaceholder": "Search by name, ID, or entry point…",
+    "recordCount": "{count} records",
+    "noLogs": "No logs found",
+    "colMember": "MEMBER",
+    "colCheckin": "CHECK-IN",
+    "colBranch": "BRANCH",
+    "colEntryPoint": "ENTRY POINT",
+    "colSpecialist": "SPECIALIST",
+    "colMethod": "METHOD",
+    "showing": "Showing {from}–{to} of {total}"
+  },
+
+  "qrModal": {
+    "title": "Gym Check-in QR Code",
+    "branchLabel": "Branch",
+    "gymMainEntrance": "Gym Main Entrance",
+    "membersInstruction": "Members scan this to check in at the gym",
+    "downloadPng": "Download PNG",
+    "print": "Print",
+    "regenerateQr": "Regenerate QR",
+    "regenerateTitle": "Regenerate QR Code?",
+    "regenerateBody": "This will create a new QR code for {branchName}. Any previously printed or saved QR will stop working immediately.",
+    "thisBranch": "this branch",
+    "yesRegenerate": "Yes, Regenerate",
+    "regenerating": "Regenerating…",
+    "regeneratedSuccess": "QR code regenerated — the old QR is now invalid",
+    "regenerateFailed": "Failed to regenerate",
+    "networkError": "Network error"
+  },
+
+  "manualModal": {
+    "title": "Manual Check-in",
+    "memberLabel": "Member",
+    "searchPlaceholder": "Search by name or ID…",
+    "noMembersFound": "No members found",
+    "checkInDateTime": "Check-in Date & Time",
+    "entryPoint": "Entry Point",
+    "gymAccessGroup": "Gym Access (no session deducted)",
+    "gymAccessGroupRestricted": "Gym Access (no session deducted) — not available on this plan",
+    "planClassOnly": " (plan is class-only)",
+    "classSessionGroup": "Class Session (session deducted)",
+    "classSessionGroupRestricted": "Class Session (session deducted) — not available on this plan",
+    "planGymOnly": " (plan is gym-only)",
+    "otherCustom": "Other (type below)…",
+    "enterEntryPoint": "Enter entry point name…",
+    "branchLabel": "Branch",
+    "selectBranch": "— Select branch —",
+    "specialistLabel": "Specialist",
+    "logCheckin": "Log Check-in",
+    "selectMemberError": "Select a member",
+    "attendanceLogged": "Attendance logged",
+    "failedToLog": "Failed to log",
+    "networkError": "Network error",
+    "failedToLoadLogs": "Failed to load logs"
+  }
+}

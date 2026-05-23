@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Archive, ArchiveRestore, UserX, UserCheck, X, User, Dumbbell } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, UserX, UserCheck, X, User, Dumbbell, QrCode } from 'lucide-react';
 import { Button, Card, EmptyState } from '@/components/ui';
 import toast from 'react-hot-toast';
 import TrainerModal, { type TrainerProfile } from '@/components/trainers/trainer-modal';
+import SpecialistQRModal from '@/components/trainers/specialist-qr-modal';
 import { can, type Permission } from '@/lib/get-permissions';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 
@@ -165,6 +166,7 @@ export default function SessionServiceTab({
   const [packages,       setPackages]       = useState<SessionPackage[]>(initialPackages);
   const [trainerModal,   setTrainerModal]   = useState<{ open: boolean; existing?: TrainerProfile }>({ open: false });
   const [packageModal,   setPackageModal]   = useState<{ open: boolean; existing?: SessionPackage }>({ open: false });
+  const [qrTrainer,      setQrTrainer]      = useState<TrainerProfile | null>(null);
   const [togglingId,     setTogglingId]     = useState<string | null>(null);
   const [deletingId,     setDeletingId]     = useState<string | null>(null);
 
@@ -326,22 +328,32 @@ export default function SessionServiceTab({
                     )}
                   </div>
                 </div>
-                {can(permissions, 'classes', 'update') && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-line">
-                    <button onClick={() => setTrainerModal({ open: true, existing: trainer })}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
-                      <Pencil className="w-3 h-3" /> Edit
-                    </button>
-                    <button
-                      onClick={() => toggleTrainer(trainer)}
-                      disabled={togglingId === trainer.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors disabled:opacity-50">
-                      {trainer.is_active
-                        ? <><UserX className="w-3 h-3" /> Deactivate</>
-                        : <><UserCheck className="w-3 h-3" /> Reactivate</>}
-                    </button>
-                  </div>
-                )}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-line">
+                  {can(permissions, 'classes', 'update') && (
+                    <>
+                      <button onClick={() => setTrainerModal({ open: true, existing: trainer })}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
+                        <Pencil className="w-3 h-3" /> Edit
+                      </button>
+                      <button
+                        onClick={() => toggleTrainer(trainer)}
+                        disabled={togglingId === trainer.id}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors disabled:opacity-50">
+                        {trainer.is_active
+                          ? <><UserX className="w-3 h-3" /> Deactivate</>
+                          : <><UserCheck className="w-3 h-3" /> Reactivate</>}
+                      </button>
+                    </>
+                  )}
+                  {/* Session QR — always shown (read/print action). Members
+                      scan this to use a session with this specialist. */}
+                  <button
+                    onClick={() => setQrTrainer(trainer)}
+                    title="Session QR code"
+                    className="flex items-center justify-center gap-1.5 py-1.5 px-2.5 text-xs text-fg-muted hover:text-brand hover:bg-surface-3 rounded-lg transition-colors">
+                    <QrCode className="w-3.5 h-3.5" /> QR
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -467,6 +479,15 @@ export default function SessionServiceTab({
           gymId={gymId}
           onClose={() => setPackageModal({ open: false })}
           onSaved={handlePackageSaved}
+        />
+      )}
+      {qrTrainer && (
+        <SpecialistQRModal
+          gymId={gymId}
+          trainerId={qrTrainer.id}
+          trainerName={qrTrainer.name}
+          trainerType={qrTrainer.trainer_type}
+          onClose={() => setQrTrainer(null)}
         />
       )}
     </div>

@@ -30,9 +30,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'verified_member' => \App\Http\Middleware\RequireVerifiedEmail::class,
+            'coach' => \App\Http\Middleware\RequireCoachRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Report unhandled exceptions to Sentry. No-ops when SENTRY_LARAVEL_DSN
+        // is empty (local dev), so this only fires on staging/prod where the DSN
+        // is set in Coolify env. Respects Laravel's dont-report list.
+        \Sentry\Laravel\Integration::handles($exceptions);
+
         $exceptions->shouldRenderJsonWhen(fn () => true);
 
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {

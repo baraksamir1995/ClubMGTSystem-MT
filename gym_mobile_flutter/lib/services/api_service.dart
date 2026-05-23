@@ -865,6 +865,47 @@ class ApiService {
     return Map<String, dynamic>.from(raw as Map);
   }
 
+  /// Member scans a specialist's static QR to use one of their booked
+  /// sessions with that specialist (PT / physio / nutrition).
+  ///
+  /// Returns a normalized result map rather than throwing on logical
+  /// denials, so the scanner can branch on `code` and surface an
+  /// "offer to buy" path. (The generic `_parse` would throw an
+  /// ApiException and drop the body's `code` / specialist fields.)
+  ///
+  ///  - Success:  { 'ok': true,  sessions_remaining, completed, trainer_*, … }
+  ///  - Denial:   { 'ok': false, 'code': 'no_package' | 'package_expired' |
+  ///                'package_exhausted' | 'recently_logged' | …,
+  ///                'error': message, trainer_* (for the buy deep-link) }
+  Future<Map<String, dynamic>> scanSpecialist(String trainerId) async {
+    final uri = Uri.parse('$_baseUrl/api/specialists/scan');
+    return _runWithTimeout(() async {
+      final response = await _http.post(
+        uri,
+        headers: await _headers,
+        body: jsonEncode({'trainer_id': trainerId}),
+      );
+      final decoded = response.body.isEmpty ? const {} : jsonDecode(response.body);
+      final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = map['data'] is Map ? Map<String, dynamic>.from(map['data'] as Map) : map;
+        return {'ok': true, ...data};
+      }
+      if (response.statusCode == 401) {
+        await _storage.delete(key: _tokenKey);
+        await _storage.delete(key: _userIdKey);
+        _cachedUserId = null;
+      }
+      return {
+        'ok': false,
+        ...map,
+        'code': map['code']?.toString() ?? 'error',
+        'error': map['error']?.toString() ?? map['message']?.toString() ?? 'Could not use a session. Try again.',
+      };
+    });
+  }
+
   Future<Map<String, dynamic>> markClassAttended(
       String classId, String memberId, String gymId) async {
     final data = await _post('/api/sessions/checkin', {

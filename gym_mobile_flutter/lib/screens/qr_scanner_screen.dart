@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../services/api_service.dart';
+import '../models/service_model.dart';
 import '../utils/error_utils.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -200,6 +201,35 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           return;
         }
 
+        // ── Specialist session QR (static, encodes the specialist id) ───────
+        if (type == 'specialist_session') {
+          final trainerId = jsonPayload['trainer_id'] as String?;
+          if (trainerId == null) {
+            _showResult(_CheckInResult.error(
+              title: 'Invalid QR Code',
+              subtitle: 'Missing specialist information.',
+            ));
+            return;
+          }
+
+          final result = await ApiService().scanSpecialist(trainerId);
+          if (!mounted) return;
+
+          if (result['ok'] == true) {
+            final remaining = (result['sessions_remaining'] as num?)?.toInt() ?? 0;
+            _showResult(_CheckInResult.serviceSuccess(
+              checkInTime: DateTime.now(),
+              specialistName: result['trainer_name'] as String? ?? 'Specialist',
+              serviceLabel: _serviceLabel(result['service_type'] as String? ?? result['trainer_type'] as String?),
+              sessionsRemaining: remaining,
+              completed: result['completed'] == true,
+            ));
+          } else {
+            _showSpecialistDeny(result);
+          }
+          return;
+        }
+
         _showResult(_CheckInResult.error(
           title: 'Invalid QR Code',
           subtitle: 'This QR code is not recognized by the gym app.',
@@ -378,6 +408,80 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         _showResult(_CheckInResult.error(
           title: 'Check-in Denied',
           subtitle: reason,
+        ));
+    }
+  }
+
+  /// Human label for a service / trainer type code.
+  String _serviceLabel(String? type) {
+    switch (type) {
+      case 'personal_trainer': return 'Personal training';
+      case 'physiotherapist':  return 'Physiotherapy';
+      case 'nutritionist':     return 'Nutrition';
+      default:                 return 'Sessions';
+    }
+  }
+
+  /// Maps a specialist-scan denial to the right sheet. The "no usable
+  /// package" codes (no_package / package_expired / package_exhausted) get
+  /// an "offer to buy" action that deep-links to that specialist's packages.
+  void _showSpecialistDeny(Map<String, dynamic> result) {
+    final code = result['code'] as String? ?? 'error';
+    final message = result['error'] as String?;
+    final trainerType = result['trainer_type'] as String?;
+
+    // Navigate to the matching service's packages list (by trainer_type).
+    void goToPackages() {
+      Navigator.pop(context); // close the result sheet
+      Navigator.pop(context); // close the scanner
+      final service = kServices.firstWhere(
+        (s) => s.trainerType == trainerType,
+        orElse: () => kServices.first,
+      );
+      context.push('/service-packages/${service.id}', extra: service);
+    }
+
+    switch (code) {
+      case 'no_package':
+      case 'package_expired':
+      case 'package_exhausted':
+        _showResult(
+          _CheckInResult.error(
+            title: code == 'no_package'
+                ? 'No Package Yet'
+                : (code == 'package_expired' ? 'Package Expired' : 'No Sessions Left'),
+            subtitle: message ??
+                'You don\'t have an active session package with this specialist.',
+            icon: Icons.card_membership_outlined,
+          ),
+          actionLabel: 'View Packages',
+          onAction: goToPackages,
+        );
+      case 'recently_logged':
+        final mins = (result['minutes_left'] as num?)?.toInt();
+        _showResult(_CheckInResult.error(
+          title: 'Already Logged',
+          subtitle: mins != null
+              ? 'This session was just logged. Try again in about $mins minute${mins == 1 ? '' : 's'}.'
+              : (message ?? 'This session was already logged a moment ago.'),
+          icon: Icons.check_circle_outline,
+        ));
+      case 'specialist_not_found':
+        _showResult(_CheckInResult.error(
+          title: 'Invalid QR Code',
+          subtitle: 'This specialist code is not valid for your gym.',
+          icon: Icons.qr_code_outlined,
+        ));
+      case 'no_member':
+        _showResult(_CheckInResult.error(
+          title: 'Not Registered',
+          subtitle: 'You are not registered as a member of this gym.',
+          icon: Icons.person_off_outlined,
+        ));
+      default:
+        _showResult(_CheckInResult.error(
+          title: 'Could Not Log Session',
+          subtitle: message ?? 'Something went wrong. Please try again.',
         ));
     }
   }
@@ -567,7 +671,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Point at the entrance or studio QR code',
+                    'Point at an entrance, studio, or specialist QR code',
                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
                     textAlign: TextAlign.center,
                   ),
@@ -587,7 +691,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
 // ── Data model for check-in result ──────────────────────────────────────────
 
-enum _CheckInType { gymSuccess, classSuccess, error }
+enum _CheckInType { gymSuccess, classSuccess, serviceSuccess, error }
 
 class _CheckInResult {
   final _CheckInType type;
@@ -602,6 +706,8 @@ class _CheckInResult {
   final String? endTime;
   final String? location;
   final String? instructor;
+  // Specialist-session-specific
+  final int? sessionsRemaining;
 
   const _CheckInResult._({
     required this.type,
@@ -615,6 +721,7 @@ class _CheckInResult {
     this.endTime,
     this.location,
     this.instructor,
+    this.sessionsRemaining,
   });
 
   factory _CheckInResult.gymSuccess({required DateTime checkInTime}) =>
@@ -648,6 +755,26 @@ class _CheckInResult {
         instructor: instructor,
       );
 
+  factory _CheckInResult.serviceSuccess({
+    required DateTime checkInTime,
+    required String specialistName,
+    required String serviceLabel,
+    required int sessionsRemaining,
+    required bool completed,
+  }) =>
+      _CheckInResult._(
+        type: _CheckInType.serviceSuccess,
+        title: 'Session Logged!',
+        subtitle: completed
+            ? 'That was your last session with $specialistName.'
+            : 'One session used with $specialistName.',
+        icon: Icons.check_circle_outline,
+        checkInTime: checkInTime,
+        className: specialistName,  // reuse for the specialist's name
+        location: serviceLabel,
+        sessionsRemaining: sessionsRemaining,
+      );
+
   factory _CheckInResult.error({
     required String title,
     String? subtitle,
@@ -661,7 +788,9 @@ class _CheckInResult {
       );
 
   bool get isSuccess =>
-      type == _CheckInType.gymSuccess || type == _CheckInType.classSuccess;
+      type == _CheckInType.gymSuccess ||
+      type == _CheckInType.classSuccess ||
+      type == _CheckInType.serviceSuccess;
 }
 
 // ── Rich result bottom sheet ─────────────────────────────────────────────────
@@ -839,6 +968,35 @@ class _ResultSheetState extends State<_ResultSheet>
                         accentColor: accentColor,
                       ),
                     ],
+                  ],
+
+                  if (r.type == _CheckInType.serviceSuccess) ...[
+                    const SizedBox(height: 12),
+                    _detailRow(
+                      theme,
+                      icon: Icons.person_outline,
+                      label: 'Specialist',
+                      value: r.className ?? '—',
+                      accentColor: accentColor,
+                    ),
+                    if (r.location != null) ...[
+                      const SizedBox(height: 12),
+                      _detailRow(
+                        theme,
+                        icon: Icons.fitness_center_outlined,
+                        label: 'Service',
+                        value: r.location!,
+                        accentColor: accentColor,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _detailRow(
+                      theme,
+                      icon: Icons.confirmation_number_outlined,
+                      label: 'Sessions Left',
+                      value: '${r.sessionsRemaining ?? 0}',
+                      accentColor: accentColor,
+                    ),
                   ],
                 ],
               ),

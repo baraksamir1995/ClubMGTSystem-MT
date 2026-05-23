@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Loader2, Camera, Hash, Lock, Copy, Check } from 'lucide-react';
+import { Loader2, Camera, Hash, Lock, Copy, Check, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Button, Field, Input, Modal, PasswordInput, Textarea } from '@/components/ui';
+import SpecialistQRModal from './specialist-qr-modal';
 
 export interface TrainerProfile {
   id: string;
@@ -27,11 +28,12 @@ interface Props {
   existing?: TrainerProfile;
   defaultType?: TrainerProfile['trainer_type'];
   branches: GymBranch[];
+  gymId?: string;
   onClose: () => void;
   onSaved: (trainer: TrainerProfile) => void;
 }
 
-export default function TrainerModal({ existing, defaultType, branches = [], onClose, onSaved }: Props) {
+export default function TrainerModal({ existing, defaultType, branches = [], gymId = '', onClose, onSaved }: Props) {
   const isCreate = !existing;
   const [name,            setName]            = useState(existing?.name ?? '');
   const [bio,             setBio]             = useState(existing?.bio ?? '');
@@ -57,6 +59,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], onC
   // user; we drive it from outside via the controlled `visible` prop.
   const [showPw, setShowPw] = useState(false);
   const [createdCreds,    setCreatedCreds]    = useState<{ username: string; password: string } | null>(null);
+  const [showQR,          setShowQR]          = useState(false);
 
   const generatePw = () => {
     const digits = '0123456789';
@@ -386,6 +389,27 @@ export default function TrainerModal({ existing, defaultType, branches = [], onC
             </div>
           )}
 
+          {/* Session QR — existing specialists only (the code encodes the
+              specialist id, which doesn't exist until they're created).
+              Members scan it in the app to use one of their booked sessions
+              with this specialist. */}
+          {existing && (
+            <div className="rounded-lg border border-line bg-surface/40 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <QrCode className="w-4 h-4 mt-0.5 text-brand flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-fg">Session QR code</p>
+                  <p className="text-xs text-fg-faint leading-snug">
+                    Members scan this to use a session with this specialist.
+                  </p>
+                </div>
+              </div>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowQR(true)}>
+                Show QR
+              </Button>
+            </div>
+          )}
+
           <Field label={<>Bio <span className="text-fg-faint font-normal">(optional)</span></>}>
             <Textarea
               value={bio}
@@ -472,6 +496,16 @@ export default function TrainerModal({ existing, defaultType, branches = [], onC
           </Button>
         </Modal.Footer>
         )}
+
+      {showQR && existing && (
+        <SpecialistQRModal
+          gymId={gymId}
+          trainerId={existing.id}
+          trainerName={existing.name}
+          trainerType={existing.trainer_type}
+          onClose={() => setShowQR(false)}
+        />
+      )}
     </Modal>
   );
 }

@@ -25,8 +25,11 @@ export default async function TrainersRoute() {
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
   if (!token) redirect('/login');
 
-  const { getStaffPermissions } = await import('@/lib/get-permissions');
-  const permissions = await getStaffPermissions(token);
+  const { getStaffPermissions, getMe } = await import('@/lib/get-permissions');
+  const [permissions, me] = await Promise.all([
+    getStaffPermissions(token),
+    getMe(token),
+  ]);
 
   const [trainersData, branchesData] = await Promise.all([
     fetchApi('/trainers', token),
@@ -48,5 +51,5 @@ export default async function TrainersRoute() {
 
   const branches: GymBranch[] = (branchesData?.data ?? branchesData ?? []) as GymBranch[];
 
-  return <TrainersPage initialTrainers={trainers} branches={branches} permissions={permissions} />;
+  return <TrainersPage initialTrainers={trainers} branches={branches} permissions={permissions} gymId={me?.gym_id ?? ''} />;
 }

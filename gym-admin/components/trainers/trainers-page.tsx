@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, UserX, UserCheck, CalendarDays, Search, X, User } from 'lucide-react';
+import { Plus, Pencil, UserX, UserCheck, CalendarDays, Search, X, User, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TrainerModal, { type TrainerProfile } from './trainer-modal';
 import TrainerSessionsModal from './trainer-sessions-modal';
+import SpecialistQRModal from './specialist-qr-modal';
 import { can, type Permission } from '@/lib/get-permissions';
 import { useRefresh } from '@/lib/use-refresh';
 import type { GymBranch } from '@/app/dashboard/branches/page';
@@ -13,15 +14,17 @@ interface Props {
   initialTrainers: TrainerProfile[];
   branches: GymBranch[];
   permissions: Permission[] | null;
+  gymId: string;
 }
 
-export default function TrainersPage({ initialTrainers, branches = [], permissions }: Props) {
+export default function TrainersPage({ initialTrainers, branches = [], permissions, gymId }: Props) {
   const refresh = useRefresh();
   const [trainers,       setTrainers]       = useState<TrainerProfile[]>(initialTrainers);
   const [filter,         setFilter]         = useState<'active' | 'inactive' | 'all'>('active');
   const [search,         setSearch]         = useState('');
   const [trainerModal,   setTrainerModal]   = useState<{ open: boolean; existing?: TrainerProfile }>({ open: false });
   const [sessionsTrainer, setSessionsTrainer] = useState<TrainerProfile | null>(null);
+  const [qrTrainer,      setQrTrainer]      = useState<TrainerProfile | null>(null);
   const [togglingId,     setTogglingId]     = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -228,6 +231,15 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                         : <><UserCheck className="w-3.5 h-3.5" /> Activate</>}
                     </button>
                   )}
+                  {/* Session QR — members scan this to use a session with
+                      this specialist. Icon-only to keep the row compact. */}
+                  <button
+                    onClick={() => setQrTrainer(trainer)}
+                    title="Session QR code"
+                    aria-label="Session QR code"
+                    className="flex-shrink-0 flex items-center justify-center w-8 py-1.5 rounded-lg border border-line text-fg-muted hover:text-brand hover:border-brand/40 hover:bg-surface-3 transition-colors">
+                    <QrCode className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -239,6 +251,7 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
         <TrainerModal
           existing={trainerModal.existing}
           branches={branches}
+          gymId={gymId}
           onClose={() => setTrainerModal({ open: false })}
           onSaved={t => {
             setTrainers(prev => trainerModal.existing
@@ -254,6 +267,16 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
         <TrainerSessionsModal
           trainer={sessionsTrainer}
           onClose={() => setSessionsTrainer(null)}
+        />
+      )}
+
+      {qrTrainer && (
+        <SpecialistQRModal
+          gymId={gymId}
+          trainerId={qrTrainer.id}
+          trainerName={qrTrainer.name}
+          trainerType={qrTrainer.trainer_type}
+          onClose={() => setQrTrainer(null)}
         />
       )}
     </>

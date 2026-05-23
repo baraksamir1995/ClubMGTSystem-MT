@@ -71,31 +71,50 @@ export default function AnalyticsPage() {
   const [classData,    setClassData]    = useState<ClassData | null>(null);
   const [dashData,     setDashData]     = useState<DashboardData | null>(null);
   const [dashPeriod,   setDashPeriod]   = useState<'day' | 'week' | 'month'>('week');
-  const [dashLoading,  setDashLoading]  = useState(false);
+  // Starts true: the dashboard always fetches on mount, so the first paint
+  // should show the spinner — not a flash of the empty/error fallback.
+  const [dashLoading,  setDashLoading]  = useState(true);
   const [showExport,   setShowExport]   = useState(false);
   const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
   const fetchData = useCallback(async (from: string, to: string) => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/analytics/all?from=${from}&to=${to}`);
-      if (res.ok) {
-        const data = await res.json();
+      const res = await fetch(`/api/analytics/all?from=${from}&to=${to}`, { cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data) {
         setMemberData(data.members);
         setRevenueData(data.revenue);
         setClassData(data.classes);
+      } else {
+        // Surface the failure instead of leaving the tab silently blank.
+        setMemberData(null); setRevenueData(null); setClassData(null);
+        setError(data?.error ?? `Couldn't load analytics (HTTP ${res.status}). Try again.`);
       }
-    } catch { toast.error('Failed to load data'); }
+    } catch {
+      setMemberData(null); setRevenueData(null); setClassData(null);
+      setError('Network error — could not reach the server. Try again.');
+    }
     finally { setLoading(false); }
   }, []);
 
   const fetchDashboard = useCallback(async (p: 'day' | 'week' | 'month') => {
     setDashLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/analytics/dashboard?period=${p}`);
-      const data = await res.json();
-      if (res.ok) setDashData(data);
-    } catch { toast.error('Failed to load dashboard'); }
+      const res = await fetch(`/api/analytics/dashboard?period=${p}`, { cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data) setDashData(data);
+      else {
+        setDashData(null);
+        setError(data?.error ?? `Couldn't load dashboard (HTTP ${res.status}). Try again.`);
+      }
+    } catch {
+      setDashData(null);
+      setError('Network error — could not reach the server. Try again.');
+    }
     finally { setDashLoading(false); }
   }, []);
 
@@ -294,6 +313,29 @@ export default function AnalyticsPage() {
           <RefreshCw className="w-6 h-6 text-brand animate-spin" />
         </div>
       )}
+
+      {/* Fallback — never leave the tab silently blank. Shows when the
+          active tab has no data and nothing is in flight (a failed/empty
+          fetch), with the error reason + a retry. */}
+      {(() => {
+        const busy       = activeTab === 'dashboard' ? dashLoading : loading;
+        const activeData = activeTab === 'dashboard' ? dashData
+          : activeTab === 'members' ? memberData
+          : activeTab === 'revenue' ? revenueData
+          : classData;
+        if (busy || activeData) return null;
+        const retry = () => activeTab === 'dashboard' ? fetchDashboard(dashPeriod) : fetchData(fromDate, toDate);
+        return (
+          <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
+            <AlertCircle className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+            <p className="text-sm text-fg-muted">{error ?? 'No analytics data available for this view.'}</p>
+            <button onClick={retry}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
+              <RefreshCw className="w-4 h-4" /> Retry
+            </button>
+          </div>
+        );
+      })()}
 
       {/* ── MEMBER GROWTH & CHURN ── */}
       {!loading && activeTab === 'members' && memberData && (

@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 // `unsafe-eval` is required by several runtime dependencies pulled into the
 // admin bundle (recharts, schema validators, etc) — production was throwing
 // "Refused to evaluate a string as JavaScript" CSP errors, which React
@@ -28,7 +30,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      // Sentry ingest (all regions) — required so the browser SDK can POST events.
+      "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
       "frame-ancestors 'none'",
     ].join('; '),
   },
@@ -41,6 +44,7 @@ const nextConfig = {
 
   eslint: { ignoreDuringBuilds: true }, // TODO: no .eslintrc yet; enabling needs config + violation pass first
   experimental: {
+    instrumentationHook: true, // Next 14: load instrumentation.ts (Sentry server/edge init)
     optimizePackageImports: ['recharts', 'lucide-react'],
     outputFileTracingExcludes: {
       '*': [
@@ -82,4 +86,13 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Offline Coolify build safety: telemetry + source-map upload disabled so the
+// Sentry webpack plugin makes ZERO network calls at build time. No auth token
+// is set, so source maps are never uploaded regardless. Errors still report at
+// runtime; they just won't be symbolicated to original source until you add a
+// SENTRY_AUTH_TOKEN + enable uploads in a CI step that has internet.
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  telemetry: false,
+  sourcemaps: { disable: true },
+});

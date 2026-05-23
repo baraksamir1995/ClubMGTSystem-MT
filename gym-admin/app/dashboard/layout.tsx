@@ -1,9 +1,11 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { getTranslations } from 'next-intl/server';
 import { Dumbbell } from 'lucide-react';
 import SignOutButton from '@/components/sign-out-button';
 import NavLinks from '@/components/nav-links';
+import LanguageSwitcher from '@/components/language-switcher';
 import MutationListener from '@/components/mutation-listener';
 import GymTimezoneProvider from '@/components/gym-timezone-provider';
 import type { Metadata } from 'next';
@@ -156,14 +158,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       : 0;
   }
 
+  const t = await getTranslations('layout');
   const displayName = me?.full_name || me?.email || '';
-  const sidebarLabel = me?.is_staff ? 'Staff Portal' : 'Admin Panel';
+  const sidebarLabel = me?.is_staff ? t('staffPortal') : t('adminPanel');
 
   return (
     <div className="min-h-screen bg-clby-bg flex">
       {/* Sidebar — brand near-black with a hairline `clby-border` so it
           still reads as a distinct rail against the main content area. */}
-      <aside className="w-60 flex-shrink-0 bg-clby-bg border-r border-clby-border flex flex-col">
+      <aside className="w-60 flex-shrink-0 bg-clby-bg border-e border-clby-border flex flex-col">
         {/* Gym Identity */}
         <div className="p-5 border-b border-clby-border">
           <div className="flex items-center gap-3">
@@ -176,7 +179,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-fg truncate">{gym?.name ?? 'My Gym'}</p>
+              <p className="text-sm font-semibold text-fg truncate">{gym?.name ?? t('myGym')}</p>
               <p className="text-xs text-fg-muted truncate">{sidebarLabel}</p>
             </div>
           </div>
@@ -189,12 +192,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Suspense>
         </nav>
 
-        {/* User + Sign out */}
+        {/* User + language + Sign out */}
         <div className="p-3 border-t border-clby-border">
           <div className="px-3 py-2 mb-1">
             <p className="text-xs font-medium text-fg truncate">{displayName}</p>
             <p className="text-xs text-fg-faint truncate">{me?.email}</p>
           </div>
+          <LanguageSwitcher />
           <SignOutButton />
         </div>
       </aside>
@@ -207,7 +211,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Brand footer — pinned to the bottom of the scroll container
             so it sits below page content regardless of length. */}
         <footer className="px-6 py-3 text-[11px] text-fg-faint border-t border-line tracking-wide">
-          Powered by <span className="text-clby-green font-semibold">CLBY</span>
+          {t('poweredBy')} <span className="text-clby-green font-semibold">CLBY</span>
         </footer>
       </main>
     </div>

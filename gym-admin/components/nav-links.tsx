@@ -2,27 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   LayoutDashboard, Users, Banknote, Settings, ClipboardList,
   CalendarDays, Tag, ScanLine, LayoutTemplate, BarChart3,
   ShieldCheck, Layers, Mail,
 } from 'lucide-react';
 
+// `labelKey` indexes into the `nav` message namespace; the visible label is
+// resolved per-locale at render time.
 const ALL_NAV = [
-  { href: '/dashboard',             label: 'Overview',               icon: LayoutDashboard },
-  { href: '/dashboard/members',     label: 'Members',                icon: Users },
-  { href: '/dashboard/plans',       label: 'Subscription Plans',     icon: ClipboardList },
-  { href: '/dashboard/payments',    label: 'Payments',               icon: Banknote },
-  { href: '/dashboard/classes',     label: 'Classes & Schedule',     icon: CalendarDays },
-  { href: '/dashboard/promotions',  label: 'Promotions & Discounts', icon: Tag },
-  { href: '/dashboard/services',    label: 'Services',               icon: Layers },
-  { href: '/dashboard/attendance',  label: 'Attendance & Access',    icon: ScanLine },
-  { href: '/dashboard/invitations', label: 'Guest Invitations',      icon: Mail },
-  { href: '/dashboard/content',     label: 'Content',                icon: LayoutTemplate },
-  { href: '/dashboard/analytics',   label: 'Analytics',              icon: BarChart3 },
-  { href: '/dashboard/staff',       label: 'Staff & Roles',          icon: ShieldCheck },
-  { href: '/dashboard/settings',    label: 'Settings',               icon: Settings },
-];
+  { href: '/dashboard',             labelKey: 'overview',    icon: LayoutDashboard },
+  { href: '/dashboard/members',     labelKey: 'members',     icon: Users },
+  { href: '/dashboard/plans',       labelKey: 'plans',       icon: ClipboardList },
+  { href: '/dashboard/payments',    labelKey: 'payments',    icon: Banknote },
+  { href: '/dashboard/classes',     labelKey: 'classes',     icon: CalendarDays },
+  { href: '/dashboard/promotions',  labelKey: 'promotions',  icon: Tag },
+  { href: '/dashboard/services',    labelKey: 'services',    icon: Layers },
+  { href: '/dashboard/attendance',  labelKey: 'attendance',  icon: ScanLine },
+  { href: '/dashboard/invitations', labelKey: 'invitations', icon: Mail },
+  { href: '/dashboard/content',     labelKey: 'content',     icon: LayoutTemplate },
+  { href: '/dashboard/analytics',   labelKey: 'analytics',   icon: BarChart3 },
+  { href: '/dashboard/staff',       labelKey: 'staff',       icon: ShieldCheck },
+  { href: '/dashboard/settings',    labelKey: 'settings',    icon: Settings },
+] as const;
 
 interface Props {
   allowedHrefs: string[];
@@ -35,12 +38,13 @@ interface Props {
 
 export default function NavLinks({ allowedHrefs }: Props) {
   const pathname = usePathname();
+  const t = useTranslations('nav');
   const allowed = new Set(allowedHrefs);
   const items = ALL_NAV.filter(item => allowed.has(item.href));
 
   return (
     <>
-      {items.map(({ href, label, icon: Icon }) => {
+      {items.map(({ href, labelKey, icon: Icon }) => {
         const isActive =
           href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href);
 
@@ -55,7 +59,7 @@ export default function NavLinks({ allowedHrefs }: Props) {
             }`}
           >
             <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-clby-green' : ''}`} />
-            <span className="flex-1">{label}</span>
+            <span className="flex-1 text-start">{t(labelKey)}</span>
           </Link>
         );
       })}

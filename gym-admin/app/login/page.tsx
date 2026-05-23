@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { Dumbbell } from 'lucide-react';
 import { Button, Field, Input, PasswordInput } from '@/components/ui';
+import LanguageSwitcher from '@/components/language-switcher';
 
 export default function LoginPage() {
+  const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +36,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         // SECURITY: MEDIUM-2 — Never distinguish between wrong email vs wrong password
-        toast.error('Invalid email or password.');
+        toast.error(t('invalidCredentials'));
         setLoading(false);
         return;
       }
@@ -104,7 +107,7 @@ export default function LoginPage() {
 
       window.location.href = mustReset ? '/change-password' : landingPage;
     } catch {
-      toast.error('Unable to connect. Please try again.');
+      toast.error(t('connectionError'));
       setLoading(false);
     }
   };
@@ -121,24 +124,24 @@ export default function LoginPage() {
               <Dumbbell className="w-8 h-8 text-brand" />
             )}
           </div>
-          <h1 className="text-2xl font-bold text-fg">{gymInfo?.name ?? 'Gym Admin'}</h1>
-          <p className="text-sm text-fg-muted mt-1">Sign in to manage your gym</p>
+          <h1 className="text-2xl font-bold text-fg">{gymInfo?.name ?? t('defaultGymName')}</h1>
+          <p className="text-sm text-fg-muted mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Card */}
         <div className="bg-surface-2 border border-line rounded-2xl p-6 shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-4">
-            <Field label="Email address" required>
+            <Field label={t('emailLabel')} required>
               <Input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@yourgym.com"
+                placeholder={t('emailPlaceholder')}
               />
             </Field>
 
-            <Field label="Password" required>
+            <Field label={t('passwordLabel')} required>
               <PasswordInput
                 required
                 value={password}
@@ -155,14 +158,21 @@ export default function LoginPage() {
               isLoading={loading}
               className="mt-2"
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? t('signingIn') : t('signIn')}
             </Button>
           </form>
         </div>
 
         <p className="text-center text-xs text-gray-600 mt-6">
-          Contact your system administrator if you need access.
+          {t('contactAdmin')}
         </p>
+
+        {/* Language toggle — lets users switch to Arabic before signing in */}
+        <div className="mt-4 flex justify-center">
+          <div className="w-40">
+            <LanguageSwitcher />
+          </div>
+        </div>
       </div>
 
       {/* Brand footer */}

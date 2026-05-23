@@ -37,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       )}
     >
       {leftIcon && (
-        <span className="pl-3 pr-1 text-fg-muted flex items-center" aria-hidden>
+        <span className="ps-3 pe-1 text-fg-muted flex items-center" aria-hidden>
           {leftIcon}
         </span>
       )}
@@ -47,16 +47,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         className={cn(
           'peer flex-1 min-w-0 bg-transparent outline-none',
           'px-3 py-2.5 text-sm text-fg placeholder:text-fg-faint',
-          // Trim left padding when an icon is present (icon block has px).
-          leftIcon  && 'pl-1',
-          rightIcon && 'pr-1',
+          // Trim leading padding when an icon is present (icon block has px).
+          // Logical props so the trim follows the writing direction (RTL).
+          leftIcon  && 'ps-1',
+          rightIcon && 'pe-1',
           // Hide the browser's password reveal — we ship `<PasswordInput>` for that.
           '[&::-ms-reveal]:hidden [&::-ms-clear]:hidden',
         )}
         {...rest}
       />
       {rightIcon && (
-        <span className="pr-2 pl-1 text-fg-muted flex items-center">
+        <span className="pe-2 ps-1 text-fg-muted flex items-center">
           {rightIcon}
         </span>
       )}

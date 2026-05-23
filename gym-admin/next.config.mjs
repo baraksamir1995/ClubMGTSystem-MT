@@ -1,4 +1,10 @@
 import { withSentryConfig } from '@sentry/nextjs';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+// next-intl: cookie-based locale (no /[locale] URL prefix — this is an
+// internal admin tool, SEO is irrelevant). The request config reads the
+// `locale` cookie; see i18n/request.ts.
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 // `unsafe-eval` is required by several runtime dependencies pulled into the
 // admin bundle (recharts, schema validators, etc) — production was throwing
@@ -91,7 +97,7 @@ const nextConfig = {
 // is set, so source maps are never uploaded regardless. Errors still report at
 // runtime; they just won't be symbolicated to original source until you add a
 // SENTRY_AUTH_TOKEN + enable uploads in a CI step that has internet.
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withNextIntl(nextConfig), {
   silent: true,
   telemetry: false,
   sourcemaps: { disable: true },

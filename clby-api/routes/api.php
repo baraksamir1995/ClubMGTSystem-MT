@@ -35,6 +35,9 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServicePackageController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SessionTransferController;
+use App\Http\Controllers\CoachController;
+use App\Http\Controllers\SpecialistScanController;
+use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\TrainerController;
@@ -163,6 +166,13 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
     Route::post('/access/studio', [AccessController::class, 'validateStudio']);
     Route::post('/attendance/qr', [AttendanceController::class, 'logByQr']);
 
+    // Specialist QR — member scans a specialist's static code to decrement
+    // their own session pack with that specialist (mirror of the coach
+    // decrement, initiated member-side). throttle guards against a held
+    // scanner spamming the endpoint; the 30-min guard in the controller
+    // protects against double-decrement.
+    Route::post('/specialists/scan', [SpecialistScanController::class, 'scan'])->middleware('throttle:60,1');
+
     // Paymob (mobile payment flow)
     Route::post('/paymob/intention', [PaymobController::class, 'intention']);
 
@@ -191,6 +201,20 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
 
     // Search
     Route::get('/search', [SearchController::class, 'search']);
+});
+
+// ─── Coach mobile app (specialists — role=trainer with a trainer_profiles row) ──
+// Separate from the admin group because RequireAdminRole accepts staff +
+// gym_admin too, while the coach app should only let specialists in. The
+// `coach` middleware gates on role='trainer' AND resolves the
+// trainer_profile_id once for downstream controllers.
+Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 'coach', \App\Http\Middleware\LogActivityMiddleware::class])->group(function () {
+    Route::get('/coach/me',                                  [CoachController::class, 'me']);
+    Route::get('/coach/roster',                              [CoachController::class, 'roster']);
+    Route::post('/coach/sessions/decrement',                 [CoachController::class, 'decrement']);
+    Route::get('/coach/today',                               [CoachController::class, 'today']);
+    Route::get('/coach/assignments/{assignmentId}/history',  [CoachController::class, 'assignmentHistory']);
+    Route::patch('/coach/sessions/{logId}',                  [CoachController::class, 'updateNote']);
 });
 
 // ─── Admin-only routes (gym_admin, staff, trainer) ───────────────────────────
@@ -305,7 +329,16 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::patch('/staff/roles/{id}', [StaffController::class, 'updateRole'])->middleware('permission:staff,edit');
     Route::delete('/staff/roles/{id}', [StaffController::class, 'destroyRole'])->middleware('permission:staff,delete');
 
-    // Trainer management
+    // Services Log — admin view of every coach-logged session in the
+    // gym, used by the Services → Services Log tab. Read-only.
+    Route::get('/service-logs',        [ServiceLogController::class, 'index'])->middleware('permission:attendance,view');
+    Route::get('/service-logs/export', [ServiceLogController::class, 'export'])->middleware('permission:attendance,view');
+
+    // Trainer / Specialist management. The same endpoints handle the
+    // simple trainer_profile case and the coach-app login case —
+    // POST /trainers + PATCH /trainers/{id} both accept optional
+    // `password` + `username`; when provided, they also provision /
+    // update the linked profiles + auth.users rows.
     Route::post('/trainers', [TrainerController::class, 'store'])->middleware('permission:classes,create');
     Route::patch('/trainers/{id}', [TrainerController::class, 'update'])->middleware('permission:classes,edit');
     Route::get('/trainers/{id}/sessions', [TrainerController::class, 'sessions']);

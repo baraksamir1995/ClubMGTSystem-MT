@@ -214,12 +214,31 @@ class AuthController extends Controller
     {
         $this->normalizeEmail($request);
 
+        // Accept either `email` (legacy / members + admins) or `username`
+        // (numeric coach login). Whichever is supplied is matched against
+        // both columns, case-insensitively — that way the coach app's
+        // existing "USERNAME" field can keep sending the value as
+        // `email` in its payload, and a properly-updated client can send
+        // `username` explicitly.
         $validated = $request->validate([
-            'email' => 'required|email',
+            'email'    => 'sometimes|string',
+            'username' => 'sometimes|string',
             'password' => 'required|string',
         ]);
+        $identifier = strtolower(trim(
+            $validated['username'] ?? $validated['email'] ?? ''
+        ));
+        if ($identifier === '') {
+            return response()->json([
+                'message' => 'Username or email is required.',
+                'errors'  => ['email' => ['Username or email is required.']],
+            ], 422);
+        }
 
-        $user = User::whereRaw('LOWER(email) = ?', [$validated['email']])
+        $user = User::where(function ($q) use ($identifier) {
+            $q->whereRaw('LOWER(email) = ?', [$identifier])
+              ->orWhereRaw('LOWER(username) = ?', [$identifier]);
+        })
             ->where('is_active', true)
             ->whereNull('deleted_at')
             ->first();

@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "877582097644",
+    "project_id": "club-management-system-e2de0",
+    "storage_bucket": "club-management-system-e2de0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877582097644:android:9b5c91a64bc623e5fc59c9",
+        "android_client_info": {
+          "package_name": "com.clbyapp.clby"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDr40PWNA4ESwVLf3JhcLji1ib7A9jVzeo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877582097644:android:1bc4ecc2f1fdedfdfc59c9",
+        "android_client_info": {
+          "package_name": "com.clbyapp.coachesapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDr40PWNA4ESwVLf3JhcLji1ib7A9jVzeo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877582097644:android:c6c3be888fc793a0fc59c9",
+        "android_client_info": {
+          "package_name": "com.clbyapp.shift"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDr40PWNA4ESwVLf3JhcLji1ib7A9jVzeo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

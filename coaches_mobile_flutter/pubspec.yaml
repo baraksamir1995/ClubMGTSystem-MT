@@ -1,7 +1,7 @@
 name: coachesapp
 description: "Coachesapp — CLBY coach mobile app"
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.11.1
@@ -29,6 +29,8 @@ dependencies:
 
   # Fonts (Bebas Neue / Geist / Geist Mono per CLBY Coach design)
   google_fonts: ^6.2.1
+  firebase_core: ^4.9.0
+  firebase_crashlytics: ^5.2.2
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,7 @@
 name: clby
 description: "CLBY — gym member mobile app"
 publish_to: 'none'
-version: 1.0.3+14
+version: 1.0.4+15
 
 environment:
   sdk: ^3.11.1

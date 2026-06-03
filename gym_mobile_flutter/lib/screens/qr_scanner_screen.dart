@@ -149,19 +149,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             return;
           }
 
-          // Fast in-memory checks before hitting the network
+          // Fast in-memory freeze check before hitting the network.
+          // Studio/class eligibility (duration vs sessions, including
+          // transferred sessions) is decided by the backend — the single
+          // "current membership" can't see a separate transferred-sessions
+          // bucket, so we must not gate the scan on it here.
           final membership = memberProvider.currentMembership;
           if (membership?.isFrozen == true) {
             _showFrozenSheet(memberProvider);
-            return;
-          }
-          // Duration-only plans cannot scan studio QRs
-          if (membership != null && !membership.hasStudioAccess) {
-            _showResult(_CheckInResult.error(
-              title: 'Studio Access Not Included',
-              subtitle: 'Your current plan only includes gym floor access. Upgrade to a sessions plan to attend classes.',
-              icon: Icons.fitness_center_outlined,
-            ));
             return;
           }
 

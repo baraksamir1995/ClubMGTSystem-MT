@@ -11,3 +11,9 @@
 # Dependencies (install locally in each sub-project)
 node_modules/
 gym-admin/ClubMGTSystem
+
+# Local / OS junk (not for the repo)
+.DS_Store
+**/.DS_Store
+.claude/
+SESSION_HANDOFF.md

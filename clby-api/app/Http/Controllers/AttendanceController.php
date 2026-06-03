@@ -159,8 +159,15 @@ class AttendanceController extends Controller
             return response()->json(['error' => 'Member not found'], 404);
         }
 
-        // ── Step 2: Find active membership ──────────────────────────────────
-        $membership = DB::table('member_memberships')
+        // ── Step 2: Load active, in-window membership buckets ───────────────
+        //
+        // A member can hold several buckets at once — e.g. a `duration`
+        // subscription PLUS transferred `sessions`. We must pick by plan
+        // CAPABILITY, not just the most-recent row, otherwise gifted sessions
+        // never let a duration member into a class. Ordered to mirror
+        // validate_studio_access: own subscription before transferred credits,
+        // earliest-expiring first.
+        $memberships = DB::table('member_memberships')
             ->join('membership_plans', 'membership_plans.id', '=', 'member_memberships.plan_id')
             ->where('member_memberships.gym_member_id', $memberId)
             ->where('member_memberships.status', 'active')
@@ -172,40 +179,49 @@ class AttendanceController extends Controller
                 'member_memberships.id as membership_id',
                 'member_memberships.sessions_used',
                 'member_memberships.sessions_remaining',
+                'member_memberships.sessions_total',
                 'member_memberships.freeze_status',
+                'member_memberships.source_type',
                 'membership_plans.plan_type',
                 'membership_plans.session_count',
                 'membership_plans.name as plan_name',
             )
-            ->orderBy('member_memberships.start_date', 'desc')
-            ->first();
+            ->orderByRaw("CASE member_memberships.source_type WHEN 'subscription' THEN 0 ELSE 1 END")
+            ->orderByRaw('member_memberships.end_date ASC NULLS LAST')
+            ->orderBy('member_memberships.created_at', 'asc')
+            ->get();
 
-        if (!$membership) {
+        if ($memberships->isEmpty()) {
             return response()->json(['error' => 'Member does not have an active subscription'], 422);
         }
 
-        if ($membership->freeze_status === 'frozen') {
-            return response()->json(['error' => 'Membership is frozen'], 422);
-        }
-
-        // ── Step 3: Validate entry type vs plan type ────────────────────────
+        // ── Step 3: Pick the bucket that authorizes THIS entry type ─────────
         //
-        // Plan types:
+        // Plan capability:
         //   sessions         → classes ONLY (no gym access)
         //   duration         → gym ONLY (no class access)
         //   duration_session → BOTH gym and classes
         //
-        $planType = $membership->plan_type;
         $shouldDecrementSession = false;
 
         if ($isClassEntry) {
-            // Class entry: allowed for 'sessions' and 'duration_session' only
-            if ($planType === 'duration') {
+            $classCapable = $memberships->whereIn('plan_type', ['sessions', 'duration_session']);
+            if ($classCapable->isEmpty()) {
                 return response()->json(['error' => 'This plan does not allow class access. Duration plans are gym-only.'], 422);
             }
 
-            // Check remaining sessions (use sessions_remaining which accounts for added sessions)
-            if ($membership->sessions_remaining !== null && $membership->sessions_remaining <= 0) {
+            // Usable = not frozen and has remaining (unbounded sessions_total
+            // NULL counts as usable for its time window).
+            $membership = $classCapable->first(function ($m) {
+                if (($m->freeze_status ?? '') === 'frozen') return false;
+                return $m->sessions_total === null || (int) ($m->sessions_remaining ?? 0) > 0;
+            });
+
+            if (!$membership) {
+                // No usable class bucket — distinguish frozen-only from spent.
+                if ($classCapable->every(fn ($m) => ($m->freeze_status ?? '') === 'frozen')) {
+                    return response()->json(['error' => 'Membership is frozen'], 422);
+                }
                 return response()->json(['error' => 'No remaining sessions'], 422);
             }
             $shouldDecrementSession = true;
@@ -220,9 +236,15 @@ class AttendanceController extends Controller
                 return response()->json(['error' => 'Already checked in for this session'], 422);
             }
         } else {
-            // Gym entry: allowed for 'duration' and 'duration_session' only
-            if ($planType === 'sessions') {
+            // Gym entry: any non-'sessions' plan grants gym access.
+            $gymCapable = $memberships->where('plan_type', '<>', 'sessions');
+            if ($gymCapable->isEmpty()) {
                 return response()->json(['error' => 'This plan does not allow gym access. Session plans are class-only.'], 422);
+            }
+
+            $membership = $gymCapable->first(fn ($m) => ($m->freeze_status ?? '') !== 'frozen');
+            if (!$membership) {
+                return response()->json(['error' => 'Membership is frozen'], 422);
             }
         }
 

@@ -42,7 +42,7 @@ flutter build ipa --release --flavor clby --dart-define-from-file=flavors/clby.j
 # Then upload build/ios/ipa/CLBY.ipa via Transporter.app
 ```
 
-Bundle ID `com.clbyapp.clby` (matches Firebase). Apple closed `1.0.0` train — every release must bump CFBundleShortVersionString. Current pubspec: `1.0.1+11`. Next IPA: `1.0.2+12`.
+Bundle ID `com.clbyapp.clby` (matches Firebase). Apple closed `1.0.0` train — every release must bump CFBundleShortVersionString. Current pubspec: `1.0.5+16`. Next IPA: `1.0.5+16` (not yet built).
 
 ## Architecture conventions
 
@@ -96,7 +96,7 @@ Bundle ID `com.clbyapp.clby` (matches Firebase). Apple closed `1.0.0` train — 
 ## Active work / pending items
 
 - **Push notifications** — code complete, manual setup pending. Need APNs key in Firebase Console + service-account JSON on prod with `FIREBASE_CREDENTIALS` env. See `project_clby_push_notifications.md` memory.
-- **Next IPA:** `1.0.2+12`, includes the trainer-detail bugfix and `aps-environment=production`. Not yet built.
+- **Next IPA:** `1.0.5+16` — includes the studio-access fix (duration members can use transferred sessions for group classes; client-side `hasStudioAccess` gate removed so the backend decides). Backend half (`validate_studio_access` migration + AttendanceController) already on `main`/prod. Not yet built.
 - **White-label per-gym apps** — discussed but not started. Path: gym signs up for own Apple Developer account, SaaS provides Flutter flavor + asset pipeline. Cheap MVP path; Apple 4.3 risk if shipping under one dev account.
 
 ## Test accounts

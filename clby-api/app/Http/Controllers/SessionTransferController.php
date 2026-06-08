@@ -27,9 +27,15 @@ class SessionTransferController extends Controller
         $user = $request->user();
         $gymId = $user->gym_id;
 
+        // Match on the last 10 digits (Egyptian national number) so the stored
+        // format — "01001116106", "+201001116106", "00201001116106", spaces,
+        // etc. — never hides a real member. The client normalizes to "+20…",
+        // but we compare digits-only on both sides to be format-agnostic.
+        $phoneDigits = substr(preg_replace('/\D/', '', $validated['phone']), -10);
+
         $row = DB::table('profiles as p')
             ->join('gym_members as gm', 'gm.user_id', '=', 'p.id')
-            ->where('p.phone', $validated['phone'])
+            ->whereRaw("right(regexp_replace(p.phone, '[^0-9]', '', 'g'), 10) = ?", [$phoneDigits])
             ->where('gm.gym_id', $gymId)
             ->whereNull('gm.deleted_at')
             ->where('gm.status', 'active')

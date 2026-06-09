@@ -15,9 +15,42 @@ import {
   Users2,
 } from "lucide-react";
 
+const FAQ_ITEMS = [
+  {
+    q: "How fast can I get set up?",
+    a: "One afternoon. We personally onboard every founding gym. We import your member list from Excel, set up your branded app, train your manager, and stay on WhatsApp with you for the first 14 days. No tickets, no forms, no waiting.",
+  },
+  {
+    q: "Do my members need to download something new?",
+    a: "Yes, but it's your app, not ours. With your logo, colors, and name in the App Store / Play Store. They download it once, then they have check-in, bookings, payments, and session tracking in one place.",
+  },
+  {
+    q: "What if I don't have a tech team?",
+    a: "You don't need one. If your manager can use Instagram, she can use CLBY. We handle all the technical setup. Our customer WhatsApp support answers in under an hour during business hours.",
+  },
+  {
+    q: "What happens after the free trial?",
+    a: "You decide. 30 days, full product, no credit card required. If it's a fit, you pick monthly or annual billing. If it's not, we help you export your data and part ways as friends.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
 export default function Home() {
   return (
     <main className="relative z-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <Nav />
       <Hero />
       {/* <SocialProof /> */}
@@ -150,13 +183,11 @@ function Hero() {
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <AppStoreBadge
-                  href="#"
+                  href="https://apps.apple.com/id/app/clby/id6763633281"
                   platform="ios"
                 />
-                <AppStoreBadge
-                  href="#"
-                  platform="android"
-                />
+                {/* Android badge hidden until the Play Store listing is live */}
+                {/* <AppStoreBadge href="#" platform="android" /> */}
               </div>
             </div>
 
@@ -593,24 +624,7 @@ function renderCell(val: boolean | string) {
 /* ─────────────────────────────────────────  FAQ  ──────── */
 
 function FAQ() {
-  const items = [
-    {
-      q: "How fast can I get set up?",
-      a: "One afternoon. We personally onboard every founding gym. We import your member list from Excel, set up your branded app, train your manager, and stay on WhatsApp with you for the first 14 days. No tickets, no forms, no waiting.",
-    },
-    {
-      q: "Do my members need to download something new?",
-      a: "Yes, but it's your app, not ours. With your logo, colors, and name in the App Store / Play Store. They download it once, then they have check-in, bookings, payments, and session tracking in one place.",
-    },
-    {
-      q: "What if I don't have a tech team?",
-      a: "You don't need one. If your manager can use Instagram, she can use CLBY. We handle all the technical setup. Our customer WhatsApp support answers in under an hour during business hours.",
-    },
-    {
-      q: "What happens after the free trial?",
-      a: "You decide. 30 days, full product, no credit card required. If it's a fit, you pick monthly or annual billing. If it's not, we help you export your data and part ways as friends.",
-    },
-  ];
+  const items = FAQ_ITEMS;
 
   return (
     <section id="faq" className="py-12 md:py-20 px-5 md:px-8">

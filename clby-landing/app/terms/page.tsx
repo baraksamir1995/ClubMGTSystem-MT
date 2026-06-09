@@ -2,9 +2,10 @@ import LegalPage from "@/components/LegalPage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service. CLBY",
+  title: "Terms of Service",
   description:
     "The terms you agree to when using CLBY, the gym and club management platform.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

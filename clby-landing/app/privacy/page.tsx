@@ -2,9 +2,10 @@ import LegalPage from "@/components/LegalPage";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy. CLBY",
+  title: "Privacy Policy",
   description:
     "How CLBY collects, uses, and protects personal information for gym owners, staff, and members.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

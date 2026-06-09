@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import SessionRedirect from "./SessionRedirect";
 
 export const metadata: Metadata = {
-  title: "Open in CLBY",
+  title: { absolute: "Open in CLBY" },
   description: "Open this class in the CLBY app.",
   robots: { index: false, follow: false },
 };

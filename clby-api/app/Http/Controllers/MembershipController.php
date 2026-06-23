@@ -265,9 +265,74 @@ class MembershipController extends Controller
             $gymId,
         ]);
 
+        // Resolve the gym_member_id so we can log the grant.
+        $membership = DB::table('member_memberships')
+            ->where('id', $validated['membership_id'])
+            ->first();
+
+        if ($membership) {
+            DB::table('session_grants')->insert([
+                'id'            => Str::uuid()->toString(),
+                'gym_id'        => $gymId,
+                'gym_member_id' => $membership->gym_member_id,
+                'membership_id' => $validated['membership_id'],
+                'count'         => $validated['extra_sessions'],
+                'granted_by'    => $request->user()->id,
+                'created_at'    => now(),
+            ]);
+        }
+
         return response()->json([
             'data' => json_decode($result[0]->data, true),
         ]);
+    }
+
+    /**
+     * Member: fetch their own session-grant history.
+     */
+    public function myGrants(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $gymMember = DB::table('gym_members')
+            ->where('user_id', $user->id)
+            ->where('gym_id', $user->gym_id)
+            ->first();
+
+        if (! $gymMember) {
+            return response()->json(['data' => []]);
+        }
+
+        $grants = DB::table('session_grants as sg')
+            ->leftJoin('profiles as p', 'p.id', '=', 'sg.granted_by')
+            ->where('sg.gym_member_id', $gymMember->id)
+            ->orderByDesc('sg.created_at')
+            ->select('sg.id', 'sg.count', 'sg.note', 'sg.created_at', 'p.full_name as granted_by_name')
+            ->get();
+
+        return response()->json(['data' => $grants]);
+    }
+
+    /**
+     * Admin: list session grants for a specific gym member.
+     */
+    public function sessionGrants(Request $request, string $gymMemberId): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        $member = DB::table('gym_members')->where('id', $gymMemberId)->first();
+        if (! $member || $member->gym_id !== $gymId) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        $grants = DB::table('session_grants as sg')
+            ->leftJoin('profiles as p', 'p.id', '=', 'sg.granted_by')
+            ->where('sg.gym_member_id', $gymMemberId)
+            ->orderByDesc('sg.created_at')
+            ->select('sg.id', 'sg.count', 'sg.note', 'sg.created_at', 'p.full_name as granted_by_name')
+            ->get();
+
+        return response()->json(['data' => $grants]);
     }
 
     /**

@@ -6,6 +6,7 @@ import '../models/membership_summary_model.dart';
 import '../models/session_model.dart';
 import '../models/attendance_model.dart';
 import '../models/transfer_log.dart';
+import '../models/grant_log.dart';
 import '../models/notification_model.dart';
 import '../models/payment_model.dart';
 import '../services/api_service.dart';
@@ -25,6 +26,7 @@ class MemberProvider extends ChangeNotifier {
   List<BookingRecord> _myBookings = [];
   List<Attendance> _attendance = [];
   List<TransferLog> _transfers = [];
+  List<GrantLog> _grants = [];
   List<GymNotification> _notifications = [];
   List<Payment> _payments = [];
   int _monthlyCheckIns = 0;
@@ -43,6 +45,7 @@ class MemberProvider extends ChangeNotifier {
   bool _isLoadingMyBookings = false;
   bool _isLoadingAttendance = false;
   bool _isLoadingTransfers = false;
+  bool _isLoadingGrants = false;
   bool _isLoadingNotifications = false;
   bool _isLoadingPayments = false;
 
@@ -61,6 +64,7 @@ class MemberProvider extends ChangeNotifier {
   String? _myBookingsError;
   String? _attendanceError;
   String? _transfersError;
+  String? _grantsError;
   String? _notificationsError;
   String? _paymentsError;
 
@@ -77,6 +81,9 @@ class MemberProvider extends ChangeNotifier {
   List<TransferLog> get transfers => _transfers;
   bool get isLoadingTransfers => _isLoadingTransfers;
   String? get transfersError => _transfersError;
+  List<GrantLog> get grants => _grants;
+  bool get isLoadingGrants => _isLoadingGrants;
+  String? get grantsError => _grantsError;
   List<GymNotification> get notifications => _notifications;
   // US-01-04: true when new notifications arrived since last visit
   bool get hasUnreadNotifications =>
@@ -405,6 +412,24 @@ class MemberProvider extends ChangeNotifier {
         _transfersError = friendlyError(e);
       } finally {
         _isLoadingTransfers = false;
+        notifyListeners();
+      }
+    });
+  }
+
+  Future<void> loadGrants() {
+    if (_member == null) return Future.value();
+    return _runOnce('grants:${_member!.id}', () async {
+      _isLoadingGrants = true;
+      _grantsError = null;
+      notifyListeners();
+      try {
+        final raw = await _service.getMyGrants();
+        _grants = raw.map((m) => GrantLog.fromJson(m)).toList();
+      } catch (e) {
+        _grantsError = friendlyError(e);
+      } finally {
+        _isLoadingGrants = false;
         notifyListeners();
       }
     });

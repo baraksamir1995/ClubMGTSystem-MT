@@ -479,6 +479,13 @@ class ApiService {
     };
   }
 
+  /// Caller's session-grant history (admin-added sessions).
+  Future<List<Map<String, dynamic>>> getMyGrants() async {
+    final data = await _get('/api/members/me/grants');
+    final list = (data is Map ? data['data'] : null) as List? ?? const [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
   Future<List<MemberMembership>> getAllMemberships(String memberId) async {
     try {
       final raw = await _get('/api/members/$memberId');

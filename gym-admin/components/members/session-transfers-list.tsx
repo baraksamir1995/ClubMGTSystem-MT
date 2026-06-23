@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Repeat2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Gift, Repeat2 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { dateLocale } from '@/lib/date-locale';
 
@@ -14,19 +14,24 @@ interface TransferRow {
   other_gym_member_id?: string | null;
 }
 
+interface GrantRow {
+  id: string;
+  count: number;
+  created_at: string;
+  granted_by_name: string | null;
+  note: string | null;
+}
+
 interface Props {
   gymMemberId: string;
 }
 
-/**
- * Shows sessions-transfer history for a member: sent (outbound) and
- * received (inbound). Hidden entirely when the member has no activity.
- */
 export default function SessionTransfersList({ gymMemberId }: Props) {
   const t = useTranslations('members.sessionTransfers');
   const tc = useTranslations('common');
   const [sent, setSent] = useState<TransferRow[]>([]);
   const [received, setReceived] = useState<TransferRow[]>([]);
+  const [grants, setGrants] = useState<GrantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,17 +39,24 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/members/${gymMemberId}/session-transfers`);
-        if (!res.ok) {
-          if (!cancelled) setError('Failed to load transfers');
+        const [transfersRes, grantsRes] = await Promise.all([
+          fetch(`/api/members/${gymMemberId}/session-transfers`),
+          fetch(`/api/members/${gymMemberId}/session-grants`),
+        ]);
+        if (!transfersRes.ok || !grantsRes.ok) {
+          if (!cancelled) setError('Failed to load history');
           return;
         }
-        const json = await res.json();
+        const [transfersJson, grantsJson] = await Promise.all([
+          transfersRes.json(),
+          grantsRes.json(),
+        ]);
         if (cancelled) return;
-        setSent(json.data?.sent ?? []);
-        setReceived(json.data?.received ?? []);
+        setSent(transfersJson.data?.sent ?? []);
+        setReceived(transfersJson.data?.received ?? []);
+        setGrants(grantsJson.data ?? []);
       } catch {
-        if (!cancelled) setError('Failed to load transfers');
+        if (!cancelled) setError('Failed to load history');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -52,7 +64,7 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
     return () => { cancelled = true; };
   }, [gymMemberId]);
 
-  const totalCount = sent.length + received.length;
+  const totalCount = sent.length + received.length + grants.length;
 
   if (loading) {
     return (
@@ -84,6 +96,9 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
         <p className="text-sm text-fg-faint">{t('noTransfers')}</p>
       ) : (
         <div className="space-y-2">
+          {grants.map((gr) => (
+            <GrantRow key={gr.id} row={gr} />
+          ))}
           {sent.map((tr) => (
             <Row key={tr.id} row={tr} direction="sent" t={t} />
           ))}
@@ -92,6 +107,33 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function GrantRow({ row }: { row: GrantRow }) {
+  const locale = useLocale();
+  const date = new Date(row.created_at);
+  const dateStr = isNaN(date.getTime())
+    ? row.created_at
+    : date.toLocaleDateString(dateLocale(locale), { month: 'short', day: 'numeric', year: 'numeric' });
+  const unit = row.count === 1 ? 'session' : 'sessions';
+
+  return (
+    <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-surface/40 border border-line">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-violet-400/10">
+        <Gift className="w-4 h-4 text-violet-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-fg truncate">
+          Added by {row.granted_by_name ?? 'Admin'}
+          {row.note ? ` · ${row.note}` : ''}
+        </p>
+        <p className="text-xs text-fg-faint">{dateStr}</p>
+      </div>
+      <div className="text-sm font-semibold flex-shrink-0 text-violet-400">
+        +{row.count} {unit}
+      </div>
     </div>
   );
 }

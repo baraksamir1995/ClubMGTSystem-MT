@@ -184,6 +184,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
     Route::get('/members/lookup', [SessionTransferController::class, 'lookup'])->middleware('throttle:120,1');
     Route::post('/members/session-transfers', [SessionTransferController::class, 'store'])->middleware('throttle:60,1');
     Route::get('/members/me/transfers', [SessionTransferController::class, 'mine']);
+    Route::get('/members/me/grants', [MembershipController::class, 'myGrants']);
 
     Route::get('/members/{id}', [MemberController::class, 'show']);
     Route::get('/members/{id}/services', [MemberController::class, 'services']);
@@ -243,6 +244,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Admin: view a specific member's session-transfer history (sent + received)
     Route::get('/members/{id}/session-transfers', [SessionTransferController::class, 'forMember'])->middleware('permission:members,view');
+    // Admin: view a specific member's session-grant history (admin-added sessions)
+    Route::get('/members/{id}/session-grants', [MembershipController::class, 'sessionGrants'])->middleware('permission:members,view');
 
     // Classes management
     Route::post('/classes', [ClassController::class, 'store'])->middleware('permission:classes,create');

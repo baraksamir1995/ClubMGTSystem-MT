@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/attendance_model.dart';
 import '../models/transfer_log.dart';
+import '../models/grant_log.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../widgets/gym_app_bar.dart';
@@ -54,6 +55,13 @@ class _XferItem extends _ActivityItem {
   @override String get id => transfer.id;
 }
 
+class _GrantItem extends _ActivityItem {
+  final GrantLog grant;
+  _GrantItem(this.grant);
+  @override DateTime get timestamp => grant.createdAt;
+  @override String get id => grant.id;
+}
+
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
 
@@ -80,6 +88,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     await Future.wait([
       memberProvider.loadAttendance(),
       memberProvider.loadTransfers(),
+      memberProvider.loadGrants(),
     ]);
   }
 
@@ -109,6 +118,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final activity = <_ActivityItem>[
       ...mp.attendance.map((a) => _AttItem(a)),
       ...mp.transfers.map((t) => _XferItem(t)),
+      ...mp.grants.map((g) => _GrantItem(g)),
     ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     final filtered = _applyFilters(activity);
 
@@ -140,8 +150,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 onClearDate: () => setState(() => _dateRange = null),
                 onScan: _openScanner,
                 items: filtered,
-                isLoading: mp.isLoadingAttendance || mp.isLoadingTransfers,
-                error: mp.attendanceError ?? mp.transfersError,
+                isLoading: mp.isLoadingAttendance || mp.isLoadingTransfers || mp.isLoadingGrants,
+                error: mp.attendanceError ?? mp.transfersError ?? mp.grantsError,
                 onViewAll: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -172,7 +182,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         items = items.whereType<_AttItem>().where((i) => i.attendance.isClassOrStudio);
         break;
       case _AttendanceFilter.transfers:
-        items = items.whereType<_XferItem>();
+        items = items.where((i) => i is _XferItem || i is _GrantItem);
         break;
     }
     final r = _dateRange;
@@ -635,9 +645,11 @@ class _HistoryList extends StatelessWidget {
   String _headerCount(List<_ActivityItem> group) {
     final att = group.whereType<_AttItem>().length;
     final xfer = group.whereType<_XferItem>().length;
+    final grant = group.whereType<_GrantItem>().length;
     final parts = <String>[];
-    if (att > 0)  parts.add('$att ${att == 1 ? 'check-in' : 'check-ins'}');
-    if (xfer > 0) parts.add('$xfer ${xfer == 1 ? 'transfer' : 'transfers'}');
+    if (att > 0)   parts.add('$att ${att == 1 ? 'check-in' : 'check-ins'}');
+    if (xfer > 0)  parts.add('$xfer ${xfer == 1 ? 'transfer' : 'transfers'}');
+    if (grant > 0) parts.add('$grant ${grant == 1 ? 'grant' : 'grants'}');
     return parts.join(' • ');
   }
 
@@ -727,6 +739,7 @@ class _HistoryList extends StatelessWidget {
   Widget _activityRow(_ActivityItem item) => switch (item) {
         _AttItem(:final attendance) => _AttRow(item: attendance),
         _XferItem(:final transfer)  => _TransferRow(item: transfer),
+        _GrantItem(:final grant)    => _GrantRow(item: grant),
       };
 }
 
@@ -890,6 +903,96 @@ class _TransferRow extends StatelessWidget {
               sent ? Icons.north_east_rounded : Icons.south_west_rounded,
               color: accent, size: 22,
             ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w600,
+                    color: _kInk, letterSpacing: -0.1, height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isToday) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _kPeach,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'TODAY',
+                          style: TextStyle(
+                            fontSize: 10, fontWeight: FontWeight.w700,
+                            color: _kPrimaryDeep, letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      DateFormat('EEE · MMM d, yyyy').format(item.createdAt),
+                      style: const TextStyle(fontSize: 12, color: _kInk2),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            DateFormat('h:mm a').format(item.createdAt),
+            style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600,
+              color: _kInk, fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Admin-granted sessions row — visually distinct with a gift/star icon in blue.
+class _GrantRow extends StatelessWidget {
+  final GrantLog item;
+  const _GrantRow({required this.item});
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return item.createdAt.year == now.year &&
+        item.createdAt.month == now.month &&
+        item.createdAt.day == now.day;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFF7C5CFC);
+    const iconBg = Color(0x1A7C5CFC);
+    final unit = item.count == 1 ? 'session' : 'sessions';
+    final byLine = item.grantedByName != null ? ' by ${item.grantedByName}' : '';
+    final title = 'Added ${item.count} $unit$byLine';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.card_giftcard_rounded, color: accent, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(

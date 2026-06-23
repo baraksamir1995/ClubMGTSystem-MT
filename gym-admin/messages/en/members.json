@@ -126,7 +126,7 @@
     "overview": "Overview",
     "payments": "Payments",
     "attendance": "Attendance",
-    "transfers": "Transfers History"
+    "transfers": "Sessions History"
   },
 
   "actions": {
@@ -318,9 +318,9 @@
   },
 
   "sessionTransfers": {
-    "title": "Session Transfers",
+    "title": "Sessions History",
     "sentReceived": "{sent} sent · {received} received",
-    "noTransfers": "No transfers yet.",
+    "noTransfers": "No session activity yet.",
     "sentTo": "Sent to {name}",
     "receivedFrom": "Received from {name}",
     "sessionSingle": "{count} session",

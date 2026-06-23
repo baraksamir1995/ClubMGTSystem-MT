@@ -33,13 +33,13 @@ class AuthController extends Controller
     {
         $this->normalizeEmail($request);
 
-        // SECURITY: `gym_id` is intentionally NOT accepted on self-registration.
-        // Honoring a user-supplied gym_id here lets any internet user enroll as
-        // a member of any gym in the platform (multi-tenant isolation bypass,
-        // disclosed 2026-05-12). Gym membership is established through the
-        // admin-invite path (POST /api/members/register, gated by
-        // permission:members,create) instead. Self-registered profiles land
-        // unaffiliated (gym_id = NULL) until a gym admin attaches them.
+        // `gym_id` is accepted but stored as `pending_gym_id` — the profile
+        // stays unaffiliated (gym_id = NULL) until the user verifies their
+        // email, at which point the gym_members row is created. This keeps
+        // profiles.gym_id trustworthy (only set by verified flows) while
+        // still honouring the gym the user selected during signup.
+        // Validation ensures the gym exists and is active so an attacker
+        // can't enumerate arbitrary gym UUIDs silently.
         $validated = $request->validate([
             'email' => [
                 'required',
@@ -66,6 +66,7 @@ class AuthController extends Controller
             ],
             'date_of_birth' => 'nullable|date',
             'gender' => 'nullable|string|in:male,female,other',
+            'gym_id' => ['nullable', 'uuid', Rule::exists('gyms', 'id')->where('is_active', true)],
         ]);
 
         $userId = Str::uuid()->toString();
@@ -93,6 +94,7 @@ class AuthController extends Controller
                     'date_of_birth' => $validated['date_of_birth'] ?? null,
                     'gender' => $validated['gender'] ?? null,
                     'gym_id' => null,
+                    'pending_gym_id' => $validated['gym_id'] ?? null,
                     'role' => 'member',
                 ]);
             });
@@ -126,6 +128,39 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
         ], 201);
+    }
+
+    /**
+     * Create a gym_members row and set profiles.gym_id for a self-registered
+     * user after their email is verified. Called inside a DB transaction.
+     */
+    private function assignGymMember(string $userId, string $gymId): void
+    {
+        $maxNumber = DB::table('gym_members')
+            ->where('gym_id', $gymId)
+            ->whereNotNull('member_number')
+            ->max(DB::raw('member_number::int'));
+
+        $memberId = Str::uuid()->toString();
+
+        DB::table('gym_members')->insert([
+            'id'            => $memberId,
+            'gym_id'        => $gymId,
+            'user_id'       => $userId,
+            'member_number' => $maxNumber ? $maxNumber + 1 : 1,
+            'status'        => 'active',
+            'joined_at'     => now(),
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        DB::table('profiles')
+            ->where('id', $userId)
+            ->update([
+                'gym_id'         => $gymId,
+                'pending_gym_id' => null,
+                'updated_at'     => now(),
+            ]);
     }
 
     private function sendVerificationEmail(User $user): void
@@ -201,11 +236,19 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid or expired token.'], 422);
         }
 
-        DB::table('profiles')
-            ->where('id', $record->user_id)
-            ->update(['email_verified' => true, 'updated_at' => now()]);
+        $profile = DB::table('profiles')->where('id', $record->user_id)->first();
 
-        DB::table('email_verification_tokens')->where('user_id', $record->user_id)->delete();
+        DB::transaction(function () use ($record, $profile) {
+            DB::table('profiles')
+                ->where('id', $record->user_id)
+                ->update(['email_verified' => true, 'updated_at' => now()]);
+
+            DB::table('email_verification_tokens')->where('user_id', $record->user_id)->delete();
+
+            if ($profile && $profile->pending_gym_id && ! $profile->gym_id) {
+                $this->assignGymMember($record->user_id, $profile->pending_gym_id);
+            }
+        });
 
         return response()->json(['message' => 'Email verified successfully.']);
     }

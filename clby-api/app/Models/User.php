@@ -29,6 +29,7 @@ class User extends Authenticatable
         'photo_url',
         'fcm_token',
         'gym_id',
+        'pending_gym_id',
         'preferred_language',
         'notification_preferences',
     ];

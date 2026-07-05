@@ -15,10 +15,10 @@ export default function LoginPage() {
   const [gymInfo, setGymInfo] = useState<{ name: string; logoUrl: string | null } | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('gym_info');
-    if (stored) {
-      try { setGymInfo(JSON.parse(stored)); } catch {}
-    }
+    try {
+      const stored = localStorage.getItem('gym_info');
+      if (stored) setGymInfo(JSON.parse(stored));
+    } catch {}
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ export default function LoginPage() {
         }
 
         if (json.gym) {
-          localStorage.setItem('gym_info', JSON.stringify({ name: json.gym.name, logoUrl: json.gym.logo_url }));
+          try { localStorage.setItem('gym_info', JSON.stringify({ name: json.gym.name, logoUrl: json.gym.logo_url })); } catch {}
         }
         mustReset = json.mustResetPassword === true;
 

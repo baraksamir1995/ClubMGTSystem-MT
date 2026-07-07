@@ -23,5 +23,12 @@ php artisan config:cache
 php artisan route:cache
 php artisan event:cache
 
+# The artisan commands above run as root and may create files under
+# storage/ (laravel.log, cached views) owned by root. PHP-FPM workers
+# run as www-data and would then fail every append with EACCES — and
+# Monolog's fallback floods the container log. Re-own before handoff.
+echo "[entrypoint] Fixing storage ownership..."
+chown -R www-data:www-data storage bootstrap/cache
+
 echo "[entrypoint] Starting supervisord (php-fpm + nginx)..."
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

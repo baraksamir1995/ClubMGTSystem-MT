@@ -64,8 +64,17 @@ class StaffController extends Controller
         // Reject if the email already maps to any profile. Without this,
         // updateOrInsert below would overwrite a foreign profile's gym_id,
         // role, and password — a path to taking over an existing account
-        // (member or admin) by knowing the email.
-        $existing = DB::table('profiles')->where('email', $validated['email'])->first();
+        // (member or admin) by knowing the email. Compare on LOWER(email)
+        // to match the auth_users/profiles email_lower_unique indexes, and
+        // also check auth.users so an orphaned shim row can't 500 the
+        // insert below.
+        $emailLower = strtolower($validated['email']);
+        $existing = DB::table('profiles')
+            ->whereRaw('LOWER(email) = ?', [$emailLower])
+            ->exists()
+            || DB::table('auth.users')
+                ->whereRaw('LOWER(email) = ?', [$emailLower])
+                ->exists();
         if ($existing) {
             return response()->json([
                 'error' => 'A user with this email already exists. Use the existing-user attach flow instead.',
@@ -93,56 +102,69 @@ class StaffController extends Controller
         // Generate temp password
         $tempPassword = Str::random(10);
 
-        return DB::transaction(function () use ($validated, $gymId, $tempPassword, $roleIds) {
-            $profileId = Str::uuid()->toString();
+        try {
+            return DB::transaction(function () use ($validated, $gymId, $tempPassword, $roleIds) {
+                $profileId = Str::uuid()->toString();
 
-            // Create auth.users stub for FK
-            DB::table('auth.users')->insert([
-                'id' => $profileId,
-                'email' => $validated['email'],
-                'encrypted_password' => Hash::make($tempPassword),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            DB::table('profiles')->insert([
-                'id' => $profileId,
-                'email' => $validated['email'],
-                'full_name' => $validated['full_name'],
-                'phone' => $validated['phone'] ?? null,
-                'password' => Hash::make($tempPassword),
-                'gym_id' => $gymId,
-                'role' => 'staff',
-                'is_active' => true,
-                'must_reset_password' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $staffId = Str::uuid()->toString();
-            DB::table('staff_members')->insert([
-                'id' => $staffId,
-                'gym_id' => $gymId,
-                'user_id' => $profileId,
-                'full_name' => $validated['full_name'],
-                'email' => $validated['email'],
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            foreach ($roleIds as $roleId) {
-                DB::table('staff_member_roles')->insert([
-                    'staff_id' => $staffId,
-                    'role_id' => $roleId,
+                // Create auth.users stub for FK
+                DB::table('auth.users')->insert([
+                    'id' => $profileId,
+                    'email' => $validated['email'],
+                    'encrypted_password' => Hash::make($tempPassword),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
-            }
 
-            return response()->json([
-                'data' => ['id' => $staffId],
-                'tempPassword' => $tempPassword,
-            ], 201);
-        });
+                DB::table('profiles')->insert([
+                    'id' => $profileId,
+                    'email' => $validated['email'],
+                    'full_name' => $validated['full_name'],
+                    'phone' => $validated['phone'] ?? null,
+                    'password' => Hash::make($tempPassword),
+                    'gym_id' => $gymId,
+                    'role' => 'staff',
+                    'is_active' => true,
+                    'must_reset_password' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $staffId = Str::uuid()->toString();
+                DB::table('staff_members')->insert([
+                    'id' => $staffId,
+                    'gym_id' => $gymId,
+                    'user_id' => $profileId,
+                    'full_name' => $validated['full_name'],
+                    'email' => $validated['email'],
+                    'status' => 'active',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                foreach ($roleIds as $roleId) {
+                    DB::table('staff_member_roles')->insert([
+                        'staff_id' => $staffId,
+                        'role_id' => $roleId,
+                    ]);
+                }
+
+                return response()->json([
+                    'data' => ['id' => $staffId],
+                    'tempPassword' => $tempPassword,
+                ], 201);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // 23505 = unique_violation. Race-loser path — the pre-check
+            // above passed but a concurrent insert (or an index the check
+            // doesn't cover) beat us. Same 422 the pre-check would return.
+            if ($e->getCode() === '23505' && str_contains($e->getMessage(), 'email')) {
+                return response()->json([
+                    'error' => 'A user with this email already exists. Use the existing-user attach flow instead.',
+                    'code' => 'email_taken',
+                ], 422);
+            }
+            throw $e;
+        }
     }
 
     public function update(Request $request, string $id): JsonResponse

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\GymMember;
 use App\Models\User;
 use App\Services\EmailService;
 use Illuminate\Http\JsonResponse;
@@ -267,6 +268,7 @@ class AuthController extends Controller
             'email'    => 'sometimes|string',
             'username' => 'sometimes|string',
             'password' => 'required|string',
+            'gym_id'   => 'sometimes|nullable|uuid',
         ]);
         $identifier = strtolower(trim(
             $validated['username'] ?? $validated['email'] ?? ''
@@ -290,6 +292,24 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);
+        }
+
+        // White-label gym enforcement: if the client specifies a gym_id, members
+        // must belong to that gym. Admins/staff can log in from any flavor.
+        if (! empty($validated['gym_id']) && in_array($user->role, ['member', null], true)) {
+            // Self-registered users don't get a gym_members row until email
+            // verification (pending_gym_id flow), so count a matching
+            // pending_gym_id as membership — the verification check below
+            // then returns the proper email_not_verified response.
+            $isMember = $user->pending_gym_id === $validated['gym_id']
+                || GymMember::where('user_id', $user->id)
+                    ->where('gym_id', $validated['gym_id'])
+                    ->exists();
+            if (! $isMember) {
+                return response()->json([
+                    'message' => 'Invalid credentials.',
+                ], 401);
+            }
         }
 
         // Members must verify their email before logging in. Admin roles are

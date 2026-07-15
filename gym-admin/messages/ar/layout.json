@@ -1,7 +1,12 @@
 {
-  "adminPanel": "لوحة التحكم",
-  "staffPortal": "بوابة الموظفين",
-  "myGym": "النادي",
-  "signOut": "تسجيل الخروج",
-  "poweredBy": "بدعم من"
+ "adminPanel": "لوحة التحكم",
+ "staffPortal": "بوابة الموظفين",
+ "myGym": "النادي",
+ "signOut": "تسجيل الخروج",
+ "poweredBy": "بدعم من",
+ "skipToContent": "تخطي إلى المحتوى الرئيسي",
+ "themeToggle": "تبديل الوضع الداكن",
+ "themeDarkEnabled": "تم تفعيل الوضع الداكن",
+ "themeLightEnabled": "تم تفعيل الوضع الفاتح",
+ "accountMenu": "قائمة الحساب"
 }

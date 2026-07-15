@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Dumbbell } from 'lucide-react';
-import SignOutButton from '@/components/sign-out-button';
 import NavLinks from '@/components/nav-links';
-import LanguageSwitcher from '@/components/language-switcher';
+import ThemeToggle from '@/components/theme/theme-toggle';
+import UserMenu from '@/components/user-menu';
 import MutationListener from '@/components/mutation-listener';
 import GymTimezoneProvider from '@/components/gym-timezone-provider';
 import type { Metadata } from 'next';
@@ -163,19 +163,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const sidebarLabel = me?.is_staff ? t('staffPortal') : t('adminPanel');
 
   return (
-    <div className="min-h-screen bg-clby-bg flex">
-      {/* Sidebar — brand near-black with a hairline `clby-border` so it
+    <div className="min-h-screen bg-surface flex">
+      {/* First tab stop on every dashboard page — jumps past the nav rail. */}
+      <a href="#main-content" className="skip-link">{t('skipToContent')}</a>
+      {/* Sidebar — themed page surface with a hairline border so it
           still reads as a distinct rail against the main content area. */}
-      <aside className="w-60 flex-shrink-0 bg-clby-bg border-e border-clby-border flex flex-col">
+      <aside className="w-60 flex-shrink-0 bg-surface border-e border-line flex flex-col">
         {/* Gym Identity */}
-        <div className="p-5 border-b border-clby-border">
+        <div className="p-5 border-b border-line">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-clby-surface rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="w-10 h-10 bg-surface-2 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
               {gym?.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element -- gym logo on external host
                 <img src={gym.logo_url} alt={gym.name} className="w-full h-full object-cover" />
               ) : (
-                <Dumbbell className="w-5 h-5 text-clby-green" />
+                <Dumbbell className="w-5 h-5 text-brand" />
               )}
             </div>
             <div className="min-w-0">
@@ -192,28 +194,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Suspense>
         </nav>
 
-        {/* User + language + Sign out */}
-        <div className="p-3 border-t border-clby-border">
-          <div className="px-3 py-2 mb-1">
-            <p className="text-xs font-medium text-fg truncate">{displayName}</p>
-            <p className="text-xs text-fg-faint truncate">{me?.email}</p>
-          </div>
-          <LanguageSwitcher />
-          <SignOutButton />
-        </div>
       </aside>
 
       {/* Main */}
-      <main className="flex-1 min-w-0 overflow-auto flex flex-col">
+      <div className="flex-1 min-w-0 overflow-auto flex flex-col">
         <GymTimezoneProvider timezone={settings?.timezone ?? 'Africa/Cairo'} />
         <MutationListener />
-        <div className="flex-1 p-6">{children}</div>
+        {/* Dashboard header — global controls + account dropdown, pinned to
+            the inline-end of the content area (top-right in LTR). */}
+        <header className="flex items-center justify-end gap-1 px-6 pt-3 -mb-3">
+          <ThemeToggle />
+          <UserMenu name={displayName} email={me?.email ?? ''} />
+        </header>
+        <main id="main-content" className="flex-1 p-6">{children}</main>
         {/* Brand footer — pinned to the bottom of the scroll container
             so it sits below page content regardless of length. */}
         <footer className="px-6 py-3 text-[11px] text-fg-faint border-t border-line tracking-wide">
-          {t('poweredBy')} <span className="text-clby-green font-semibold">CLBY</span>
+          {t('poweredBy')} <span className="text-brand font-semibold">CLBY</span>
         </footer>
-      </main>
+      </div>
     </div>
   );
 }

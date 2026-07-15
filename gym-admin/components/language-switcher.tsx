@@ -26,7 +26,8 @@ export default function LanguageSwitcher() {
   return (
     <button
       onClick={switchTo}
-      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-fg-muted hover:text-fg hover:bg-clby-surface transition-colors"
+      role="menuitem"
+      className="w-full flex items-center gap-3 px-3 min-h-11 rounded-lg text-sm text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors"
     >
       <Languages className="w-4 h-4 flex-shrink-0" />
       <span className="flex-1 text-start">{label}</span>

@@ -1,7 +1,12 @@
 {
-  "adminPanel": "Admin Panel",
-  "staffPortal": "Staff Portal",
-  "myGym": "My Gym",
-  "signOut": "Sign out",
-  "poweredBy": "Powered by"
+ "adminPanel": "Admin Panel",
+ "staffPortal": "Staff Portal",
+ "myGym": "My Gym",
+ "signOut": "Sign out",
+ "poweredBy": "Powered by",
+ "skipToContent": "Skip to main content",
+ "themeToggle": "Toggle dark theme",
+ "themeDarkEnabled": "Dark theme enabled",
+ "themeLightEnabled": "Light theme enabled",
+ "accountMenu": "Account menu"
 }

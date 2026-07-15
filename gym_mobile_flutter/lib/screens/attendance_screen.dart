@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -126,8 +127,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       backgroundColor: _kBg,
       appBar: GymAppBar(
         gym: gym,
-        fallbackTitle: 'Attendance',
-        greeting: 'Attendance',
+        fallbackTitle: context.l10n.attendanceTitle,
+        greeting: context.l10n.attendanceTitle,
         greetingStyle: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
@@ -140,7 +141,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         color: _kPrimary,
         child: hasActivePlan
             ? _ActiveBody(
-                planName: membership?.planName ?? 'Active Plan',
+                planName: membership?.planName ?? context.l10n.attendanceActivePlan,
                 memberNumber: member?.memberNumber,
                 renewsOn: membership?.endDate,
                 filter: _filter,
@@ -307,8 +308,8 @@ class _MembershipCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          Positioned(
-            top: -40, right: -40,
+          PositionedDirectional(
+            top: -40, end: -40,
             child: Container(
               width: 160, height: 160,
               decoration: BoxDecoration(
@@ -342,9 +343,9 @@ class _MembershipCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'MEMBERSHIP',
-                            style: TextStyle(
+                          Text(
+                            context.l10n.attendanceMembershipLabel,
+                            style: const TextStyle(
                               fontSize: 11, fontWeight: FontWeight.w600,
                               color: Color(0x9EFFFFFF), letterSpacing: 0.4,
                             ),
@@ -367,9 +368,9 @@ class _MembershipCard extends StatelessWidget {
                         color: _kSuccess.withValues(alpha: 0.22),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
-                        'Active',
-                        style: TextStyle(
+                      child: Text(
+                        context.l10n.commonActive,
+                        style: const TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w700,
                           color: _kSuccess, letterSpacing: 0.3,
                         ),
@@ -390,9 +391,9 @@ class _MembershipCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'MEMBER #',
-                              style: TextStyle(
+                            Text(
+                              context.l10n.attendanceMemberNumberLabel,
+                              style: const TextStyle(
                                 fontSize: 10, fontWeight: FontWeight.w600,
                                 color: Color(0x8CFFFFFF), letterSpacing: 0.4,
                               ),
@@ -414,9 +415,9 @@ class _MembershipCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Text(
-                              'RENEWS',
-                              style: TextStyle(
+                            Text(
+                              context.l10n.attendanceRenewsLabel,
+                              style: const TextStyle(
                                 fontSize: 10, fontWeight: FontWeight.w600,
                                 color: Color(0x8CFFFFFF), letterSpacing: 0.4,
                               ),
@@ -467,15 +468,15 @@ class _ScanCta extends StatelessWidget {
               BoxShadow(color: Color(0x381F1A14), blurRadius: 20, offset: Offset(0, 8)),
             ],
           ),
-          child: const Center(
+          child: Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 22),
-                SizedBox(width: 10),
+                const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 22),
+                const SizedBox(width: 10),
                 Text(
-                  'Scan QR to check in',
-                  style: TextStyle(
+                  context.l10n.attendanceScanQr,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -510,10 +511,10 @@ class _FilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final opts = <(_AttendanceFilter, String)>[
-      (_AttendanceFilter.all, 'All'),
-      (_AttendanceFilter.entrance, 'Entrance'),
-      (_AttendanceFilter.classes, 'Classes'),
-      (_AttendanceFilter.transfers, 'Transfers'),
+      (_AttendanceFilter.all, context.l10n.attendanceFilterAll),
+      (_AttendanceFilter.entrance, context.l10n.attendanceFilterEntrance),
+      (_AttendanceFilter.classes, context.l10n.attendanceFilterClasses),
+      (_AttendanceFilter.transfers, context.l10n.attendanceFilterTransfers),
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -580,9 +581,9 @@ class _DateChip extends StatelessWidget {
   final VoidCallback onClear;
   const _DateChip({required this.range, required this.onTap, required this.onClear});
 
-  String _label() {
+  String _label(BuildContext context) {
     final r = range;
-    if (r == null) return 'Date';
+    if (r == null) return context.l10n.attendanceDateChip;
     final f = DateFormat('MMM d, yyyy');
     final from = f.format(r.from);
     final to   = f.format(r.to);
@@ -597,7 +598,7 @@ class _DateChip extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.fromLTRB(10, 8, hasRange ? 8 : 12, 8),
+        padding: EdgeInsetsDirectional.fromSTEB(10, 8, hasRange ? 8 : 12, 8),
         decoration: BoxDecoration(
           color: hasRange ? _kPeach : _kCard,
           borderRadius: BorderRadius.circular(999),
@@ -611,7 +612,7 @@ class _DateChip extends StatelessWidget {
             const Icon(Icons.calendar_today_outlined, size: 14, color: _kInk),
             const SizedBox(width: 6),
             Text(
-              _label(),
+              _label(context),
               style: const TextStyle(
                 color: _kInk, fontSize: 13, fontWeight: FontWeight.w600,
               ),
@@ -642,14 +643,14 @@ class _HistoryList extends StatelessWidget {
 
   /// Header label accounts for both event types: "3 check-ins • 2 transfers"
   /// when a month has both, or just "2 transfers" / "3 check-ins" alone.
-  String _headerCount(List<_ActivityItem> group) {
+  String _headerCount(BuildContext context, List<_ActivityItem> group) {
     final att = group.whereType<_AttItem>().length;
     final xfer = group.whereType<_XferItem>().length;
     final grant = group.whereType<_GrantItem>().length;
     final parts = <String>[];
-    if (att > 0)   parts.add('$att ${att == 1 ? 'check-in' : 'check-ins'}');
-    if (xfer > 0)  parts.add('$xfer ${xfer == 1 ? 'transfer' : 'transfers'}');
-    if (grant > 0) parts.add('$grant ${grant == 1 ? 'grant' : 'grants'}');
+    if (att > 0)   parts.add(context.l10n.attendanceCheckInCount(att));
+    if (xfer > 0)  parts.add(context.l10n.attendanceTransferCount(xfer));
+    if (grant > 0) parts.add(context.l10n.attendanceGrantCount(grant));
     return parts.join(' • ');
   }
 
@@ -680,7 +681,7 @@ class _HistoryList extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    _headerCount(groups[i].items),
+                    _headerCount(context, groups[i].items),
                     style: const TextStyle(
                       fontSize: 11, fontWeight: FontWeight.w600,
                       color: _kInk3,
@@ -721,9 +722,9 @@ class _HistoryList extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: _kHair, width: 1.4),
                   ),
-                  child: const Text(
-                    'View all check-ins',
-                    style: TextStyle(
+                  child: Text(
+                    context.l10n.attendanceViewAllCheckIns,
+                    style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w600, color: _kInk,
                     ),
                   ),
@@ -770,14 +771,14 @@ class _AttRow extends StatelessWidget {
 
   bool get _isClass => item.isClassOrStudio;
 
-  String get _name {
+  String _name(BuildContext context) {
     // Prefer the structural name (class > studio > branch) so the row
     // always matches what the filter is keying off.
     if (item.className != null) return item.className!;
     if (item.studioName != null) return item.studioName!;
-    if (item.branchName != null) return 'Club Entrance';
-    if (item.method == 'manual') return 'Manual check-in';
-    return item.accessPoint ?? 'Club Entrance';
+    if (item.branchName != null) return context.l10n.attendanceClubEntrance;
+    if (item.method == 'manual') return context.l10n.attendanceManualCheckIn;
+    return item.accessPoint ?? context.l10n.attendanceClubEntrance;
   }
 
   bool get _isToday {
@@ -811,7 +812,7 @@ class _AttRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _name,
+                  _name(context),
                   maxLines: 2, overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600,
@@ -829,9 +830,9 @@ class _AttRow extends StatelessWidget {
                           color: _kPeach,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Text(
-                          'TODAY',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.attendanceTodayBadge,
+                          style: const TextStyle(
                             fontSize: 10, fontWeight: FontWeight.w700,
                             color: _kPrimaryDeep, letterSpacing: 0.3,
                           ),
@@ -883,10 +884,9 @@ class _TransferRow extends StatelessWidget {
     final sent = item.isSent;
     final accent = sent ? _kPrimary : _kSuccess;
     final iconBg = sent ? const Color(0x1AE07A3B) : const Color(0x1A3F8B5C);
-    final unit = item.count == 1 ? 'session' : 'sessions';
     final title = sent
-        ? 'Sent ${item.count} $unit to ${item.otherName}'
-        : 'Received ${item.count} $unit from ${item.otherName}';
+        ? context.l10n.attendanceSentSessions(item.count, item.otherName)
+        : context.l10n.attendanceReceivedSessions(item.count, item.otherName);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -928,9 +928,9 @@ class _TransferRow extends StatelessWidget {
                           color: _kPeach,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Text(
-                          'TODAY',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.attendanceTodayBadge,
+                          style: const TextStyle(
                             fontSize: 10, fontWeight: FontWeight.w700,
                             color: _kPrimaryDeep, letterSpacing: 0.3,
                           ),
@@ -977,9 +977,9 @@ class _GrantRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const accent = Color(0xFF7C5CFC);
     const iconBg = Color(0x1A7C5CFC);
-    final unit = item.count == 1 ? 'session' : 'sessions';
-    final byLine = item.grantedByName != null ? ' by ${item.grantedByName}' : '';
-    final title = 'Added ${item.count} $unit$byLine';
+    final title = item.grantedByName != null
+        ? context.l10n.attendanceGrantedSessionsBy(item.count, item.grantedByName!)
+        : context.l10n.attendanceGrantedSessions(item.count);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1018,9 +1018,9 @@ class _GrantRow extends StatelessWidget {
                           color: _kPeach,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Text(
-                          'TODAY',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.attendanceTodayBadge,
+                          style: const TextStyle(
                             fontSize: 10, fontWeight: FontWeight.w700,
                             color: _kPrimaryDeep, letterSpacing: 0.3,
                           ),
@@ -1057,24 +1057,24 @@ class _EmptyHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(22, 36, 22, 0),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 36, 22, 0),
       child: Column(
         children: [
-          _PeachSquare(icon: Icons.event_available_outlined),
-          SizedBox(height: 16),
+          const _PeachSquare(icon: Icons.event_available_outlined),
+          const SizedBox(height: 16),
           Text(
-            'No attendance records found',
-            style: TextStyle(
+            context.l10n.attendanceEmptyTitle,
+            style: const TextStyle(
               fontSize: 17, fontWeight: FontWeight.w600,
               color: _kInk, letterSpacing: -0.2,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-            'Try a different filter or scan to check in.',
+            context.l10n.attendanceEmptySubtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: _kInk2, height: 1.5),
+            style: const TextStyle(fontSize: 13, color: _kInk2, height: 1.5),
           ),
         ],
       ),
@@ -1113,9 +1113,9 @@ class _ErrorBlock extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline_rounded, size: 40, color: _kInk2),
           const SizedBox(height: 12),
-          const Text(
-            'Failed to load attendance',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _kInk),
+          Text(
+            context.l10n.attendanceLoadFailed,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _kInk),
           ),
           const SizedBox(height: 6),
           Text(
@@ -1132,7 +1132,7 @@ class _ErrorBlock extends StatelessWidget {
               shape: const StadiumBorder(),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-            child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(context.l10n.commonRetry, style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -1176,8 +1176,8 @@ class _NoMembershipCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          Positioned(
-            right: -30, top: -30,
+          PositionedDirectional(
+            end: -30, top: -30,
             child: Container(
               width: 110, height: 110,
               decoration: BoxDecoration(
@@ -1205,7 +1205,9 @@ class _NoMembershipCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  isSuspended ? 'Membership suspended' : 'No active membership',
+                  isSuspended
+                      ? context.l10n.attendanceSuspendedTitle
+                      : context.l10n.attendanceNoMembershipTitle,
                   style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w600,
                     color: _kInk, letterSpacing: -0.3, height: 1.25,
@@ -1214,8 +1216,8 @@ class _NoMembershipCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   isSuspended
-                      ? 'Your membership has been suspended. Contact the gym to resolve this.'
-                      : 'Pick a plan to start checking in, booking classes, and tracking your attendance.',
+                      ? context.l10n.attendanceSuspendedBody
+                      : context.l10n.attendanceNoMembershipBody,
                   style: const TextStyle(fontSize: 13, color: _kInk2, height: 1.55),
                 ),
                 if (!isSuspended && onBrowse != null) ...[
@@ -1233,9 +1235,9 @@ class _NoMembershipCard extends StatelessWidget {
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: const Text(
-                        'Browse memberships',
-                        style: TextStyle(
+                      child: Text(
+                        context.l10n.attendanceBrowseMemberships,
+                        style: const TextStyle(
                           color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1261,17 +1263,18 @@ class _NoMembershipHistory extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
             child: Text(
-              'CHECK-IN HISTORY',
-              style: TextStyle(
+              context.l10n.attendanceCheckInHistory,
+              style: const TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w700,
                 color: _kInk2, letterSpacing: 0.5,
               ),
             ),
           ),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.fromLTRB(22, 30, 22, 30),
             decoration: BoxDecoration(
               color: _kCard,
@@ -1280,19 +1283,19 @@ class _NoMembershipHistory extends StatelessWidget {
                 BoxShadow(color: Color(0x0A1F1A14), blurRadius: 2, offset: Offset(0, 1)),
               ],
             ),
-            child: const Column(
+            child: Column(
               children: [
-                _GraySquare(icon: Icons.calendar_today_outlined),
-                SizedBox(height: 14),
+                const _GraySquare(icon: Icons.calendar_today_outlined),
+                const SizedBox(height: 14),
                 Text(
-                  'Nothing here yet',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _kInk),
+                  context.l10n.attendanceNothingYet,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _kInk),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Once you start a membership, every check-in will show up right here.',
+                  context.l10n.attendanceNothingYetBody,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: _kInk2, height: 1.5),
+                  style: const TextStyle(fontSize: 12, color: _kInk2, height: 1.5),
                 ),
               ],
             ),
@@ -1432,21 +1435,21 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Filter by date',
-                      style: TextStyle(
+                      context.l10n.attendanceFilterByDate,
+                      style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w600,
                         color: _kInk, letterSpacing: -0.3,
                       ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: 3),
                     Text(
-                      'Pick a from / to range.',
-                      style: TextStyle(fontSize: 12, color: _kInk2),
+                      context.l10n.attendanceFilterByDateSubtitle,
+                      style: const TextStyle(fontSize: 12, color: _kInk2),
                     ),
                   ],
                 ),
@@ -1455,11 +1458,11 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
                 GestureDetector(
                   onTap: _reset,
                   behavior: HitTestBehavior.opaque,
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
                     child: Text(
-                      'Reset',
-                      style: TextStyle(
+                      context.l10n.attendanceReset,
+                      style: const TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600,
                         color: _kPrimaryDeep,
                       ),
@@ -1473,7 +1476,7 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
             children: [
               Expanded(
                 child: _FieldChip(
-                  label: 'From',
+                  label: context.l10n.attendanceFrom,
                   value: _from,
                   active: _activeFrom,
                   onTap: () => setState(() => _activeFrom = true),
@@ -1482,7 +1485,7 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
               const SizedBox(width: 10),
               Expanded(
                 child: _FieldChip(
-                  label: 'To',
+                  label: context.l10n.attendanceTo,
                   value: _to,
                   active: !_activeFrom,
                   onTap: () => setState(() => _activeFrom = false),
@@ -1532,7 +1535,7 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    for (final l in const ['S', 'M', 'T', 'W', 'T', 'F', 'S'])
+                    for (final l in context.l10n.attendanceWeekdayLetters.split(','))
                       Expanded(
                         child: Center(
                           child: Padding(
@@ -1589,9 +1592,9 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
                       border: Border.all(color: _kHair, width: 1.4),
                     ),
                     alignment: Alignment.center,
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.commonCancel,
+                      style: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w600, color: _kInk,
                       ),
                     ),
@@ -1614,9 +1617,9 @@ class _DateFilterSheetState extends State<_DateFilterSheet> {
                           : const [BoxShadow(color: Color(0x52E07A3B), blurRadius: 16, offset: Offset(0, 6))],
                     ),
                     alignment: Alignment.center,
-                    child: const Text(
-                      'Apply',
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.attendanceApply,
+                      style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
                       ),
                     ),
@@ -1672,7 +1675,7 @@ class _FieldChip extends StatelessWidget {
             ),
             const SizedBox(height: 3),
             Text(
-              v == null ? 'Select date' : DateFormat('MMM d, yyyy').format(v),
+              v == null ? context.l10n.attendanceSelectDate : DateFormat('MMM d, yyyy').format(v),
               style: TextStyle(
                 fontSize: 14, fontWeight: FontWeight.w600,
                 color: v == null ? _kInk3 : _kInk, letterSpacing: -0.1,

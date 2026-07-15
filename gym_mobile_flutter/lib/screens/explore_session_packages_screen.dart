@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -42,16 +43,16 @@ class _ExploreSessionPackagesScreenState
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Session packages')),
+      appBar: AppBar(title: Text(context.l10n.exploreSessionPackages)),
       body: _loading
           ? _buildSkeleton()
           : _packages.isEmpty
-              ? const Center(child: Text('No session packages available'))
+              ? Center(child: Text(context.l10n.exploreNoSessionPackages))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   children: [
                     Text(
-                      'Buy sessions to use with any class or trainer. Sessions never expire.',
+                      context.l10n.exploreSessionPackagesIntro,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -70,12 +71,14 @@ class _ExploreSessionPackagesScreenState
                             onBuy: (context.watch<AuthProvider>().gym?.mobilePaymentsEnabled ?? true) ? () {
                               final sessions = (pkg['session_count'] as int?) ?? 0;
                               final price = (pkg['price'] as num?)?.toDouble() ?? 0.0;
-                              final name = (pkg['name'] as String?) ?? '$sessions sessions';
+                              final name = (pkg['name'] as String?) ??
+                                  context.l10n.exploreSessionsCount(sessions);
                               context.push('/payment-summary', extra: CheckoutItem(
                                 type: 'session_package',
                                 id: (pkg['id'] as String?) ?? '',
                                 title: name,
-                                subtitle: '$sessions sessions package',
+                                subtitle: context.l10n
+                                    .exploreSessionsPackageSubtitle(sessions),
                                 price: price,
                                 badges: [],
                                 applyMemberDiscount: true,
@@ -204,7 +207,7 @@ class _PackageCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'sessions',
+                        context.l10n.exploreSessionsLabel,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: accent,
                           fontWeight: FontWeight.w500,
@@ -225,7 +228,8 @@ class _PackageCard extends StatelessWidget {
                       ),
                       if (sessions > 0)
                         Text(
-                          '${_fmt(perSession, currency)} / session',
+                          context.l10n
+                              .explorePerSessionPrice(_fmt(perSession, currency)),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -259,7 +263,7 @@ class _PackageCard extends StatelessWidget {
                     ),
                     onPressed: onBuy,
                     child: Text(
-                      'Buy $sessions sessions',
+                      context.l10n.exploreBuySessions(sessions),
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
@@ -272,9 +276,9 @@ class _PackageCard extends StatelessWidget {
         ),
         // "Most popular" badge
         if (isMostPopular)
-          Positioned(
+          PositionedDirectional(
             top: 0,
-            right: 16,
+            end: 16,
             child: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -283,9 +287,9 @@ class _PackageCard extends StatelessWidget {
                 borderRadius: BorderRadius.vertical(
                     bottom: Radius.circular(8)),
               ),
-              child: const Text(
-                'Most popular',
-                style: TextStyle(
+              child: Text(
+                context.l10n.exploreMostPopular,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,

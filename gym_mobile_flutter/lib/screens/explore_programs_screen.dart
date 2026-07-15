@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -40,11 +41,11 @@ class _ExploreProgramsScreenState extends State<ExploreProgramsScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Programs')),
+      appBar: AppBar(title: Text(context.l10n.explorePrograms)),
       body: _loading
           ? _buildSkeleton()
           : _programs.isEmpty
-              ? const Center(child: Text('No programs available'))
+              ? Center(child: Text(context.l10n.exploreNoPrograms))
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   itemCount: _programs.length,
@@ -128,10 +129,10 @@ class _ProgramCard extends StatelessWidget {
                           color: theme.colorScheme.surfaceContainerHighest),
                 ),
                 if (weeks != null)
-                  Positioned(
+                  PositionedDirectional(
                     bottom: 12,
-                    left: 12,
-                    child: _Badge(label: '$weeks weeks'),
+                    start: 12,
+                    child: _Badge(label: context.l10n.exploreWeeksCount(weeks)),
                   ),
               ],
             ),

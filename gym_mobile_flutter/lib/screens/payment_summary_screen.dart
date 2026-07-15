@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import 'package:clby/l10n/l10n.dart';
+
 import '../models/checkout_item.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
@@ -95,7 +97,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     final gymId = _gymId;
     if (gymId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to process payment — gym not found')),
+        SnackBar(content: Text(context.l10n.paymentGymNotFound)),
       );
       return;
     }
@@ -275,15 +277,15 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
         case PaymobResult.pending:
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment is pending. We\'ll update your account once confirmed.'),
-              duration: Duration(seconds: 5),
+            SnackBar(
+              content: Text(context.l10n.paymentPending),
+              duration: const Duration(seconds: 5),
             ),
           );
 
         case PaymobResult.failed:
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Payment was declined. Please try again.')),
+            SnackBar(content: Text(context.l10n.paymentDeclined)),
           );
 
         case PaymobResult.cancelled:
@@ -295,7 +297,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment error: ${friendlyError(e)}')),
+        SnackBar(content: Text(context.l10n.paymentError(friendlyError(e)))),
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -328,11 +330,11 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
           _promoDiscountValue = null;
           _promoApplied       = false;
           _promoCodeId        = null;
-          _promoError         = res['error'] as String? ?? 'Invalid promo code';
+          _promoError         = res['error'] as String? ?? context.l10n.paymentInvalidPromo;
         });
       }
     } catch (e) {
-      setState(() { _promoError = 'Could not validate promo code'; });
+      setState(() { _promoError = context.l10n.paymentPromoValidationFailed; });
     } finally {
       setState(() => _promoLoading = false);
     }
@@ -409,7 +411,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Payment summary'),
+        title: Text(context.l10n.paymentSummaryTitle),
         centerTitle: true,
       ),
       body: _loadingPlan
@@ -501,7 +503,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                 child: _isProcessing
                     ? const _DollarLoader()
                     : Text(
-                        'Buy now — ${_fmt(_total)} EGP',
+                        context.l10n.paymentBuyNow(_fmt(_total)),
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -520,7 +522,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Secured by SSL',
+                  context.l10n.paymentSecuredBySsl,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 11,
@@ -645,7 +647,7 @@ class _ItemCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'EGP',
+                    context.l10n.paymentCurrencyEgp,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
@@ -654,7 +656,7 @@ class _ItemCard extends StatelessWidget {
                   if (item.originalPrice != null) ...[
                     const SizedBox(width: 8),
                     Text(
-                      '${_fmt(item.originalPrice!)} EGP',
+                      context.l10n.paymentAmountEgp(_fmt(item.originalPrice!)),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         decoration: TextDecoration.lineThrough,
@@ -729,8 +731,8 @@ class _DiscountBanner extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text:
-                        '${discountPct.toStringAsFixed(0)}% member discount',
+                    text: context.l10n
+                        .paymentMemberDiscountPct(discountPct.toStringAsFixed(0)),
                     style: const TextStyle(
                       color: Color(0xFF16A34A),
                       fontWeight: FontWeight.w700,
@@ -739,7 +741,7 @@ class _DiscountBanner extends StatelessWidget {
                   ),
                   if (planName.isNotEmpty)
                     TextSpan(
-                      text: ' applied as $planName member',
+                      text: ' ${context.l10n.paymentAppliedAsMember(planName)}',
                       style: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 13,
@@ -792,11 +794,13 @@ class _PriceBreakdown extends StatelessWidget {
     required this.theme,
   });
 
-  String _promoLabel() {
+  String _promoLabel(BuildContext context) {
     final suffix = (promoDiscountType == 'percent' || promoDiscountType == 'percentage') && promoDiscountValue != null
-        ? ' · ${promoDiscountValue!.toStringAsFixed(0)}% off'
+        ? ' · ${context.l10n.paymentPctOff(promoDiscountValue!.toStringAsFixed(0))}'
         : '';
-    return promoCode != null ? 'Promo code ($promoCode$suffix)' : 'Promo code';
+    return promoCode != null
+        ? '${context.l10n.paymentPromoCode} ($promoCode$suffix)'
+        : context.l10n.paymentPromoCode;
   }
 
   @override
@@ -817,18 +821,18 @@ class _PriceBreakdown extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Price breakdown',
+            context.l10n.paymentPriceBreakdown,
             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
-          _Row(label: item.priceLabel, value: '${fmt(item.price)} EGP', theme: theme),
+          _Row(label: item.priceLabel, value: context.l10n.paymentAmountEgp(fmt(item.price)), theme: theme),
           if (hasMemberDiscount) ...[
             const SizedBox(height: 8),
             _Row(
               label: planName.isNotEmpty
-                  ? 'Member discount ($planName)'
-                  : 'Member discount (${discountPct.toStringAsFixed(0)}%)',
-              value: '− ${fmt(discountAmount)} EGP',
+                  ? context.l10n.paymentMemberDiscountLabel(planName)
+                  : context.l10n.paymentMemberDiscountLabel('${discountPct.toStringAsFixed(0)}%'),
+              value: '− ${context.l10n.paymentAmountEgp(fmt(discountAmount))}',
               valueColor: const Color(0xFF16A34A),
               theme: theme,
             ),
@@ -836,16 +840,16 @@ class _PriceBreakdown extends StatelessWidget {
           if (promoApplied && promoDiscount > 0) ...[
             const SizedBox(height: 8),
             _Row(
-              label: _promoLabel(),
-              value: '− ${fmt(promoDiscount)} EGP',
+              label: _promoLabel(context),
+              value: '− ${context.l10n.paymentAmountEgp(fmt(promoDiscount))}',
               valueColor: const Color(0xFF16A34A),
               theme: theme,
             ),
           ],
           const SizedBox(height: 8),
-          _Row(label: 'Subtotal', value: '${fmt(subtotal)} EGP', theme: theme),
+          _Row(label: context.l10n.paymentSubtotal, value: context.l10n.paymentAmountEgp(fmt(subtotal)), theme: theme),
           const SizedBox(height: 8),
-          _Row(label: 'VAT (14%)', value: '${fmt(vat)} EGP', theme: theme),
+          _Row(label: context.l10n.paymentVat, value: context.l10n.paymentAmountEgp(fmt(vat)), theme: theme),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Divider(
@@ -856,9 +860,9 @@ class _PriceBreakdown extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total',
+              Text(context.l10n.paymentTotal,
                   style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-              Text('${fmt(total)} EGP',
+              Text(context.l10n.paymentAmountEgp(fmt(total)),
                   style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
             ],
           ),
@@ -955,8 +959,10 @@ class _PromoSection extends StatelessWidget {
                 () {
                   final code = controller.text.trim().toUpperCase();
                   final isPercent = (discountType == 'percent' || discountType == 'percentage') && discountValue != null;
-                  final pctPart = isPercent ? '  ${discountValue!.toStringAsFixed(0)}% off' : '';
-                  return '$code$pctPart  ·  You saved ${discount.toStringAsFixed(0)} EGP!';
+                  final pctPart = isPercent
+                      ? '  ${context.l10n.paymentPctOff(discountValue!.toStringAsFixed(0))}'
+                      : '';
+                  return '$code$pctPart  ·  ${context.l10n.paymentYouSaved(discount.toStringAsFixed(0))}';
                 }(),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: const Color(0xFF16A34A),
@@ -992,7 +998,7 @@ class _PromoSection extends StatelessWidget {
                     letterSpacing: 0.5,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'Promo code',
+                    hintText: context.l10n.paymentPromoCode,
                     hintStyle: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w400,
@@ -1048,8 +1054,8 @@ class _PromoSection extends StatelessWidget {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text('Apply',
-                        style: TextStyle(
+                    : Text(context.l10n.paymentApply,
+                        style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 14)),
               ),
             ),
@@ -1058,7 +1064,7 @@ class _PromoSection extends StatelessWidget {
         if (errorText != null) ...[
           const SizedBox(height: 5),
           Padding(
-            padding: const EdgeInsets.only(left: 4),
+            padding: const EdgeInsetsDirectional.only(start: 4),
             child: Text(
               errorText!,
               style: theme.textTheme.bodySmall?.copyWith(color: Colors.red),
@@ -1090,7 +1096,7 @@ class _PaymentMethodSection extends StatelessWidget {
     final primary = theme.colorScheme.primary;
 
     final methods = [
-      _PaymentOption(id: 'card',      label: 'Credit / Debit card', icon: const _CardBadge()),
+      _PaymentOption(id: 'card',      label: context.l10n.paymentMethodCard, icon: const _CardBadge()),
       _PaymentOption(id: 'valu',      label: 'valU',                icon: const _ValuBadge()),
       if (Platform.isIOS)
         _PaymentOption(id: 'apple_pay', label: 'Apple Pay',           icon: const _ApplePayBadge()),
@@ -1100,7 +1106,7 @@ class _PaymentMethodSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Payment',
+          context.l10n.paymentMethodTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: theme.colorScheme.onSurface,
@@ -1279,22 +1285,23 @@ class _SuccessPage extends StatelessWidget {
     required this.fmt,
   });
 
-  String get _typeLabel {
+  String _typeLabelPlural(BuildContext context) {
     switch (item.type) {
-      case 'membership':      return 'Membership';
-      case 'offer':           return 'Offer';
-      case 'session_package': return 'Session Package';
-      default:                return 'Programme';
+      case 'membership':      return context.l10n.paymentTypeMembershipsLower;
+      case 'offer':           return context.l10n.paymentTypeOffersLower;
+      case 'session_package': return context.l10n.paymentTypeSessionPackagesLower;
+      default:                return context.l10n.paymentTypeProgrammesLower;
     }
   }
 
   List<_NextStep> _buildNextSteps(BuildContext context) {
+    final l10n = context.l10n;
     final primary = Theme.of(context).colorScheme.primary;
     final steps = <_NextStep>[
       _NextStep(
         number: 1,
-        title: 'Check your email',
-        description: 'A receipt and booking confirmation have been sent to your registered email address.',
+        title: l10n.paymentStepEmailTitle,
+        description: l10n.paymentStepEmailDesc,
         accentColor: primary,
         bgColor: primary.withValues(alpha: 0.12),
       ),
@@ -1302,68 +1309,68 @@ class _SuccessPage extends StatelessWidget {
 
     switch (item.type) {
       case 'membership':
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 2,
-          title: 'Membership is now active',
-          description: 'Your plan has been activated. Head to the home screen to view your membership details.',
-          accentColor: Color(0xFF0D9488),
-          bgColor: Color(0xFFCCFBF1),
+          title: l10n.paymentStepMembershipActiveTitle,
+          description: l10n.paymentStepMembershipActiveDesc,
+          accentColor: const Color(0xFF0D9488),
+          bgColor: const Color(0xFFCCFBF1),
         ));
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 3,
-          title: 'Scan QR to check in',
-          description: 'Open the QR tab when you arrive at the gym to log your attendance.',
-          accentColor: Color(0xFF2563EB),
-          bgColor: Color(0xFFDBEAFE),
+          title: l10n.paymentStepScanQrTitle,
+          description: l10n.paymentStepScanQrDesc,
+          accentColor: const Color(0xFF2563EB),
+          bgColor: const Color(0xFFDBEAFE),
         ));
         break;
 
       case 'session_package':
         steps.add(_NextStep(
           number: 2,
-          title: 'Sessions are now available',
-          description: 'Your ${item.title} sessions have been added to your account. Book them from the Schedule tab.',
+          title: l10n.paymentStepSessionsAvailableTitle,
+          description: l10n.paymentStepSessionsAddedDesc(item.title),
           accentColor: const Color(0xFF0D9488),
           bgColor: const Color(0xFFCCFBF1),
         ));
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 3,
-          title: 'Scan QR on day one',
-          description: 'Open the QR tab when you arrive. Your instructor will guide you to the right area.',
+          title: l10n.paymentStepScanQrDayOneTitle,
+          description: l10n.paymentStepScanQrInstructorDesc,
           accentColor: const Color(0xFF2563EB),
           bgColor: const Color(0xFFDBEAFE),
         ));
         break;
 
       case 'offer' when item.linkedPlanId != null:
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 2,
-          title: 'Membership is now active',
-          description: 'Your membership has been activated at the offer price. Head to the home screen to view your plan details.',
-          accentColor: Color(0xFF0D9488),
-          bgColor: Color(0xFFCCFBF1),
+          title: l10n.paymentStepMembershipActiveTitle,
+          description: l10n.paymentStepOfferMembershipDesc,
+          accentColor: const Color(0xFF0D9488),
+          bgColor: const Color(0xFFCCFBF1),
         ));
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 3,
-          title: 'Scan QR to check in',
-          description: 'Open the QR tab when you arrive at the gym to log your attendance.',
-          accentColor: Color(0xFF2563EB),
-          bgColor: Color(0xFFDBEAFE),
+          title: l10n.paymentStepScanQrTitle,
+          description: l10n.paymentStepScanQrDesc,
+          accentColor: const Color(0xFF2563EB),
+          bgColor: const Color(0xFFDBEAFE),
         ));
         break;
 
       case 'offer' when item.linkedPackageId != null:
         steps.add(_NextStep(
           number: 2,
-          title: 'Sessions are now available',
-          description: 'Your sessions have been added at the offer price. Book them from the Schedule tab.',
+          title: l10n.paymentStepSessionsAvailableTitle,
+          description: l10n.paymentStepOfferSessionsDesc,
           accentColor: const Color(0xFF0D9488),
           bgColor: const Color(0xFFCCFBF1),
         ));
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 3,
-          title: 'Scan QR on day one',
-          description: 'Open the QR tab when you arrive. Your instructor will guide you to the right area.',
+          title: l10n.paymentStepScanQrDayOneTitle,
+          description: l10n.paymentStepScanQrInstructorDesc,
           accentColor: const Color(0xFF2563EB),
           bgColor: const Color(0xFFDBEAFE),
         ));
@@ -1372,15 +1379,15 @@ class _SuccessPage extends StatelessWidget {
       default: // programme / plain offer
         steps.add(_NextStep(
           number: 2,
-          title: 'Sessions are now active',
-          description: 'Head to the Schedule tab to book your first ${item.title} session.',
+          title: l10n.paymentStepSessionsActiveTitle,
+          description: l10n.paymentStepBookFirstDesc(item.title),
           accentColor: const Color(0xFF0D9488),
           bgColor: const Color(0xFFCCFBF1),
         ));
-        steps.add(const _NextStep(
+        steps.add(_NextStep(
           number: 3,
-          title: 'Scan QR on day one',
-          description: 'Open the QR tab when you arrive. Your trainer will be ready at your scheduled time.',
+          title: l10n.paymentStepScanQrDayOneTitle,
+          description: l10n.paymentStepScanQrTrainerDesc,
           accentColor: const Color(0xFF2563EB),
           bgColor: const Color(0xFFDBEAFE),
         ));
@@ -1394,9 +1401,12 @@ class _SuccessPage extends StatelessWidget {
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final totalSavings = discountAmount + promoDiscount;
     final hasSavings = totalSavings > 0;
+    final l10n = context.l10n;
     final hasOfferDiscount = item.originalPrice != null && item.originalPrice! > item.price;
     final offerDiscount = hasOfferDiscount ? item.originalPrice! - item.price : 0.0;
-    final typeLabel = _typeLabel;
+    final isProgramme = item.type != 'membership' &&
+        item.type != 'offer' &&
+        item.type != 'session_package';
     final nextSteps = _buildNextSteps(context);
 
     return Scaffold(
@@ -1408,8 +1418,8 @@ class _SuccessPage extends StatelessWidget {
             width: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: AlignmentDirectional.topStart,
+                end: AlignmentDirectional.bottomEnd,
                 colors: [Color(0xFF1E1B4B), Color(0xFF3730A3)],
               ),
             ),
@@ -1440,9 +1450,9 @@ class _SuccessPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  'Purchase successful!',
-                  style: TextStyle(
+                Text(
+                  l10n.paymentSuccessTitle,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
@@ -1451,7 +1461,7 @@ class _SuccessPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Order #$orderNumber',
+                  l10n.paymentOrderNumber(orderNumber),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 13,
@@ -1470,11 +1480,11 @@ class _SuccessPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Section label
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 10),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 4, bottom: 10),
                     child: Text(
-                      'YOUR ORDER',
-                      style: TextStyle(
+                      l10n.paymentYourOrder,
+                      style: const TextStyle(
                         color: Color(0xFF6B7280),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -1492,34 +1502,36 @@ class _SuccessPage extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _OrderRow(label: 'Item', value: item.title),
+                        _OrderRow(label: l10n.paymentItem, value: item.title),
                         if (item.subtitle.isNotEmpty)
-                          _OrderRow(label: typeLabel == 'Programme' ? 'Duration' : 'Details', value: item.subtitle),
+                          _OrderRow(
+                              label: isProgramme ? l10n.paymentDuration : l10n.paymentDetails,
+                              value: item.subtitle),
                         _OrderRow(
-                          label: 'Starts',
+                          label: l10n.paymentStarts,
                           value: DateFormat('EEE, MMM d, yyyy').format(purchasedAt),
                         ),
                         if (hasOfferDiscount) ...[
                           _OrderRow(
-                            label: 'Original price',
-                            value: '${fmt(item.originalPrice!)} EGP',
+                            label: l10n.paymentOriginalPrice,
+                            value: l10n.paymentAmountEgp(fmt(item.originalPrice!)),
                             strikethrough: true,
                           ),
                           _OrderRow(
-                            label: 'Offer discount',
-                            value: '− ${fmt(offerDiscount)} EGP',
+                            label: l10n.paymentOfferDiscount,
+                            value: '− ${l10n.paymentAmountEgp(fmt(offerDiscount))}',
                             valueColor: const Color(0xFF16A34A),
                           ),
                         ],
                         if (promoDiscount > 0 && promoCode != null)
                           _OrderRow(
-                            label: 'Promo ($promoCode)',
-                            value: '− ${fmt(promoDiscount)} EGP',
+                            label: l10n.paymentPromoWithCode(promoCode!),
+                            value: '− ${l10n.paymentAmountEgp(fmt(promoDiscount))}',
                             valueColor: const Color(0xFF16A34A),
                           ),
                         _OrderRow(
-                          label: 'Total paid',
-                          value: '${fmt(total)} EGP',
+                          label: l10n.paymentTotalPaid,
+                          value: l10n.paymentAmountEgp(fmt(total)),
                           bold: true,
                           last: true,
                         ),
@@ -1549,7 +1561,7 @@ class _SuccessPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'You saved ${fmt(totalSavings)} EGP on this order',
+                                  l10n.paymentSavedOnOrder(fmt(totalSavings)),
                                   style: const TextStyle(
                                     color: Color(0xFF15803D),
                                     fontSize: 13,
@@ -1558,7 +1570,7 @@ class _SuccessPage extends StatelessWidget {
                                 ),
                                 if (hasOfferDiscount && promoDiscount > 0)
                                   Text(
-                                    '${fmt(offerDiscount)} EGP offer + ${fmt(promoDiscount)} EGP promo',
+                                    l10n.paymentSavingsBreakdown(fmt(offerDiscount), fmt(promoDiscount)),
                                     style: const TextStyle(
                                       color: Color(0xFF16A34A),
                                       fontSize: 12,
@@ -1583,11 +1595,11 @@ class _SuccessPage extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // What happens next
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 10),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 4, bottom: 10),
                     child: Text(
-                      'WHAT HAPPENS NEXT',
-                      style: TextStyle(
+                      l10n.paymentWhatHappensNext,
+                      style: const TextStyle(
                         color: Color(0xFF6B7280),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -1630,9 +1642,9 @@ class _SuccessPage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 15),
                     ),
                     onPressed: () => context.go('/home'),
-                    child: const Text(
-                      'Back to home',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.paymentBackToHome,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
@@ -1658,7 +1670,7 @@ class _SuccessPage extends StatelessWidget {
                       }
                     },
                     child: Text(
-                      'Browse more ${typeLabel.toLowerCase()}s',
+                      l10n.paymentBrowseMore(_typeLabelPlural(context)),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,

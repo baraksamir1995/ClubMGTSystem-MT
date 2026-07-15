@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'l10n/app_localizations.dart';
 import 'providers/auth_provider.dart';
+import 'providers/locale_provider.dart';
 import 'providers/member_provider.dart';
 import 'features/banners/banner_provider.dart';
 import 'features/billing/billing_provider.dart';
@@ -72,6 +74,9 @@ class GymApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<RatingReminderProvider>(
           create: (_) => RatingReminderProvider(),
+        ),
+        ChangeNotifierProvider<LocaleProvider>(
+          create: (_) => LocaleProvider(),
         ),
       ],
       child: const _AppRoot(),
@@ -162,11 +167,16 @@ class _AppRootState extends State<_AppRoot> {
       } catch (_) {}
     }
 
+    final localeProvider = context.watch<LocaleProvider>();
+
     return StagingBanner(
       child: MaterialApp.router(
         title: gym?.name ?? Env.brandName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.buildTheme(primaryColor, secondary: secondaryColor),
+        locale: localeProvider.locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         routerConfig: _router,
       ),
     );

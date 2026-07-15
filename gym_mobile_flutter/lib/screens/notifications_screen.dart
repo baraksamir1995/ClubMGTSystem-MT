@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -94,15 +95,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     final result = <Object>[];
     if (todayList.isNotEmpty) {
-      result.add('TODAY');
+      result.add(context.l10n.notifGroupToday);
       result.addAll(todayList);
     }
     if (yesterdayList.isNotEmpty) {
-      result.add('YESTERDAY');
+      result.add(context.l10n.notifGroupYesterday);
       result.addAll(yesterdayList);
     }
     if (earlierList.isNotEmpty) {
-      result.add('EARLIER');
+      result.add(context.l10n.notifGroupEarlier);
       result.addAll(earlierList);
     }
     return result;
@@ -153,11 +154,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
             // Empty — no notifications at all
             else if (allNotifs.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 child: _EmptyState(
-                  title: 'No notifications yet',
-                  subtitle:
-                      'You\'ll see updates about bookings, payments, and activities here.',
+                  title: context.l10n.notifEmptyTitle,
+                  subtitle: context.l10n.notifEmptySubtitle,
                 ),
               )
 
@@ -166,11 +166,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               SliverFillRemaining(
                 child: _EmptyState(
                   title: _filter == _NotifFilter.unread
-                      ? 'All caught up!'
-                      : 'No read notifications',
+                      ? context.l10n.notifAllCaughtUp
+                      : context.l10n.notifNoRead,
                   subtitle: _filter == _NotifFilter.unread
-                      ? 'You have no unread notifications right now.'
-                      : 'Notifications you\'ve opened will appear here.',
+                      ? context.l10n.notifNoUnreadSubtitle
+                      : context.l10n.notifReadSubtitle,
                 ),
               )
 
@@ -224,7 +224,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(width: 12),
           Text(
-            'Notifications',
+            context.l10n.notifTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
               fontSize: 22,
@@ -270,21 +270,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Row(
         children: [
           _FilterChip(
-            label: 'All',
+            label: context.l10n.notifFilterAll,
             selected: _filter == _NotifFilter.all,
             primary: primary,
             onTap: () => setState(() => _filter = _NotifFilter.all),
           ),
           const SizedBox(width: 8),
           _FilterChip(
-            label: 'Unread',
+            label: context.l10n.notifFilterUnread,
             selected: _filter == _NotifFilter.unread,
             primary: primary,
             onTap: () => setState(() => _filter = _NotifFilter.unread),
           ),
           const SizedBox(width: 8),
           _FilterChip(
-            label: 'Read',
+            label: context.l10n.notifFilterRead,
             selected: _filter == _NotifFilter.read,
             primary: primary,
             onTap: () => setState(() => _filter = _NotifFilter.read),
@@ -304,7 +304,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
-            Text('Failed to load notifications',
+            Text(context.l10n.notifLoadFailed,
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
@@ -318,7 +318,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             OutlinedButton(
               onPressed: _refresh,
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Retry'),
+              child: Text(context.l10n.commonRetry),
             ),
           ],
         ),
@@ -459,7 +459,7 @@ class _NotificationTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    _formatTimestamp(notification.sentAt),
+                    _formatTimestamp(context, notification.sentAt),
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 11,
                       color: theme.colorScheme.onSurfaceVariant
@@ -493,7 +493,7 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(DateTime? dt) {
+  String _formatTimestamp(BuildContext context, DateTime? dt) {
     if (dt == null) return '';
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -503,9 +503,9 @@ class _NotificationTile extends StatelessWidget {
     final timeStr = DateFormat('h:mm a').format(dt);
 
     if (diff == 0) return timeStr;
-    if (diff == 1) return 'Yesterday, $timeStr';
-    if (diff < 7) return '$diff days ago';
-    if (diff < 14) return '1 week ago';
+    if (diff == 1) return context.l10n.notifYesterdayAt(timeStr);
+    if (diff < 7) return context.l10n.notifDaysAgo(diff);
+    if (diff < 14) return context.l10n.notifWeekAgo;
     return DateFormat('MMM d').format(dt);
   }
 }

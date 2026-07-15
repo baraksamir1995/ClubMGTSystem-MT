@@ -1,0 +1,1898 @@
+{
+  "@@locale": "en",
+  "commonCancel": "Cancel",
+  "commonSave": "Save",
+  "commonConfirm": "Confirm",
+  "commonRetry": "Retry",
+  "commonClose": "Close",
+  "commonOk": "OK",
+  "commonDone": "Done",
+  "commonDelete": "Delete",
+  "commonEdit": "Edit",
+  "commonBack": "Back",
+  "commonNext": "Next",
+  "commonSkip": "Skip",
+  "commonLoading": "Loading…",
+  "commonError": "Something went wrong. Please try again.",
+  "commonNoResults": "No results found",
+  "commonSearch": "Search",
+  "commonSeeAll": "See all",
+  "commonBookNow": "Book now",
+  "commonLogout": "Log out",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "commonSessions": "Sessions",
+  "commonMinutes": "min",
+  "commonFree": "Free",
+  "commonActive": "Active",
+  "commonExpired": "Expired",
+  "commonLanguage": "Language",
+  "commonEnglish": "English",
+  "commonArabic": "العربية",
+  "commonSystemDefault": "System default",
+  "authEmailLabel": "Email",
+  "authEmailPlaceholder": "you@example.com",
+  "authPasswordLabel": "Password",
+  "authForgotPassword": "Forgot password?",
+  "authSignIn": "Sign in",
+  "authContinue": "Continue",
+  "authContinueToSignIn": "Continue to sign in",
+  "authEmailInvalid": "Enter a valid email address",
+  "authAtLeast8Chars": "At least 8 characters",
+  "authOneUppercase": "One uppercase letter",
+  "authOneNumber": "One number",
+  "authChip8Chars": "8+ chars",
+  "authChipUppercase": "Uppercase",
+  "authChipNumber": "Number",
+  "authStrengthTooShort": "Too short",
+  "authStrengthWeak": "Weak",
+  "authStrengthOkay": "Okay",
+  "authStrengthStrong": "Strong",
+  "authStrengthVeryStrong": "Very strong",
+  "authOr": "or",
+  "authPoweredByClby": "Powered by CLBY",
+  "loginWelcomeBack": "Welcome back",
+  "loginSubtitle": "Sign in to manage your sessions and transfers.",
+  "loginEmailRequired": "Email is required",
+  "loginPasswordRequired": "Password is required",
+  "loginAccountDeleted": "This account has been deleted. You can still restore it by signing up again.",
+  "loginInvalidCredentials": "Incorrect email or password.",
+  "loginVerifyEmailTitle": "Verify your email",
+  "loginVerifyEmailBody": "We sent a confirmation link when you signed up. Tap the link in the email to activate your account. Check spam if you can't find it.",
+  "loginVerificationSent": "Verification email sent. Check your inbox.",
+  "loginResendFailed": "Could not resend. Try again in a minute.",
+  "loginResendEmail": "Resend email",
+  "loginNewHere": "New here? ",
+  "loginCreateAccount": "Create an account",
+  "forgotIntroPrefix": "Enter the email tied to your account. We'll send a reset link valid for ",
+  "forgotIntroDuration": "30 minutes",
+  "forgotSendLink": "Send reset link",
+  "forgotCheckEmail": "Check your email",
+  "forgotSentLinkTo": "We sent a reset link to",
+  "forgotSpamHint": "Didn't get it? Check your spam folder, or wait a minute before requesting another link.",
+  "forgotBackToSignIn": "Back to sign in",
+  "forgotLinkSentAgain": "Link sent again ✓",
+  "forgotResendLink": "Resend link",
+  "forgotResendIn": "Resend link in {seconds}s",
+  "@forgotResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "resetPwLinkExpired": "Reset link expired. Please request a new one.",
+  "resetPwTitle": "Set a new password",
+  "resetPwSubtitle": "Choose something you haven't used before.",
+  "resetPwNewPassword": "New password",
+  "resetPwConfirmPassword": "Confirm password",
+  "resetPwConfirmPlaceholder": "Type it again",
+  "resetPwMismatch": "Passwords don't match",
+  "resetPwUpdate": "Update password",
+  "resetPwUpdated": "Password updated",
+  "resetPwUpdatedBody": "You can now sign in with your new password.",
+  "registerTitle": "Create your account",
+  "registerSubtitle": "Email and a strong password — we'll keep your account safe.",
+  "registerAlreadyHaveAccount": "Already have an account? ",
+  "registerStepAccount": "Account",
+  "registerStepYou": "You",
+  "registerStepClub": "Club",
+  "registerAboutYouTitle": "A bit about you",
+  "registerFullNameLabel": "Full name",
+  "registerFullNamePlaceholder": "e.g. Ahmed Hassan",
+  "registerDateOfBirth": "Date of birth",
+  "registerDayHint": "DD",
+  "registerMonthHint": "Month",
+  "registerYearHint": "YYYY",
+  "registerAgeYears": "{age} years old ✓",
+  "@registerAgeYears": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "registerAgeTooYoung": "You must be at least 13 to sign up.",
+  "registerMobile": "Mobile",
+  "registerOptional": "Optional",
+  "registerSelectCountry": "Select country",
+  "registerCreateAccount": "Create account",
+  "registerLegalPrefix": "By creating an account you agree to our ",
+  "registerClubTitle": "Pick your club",
+  "registerClubSubtitle": "This is the home location your sessions are tied to.",
+  "registerSearchPlaceholder": "Search by name or area",
+  "registerNoClubs": "No clubs available right now.",
+  "registerNoClubsMatch": "No clubs match \"{query}\".",
+  "@registerNoClubsMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "registerAllSet": "You're all set",
+  "registerConfirmationSentTo": "We sent a confirmation link to",
+  "registerYourInbox": "your inbox",
+  "registerActivateHint": "Tap the link to activate your account, then sign in.",
+  "registerEmailExists": "This email is already registered. Use Forgot Password if you lost access.",
+  "registerPhoneExists": "This phone number is already registered.",
+  "registerWeakPassword": "Password is too weak. Use at least 8 characters.",
+  "registerMonthJanuary": "January",
+  "registerMonthFebruary": "February",
+  "registerMonthMarch": "March",
+  "registerMonthApril": "April",
+  "registerMonthMay": "May",
+  "registerMonthJune": "June",
+  "registerMonthJuly": "July",
+  "registerMonthAugust": "August",
+  "registerMonthSeptember": "September",
+  "registerMonthOctober": "October",
+  "registerMonthNovember": "November",
+  "registerMonthDecember": "December",
+  "navHome": "Home",
+  "navClasses": "Classes",
+  "navExplore": "Explore",
+  "navProfile": "Profile",
+  "homeGreetingMorning": "Good morning",
+  "homeGreetingAfternoon": "Good afternoon",
+  "homeGreetingEvening": "Good evening",
+  "homeGreetingWithName": "{greeting}, {name}",
+  "@homeGreetingWithName": {
+    "placeholders": {
+      "greeting": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeYourMembership": "Your membership",
+  "homeViewPlan": "View plan",
+  "homeTodaysClasses": "Today's classes",
+  "homeYourActivity": "Your activity",
+  "homeQuickAccess": "Quick access",
+  "homeQuickAccessSubtitle": "Jump straight where you need",
+  "homeOurLocations": "Our locations",
+  "homeNoActiveMembership": "No active membership",
+  "homeNoPlanBody": "You don't have a plan yet. Choose a membership to unlock full access.",
+  "homeBrowsePlans": "Browse membership plans",
+  "homeNoClassesToday": "No classes scheduled today",
+  "homeClassFallback": "Class",
+  "homeSessionBooked": "Session booked successfully!",
+  "homeBookFailed": "Failed to book. Please try again.",
+  "homeBookingCancelled": "Booking cancelled.",
+  "homeCancelFailed": "Failed to cancel. Please try again.",
+  "homeCoachName": "Coach {name}",
+  "@homeCoachName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeSpotsOpen": "Open",
+  "homeSpotsFull": "Full",
+  "homeSpotsLeft": "{count, plural, one{{count} spot left} other{{count} spots left}}",
+  "@homeSpotsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeThisMonth": "This month",
+  "homeMonthlyVisits": "MONTHLY VISITS",
+  "homeGymCapacity": "GYM CAPACITY",
+  "homeCapacityNotCrowded": "Not crowded",
+  "homeCapacityModerate": "Moderately busy",
+  "homeCapacityVeryBusy": "Very busy",
+  "homeQuickClasses": "Classes",
+  "homeQuickTrainers": "Trainers",
+  "homeQuickBookings": "Bookings",
+  "homeQuickPayments": "Payments",
+  "homeQuickAttendance": "Attendance",
+  "homeQuickOffers": "Offers",
+  "notifTitle": "Notifications",
+  "notifGroupToday": "TODAY",
+  "notifGroupYesterday": "YESTERDAY",
+  "notifGroupEarlier": "EARLIER",
+  "notifFilterAll": "All",
+  "notifFilterUnread": "Unread",
+  "notifFilterRead": "Read",
+  "notifEmptyTitle": "No notifications yet",
+  "notifEmptySubtitle": "You'll see updates about bookings, payments, and activities here.",
+  "notifAllCaughtUp": "All caught up!",
+  "notifNoRead": "No read notifications",
+  "notifNoUnreadSubtitle": "You have no unread notifications right now.",
+  "notifReadSubtitle": "Notifications you've opened will appear here.",
+  "notifLoadFailed": "Failed to load notifications",
+  "notifYesterdayAt": "Yesterday, {time}",
+  "@notifYesterdayAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "notifDaysAgo": "{count} days ago",
+  "@notifDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifWeekAgo": "1 week ago",
+  "locationsTitle": "Our Locations",
+  "locationsOpenInMaps": "Open in Maps",
+  "attendanceTitle": "Attendance",
+  "attendanceActivePlan": "Active Plan",
+  "attendanceMembershipLabel": "MEMBERSHIP",
+  "attendanceMemberNumberLabel": "MEMBER #",
+  "attendanceRenewsLabel": "RENEWS",
+  "attendanceScanQr": "Scan QR to check in",
+  "attendanceFilterAll": "All",
+  "attendanceFilterEntrance": "Entrance",
+  "attendanceFilterClasses": "Classes",
+  "attendanceFilterTransfers": "Transfers",
+  "attendanceDateChip": "Date",
+  "attendanceCheckInCount": "{count, plural, one{{count} check-in} other{{count} check-ins}}",
+  "@attendanceCheckInCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceTransferCount": "{count, plural, one{{count} transfer} other{{count} transfers}}",
+  "@attendanceTransferCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceGrantCount": "{count, plural, one{{count} grant} other{{count} grants}}",
+  "@attendanceGrantCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceViewAllCheckIns": "View all check-ins",
+  "attendanceClubEntrance": "Club Entrance",
+  "attendanceManualCheckIn": "Manual check-in",
+  "attendanceTodayBadge": "TODAY",
+  "attendanceSentSessions": "{count, plural, one{Sent {count} session to {name}} other{Sent {count} sessions to {name}}}",
+  "@attendanceSentSessions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "attendanceReceivedSessions": "{count, plural, one{Received {count} session from {name}} other{Received {count} sessions from {name}}}",
+  "@attendanceReceivedSessions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "attendanceGrantedSessions": "{count, plural, one{Added {count} session} other{Added {count} sessions}}",
+  "@attendanceGrantedSessions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceGrantedSessionsBy": "{count, plural, one{Added {count} session by {name}} other{Added {count} sessions by {name}}}",
+  "@attendanceGrantedSessionsBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "attendanceEmptyTitle": "No attendance records found",
+  "attendanceEmptySubtitle": "Try a different filter or scan to check in.",
+  "attendanceLoadFailed": "Failed to load attendance",
+  "attendanceSuspendedTitle": "Membership suspended",
+  "attendanceNoMembershipTitle": "No active membership",
+  "attendanceSuspendedBody": "Your membership has been suspended. Contact the gym to resolve this.",
+  "attendanceNoMembershipBody": "Pick a plan to start checking in, booking classes, and tracking your attendance.",
+  "attendanceBrowseMemberships": "Browse memberships",
+  "attendanceCheckInHistory": "CHECK-IN HISTORY",
+  "attendanceNothingYet": "Nothing here yet",
+  "attendanceNothingYetBody": "Once you start a membership, every check-in will show up right here.",
+  "attendanceFilterByDate": "Filter by date",
+  "attendanceFilterByDateSubtitle": "Pick a from / to range.",
+  "attendanceReset": "Reset",
+  "attendanceFrom": "From",
+  "attendanceTo": "To",
+  "attendanceWeekdayLetters": "S,M,T,W,T,F,S",
+  "attendanceSelectDate": "Select date",
+  "attendanceApply": "Apply",
+  "attHistoryTitle": "Attendance History",
+  "attHistoryClear": "Clear",
+  "attHistoryFilterAll": "All",
+  "attHistoryGymEntrance": "Gym Entrance",
+  "attHistoryFilterClasses": "Classes",
+  "attHistoryFilterManual": "Manual",
+  "attHistoryFromDate": "From date",
+  "attHistoryToDate": "To date",
+  "attHistoryNoCheckIns": "No check-ins found",
+  "attHistoryManualCheckIn": "Manual Check-in",
+  "attHistoryClass": "Class",
+  "attHistoryCheckIn": "Check-in",
+  "attHistoryToday": "Today",
+  "exploreTitle": "Explore",
+  "exploreOurGym": "Our gym",
+  "exploreSearchHint": "Search for classes, specialists, programs or offers",
+  "exploreNoResultsFor": "No results for \"{query}\"",
+  "@exploreNoResultsFor": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreMemberships": "Memberships",
+  "exploreGymMembershipPlans": "{gymName} membership plans",
+  "@exploreGymMembershipPlans": {
+    "placeholders": {
+      "gymName": {
+        "type": "String"
+      }
+    }
+  },
+  "explorePerMonth": "/ month",
+  "explorePerYear": "/ year",
+  "explorePerQuarter": "/ quarter",
+  "exploreOneTime": "one time",
+  "exploreTapSeeBenefits": "Tap to see full benefits",
+  "exploreViewPlans": "View plans ›",
+  "exploreCurrentOffers": "Current offers",
+  "exploreExpires": "Expires {date}",
+  "@exploreExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreOurSpecialists": "Our specialists",
+  "exploreSpecialtyNutrition": "Nutrition",
+  "exploreSpecialtyPhysio": "Physio",
+  "exploreSpecialtyPt": "PT",
+  "explorePrograms": "Programs",
+  "exploreWeeksCount": "{weeks} weeks",
+  "@exploreWeeksCount": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreSessionPackages": "Session packages",
+  "exploreSessionsCount": "{count} sessions",
+  "@exploreSessionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreSessionsPackageSubtitle": "{count} sessions package",
+  "@exploreSessionsPackageSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreSessionsLabel": "sessions",
+  "explorePerSessionPrice": "{price} / session",
+  "@explorePerSessionPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreOurPartners": "Our partners",
+  "exploreTypeSpecialist": "Specialist",
+  "exploreTypeProgram": "Program",
+  "exploreTypeOffer": "Offer",
+  "exploreTypeClass": "Class",
+  "exploreMembershipPlansTitle": "Membership plans",
+  "exploreNoPlans": "No plans available",
+  "exploreGetThisPlan": "Get this plan",
+  "exploreCycleMembership": "{cycle} membership",
+  "@exploreCycleMembership": {
+    "placeholders": {
+      "cycle": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreNoOffers": "No current offers",
+  "exploreNoPrograms": "No programs available",
+  "exploreNoSessionPackages": "No session packages available",
+  "exploreSessionPackagesIntro": "Buy sessions to use with any class or trainer. Sessions never expire.",
+  "exploreBuySessions": "Buy {count} sessions",
+  "@exploreBuySessions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreMostPopular": "Most popular",
+  "trainerListTitle": "Our trainers",
+  "trainerNoneFound": "No trainers found",
+  "trainerFilterAll": "All",
+  "trainerTypeNutritionist": "Nutritionist",
+  "trainerTypePhysiotherapist": "Physiotherapist",
+  "trainerTypePersonal": "Personal trainer",
+  "trainerSpecialtiesTitle": "SPECIALTIES",
+  "trainerAboutTitle": "ABOUT",
+  "trainerClassesTitle": "CLASSES",
+  "trainerReviewsTitle": "REVIEWS",
+  "trainerShowAllReviews": "Show All Reviews ({count})",
+  "@trainerShowAllReviews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trainerNoReviews": "No reviews yet",
+  "trainerMemberFallback": "Member",
+  "offerNotFound": "Offer not found",
+  "offerClaimCta": "Claim this offer",
+  "offerStatDiscount": "Discount",
+  "offerStatAccess": "Access",
+  "offerStatOffer": "Offer",
+  "offerPtSessions": "PT sessions",
+  "offerAboutTitle": "ABOUT THIS OFFER",
+  "offerTermsTitle": "TERMS & CONDITIONS",
+  "offerPriceLabel": "Offer price",
+  "offerSaveAmount": "Save {amount} EGP",
+  "@offerSaveAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "offerTotalPrice": "Total price",
+  "programNotFound": "Program not found",
+  "programWeeksLabel": "Weeks",
+  "programMinPerClass": "Min / class",
+  "programAboutTitle": "ABOUT THIS PROGRAM",
+  "programFocusTitle": "WHAT YOU'LL WORK ON",
+  "programLedByTitle": "LED BY",
+  "programEnrolCta": "Enrol in this program",
+  "programPriceLabel": "Programme price",
+  "programFullDuration": "Full {weeks}-week programme",
+  "@programFullDuration": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "programPerSessionLabel": "Per session",
+  "programSessionsTotal": "{count} sessions total",
+  "@programSessionsTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programPerSessionEgp": "{price} EGP/session",
+  "@programPerSessionEgp": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "membershipActiveServices": "Active Services",
+  "membershipMemberDetails": "Member Details",
+  "membershipMemberNumber": "Member Number",
+  "membershipNoMemberIdYet": "No Member ID yet",
+  "membershipStatus": "Status",
+  "membershipMemberSince": "Member Since",
+  "membershipGuestInvitations": "Guest Invitations",
+  "membershipGuestPasses": "Guest Passes",
+  "membershipInvitationsLeft": "{count} left",
+  "@membershipInvitationsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "membershipInviteGuests": "Invite guests to try the gym",
+  "membershipBilling": "Billing",
+  "membershipViewInvoices": "View Invoices",
+  "membershipViewInvoicesSubtitle": "See your payment history & invoices",
+  "membershipUnfreezeTitle": "Unfreeze Plan",
+  "membershipUnfreezeMessage": "Resume your plan now? The remaining freeze days will be forfeited.",
+  "membershipUnfreeze": "Unfreeze",
+  "membershipNoActiveMembership": "No active membership",
+  "membershipNoActiveMembershipSubtitle": "Contact your gym to get a plan assigned.",
+  "membershipExpiredBanner": "Your membership has expired. Contact the gym to renew.",
+  "membershipExpiresToday": "Your membership expires today!",
+  "membershipExpiresInDays": "{count, plural, =1{Your membership expires in 1 day.} other{Your membership expires in {count} days.}}",
+  "@membershipExpiresInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "membershipSpecialist": "Specialist: {name}",
+  "@membershipSpecialist": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "membershipSessionsRemaining": "{count, plural, =1{1 session remaining} other{{count} sessions remaining}}",
+  "@membershipSessionsRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookingsTitle": "My Bookings",
+  "bookingsUpcoming": "Upcoming",
+  "bookingsPast": "Past",
+  "bookingsNoUpcoming": "No upcoming bookings",
+  "bookingsNoUpcomingSubtitle": "Book a class from the Schedule tab",
+  "bookingsNoPast": "No past bookings",
+  "bookingsNoPastSubtitle": "Your attended and cancelled sessions will appear here",
+  "bookingsLoadFailed": "Failed to load bookings",
+  "bookingsClassFallback": "Class",
+  "bookingsBookedOn": "Booked on {date}",
+  "@bookingsBookedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingsStatusAttended": "Attended",
+  "bookingsStatusCancelled": "Cancelled",
+  "bookingsStatusFinished": "Finished",
+  "bookingsStatusBooked": "Booked",
+  "scheduleTitle": "Schedule",
+  "scheduleBookedSuccess": "Session booked successfully!",
+  "scheduleBookingCancelled": "Booking cancelled.",
+  "scheduleCancelFailed": "Failed to cancel. Please try again.",
+  "scheduleSearchHint": "Search classes, trainers, locations…",
+  "scheduleClassCount": "{count, plural, =1{1 class} other{{count} classes}}",
+  "@scheduleClassCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleAllBranches": "All branches",
+  "scheduleAllClasses": "All classes",
+  "scheduleRestDayTitle": "Rest day. Officially.",
+  "scheduleRestDaySubtitle": "No classes today. Your muscles have the day off.",
+  "scheduleCtaStatsTitle": "Check your attendance stats",
+  "scheduleCtaStatsSubtitle": "Admire how hard you've been working",
+  "scheduleCtaOffersTitle": "Explore membership offers",
+  "scheduleCtaOffersSubtitle": "Treat yourself. You showed up all week.",
+  "scheduleNoMatchFilters": "No classes match your filters",
+  "scheduleClearFilters": "Clear filters",
+  "scheduleLoadFailed": "Failed to load sessions",
+  "scheduleFilterClasses": "Filter Classes",
+  "scheduleReset": "Reset",
+  "scheduleClassType": "Class Type",
+  "scheduleTimeOfDay": "Time of Day",
+  "scheduleMorning": "Morning",
+  "scheduleMorningRange": "6am–12pm",
+  "scheduleAfternoon": "Afternoon",
+  "scheduleAfternoonRange": "12–5pm",
+  "scheduleEvening": "Evening",
+  "scheduleEveningRange": "5–10pm",
+  "scheduleTrainer": "Trainer",
+  "scheduleLocation": "Location",
+  "scheduleApplyFilters": "Apply Filters",
+  "sessionShareFallbackName": "a class",
+  "sessionShareWith": " with {instructor}",
+  "@sessionShareWith": {
+    "placeholders": {
+      "instructor": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionShareMessage": "Join me for {className}{coachPart} at {time} on {date} 💪",
+  "@sessionShareMessage": {
+    "placeholders": {
+      "className": {
+        "type": "String"
+      },
+      "coachPart": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionShareBookHere": "Book here: {link}",
+  "@sessionShareBookHere": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionShareSubject": "Join me for {className} on {date}",
+  "@sessionShareSubject": {
+    "placeholders": {
+      "className": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionAlreadyBooked": "You've already booked this session.",
+  "sessionNowFull": "Sorry, this class is now full.",
+  "sessionBookFailed": "Failed to book. Please try again.",
+  "sessionCancelFailed": "Failed to cancel: {error}",
+  "@sessionCancelFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionAboutClass": "ABOUT THIS CLASS",
+  "sessionWhatToExpect": "WHAT TO EXPECT",
+  "sessionOtherClassesToday": "OTHER CLASSES TODAY",
+  "sessionTagCardioBursts": "Cardio bursts",
+  "sessionTagBodyweightMoves": "Bodyweight moves",
+  "sessionTagCoreWork": "Core work",
+  "sessionTagHighIntensity": "High intensity",
+  "sessionTagNoEquipment": "No equipment",
+  "sessionTagFlexibility": "Flexibility",
+  "sessionTagBreathing": "Breathing",
+  "sessionTagBalance": "Balance",
+  "sessionTagMindfulness": "Mindfulness",
+  "sessionTagCardio": "Cardio",
+  "sessionTagLowImpact": "Low impact",
+  "sessionTagEndurance": "Endurance",
+  "sessionTagMusicDriven": "Music-driven",
+  "sessionTagStrength": "Strength",
+  "sessionTagFootwork": "Footwork",
+  "sessionTagBagWork": "Bag work",
+  "sessionTagCoreStrength": "Core strength",
+  "sessionTagPosture": "Posture",
+  "sessionTagFitness": "Fitness",
+  "sessionTagFun": "Fun",
+  "sessionStatusCancelled": "Cancelled",
+  "sessionStatusAttended": "Attended",
+  "sessionStatusFinished": "Finished",
+  "sessionStatusOngoing": "Ongoing",
+  "sessionStatusBooked": "Booked",
+  "sessionStatusFull": "Full",
+  "sessionStatusOpen": "Open",
+  "sessionMinutesLong": "{count, plural, =1{1 minute} other{{count} minutes}}",
+  "@sessionMinutesLong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionTime": "Time",
+  "sessionDate": "Date",
+  "sessionDuration": "Duration",
+  "sessionFitnessSpecialist": "Fitness Specialist",
+  "sessionCoachName": "Coach {name}",
+  "@sessionCoachName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionCapacity": "Session capacity",
+  "sessionPercentBooked": "{percent}% booked",
+  "@sessionPercentBooked": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionSpotsLeft": "{count, plural, =1{1 spot left} other{{count} spots left}}",
+  "@sessionSpotsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionClassFull": "Class is full",
+  "sessionCancelledInfo": "This session has been cancelled",
+  "sessionGreatWork": "Great work — you showed up!",
+  "sessionLogged": "Session logged",
+  "sessionEndedNotAttended": "This class has ended · not attended",
+  "sessionStartedAt": "Class started at {time}",
+  "@sessionStartedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionInProgress": "In progress",
+  "sessionConfirmedInfo": "You're confirmed for this class",
+  "sessionConfirmedBadge": "Confirmed",
+  "sessionFullInfo": "This class has reached full capacity",
+  "sessionUsesOne": "Uses 1 session from your plan",
+  "sessionFreeWithPlan": "Free with plan",
+  "sessionCancelledButton": "Session cancelled",
+  "sessionClassEnded": "Class ended",
+  "sessionClassOngoing": "Class is ongoing",
+  "sessionBookingConfirmed": "Booking confirmed",
+  "sessionWalkInScan": "Walk-in · scan the studio QR",
+  "sessionBookThisClass": "Book this class",
+  "sessionRateThisClass": "Rate this class",
+  "sessionCancelBooking": "Cancel booking",
+  "sessionConfirmBooking": "Confirm Booking",
+  "sessionInstructor": "Instructor",
+  "sessionTbd": "TBD",
+  "sessionAvailability": "Availability",
+  "packagesUnitSession": "session",
+  "packagesUnitPack": "pack",
+  "packagesTagBestValue": "Best value",
+  "packagesTagStarter": "Starter",
+  "packagesNoneAvailable": "No packages available",
+  "packagesChooseBanner": "Choose a package below. You'll pick your specialist on the next screen.",
+  "packagesEgpPer": "EGP / {per}",
+  "@packagesEgpPer": {
+    "placeholders": {
+      "per": {
+        "type": "String"
+      }
+    }
+  },
+  "packagesEgpEach": "{amount} EGP each",
+  "@packagesEgpEach": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "packageSkillInjuryAssessment": "Injury assessment",
+  "packageSkillRehabilitation": "Rehabilitation",
+  "packageSkillPainManagement": "Pain management",
+  "packageSkillPostureCorrection": "Posture correction",
+  "packageSkillExerciseTherapy": "Exercise therapy",
+  "packageSkillMealPlanning": "Meal planning",
+  "packageSkillBodyComposition": "Body composition",
+  "packageSkillDietAnalysis": "Diet analysis",
+  "packageSkillWeightManagement": "Weight management",
+  "packageSkillSupplementAdvice": "Supplement advice",
+  "packageSkillStrengthTraining": "Strength training",
+  "packageSkillCardio": "Cardio",
+  "packageSkillFormCoaching": "Form coaching",
+  "packageSkillGoalSetting": "Goal setting",
+  "packageSkillHiit": "HIIT",
+  "packageSkillFlexibility": "Flexibility",
+  "packageChooseCoach": "Choose your coach",
+  "packageYourSpecialist": "Your specialist",
+  "packageRolePhysiotherapist": "Physiotherapist",
+  "packageRoleNutritionist": "Nutritionist",
+  "packageRolePersonalTrainer": "Personal Trainer",
+  "packageSessionsSubtitle": "{count} sessions · {service}",
+  "@packageSessionsSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "service": {
+        "type": "String"
+      }
+    }
+  },
+  "packagePrice": "Price",
+  "packageCurrencyEgp": "EGP",
+  "packagePricePerWithEach": "per {per} · {amount} EGP / session",
+  "@packagePricePerWithEach": {
+    "placeholders": {
+      "per": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "packagePricePer": "per {per}",
+  "@packagePricePer": {
+    "placeholders": {
+      "per": {
+        "type": "String"
+      }
+    }
+  },
+  "packageMinEach": "Min each",
+  "packageEgpPerSession": "EGP/session",
+  "packageWhatsIncluded": "WHAT'S INCLUDED",
+  "packageNoSpecialist": "No specialist assigned yet",
+  "packageSelectCoach": "Select a coach to continue",
+  "packageBuyNow": "Buy now — {price} EGP",
+  "@packageBuyNow": {
+    "placeholders": {
+      "price": {
+        "type": "int"
+      }
+    }
+  },
+  "packageRating": "{rating} rating",
+  "@packageRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "transferLookupFailed": "Lookup failed. Try again.",
+  "transferFailedConnection": "Transfer failed. Check your connection and try again.",
+  "transferInsufficientSessions": "You don't have enough sessions left.",
+  "transferNoEligibleMembership": "You don't have a session-based membership to share.",
+  "transferCannotSelf": "You can't send sessions to yourself.",
+  "transferReceiverNotInGym": "That member is not part of this gym.",
+  "transferReceiverNotFound": "No member found with that phone.",
+  "transferTooManyAttempts": "Too many attempts. Wait a minute and try again.",
+  "transferServerError": "Server error during transfer. Try again or contact support.",
+  "transferSendSessions": "Send Sessions",
+  "transferWhoTitle": "Who are you sending\nsessions to?",
+  "transferSearchSubtitle": "Search by their registered mobile number.",
+  "transferTypeAtLeast3": "Type at least 3 digits to search",
+  "transferYouHave": "You have",
+  "transferSessionsAvailable": "{count, plural, =1{1 session available} other{{count} sessions available}}",
+  "@transferSessionsAvailable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transferNoSharable": "You don't have any sharable sessions right now.",
+  "transferOneMatch": "1 MATCH",
+  "transferNoMemberFound": "No member found",
+  "transferDoubleCheck": "Double-check the number, or ask them to register first.",
+  "transferStartTyping": "Start typing your friend's mobile number to find them.",
+  "transferMemberFallback": "Member",
+  "transferVerified": "VERIFIED",
+  "transferHowMany": "How many?",
+  "transferSendingTo": "SENDING TO",
+  "transferSessionsCaps": "SESSIONS",
+  "transferMax": "Max",
+  "transferYoullHaveLeft": "You'll have left",
+  "transferSessionsCount": "{count, plural, =1{1 session} other{{count} sessions}}",
+  "@transferSessionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transferContinue": "Continue",
+  "transferConfirmTitle": "Confirm Transfer",
+  "transferFrom": "FROM",
+  "transferTo": "TO",
+  "transferYou": "You",
+  "transferSessionType": "Session type",
+  "transferQuantity": "Quantity",
+  "transferYourBalance": "Your balance",
+  "transferBalanceAfter": "Balance after",
+  "transferGroupSessions": "Group sessions",
+  "transferWarning": "This action can't be undone. Transferred sessions inherit the recipient's expiry.",
+  "transferSlideToSend": "{count, plural, =1{Slide to send 1 session} other{Slide to send {count} sessions}}",
+  "@transferSlideToSend": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transferEdit": "Edit transfer",
+  "transferSending": "Sending…",
+  "transferTransferringTo": "{count, plural, =1{Transferring 1 session to} other{Transferring {count} sessions to}}",
+  "@transferTransferringTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transferSent": "Transfer sent",
+  "transferDeliveredTo": "have been delivered to",
+  "transferNotificationNote": "They'll get a notification.",
+  "transferRemainingBalance": "Your remaining balance",
+  "transferSendAnother": "Send another transfer",
+  "transferFailedTitle": "Transfer failed",
+  "transferFailedBody": "We couldn't complete the transfer. No sessions were taken from your balance.",
+  "transferUnknownError": "Unknown error.",
+  "transferTryAgain": "Try again",
+  "transferCancel": "Cancel transfer",
+  "qrScanTitle": "Scan QR Code",
+  "qrPointInstruction": "Point at an entrance, studio, or specialist QR code",
+  "qrWrongGymTitle": "Wrong Gym",
+  "qrWrongGymSubtitle": "This QR code belongs to a different gym.",
+  "qrStudioOnlyTitle": "Studio access only",
+  "qrStudioOnlySubtitle": "Transferred sessions can only be used at studio classes — gym-floor entry needs your own active membership.",
+  "qrBranchNotIncludedTitle": "Branch Not Included",
+  "qrBranchNotIncludedSubtitle": "Your plan does not include access to this branch.",
+  "qrInvalidTitle": "Invalid QR Code",
+  "qrMissingStudioInfo": "Missing studio information.",
+  "qrMissingSpecialistInfo": "Missing specialist information.",
+  "qrNotRecognized": "This QR code is not recognized by the gym app.",
+  "qrNotRegisteredTitle": "Not Registered",
+  "qrNotRegisteredSubtitle": "You are not registered as a member of this gym.",
+  "qrSpecialistFallback": "Specialist",
+  "qrWrongBranchTitle": "Wrong Branch",
+  "qrWrongBranchSubtitle": "Your membership is not valid for this branch.",
+  "qrNoSessionTodayTitle": "No Session Today",
+  "qrNoSessionTodaySubtitle": "There is no active session for this class today.",
+  "qrAlreadyCheckedInTitle": "Already Checked In",
+  "qrAlreadyCheckedInSubtitle": "You have already checked in to this session.",
+  "qrAttendanceRecorded": "Your attendance for this session has already been recorded.",
+  "qrAlreadyCheckedInRecently": "You've already checked in recently. Please wait a moment before scanning again.",
+  "qrNotBookedTitle": "Not Booked",
+  "qrNotBookedSubtitle": "You don't have a booking for today's session.",
+  "qrNotBookedStudioSubtitle": "You don't have a booking for today's session in this studio.",
+  "qrBookASession": "Book a Session",
+  "qrNoSessionsLeftTitle": "No Sessions Left",
+  "qrSessionsExhaustedSubtitle": "You've used all the sessions in your package. Please renew or upgrade your plan.",
+  "qrSessionsExhaustedShort": "You've used all the sessions in your package. Please renew or upgrade.",
+  "qrTooEarlyTitle": "Too Early",
+  "qrTooEarlySubtitle": "Check-in opens 15 minutes before the session starts.",
+  "qrTooEarlySubtitleAt": "Check-in opens 15 minutes before the session starts at {time}.",
+  "@qrTooEarlySubtitleAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "qrSessionEndedTitle": "Session Ended",
+  "qrSessionEndedSubtitle": "Check-in is no longer available. The session has already ended.",
+  "qrSomethingWentWrong": "Something went wrong",
+  "qrStudioNotFound": "This studio was not found. Please contact staff.",
+  "qrNoActiveMembershipTitle": "No Active Membership",
+  "qrNoActiveMembershipSubtitle": "You don't have an active membership. Please speak to reception.",
+  "qrMembershipFrozenTitle": "Membership Frozen",
+  "qrMembershipFrozenSubtitle": "Your membership is currently paused. Unfreeze it to check in.",
+  "qrStudioAccessNotIncludedTitle": "Studio Access Not Included",
+  "qrStudioAccessNotIncludedSubtitle": "Your current plan only includes gym floor access. Upgrade to a sessions plan to attend classes.",
+  "qrNoActiveSessionTitle": "No Active Session",
+  "qrNoActiveSessionSubtitle": "There is no class running in this studio right now.",
+  "qrCheckinDeniedTitle": "Check-in Denied",
+  "qrServicePersonalTraining": "Personal training",
+  "qrServicePhysiotherapy": "Physiotherapy",
+  "qrServiceNutrition": "Nutrition",
+  "qrNoPackageTitle": "No Package Yet",
+  "qrPackageExpiredTitle": "Package Expired",
+  "qrNoPackageSubtitle": "You don't have an active session package with this specialist.",
+  "qrViewPackages": "View Packages",
+  "qrAlreadyLoggedTitle": "Already Logged",
+  "qrTryAgainInMinutes": "{count, plural, =1{This session was just logged. Try again in about 1 minute.} other{This session was just logged. Try again in about {count} minutes.}}",
+  "@qrTryAgainInMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qrJustLogged": "This session was already logged a moment ago.",
+  "qrSpecialistCodeInvalid": "This specialist code is not valid for your gym.",
+  "qrCouldNotLogTitle": "Could Not Log Session",
+  "qrGymAccessNotIncludedTitle": "Gym Access Not Included",
+  "qrGymAccessNotIncludedSubtitle": "Your current plan only includes class sessions. Upgrade to access the gym floor.",
+  "qrCheckinFailedTitle": "Check-in Failed",
+  "qrCodeReplaced": "This QR code has been replaced. Please scan the updated QR code.",
+  "qrCheckedInTitle": "Checked In!",
+  "qrWelcomeBack": "Welcome back! Your visit has been recorded.",
+  "qrAttendanceMarkedTitle": "Attendance Marked!",
+  "qrSessionLoggedTitle": "Session Logged!",
+  "qrLastSessionWith": "That was your last session with {name}.",
+  "@qrLastSessionWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "qrOneSessionUsedWith": "One session used with {name}.",
+  "@qrOneSessionUsedWith": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "qrCheckInTime": "Check-in Time",
+  "qrGymMainEntrance": "Gym Main Entrance",
+  "qrSessionLabel": "Session",
+  "qrServiceLabel": "Service",
+  "qrSessionsLeftLabel": "Sessions Left",
+  "qrClosingIn": "Closing in {seconds} seconds…",
+  "@qrClosingIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "qrScanAgain": "Scan Again",
+  "qrNoGymAccessBody": "Your current subscription does not include gym access.\nUpgrade your plan to enter the gym.",
+  "qrViewMemberships": "View Memberships",
+  "qrFrozenUntilBody": "Your membership is paused until {date}.\nYou cannot check in while frozen.",
+  "@qrFrozenUntilBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "qrFrozenBody": "Your membership is currently frozen.\nYou cannot check in while frozen.",
+  "qrUnfreezeFailed": "Failed to unfreeze: {error}",
+  "@qrUnfreezeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "qrResuming": "Resuming…",
+  "qrResumeNow": "Resume Now",
+  "paymobSecurePayment": "Secure Payment",
+  "paymobCardPayment": "Card Payment",
+  "paymobTotalAmount": "Total amount",
+  "paymobCardDetails": "Card Details",
+  "paymobPayAmount": "Pay {amount}",
+  "@paymobPayAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymobProcessing": "Processing…",
+  "paymobDeclinedCheckCard": "Payment was declined. Please check your card details.",
+  "paymobSecuredFooter": "🔒 Secured by Paymob — your card data is never stored",
+  "paymentGymNotFound": "Unable to process payment — gym not found",
+  "paymentPending": "Payment is pending. We'll update your account once confirmed.",
+  "paymentDeclined": "Payment was declined. Please try again.",
+  "paymentError": "Payment error: {error}",
+  "@paymentError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInvalidPromo": "Invalid promo code",
+  "paymentPromoValidationFailed": "Could not validate promo code",
+  "paymentSummaryTitle": "Payment summary",
+  "paymentBuyNow": "Buy now — {amount} EGP",
+  "@paymentBuyNow": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentSecuredBySsl": "Secured by SSL",
+  "paymentCurrencyEgp": "EGP",
+  "paymentAmountEgp": "{amount} EGP",
+  "@paymentAmountEgp": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentMemberDiscountPct": "{pct}% member discount",
+  "@paymentMemberDiscountPct": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentAppliedAsMember": "applied as {planName} member",
+  "@paymentAppliedAsMember": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentPriceBreakdown": "Price breakdown",
+  "paymentMemberDiscountLabel": "Member discount ({name})",
+  "@paymentMemberDiscountLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentPctOff": "{pct}% off",
+  "@paymentPctOff": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentPromoCode": "Promo code",
+  "paymentSubtotal": "Subtotal",
+  "paymentVat": "VAT (14%)",
+  "paymentTotal": "Total",
+  "paymentYouSaved": "You saved {amount} EGP!",
+  "@paymentYouSaved": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentApply": "Apply",
+  "paymentMethodTitle": "Payment",
+  "paymentMethodCard": "Credit / Debit card",
+  "paymentTypeMembershipsLower": "memberships",
+  "paymentTypeOffersLower": "offers",
+  "paymentTypeSessionPackagesLower": "session packages",
+  "paymentTypeProgrammesLower": "programmes",
+  "paymentStepEmailTitle": "Check your email",
+  "paymentStepEmailDesc": "A receipt and booking confirmation have been sent to your registered email address.",
+  "paymentStepMembershipActiveTitle": "Membership is now active",
+  "paymentStepMembershipActiveDesc": "Your plan has been activated. Head to the home screen to view your membership details.",
+  "paymentStepScanQrTitle": "Scan QR to check in",
+  "paymentStepScanQrDesc": "Open the QR tab when you arrive at the gym to log your attendance.",
+  "paymentStepSessionsAvailableTitle": "Sessions are now available",
+  "paymentStepSessionsAddedDesc": "Your {title} sessions have been added to your account. Book them from the Schedule tab.",
+  "@paymentStepSessionsAddedDesc": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentStepScanQrDayOneTitle": "Scan QR on day one",
+  "paymentStepScanQrInstructorDesc": "Open the QR tab when you arrive. Your instructor will guide you to the right area.",
+  "paymentStepOfferMembershipDesc": "Your membership has been activated at the offer price. Head to the home screen to view your plan details.",
+  "paymentStepOfferSessionsDesc": "Your sessions have been added at the offer price. Book them from the Schedule tab.",
+  "paymentStepSessionsActiveTitle": "Sessions are now active",
+  "paymentStepBookFirstDesc": "Head to the Schedule tab to book your first {title} session.",
+  "@paymentStepBookFirstDesc": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentStepScanQrTrainerDesc": "Open the QR tab when you arrive. Your trainer will be ready at your scheduled time.",
+  "paymentSuccessTitle": "Purchase successful!",
+  "paymentOrderNumber": "Order #{orderNumber}",
+  "@paymentOrderNumber": {
+    "placeholders": {
+      "orderNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentYourOrder": "YOUR ORDER",
+  "paymentItem": "Item",
+  "paymentDuration": "Duration",
+  "paymentDetails": "Details",
+  "paymentStarts": "Starts",
+  "paymentOriginalPrice": "Original price",
+  "paymentOfferDiscount": "Offer discount",
+  "paymentPromoWithCode": "Promo ({code})",
+  "@paymentPromoWithCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentTotalPaid": "Total paid",
+  "paymentSavedOnOrder": "You saved {amount} EGP on this order",
+  "@paymentSavedOnOrder": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentSavingsBreakdown": "{offer} EGP offer + {promo} EGP promo",
+  "@paymentSavingsBreakdown": {
+    "placeholders": {
+      "offer": {
+        "type": "String"
+      },
+      "promo": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentWhatHappensNext": "WHAT HAPPENS NEXT",
+  "paymentBackToHome": "Back to home",
+  "paymentBrowseMore": "Browse more {type}",
+  "@paymentBrowseMore": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTitle": "Profile",
+  "profileActiveServices": "Active services",
+  "profileAccount": "Account",
+  "profileSecurityLabel": "SECURITY",
+  "profileSessionLabel": "SESSION",
+  "profileAccountLabel": "ACCOUNT",
+  "profileDocumentLabel": "DOCUMENT",
+  "profileChangePassword": "Change password",
+  "profileSignOut": "Sign out",
+  "profileDeleteAccount": "Delete account",
+  "profileLegal": "Legal",
+  "profileTerms": "Terms & Conditions",
+  "profilePrivacy": "Privacy Policy",
+  "profileMemberFallback": "Member",
+  "profileMemberSince": "Member since {date}",
+  "@profileMemberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "profileEmailLabel": "EMAIL",
+  "profileMobileLabel": "MOBILE",
+  "profileDobLabel": "DATE OF BIRTH",
+  "profileShareSessions": "Share sessions",
+  "profileShareSessionsSubtitle": "Transfer sessions to another member",
+  "profileTakePhoto": "Take photo",
+  "profileChooseFromLibrary": "Choose from library",
+  "profileCropPhoto": "Crop Photo",
+  "profileCropFailed": "Failed to crop image",
+  "profilePhotoUpdated": "Profile photo updated",
+  "profileEditProfile": "Edit profile",
+  "profileFullName": "Full name",
+  "profileMobileWithCode": "Mobile (with country code)",
+  "profileDateOfBirth": "Date of birth",
+  "profileSelectDob": "Select Date of Birth",
+  "profileUpdated": "Profile updated",
+  "profileTapToChoose": "Tap to choose",
+  "profileNewPassword": "New password",
+  "profileConfirmPassword": "Confirm password",
+  "profilePasswordMin": "Password must be at least 8 characters",
+  "profilePasswordsDontMatch": "Passwords don't match",
+  "profilePasswordUpdated": "Password updated",
+  "profileUpdatePassword": "Update password",
+  "profileSignOutConfirmTitle": "Sign out of your account?",
+  "profileSignOutConfirmBody": "You can sign back in any time with your email and password.",
+  "profileDeleteConfirmTitle": "Delete your account?",
+  "profileDeleteWarningPrefix": "This permanently removes your profile, sessions, and transfer history. This ",
+  "profileDeleteWarningEmphasis": "can't be undone",
+  "profileTypeToConfirmPrefix": "Type ",
+  "profileTypeToConfirmSuffix": " to confirm",
+  "profilePackageFallback": "Package",
+  "profileWithTrainer": "with {name}",
+  "@profileWithTrainer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "profileOfTotalLeft": "of {total} left",
+  "@profileOfTotalLeft": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "profileMembershipFallback": "Membership",
+  "profileExpires": "Expires {date}",
+  "@profileExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "profileUnlimitedSessions": "unlimited sessions",
+  "profileSessionsLeftSuffix": "{count, plural, =1{session left} other{sessions left}}",
+  "@profileSessionsLeftSuffix": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileIncludesTransfers": "Includes {count} from transfers",
+  "@profileIncludesTransfers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestInvTitle": "Guest Invitations",
+  "guestInvInviteGuest": "Invite Guest",
+  "guestInvNoInvitesLeft": "No Invites Left",
+  "guestInvSentInvitations": "Sent Invitations",
+  "guestInvNotIncluded": "Guest invitations are not included in your current plan.",
+  "guestInvDayPass": "{days}-day pass",
+  "@guestInvDayPass": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "guestInvOneVisit": "1 visit",
+  "guestInvInvitesRemaining": "invites remaining",
+  "guestInvEachGuestGets": "Each guest gets a {pass}",
+  "@guestInvEachGuestGets": {
+    "placeholders": {
+      "pass": {
+        "type": "String"
+      }
+    }
+  },
+  "guestInvNoneSentYet": "No invitations sent yet",
+  "guestInvInviteFriend": "Invite a friend and they'll get a free guest pass!",
+  "guestInvNoneRemaining": "You have no invites remaining.",
+  "guestInvSendInvitation": "Send Invitation",
+  "guestInvDaysLeft": "{days}d left",
+  "@guestInvDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "guestInvHoursLeft": "{hours}h left",
+  "@guestInvHoursLeft": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "guestInvExpiringSoon": "Expiring soon",
+  "guestInvSentWithVisits": "Invitation sent! Your guest gets {count} visits.",
+  "@guestInvSentWithVisits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestInvSentSimple": "Invitation sent! Your guest will receive instructions to register.",
+  "guestInvSendGuestInvitation": "Send Guest Invitation",
+  "guestInvSheetSubtitle": "Your guest will receive an invitation to register and get a free pass.",
+  "guestInvGuestNameOptional": "Guest Name (optional)",
+  "guestInvEmailRequired": "Email *",
+  "guestInvEmailIsRequired": "Email is required",
+  "guestInvEnterValidEmail": "Enter a valid email",
+  "guestInvPhoneRequired": "Phone *",
+  "guestInvPhoneIsRequired": "Phone is required",
+  "guestInvVisitsToAllocate": "Visits to allocate",
+  "guestInvRemainingAfter": "{count, plural, =1{1 invite remaining after this} other{{count} invites remaining after this}}",
+  "@guestInvRemainingAfter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestInvSendWithVisits": "Send Invitation ({count} visits)",
+  "@guestInvSendWithVisits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestGymInfoEmpty": "No gym info available",
+  "guestGymInfoContactLocation": "Contact & Location",
+  "guestGymInfoOperatingHours": "Operating Hours",
+  "guestGymInfoClosed": "Closed",
+  "guestGymInfoDayMonday": "Monday",
+  "guestGymInfoDayTuesday": "Tuesday",
+  "guestGymInfoDayWednesday": "Wednesday",
+  "guestGymInfoDayThursday": "Thursday",
+  "guestGymInfoDayFriday": "Friday",
+  "guestGymInfoDaySaturday": "Saturday",
+  "guestGymInfoDaySunday": "Sunday",
+  "guestHomeMembershipPlans": "Membership plans",
+  "guestHomeTodaysClasses": "Today's classes",
+  "guestHomeGymFallback": "the gym",
+  "guestHomeJoinGymToday": "Join {gymName} today",
+  "@guestHomeJoinGymToday": {
+    "placeholders": {
+      "gymName": {
+        "type": "String"
+      }
+    }
+  },
+  "guestHomePlansSubtitle": "Choose from sessions or duration memberships.\nFlexible plans for every goal.",
+  "guestHomeCheckInLocked": "Check in locked",
+  "guestHomeMembersOnly": "Members only — sign in to access",
+  "guestHomeClassFallback": "Class",
+  "guestHomeNoClassesToday": "No classes scheduled today",
+  "guestPlansEmpty": "No plans available",
+  "guestPlansPriceAed": "AED {price}",
+  "@guestPlansPriceAed": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "guestPlansPerCycle": "/ {cycle}",
+  "@guestPlansPerCycle": {
+    "placeholders": {
+      "cycle": {
+        "type": "String"
+      }
+    }
+  },
+  "guestPlansBillingMonthly": "monthly",
+  "guestPlansBillingYearly": "yearly",
+  "guestPlansBillingWeekly": "weekly",
+  "guestPlansSessionsCount": "{count} sessions",
+  "@guestPlansSessionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestPlansVisitsPerWeek": "{count}x / week",
+  "@guestPlansVisitsPerWeek": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestPlansVisitsPerMonth": "{count}x / month",
+  "@guestPlansVisitsPerMonth": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestPlansMonthsCount": "{count} months",
+  "@guestPlansMonthsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "guestPlansGetStarted": "Get Started",
+  "guestPlansTypeUnlimited": "Unlimited Access",
+  "guestPlansTypeLimited": "Limited Access",
+  "guestPlansTypeSessions": "Session Pack",
+  "guestPlansTypeDayPass": "Day Pass",
+  "guestScheduleNoClasses": "No classes on this day",
+  "guestScheduleTryDifferentDate": "Try selecting a different date",
+  "guestScheduleLoadFailed": "Failed to load schedule",
+  "guestShellWelcome": "Welcome",
+  "guestShellBrowsingAsGuest": "Browsing as guest — limited access",
+  "guestShellJoinNow": "Join Now",
+  "guestShellNavHome": "Home",
+  "guestShellNavClasses": "Classes",
+  "guestShellNavExplore": "Explore",
+  "guestShellNavProfile": "Profile",
+  "guestTrainersEmpty": "No trainers available",
+  "bannerOffer": "OFFER",
+  "bannerGetPromoCode": "Get promo code",
+  "bannerVisitHost": "Visit {host}",
+  "@bannerVisitHost": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerYourPromoCode": "YOUR PROMO CODE",
+  "bannerCopy": "Copy",
+  "bannerCopied": "Copied",
+  "billingInvoicesTitle": "Invoices",
+  "billingNoInvoicesYet": "No invoices yet",
+  "billingEmptySubtitle": "Your payment history will appear here.",
+  "billingLoadFailed": "Failed to load invoices",
+  "billingStatusPaid": "Paid",
+  "billingStatusPending": "Pending",
+  "billingStatusOverdue": "Overdue",
+  "invoiceDetailsTitle": "Invoice Details",
+  "invoiceBillingPeriod": "Billing Period",
+  "invoicePeriod": "Period",
+  "invoiceItems": "Items",
+  "invoicePaymentInfo": "Payment Info",
+  "invoiceStatus": "Status",
+  "invoiceDueDate": "Due Date",
+  "invoicePaidOn": "Paid On",
+  "invoicePaymentMethod": "Payment Method",
+  "invoiceNotes": "Notes",
+  "invoiceCreatedOn": "Created {date}",
+  "@invoiceCreatedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invoiceTotalAmount": "Total Amount",
+  "invoiceTotalPaid": "Total Paid",
+  "invoicePayAmount": "Pay {amount}",
+  "@invoicePayAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "invoiceLoadFailed": "Failed to load invoice",
+  "invoicePayInvoice": "Pay Invoice",
+  "invoiceAmountDue": "Amount Due",
+  "invoicePaymentSubmitted": "Payment of {amount} submitted",
+  "@invoicePaymentSubmitted": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "invoiceProcessing": "Processing…",
+  "invoiceConfirmPayment": "Confirm Payment",
+  "invoicePaidOnDate": "Paid {date}",
+  "@invoicePaidOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invoiceDueOnDate": "Due {date}",
+  "@invoiceDueOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invoiceOfferBadge": "Offer",
+  "onboardingContinue": "Continue",
+  "onboardingGetStarted": "Get started",
+  "onboardingScanToEnter": "SCAN TO ENTER",
+  "onboardingCheckedIn": "Checked in",
+  "onboardingSessionsTag": "SESSIONS",
+  "onboardingYou": "You",
+  "onboardingSampleFriendName": "Ahmed",
+  "onboardingReceivedTag": "+3 received",
+  "onboardingMembershipTag": "MEMBERSHIP",
+  "onboardingSamplePlan": "Premium Monthly",
+  "onboardingMemberNumberTag": "MEMBER #",
+  "onboardingRenewsTag": "RENEWS",
+  "onboardingLeftTag": "LEFT",
+  "welcomeTitlePrefix": "Welcome to ",
+  "welcomeSubtitle": "Your gym, your sessions, your friends — all in one place. Let's get you set up.",
+  "welcomeCreateAccount": "Create account",
+  "welcomeAlreadyHaveAccount": "I already have an account",
+  "welcomeContinueAsGuest": "Continue as guest",
+  "welcomeLegalPrefix": "By continuing, you agree to our ",
+  "popupNotNow": "Not now",
+  "splashPoweredBy": "Powered by CLBY",
+  "splashLoadingYourGym": "Loading your gym…",
+  "freezeFailed": "Failed to freeze: {error}",
+  "@freezeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "freezeTitle": "Freeze Plan",
+  "freezeWillPause": "{planName} will be paused and the end date extended.",
+  "@freezeWillPause": {
+    "placeholders": {
+      "planName": {
+        "type": "String"
+      }
+    }
+  },
+  "freezeYourPlan": "Your plan",
+  "freezeDaysAvailable": "Days available",
+  "freezeFreezesUsed": "Freezes used",
+  "freezeXOfY": "{a} of {b}",
+  "@freezeXOfY": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "freezeAllDaysUsed": "All {days} freeze days have been used for this plan. No further freezes are allowed.",
+  "@freezeAllDaysUsed": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freezeMaxCountReached": "Maximum freeze count ({count}) has been reached for this plan. No further freezes are allowed.",
+  "@freezeMaxCountReached": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freezeHowManyDays": "How many days?",
+  "freezeMaxDaysHint": "Max {days} days",
+  "@freezeMaxDaysHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freezeExtendTo": "Your plan will extend to ",
+  "freezeFreezing": "Freezing…",
+  "guestPromptMembersOnly": "Members Only",
+  "guestPromptDescription": "Create a free account to book classes, track your membership, and more.",
+  "guestPromptCreateAccount": "Create Account",
+  "guestPromptSignIn": "Sign In",
+  "legalConsentPrefix": "By continuing, you agree to our ",
+  "legalTermsOfService": "Terms of Service",
+  "legalAnd": " and ",
+  "legalPrivacyPolicy": "Privacy Policy",
+  "memberCardMembership": "MEMBERSHIP",
+  "memberCardStandardPlan": "Standard Plan",
+  "memberCardStart": "Start",
+  "memberCardExpires": "Expires",
+  "memberCardVisitsPerWeek": "{count} visits per week",
+  "@memberCardVisitsPerWeek": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberCardVisitsPerMonth": "{count} visits per month",
+  "@memberCardVisitsPerMonth": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberCardSessionsIncluded": "{count} sessions included",
+  "@memberCardSessionsIncluded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberCardBilling": "{cycle} billing",
+  "@memberCardBilling": {
+    "placeholders": {
+      "cycle": {
+        "type": "String"
+      }
+    }
+  },
+  "memberCardPlanBenefits": "Plan Benefits",
+  "memberCardSuspended": "Suspended",
+  "memberCardFrozen": "Frozen",
+  "memberCardInactive": "Inactive",
+  "memberCardNoActiveMembership": "No Active Membership",
+  "memberCardContactGym": "Contact the gym to get started",
+  "memberCardTransferredSessions": "Transferred sessions",
+  "memberCardUnlimitedSessions": "unlimited sessions",
+  "memberCardSessionsRemaining": "sessions remaining",
+  "memberCardOfTotal": "of {total} total",
+  "@memberCardOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "memberCardDaysLeft": "{count, plural, =1{day left} other{days left}}",
+  "@memberCardDaysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberCardUntilDate": "until {date}",
+  "@memberCardUntilDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memberCardNoActiveAccess": "no active access",
+  "memberCardMembershipExpiry": "Membership expiry",
+  "memberCardEndDate": "End date",
+  "memberCardNearestExpiry": "Nearest expiry",
+  "memberCardFrozenUntil": "Frozen until",
+  "memberCardFreeze": "Freeze",
+  "memberCardUnfreeze": "Unfreeze",
+  "memberCardSessionsPlan": "Sessions plan",
+  "memberCardDurationPlan": "Duration plan",
+  "memberCardFullAccess": "Full access",
+  "memberCardMonthlyPlan": "Monthly plan",
+  "memberCardAnnualPlan": "Annual plan",
+  "memberCardIncludesTransfers": "{count, plural, =1{Includes 1 session from transfers} other{Includes {count} sessions from transfers}}",
+  "@memberCardIncludesTransfers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memberCardExpiresOn": "expires {date}",
+  "@memberCardExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "memberCardNearestExpiryOn": "nearest expiry {date}",
+  "@memberCardNearestExpiryOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingTerrible": "Terrible",
+  "ratingBad": "Bad",
+  "ratingOkay": "Okay",
+  "ratingGood": "Good",
+  "ratingExcellent": "Excellent",
+  "ratingSubmitFailed": "Failed to submit: {error}",
+  "@ratingSubmitFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingTitle": "Rate your experience",
+  "ratingSubtitle": "Your feedback helps us improve",
+  "ratingHowWasSession": "How was the session overall?",
+  "ratingOverallHint": "Rate your overall class experience",
+  "ratingHowWasTrainer": "How was {name}?",
+  "@ratingHowWasTrainer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingOptional": "optional",
+  "ratingTrainerHint": "Rate your trainer's performance",
+  "ratingLeaveReview": "Leave a review",
+  "ratingShareHint": "Share your experience with the community",
+  "ratingReviewHint": "What did you think about this class? Your review may be shown to other members…",
+  "ratingSubmit": "Submit rating",
+  "ratingSkipForNow": "Skip for now",
+  "ratingYou": "You",
+  "ratingThanks": "Thanks for your review!",
+  "ratingSubmittedDesc": "Your feedback has been submitted and may\nhelp other members choose their classes.",
+  "ratingSessionSummary": "Session: {label}",
+  "@ratingSessionSummary": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingTrainerSummary": "Trainer: ",
+  "ratingJustNow": "Just now",
+  "ratingViewBookings": "View my bookings",
+  "servicesTitle": "Services",
+  "sessionCardClass": "Class",
+  "sessionCardAttended": "Attended",
+  "sessionCardCapacity": "Capacity",
+  "sessionCardFull": "Full",
+  "sessionCardSpotsLeft": "{count} spots left",
+  "@sessionCardSpotsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCardSessionCancelled": "Session Cancelled",
+  "sessionCardClassOngoing": "Class is ongoing",
+  "sessionCardBooked": "Booked",
+  "sessionCardClassEnded": "Class ended",
+  "sessionCardClassFull": "Class is full",
+  "sessionCardWalkInScanQr": "Walk-in · scan QR",
+  "sessionCardCancelled": "Cancelled",
+  "sessionCardFinished": "Finished",
+  "sessionCardOngoing": "Ongoing",
+  "sessionCardOpen": "Open",
+  "sessionCardRated": "Rated",
+  "sessionCardRate": "Rate"
+}

@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,7 +25,7 @@ class LocationsScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Our Locations',
+          context.l10n.locationsTitle,
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
@@ -135,7 +136,7 @@ class _LocationListCard extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: _openMaps,
                       icon: const Icon(Icons.map_outlined, size: 16),
-                      label: const Text('Open in Maps'),
+                      label: Text(context.l10n.locationsOpenInMaps),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(

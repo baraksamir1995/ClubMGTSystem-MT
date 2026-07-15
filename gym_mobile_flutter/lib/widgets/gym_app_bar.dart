@@ -201,8 +201,8 @@ class _NotificationBell extends StatelessWidget {
           children: [
             const Icon(Icons.notifications_outlined, size: 22),
             if (hasUnread)
-              Positioned(
-                right: -1,
+              PositionedDirectional(
+                end: -1,
                 top: -1,
                 child: Container(
                   width: 7,

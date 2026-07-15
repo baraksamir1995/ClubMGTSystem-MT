@@ -171,6 +171,7 @@ class ApiService {
     final data = await _post('/api/auth/login', {
       'email': email,
       'password': password,
+      if (Env.gymId.isNotEmpty) 'gym_id': Env.gymId,
     });
     final token = data['token'] as String;
     final user = data['user'] as Map<String, dynamic>;

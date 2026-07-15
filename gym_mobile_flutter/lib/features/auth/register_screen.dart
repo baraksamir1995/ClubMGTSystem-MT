@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../../models/gym_model.dart';
 import '../../services/api_service.dart';
 import '../../services/analytics_service.dart';
@@ -43,9 +44,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _registered = false;
 
-  static const _months = [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December',
+  List<String> get _months => [
+    context.l10n.registerMonthJanuary,
+    context.l10n.registerMonthFebruary,
+    context.l10n.registerMonthMarch,
+    context.l10n.registerMonthApril,
+    context.l10n.registerMonthMay,
+    context.l10n.registerMonthJune,
+    context.l10n.registerMonthJuly,
+    context.l10n.registerMonthAugust,
+    context.l10n.registerMonthSeptember,
+    context.l10n.registerMonthOctober,
+    context.l10n.registerMonthNovember,
+    context.l10n.registerMonthDecember,
   ];
 
   // White-label builds (GYM_ID baked at compile time) don't render the club
@@ -204,10 +215,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _friendlyError(String m) {
     final l = m.toLowerCase();
     if (l.contains('already') || l.contains('exists') || l.contains('taken')) {
-      return 'This email is already registered. Use Forgot Password if you lost access.';
+      return context.l10n.registerEmailExists;
     }
-    if (l.contains('phone')) return 'This phone number is already registered.';
-    if (l.contains('weak password')) return 'Password is too weak. Use at least 8 characters.';
+    if (l.contains('phone')) return context.l10n.registerPhoneExists;
+    if (l.contains('weak password')) return context.l10n.registerWeakPassword;
     return m;
   }
 
@@ -241,13 +252,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 color: kAuthHair, borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 12, 20, 8),
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Text(
-                  'Select country',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kAuthInk),
+                  context.l10n.registerSelectCountry,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kAuthInk),
                 ),
               ),
             ),
@@ -305,8 +316,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             AuthStepBar(
               step: _step,
               labels: _skipClubStep
-                  ? const ['Account', 'You']
-                  : const ['Account', 'You', 'Club'],
+                  ? [context.l10n.registerStepAccount, context.l10n.registerStepYou]
+                  : [context.l10n.registerStepAccount, context.l10n.registerStepYou, context.l10n.registerStepClub],
             ),
             const SizedBox(height: 4),
             Expanded(
@@ -340,32 +351,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           const AuthMark(size: 48),
           const SizedBox(height: 18),
-          const Text(
-            'Create your account',
-            style: TextStyle(
+          Text(
+            context.l10n.registerTitle,
+            style: const TextStyle(
               fontSize: 28, fontWeight: FontWeight.w600,
               color: kAuthInk, letterSpacing: -0.6, height: 1.15,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            "Email and a strong password — we'll keep your account safe.",
-            style: TextStyle(fontSize: 14, color: kAuthInk2, height: 1.5),
+          Text(
+            context.l10n.registerSubtitle,
+            style: const TextStyle(fontSize: 14, color: kAuthInk2, height: 1.5),
           ),
           const SizedBox(height: 22),
 
           AuthField(
-            label: 'Email',
+            label: context.l10n.authEmailLabel,
             controller: _emailCtrl,
-            placeholder: 'you@example.com',
+            placeholder: context.l10n.authEmailPlaceholder,
             keyboardType: TextInputType.emailAddress,
             leading: const Icon(Icons.mail_outline_rounded, size: 18, color: kAuthInk2),
           ),
           const SizedBox(height: 14),
           AuthField(
-            label: 'Password',
+            label: context.l10n.authPasswordLabel,
             controller: _passwordCtrl,
-            placeholder: 'At least 8 characters',
+            placeholder: context.l10n.authAtLeast8Chars,
             isPassword: true,
             obscureText: _obscurePw,
             onToggleObscure: () => setState(() => _obscurePw = !_obscurePw),
@@ -376,7 +387,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 28),
 
           AuthButton(
-            label: 'Continue',
+            label: context.l10n.authContinue,
             enabled: _step0Valid,
             onTap: () => _goTo(1),
           ),
@@ -384,16 +395,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Already have an account? ',
-                style: TextStyle(fontSize: 14, color: kAuthInk2),
+              Text(
+                context.l10n.registerAlreadyHaveAccount,
+                style: const TextStyle(fontSize: 14, color: kAuthInk2),
               ),
               AuthTextLink(
-                text: 'Sign in',
+                text: context.l10n.authSignIn,
                 onTap: () => context.go('/login'),
               ),
             ],
           ),
+          const PoweredByClby(),
         ],
       ),
     );
@@ -411,9 +423,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
                 const AuthPeachIcon(icon: Icons.calendar_today_outlined),
                 const SizedBox(height: 18),
-                const Text(
-                  'A bit about you',
-                  style: TextStyle(
+                Text(
+                  context.l10n.registerAboutYouTitle,
+                  style: const TextStyle(
                     fontSize: 28, fontWeight: FontWeight.w600,
                     color: kAuthInk, letterSpacing: -0.6, height: 1.15,
                   ),
@@ -421,20 +433,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 22),
 
                 AuthField(
-                  label: 'Full name',
+                  label: context.l10n.registerFullNameLabel,
                   controller: _nameCtrl,
-                  placeholder: 'e.g. Ahmed Hassan',
+                  placeholder: context.l10n.registerFullNamePlaceholder,
                   keyboardType: TextInputType.name,
                   leading: const Icon(Icons.person_outline_rounded, size: 18, color: kAuthInk2),
                 ),
                 const SizedBox(height: 16),
 
                 // Date of birth — DD / Month / YYYY
-                const Padding(
-                  padding: EdgeInsets.only(left: 4),
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 4),
                   child: Text(
-                    'DATE OF BIRTH',
-                    style: TextStyle(
+                    context.l10n.registerDateOfBirth.toUpperCase(),
+                    style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w600,
                       color: kAuthInk2, letterSpacing: 0.3,
                     ),
@@ -446,7 +458,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       flex: 10,
                       child: _FieldShell(
-                        child: _dobNum(_dayCtrl, 'DD', 2),
+                        child: _dobNum(_dayCtrl, context.l10n.registerDayHint, 2),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -461,7 +473,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       flex: 12,
                       child: _FieldShell(
-                        child: _dobNum(_yearCtrl, 'YYYY', 4),
+                        child: _dobNum(_yearCtrl, context.l10n.registerYearHint, 4),
                       ),
                     ),
                   ],
@@ -475,7 +487,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${dob.age} years old ✓',
+                      context.l10n.registerAgeYears(dob.age!),
                       style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600, color: kAuthSuccess,
                       ),
@@ -489,9 +501,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: kAuthErrorBg,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      'You must be at least 13 to sign up.',
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.registerAgeTooYoung,
+                      style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600, color: kAuthError,
                       ),
                     ),
@@ -503,18 +515,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 4, right: 4),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
-                        'MOBILE',
-                        style: TextStyle(
+                        context.l10n.registerMobile.toUpperCase(),
+                        style: const TextStyle(
                           fontSize: 12, fontWeight: FontWeight.w600,
                           color: kAuthInk2, letterSpacing: 0.3,
                         ),
                       ),
-                      Spacer(),
+                      const Spacer(),
                       Text(
-                        'Optional',
-                        style: TextStyle(fontSize: 11, color: kAuthInk3, fontWeight: FontWeight.w500),
+                        context.l10n.registerOptional,
+                        style: const TextStyle(fontSize: 11, color: kAuthInk3, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -527,7 +539,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onTap: _openCountryPicker,
                         behavior: HitTestBehavior.opaque,
                         child: Padding(
-                          padding: const EdgeInsets.only(right: 10),
+                          padding: const EdgeInsetsDirectional.only(end: 10),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -574,15 +586,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       const SizedBox(height: 28),
       AuthButton(
-        label: _skipClubStep ? 'Create account' : 'Continue',
+        label: _skipClubStep ? context.l10n.registerCreateAccount : context.l10n.authContinue,
         isLoading: _skipClubStep && _isLoading,
         enabled: _step1Valid,
         onTap: _skipClubStep ? _register : () => _goTo(2),
       ),
       if (_skipClubStep) ...[
         const SizedBox(height: 12),
-        const LegalConsentLine(
-          prefix: 'By creating an account you agree to our ',
+        LegalConsentLine(
+          prefix: context.l10n.registerLegalPrefix,
         ),
       ],
         ],
@@ -625,9 +637,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: DropdownButton<int>(
         value: _month,
         isExpanded: true,
-        hint: const Text(
-          'Month',
-          style: TextStyle(color: kAuthInk3, fontSize: 15, fontWeight: FontWeight.w400),
+        hint: Text(
+          context.l10n.registerMonthHint,
+          style: const TextStyle(color: kAuthInk3, fontSize: 15, fontWeight: FontWeight.w400),
         ),
         icon: const Icon(Icons.expand_more_rounded, size: 18, color: kAuthInk2),
         style: const TextStyle(
@@ -660,23 +672,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           const AuthPeachIcon(icon: Icons.location_on_outlined),
           const SizedBox(height: 18),
-          const Text(
-            'Pick your club',
-            style: TextStyle(
+          Text(
+            context.l10n.registerClubTitle,
+            style: const TextStyle(
               fontSize: 28, fontWeight: FontWeight.w600,
               color: kAuthInk, letterSpacing: -0.6, height: 1.15,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'This is the home location your sessions are tied to.',
-            style: TextStyle(fontSize: 14, color: kAuthInk2, height: 1.5),
+          Text(
+            context.l10n.registerClubSubtitle,
+            style: const TextStyle(fontSize: 14, color: kAuthInk2, height: 1.5),
           ),
           const SizedBox(height: 18),
           AuthField(
-            label: 'Search',
+            label: context.l10n.commonSearch,
             controller: _gymSearchCtrl,
-            placeholder: 'Search by name or area',
+            placeholder: context.l10n.registerSearchPlaceholder,
             leading: const Icon(Icons.search_rounded, size: 18, color: kAuthInk2),
           ),
           const SizedBox(height: 14),
@@ -689,8 +701,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           padding: const EdgeInsets.all(28),
                           child: Text(
                             q.isEmpty
-                                ? 'No clubs available right now.'
-                                : 'No clubs match "$q".',
+                                ? context.l10n.registerNoClubs
+                                : context.l10n.registerNoClubsMatch(q),
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: kAuthInk2, fontSize: 14),
                           ),
@@ -716,14 +728,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 AuthButton(
-                  label: 'Create account',
+                  label: context.l10n.registerCreateAccount,
                   isLoading: _isLoading,
                   enabled: _step2Valid,
                   onTap: _register,
                 ),
                 const SizedBox(height: 12),
-                const LegalConsentLine(
-                  prefix: 'By creating an account you agree to our ',
+                LegalConsentLine(
+                  prefix: context.l10n.registerLegalPrefix,
                 ),
               ],
             ),
@@ -879,9 +891,9 @@ class _SuccessView extends StatelessWidget {
               const Spacer(),
               const AuthStatusIcon(),
               const SizedBox(height: 26),
-              const Text(
-                "You're all set",
-                style: TextStyle(
+              Text(
+                context.l10n.registerAllSet,
+                style: const TextStyle(
                   fontSize: 28, fontWeight: FontWeight.w600,
                   color: kAuthInk, letterSpacing: -0.6,
                 ),
@@ -891,19 +903,19 @@ class _SuccessView extends StatelessWidget {
                 TextSpan(
                   style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
                   children: [
-                    const TextSpan(text: "We sent a confirmation link to\n"),
+                    TextSpan(text: '${context.l10n.registerConfirmationSentTo}\n'),
                     TextSpan(
-                      text: email.isEmpty ? 'your inbox' : email,
+                      text: email.isEmpty ? context.l10n.registerYourInbox : email,
                       style: const TextStyle(color: kAuthInk, fontWeight: FontWeight.w600),
                     ),
-                    const TextSpan(text: '.\nTap the link to activate your account, then sign in.'),
+                    TextSpan(text: '.\n${context.l10n.registerActivateHint}'),
                   ],
                 ),
                 textAlign: TextAlign.center,
               ),
               const Spacer(),
               AuthButton(
-                label: 'Continue to sign in',
+                label: context.l10n.authContinueToSignIn,
                 onTap: () => context.go('/login'),
               ),
             ],

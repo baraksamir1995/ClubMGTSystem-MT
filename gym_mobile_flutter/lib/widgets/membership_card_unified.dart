@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../models/membership_model.dart';
 import '../models/membership_summary_model.dart';
 
@@ -101,8 +102,8 @@ class MembershipCardUnified extends StatelessWidget {
       child: Stack(
         children: [
           // Decorative blob
-          Positioned(
-            right: -40,
+          PositionedDirectional(
+            end: -40,
             top: -40,
             child: Container(
               width: 160,
@@ -113,8 +114,8 @@ class MembershipCardUnified extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            right: 30,
+          PositionedDirectional(
+            end: 30,
             bottom: -30,
             child: Container(
               width: 90,
@@ -139,7 +140,7 @@ class MembershipCardUnified extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'MEMBERSHIP',
+                            context.l10n.memberCardMembership,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.65),
                               fontSize: 10,
@@ -151,7 +152,7 @@ class MembershipCardUnified extends StatelessWidget {
                           Text(
                             hasSubscription
                                 ? (subscription!.planName ?? '—')
-                                : 'Transferred sessions',
+                                : context.l10n.memberCardTransferredSessions,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -165,7 +166,7 @@ class MembershipCardUnified extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                _planTypeLabel(subscription!.planType!),
+                                _planTypeLabel(context, subscription!.planType!),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 12,
@@ -177,7 +178,7 @@ class MembershipCardUnified extends StatelessWidget {
                       ),
                     ),
                     _StatusPill(
-                      label: _statusLabel(subscription, isFrozen, isExpired),
+                      label: _statusLabel(context, subscription, isFrozen, isExpired),
                       bg: _statusBg(isFrozen, isExpired),
                     ),
                   ],
@@ -192,22 +193,23 @@ class MembershipCardUnified extends StatelessWidget {
                         ? '∞'
                         : '$sessionsRemaining',
                     label: hasUnlimited && summary.totalSessions == 0
-                        ? 'unlimited sessions'
-                        : 'sessions remaining',
+                        ? context.l10n.memberCardUnlimitedSessions
+                        : context.l10n.memberCardSessionsRemaining,
                     sub: sessionsTotal > 0
-                        ? 'of $sessionsTotal total'
+                        ? context.l10n.memberCardOfTotal(sessionsTotal)
                         : null,
                   )
                 else if (showDaysHero)
                   _Hero(
                     big: '$daysSafe',
-                    label: daysSafe == 1 ? 'day left' : 'days left',
+                    label: context.l10n.memberCardDaysLeft(daysSafe!),
                     sub: subscription!.endDate != null
-                        ? 'until ${DateFormat('MMM d').format(subscription!.endDate!)}'
+                        ? context.l10n.memberCardUntilDate(
+                            DateFormat('MMM d').format(subscription!.endDate!))
                         : null,
                   )
                 else
-                  _Hero(big: '—', label: 'no active access'),
+                  _Hero(big: '—', label: context.l10n.memberCardNoActiveAccess),
 
                 const SizedBox(height: 18),
 
@@ -224,7 +226,7 @@ class MembershipCardUnified extends StatelessWidget {
                     if (isDurationSessions && subscription?.endDate != null)
                       _Chip(
                         icon: Icons.event_outlined,
-                        label: 'Membership expiry',
+                        label: context.l10n.memberCardMembershipExpiry,
                         value: DateFormat('MMM d, yyyy').format(subscription!.endDate!),
                       )
                     // Only show the nearest/end-date chip when there's a
@@ -235,14 +237,14 @@ class MembershipCardUnified extends StatelessWidget {
                       _Chip(
                         icon: Icons.event_outlined,
                         label: _isSubscriptionExpiryEarliest(subscription, summary)
-                            ? 'End date'
-                            : 'Nearest expiry',
+                            ? context.l10n.memberCardEndDate
+                            : context.l10n.memberCardNearestExpiry,
                         value: DateFormat('MMM d').format(summary.nextExpiryDate!),
                       ),
                     if (isFrozen && subscription?.frozenUntil != null)
                       _Chip(
                         icon: Icons.ac_unit,
-                        label: 'Frozen until',
+                        label: context.l10n.memberCardFrozenUntil,
                         value: DateFormat('MMM d').format(subscription!.frozenUntil!),
                         accent: Colors.blue.shade200,
                       ),
@@ -264,7 +266,7 @@ class MembershipCardUnified extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _transferredLine(summary),
+                            _transferredLine(context, summary),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 12,
@@ -285,7 +287,7 @@ class MembershipCardUnified extends StatelessWidget {
                       if (onFreeze != null)
                         Expanded(
                           child: _ActionButton(
-                            label: 'Freeze',
+                            label: context.l10n.memberCardFreeze,
                             icon: Icons.ac_unit,
                             onTap: onFreeze!,
                           ),
@@ -293,7 +295,7 @@ class MembershipCardUnified extends StatelessWidget {
                       if (onUnfreeze != null)
                         Expanded(
                           child: _ActionButton(
-                            label: 'Unfreeze',
+                            label: context.l10n.memberCardUnfreeze,
                             icon: Icons.local_fire_department_outlined,
                             onTap: onUnfreeze!,
                           ),
@@ -309,22 +311,30 @@ class MembershipCardUnified extends StatelessWidget {
     );
   }
 
-  static String _planTypeLabel(String t) {
+  static String _planTypeLabel(BuildContext context, String t) {
     switch (t) {
-      case 'sessions':         return 'Sessions plan';
-      case 'duration':         return 'Duration plan';
-      case 'duration_session': return 'Full access';
-      case 'monthly':          return 'Monthly plan';
-      case 'annual':           return 'Annual plan';
+      case 'sessions':         return context.l10n.memberCardSessionsPlan;
+      case 'duration':         return context.l10n.memberCardDurationPlan;
+      case 'duration_session': return context.l10n.memberCardFullAccess;
+      case 'monthly':          return context.l10n.memberCardMonthlyPlan;
+      case 'annual':           return context.l10n.memberCardAnnualPlan;
       default:                 return t.replaceAll('_', ' ');
     }
   }
 
-  static String _statusLabel(MemberMembership? m, bool isFrozen, bool isExpired) {
-    if (m == null) return 'Active';
-    if (isFrozen) return 'Frozen';
-    if (isExpired) return 'Expired';
-    return m.displayStatus;
+  static String _statusLabel(BuildContext context, MemberMembership? m, bool isFrozen, bool isExpired) {
+    if (m == null) return context.l10n.commonActive;
+    if (isFrozen) return context.l10n.memberCardFrozen;
+    if (isExpired) return context.l10n.commonExpired;
+    // displayStatus returns raw model status words — localize the known ones.
+    switch (m.displayStatus) {
+      case 'Active':    return context.l10n.commonActive;
+      case 'Frozen':    return context.l10n.memberCardFrozen;
+      case 'Expired':   return context.l10n.commonExpired;
+      case 'Suspended': return context.l10n.memberCardSuspended;
+      case 'Inactive':  return context.l10n.memberCardInactive;
+      default:          return m.displayStatus;
+    }
   }
 
   static Color _statusBg(bool isFrozen, bool isExpired) {
@@ -343,10 +353,10 @@ class MembershipCardUnified extends StatelessWidget {
 
   /// Builds the "Includes N from transfers" callout. With one transfer, shows
   /// its own expiry. With multiple, switches to "nearest expiry" wording.
-  static String _transferredLine(MembershipSummary s) {
+  static String _transferredLine(BuildContext context, MembershipSummary s) {
     final transferred = s.buckets.where((b) => b.isTransferred).toList();
     final count = s.transferredSessions;
-    final base = 'Includes $count session${count == 1 ? '' : 's'} from transfers';
+    final base = context.l10n.memberCardIncludesTransfers(count);
 
     if (transferred.isEmpty) return base;
 
@@ -360,9 +370,9 @@ class MembershipCardUnified extends StatelessWidget {
     final earliest = endDates.first;
     final formatted = DateFormat('MMM d').format(earliest);
     if (transferred.length == 1) {
-      return '$base · expires $formatted';
+      return '$base · ${context.l10n.memberCardExpiresOn(formatted)}';
     }
-    return '$base · nearest expiry $formatted';
+    return '$base · ${context.l10n.memberCardNearestExpiryOn(formatted)}';
   }
 
   static Color _darken(Color c, double amount) {

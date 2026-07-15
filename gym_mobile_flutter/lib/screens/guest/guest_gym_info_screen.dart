@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../../services/api_service.dart';
 import '../../utils/error_utils.dart';
 
@@ -50,7 +51,7 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
             : _error != null
                 ? Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)))
                 : _gymData == null
-                    ? const Center(child: Text('No gym info available'))
+                    ? Center(child: Text(context.l10n.guestGymInfoEmpty))
                     : _buildContent(context, theme, primary),
       ),
     );
@@ -106,7 +107,7 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Contact & Location',
+                Text(context.l10n.guestGymInfoContactLocation,
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 14),
                 if (d['address'] != null)
@@ -129,7 +130,7 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Operating Hours',
+                  Text(context.l10n.guestGymInfoOperatingHours,
                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 14),
                   ..._buildHoursRows(theme, d['operating_hours'], primary),
@@ -159,7 +160,16 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
 
   /// Handles both array and map shapes of the operating_hours JSONB.
   List<Widget> _buildHoursRows(ThemeData theme, dynamic hours, Color primary) {
-    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final l10n = context.l10n;
+    final dayNames = [
+      l10n.guestGymInfoDayMonday,
+      l10n.guestGymInfoDayTuesday,
+      l10n.guestGymInfoDayWednesday,
+      l10n.guestGymInfoDayThursday,
+      l10n.guestGymInfoDayFriday,
+      l10n.guestGymInfoDaySaturday,
+      l10n.guestGymInfoDaySunday,
+    ];
     const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
     if (hours is Map) {
@@ -172,10 +182,11 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
         final val = hours[day];
         if (val == null) return const SizedBox.shrink();
         String timeStr;
+        bool isClosed = false;
         if (val is Map) {
-          final isClosed = val['closed'] == true || val['is_closed'] == true;
+          isClosed = val['closed'] == true || val['is_closed'] == true;
           if (isClosed) {
-            timeStr = 'Closed';
+            timeStr = l10n.guestGymInfoClosed;
           } else {
             final open = val['open'] ?? val['open_time'] ?? '';
             final close = val['close'] ?? val['close_time'] ?? '';
@@ -183,8 +194,10 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
           }
         } else {
           timeStr = val.toString();
+          isClosed = timeStr.toLowerCase() == 'closed';
+          if (isClosed) timeStr = l10n.guestGymInfoClosed;
         }
-        return _hoursRow(theme, dayNames[key], timeStr);
+        return _hoursRow(theme, dayNames[key], timeStr, isClosed);
       }).toList();
     }
 
@@ -195,9 +208,9 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
         final day = h['day']?.toString() ?? '';
         final isClosed = h['closed'] == true || h['is_closed'] == true;
         final timeStr = isClosed
-            ? 'Closed'
+            ? l10n.guestGymInfoClosed
             : '${h['open'] ?? h['open_time'] ?? ''} – ${h['close'] ?? h['close_time'] ?? ''}';
-        return _hoursRow(theme, day, timeStr);
+        return _hoursRow(theme, day, timeStr, isClosed);
       }).toList();
     }
 
@@ -205,8 +218,7 @@ class _GuestGymInfoScreenState extends State<GuestGymInfoScreen> {
     return [Text(hours.toString(), style: theme.textTheme.bodyMedium)];
   }
 
-  Widget _hoursRow(ThemeData theme, String day, String time) {
-    final isClosed = time.toLowerCase() == 'closed';
+  Widget _hoursRow(ThemeData theme, String day, String time, bool isClosed) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(

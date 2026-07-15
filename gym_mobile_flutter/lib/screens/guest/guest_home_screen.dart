@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
@@ -89,12 +90,12 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
 
               // Membership plans section
               _SectionHeader(
-                title: 'Membership plans',
+                title: context.l10n.guestHomeMembershipPlans,
                 onAction: null,
               ),
               const SizedBox(height: 12),
               _MembershipPlansCard(
-                gymName: gym?.name ?? 'the gym',
+                gymName: gym?.name ?? context.l10n.guestHomeGymFallback,
                 primaryColor: primary,
                 onJoin: () => showGuestRegisterPrompt(context),
               ),
@@ -108,8 +109,8 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
 
               // Today's classes section
               _SectionHeader(
-                title: "Today's classes",
-                actionLabel: 'See all',
+                title: context.l10n.guestHomeTodaysClasses,
+                actionLabel: context.l10n.commonSeeAll,
                 onAction: () => context.go('/guest/classes'),
               ),
               const SizedBox(height: 12),
@@ -221,7 +222,7 @@ class _MembershipPlansCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Join $gymName today',
+                  context.l10n.guestHomeJoinGymToday(gymName),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -229,7 +230,7 @@ class _MembershipPlansCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Choose from sessions or duration memberships.\nFlexible plans for every goal.',
+                  context.l10n.guestHomePlansSubtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.5,
@@ -365,7 +366,7 @@ class _CheckInLockedCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Check in locked',
+                    context.l10n.guestHomeCheckInLocked,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
@@ -373,7 +374,7 @@ class _CheckInLockedCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Members only — sign in to access',
+                    context.l10n.guestHomeMembersOnly,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
@@ -445,7 +446,7 @@ class _GuestSessionRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    session.className ?? 'Class',
+                    session.className ?? context.l10n.guestHomeClassFallback,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -494,7 +495,7 @@ class _NoClassesToday extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            'No classes scheduled today',
+            context.l10n.guestHomeNoClassesToday,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

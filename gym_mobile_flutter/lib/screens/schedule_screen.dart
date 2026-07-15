@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../features/branches/branch_provider.dart';
 import '../models/session_model.dart';
 import '../providers/auth_provider.dart';
@@ -76,16 +77,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     setState(() => _loadingSessionId = sessionId);
     try {
       await memberProvider.bookSession(sessionId);
-      if (session != null) {
+      if (session != null && mounted) {
         NotificationService().showBookingConfirmedNotification(
-          session.className ?? 'Class',
+          session.className ?? context.l10n.bookingsClassFallback,
           session.scheduledAt,
         );
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session booked successfully!'),
+          SnackBar(
+            content: Text(context.l10n.scheduleBookedSuccess),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.green,
           ),
@@ -107,8 +108,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       await memberProvider.cancelBooking(bookingId, gymId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking cancelled.'),
+          SnackBar(
+            content: Text(context.l10n.scheduleBookingCancelled),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -125,7 +126,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to cancel. Please try again.'),
+            content: Text(context.l10n.scheduleCancelFailed),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -302,8 +303,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: GymAppBar(
         gym: gym,
-        fallbackTitle: 'Schedule',
-        greeting: 'Schedule',
+        fallbackTitle: context.l10n.scheduleTitle,
+        greeting: context.l10n.scheduleTitle,
         greetingStyle: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
@@ -419,7 +420,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         autofocus: true,
         onChanged: (v) => setState(() => _searchQuery = v),
         decoration: InputDecoration(
-          hintText: 'Search classes, trainers, locations…',
+          hintText: context.l10n.scheduleSearchHint,
           hintStyle: TextStyle(
             color: theme.colorScheme.onSurfaceVariant,
             fontSize: 14,
@@ -580,7 +581,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
             ),
             Text(
-              '$classCount ${classCount == 1 ? 'class' : 'classes'}',
+              context.l10n.scheduleClassCount(classCount),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
@@ -603,7 +604,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         children: [
           _QuickChip(
-            label: 'All branches',
+            label: context.l10n.scheduleAllBranches,
             selected: _filterBranchId == null,
             primaryColor: primaryColor,
             onTap: () => setState(() => _filterBranchId = null),
@@ -612,7 +613,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ...branchProvider.branches.map((branch) {
             final selected = _filterBranchId == branch.id;
             return Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsetsDirectional.only(end: 8),
               child: _QuickChip(
                 label: branch.name,
                 selected: selected,
@@ -638,7 +639,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         children: [
           _QuickChip(
-            label: 'All classes',
+            label: context.l10n.scheduleAllClasses,
             selected: _filterClassType == null,
             primaryColor: primaryColor,
             onTap: () => setState(() => _filterClassType = null),
@@ -647,7 +648,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ...classTypes.map((type) {
             final selected = _filterClassType == type;
             return Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsetsDirectional.only(end: 8),
               child: _QuickChip(
                 label: _capitalize(type),
                 selected: selected,
@@ -685,7 +686,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           // ── Headline ─────────────────────────────────────────────────────
           Text(
-            'Rest day. Officially.',
+            context.l10n.scheduleRestDayTitle,
             textAlign: TextAlign.center,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
@@ -698,7 +699,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           // ── Subtitle (single line) ────────────────────────────────────────
           Text(
-            'No classes today. Your muscles have the day off.',
+            context.l10n.scheduleRestDaySubtitle,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -723,8 +724,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 color: Color(0xFFE08430),
               ),
             ),
-            title: 'Check your attendance stats',
-            subtitle: 'Admire how hard you\'ve been working',
+            title: context.l10n.scheduleCtaStatsTitle,
+            subtitle: context.l10n.scheduleCtaStatsSubtitle,
             onTap: () => context.push('/profile'),
           ),
 
@@ -744,8 +745,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 color: Color(0xFFD4437E),
               ),
             ),
-            title: 'Explore membership offers',
-            subtitle: 'Treat yourself. You showed up all week.',
+            title: context.l10n.scheduleCtaOffersTitle,
+            subtitle: context.l10n.scheduleCtaOffersSubtitle,
             onTap: () => context.push('/explore/memberships'),
           ),
         ],
@@ -767,7 +768,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            'No classes match your filters',
+            context.l10n.scheduleNoMatchFilters,
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
@@ -776,7 +777,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           const SizedBox(height: 10),
           TextButton(
             onPressed: _clearFilters,
-            child: Text('Clear filters',
+            child: Text(context.l10n.scheduleClearFilters,
                 style: TextStyle(color: primaryColor)),
           ),
         ],
@@ -796,7 +797,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             Icon(Icons.error_outline,
                 size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
-            Text('Failed to load sessions',
+            Text(context.l10n.scheduleLoadFailed,
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
@@ -811,7 +812,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               onPressed: _loadSessions,
               style:
                   OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Retry'),
+              child: Text(context.l10n.commonRetry),
             ),
           ],
         ),
@@ -837,24 +838,24 @@ class _RestIllustration extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           // Ambient dots
-          Positioned(
+          PositionedDirectional(
             top: 20,
-            left: 60,
+            start: 60,
             child: _Dot(size: 8, color: const Color(0xFF9FDCF5)),
           ),
-          Positioned(
+          PositionedDirectional(
             top: 30,
-            right: 55,
+            end: 55,
             child: _Dot(size: 6, color: const Color(0xFF9FDCF5)),
           ),
-          Positioned(
+          PositionedDirectional(
             top: 55,
-            right: 40,
+            end: 40,
             child: _Dot(size: 5, color: const Color(0xFF8EE8C8)),
           ),
-          Positioned(
+          PositionedDirectional(
             top: 15,
-            right: 90,
+            end: 90,
             child: _Dot(size: 4, color: const Color(0xFFF5C842)),
           ),
 
@@ -899,9 +900,9 @@ class _RestIllustration extends StatelessWidget {
           ),
 
           // Left handle arm
-          Positioned(
+          PositionedDirectional(
             bottom: 84,
-            left: 88,
+            start: 88,
             child: Container(
               width: 28,
               height: 10,
@@ -913,9 +914,9 @@ class _RestIllustration extends StatelessWidget {
           ),
 
           // Right handle arm
-          Positioned(
+          PositionedDirectional(
             bottom: 84,
-            right: 88,
+            end: 88,
             child: Container(
               width: 28,
               height: 10,
@@ -1127,8 +1128,8 @@ class _AppBarIconButton extends StatelessWidget {
             ),
           ),
           if (showBadge)
-            Positioned(
-              right: -2,
+            PositionedDirectional(
+              end: -2,
               top: -2,
               child: Container(
                 width: 8,
@@ -1280,7 +1281,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Filter Classes',
+                  context.l10n.scheduleFilterClasses,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -1296,7 +1297,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       });
                     },
                     child: Text(
-                      'Reset',
+                      context.l10n.scheduleReset,
                       style: TextStyle(color: theme.colorScheme.error),
                     ),
                   ),
@@ -1305,7 +1306,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             const SizedBox(height: 20),
 
             if (widget.availableTypes.isNotEmpty) ...[
-              _SectionLabel('Class Type'),
+              _SectionLabel(context.l10n.scheduleClassType),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -1324,14 +1325,14 @@ class _FilterSheetState extends State<_FilterSheet> {
               const SizedBox(height: 20),
             ],
 
-            _SectionLabel('Time of Day'),
+            _SectionLabel(context.l10n.scheduleTimeOfDay),
             const SizedBox(height: 10),
             Row(
               children: [
                 _TimeChip(
                   icon: Icons.wb_sunny_outlined,
-                  label: 'Morning',
-                  sublabel: '6am–12pm',
+                  label: context.l10n.scheduleMorning,
+                  sublabel: context.l10n.scheduleMorningRange,
                   value: 'morning',
                   selected: _timeOfDay == 'morning',
                   primaryColor: primary,
@@ -1341,8 +1342,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                 const SizedBox(width: 8),
                 _TimeChip(
                   icon: Icons.wb_cloudy_outlined,
-                  label: 'Afternoon',
-                  sublabel: '12–5pm',
+                  label: context.l10n.scheduleAfternoon,
+                  sublabel: context.l10n.scheduleAfternoonRange,
                   value: 'afternoon',
                   selected: _timeOfDay == 'afternoon',
                   primaryColor: primary,
@@ -1352,8 +1353,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                 const SizedBox(width: 8),
                 _TimeChip(
                   icon: Icons.nights_stay_outlined,
-                  label: 'Evening',
-                  sublabel: '5–10pm',
+                  label: context.l10n.scheduleEvening,
+                  sublabel: context.l10n.scheduleEveningRange,
                   value: 'evening',
                   selected: _timeOfDay == 'evening',
                   primaryColor: primary,
@@ -1365,7 +1366,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             const SizedBox(height: 20),
 
             if (widget.availableInstructors.isNotEmpty) ...[
-              _SectionLabel('Trainer'),
+              _SectionLabel(context.l10n.scheduleTrainer),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -1385,7 +1386,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             ],
 
             if (widget.availableLocations.isNotEmpty) ...[
-              _SectionLabel('Location'),
+              _SectionLabel(context.l10n.scheduleLocation),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -1423,7 +1424,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   widget.onApply(_type, _instructor, _timeOfDay, _location);
                   Navigator.of(context).pop();
                 },
-                child: const Text('Apply Filters'),
+                child: Text(context.l10n.scheduleApplyFilters),
               ),
             ),
           ],

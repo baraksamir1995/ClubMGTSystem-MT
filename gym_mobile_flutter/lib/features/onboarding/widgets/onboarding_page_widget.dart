@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import '../data/onboarding_data.dart';
 
@@ -57,8 +58,8 @@ class _IllusAttend extends StatelessWidget {
       child: Stack(
         children: [
           // Big peach blob, slightly rotated.
-          Positioned(
-            left: 30, top: 14,
+          PositionedDirectional(
+            start: 30, top: 14,
             child: Transform.rotate(
               angle: -0.105,
               child: Container(
@@ -71,8 +72,8 @@ class _IllusAttend extends StatelessWidget {
             ),
           ),
           // Phone card.
-          Positioned(
-            left: 60, top: 22,
+          PositionedDirectional(
+            start: 60, top: 22,
             child: Container(
               width: 130, height: 180,
               decoration: BoxDecoration(
@@ -104,9 +105,9 @@ class _IllusAttend extends StatelessWidget {
                     child: const _FauxQr(),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'SCAN TO ENTER',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.onboardingScanToEnter,
+                    style: const TextStyle(
                       fontSize: 9, fontWeight: FontWeight.w700,
                       color: _kInk, letterSpacing: 1.2,
                     ),
@@ -121,8 +122,8 @@ class _IllusAttend extends StatelessWidget {
             ),
           ),
           // "Checked in" success pill.
-          Positioned(
-            right: 6, top: 30,
+          PositionedDirectional(
+            end: 6, top: 30,
             child: Transform.rotate(
               angle: 0.105,
               child: Container(
@@ -134,14 +135,14 @@ class _IllusAttend extends StatelessWidget {
                     BoxShadow(color: Color(0x523F8B5C), blurRadius: 18, offset: Offset(0, 6)),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_rounded, size: 11, color: Colors.white),
-                    SizedBox(width: 4),
+                    const Icon(Icons.check_rounded, size: 11, color: Colors.white),
+                    const SizedBox(width: 4),
                     Text(
-                      'Checked in',
-                      style: TextStyle(
+                      context.l10n.onboardingCheckedIn,
+                      style: const TextStyle(
                         fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white,
                       ),
                     ),
@@ -151,8 +152,8 @@ class _IllusAttend extends StatelessWidget {
             ),
           ),
           // Time chip.
-          Positioned(
-            left: 4, bottom: 14,
+          PositionedDirectional(
+            start: 4, bottom: 14,
             child: Transform.rotate(
               angle: -0.07,
               child: Container(
@@ -232,8 +233,8 @@ class _IllusShare extends StatelessWidget {
       child: Stack(
         children: [
           // Back avatar (peach).
-          Positioned(
-            left: 22, top: 60,
+          PositionedDirectional(
+            start: 22, top: 60,
             child: Container(
               width: 80, height: 80,
               alignment: Alignment.center,
@@ -251,8 +252,8 @@ class _IllusShare extends StatelessWidget {
             ),
           ),
           // Front avatar (ink).
-          Positioned(
-            right: 22, top: 60,
+          PositionedDirectional(
+            end: 22, top: 60,
             child: Container(
               width: 80, height: 80,
               alignment: Alignment.center,
@@ -288,9 +289,9 @@ class _IllusShare extends StatelessWidget {
                     BoxShadow(color: Color(0x5CE07A3B), blurRadius: 28, offset: Offset(0, 12)),
                   ],
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Text(
+                    const Text(
                       '3',
                       style: TextStyle(
                         fontSize: 22, fontWeight: FontWeight.w700,
@@ -298,10 +299,10 @@ class _IllusShare extends StatelessWidget {
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
-                    SizedBox(height: 1),
+                    const SizedBox(height: 1),
                     Text(
-                      'SESSIONS',
-                      style: TextStyle(
+                      context.l10n.onboardingSessionsTag,
+                      style: const TextStyle(
                         fontSize: 9, fontWeight: FontWeight.w700,
                         color: Color(0xEAFFFFFF), letterSpacing: 1,
                       ),
@@ -312,27 +313,27 @@ class _IllusShare extends StatelessWidget {
             ),
           ),
           // Names.
-          const Positioned(
-            left: 22, top: 148, width: 80,
+          PositionedDirectional(
+            start: 22, top: 148, width: 80,
             child: Center(
               child: Text(
-                'You',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kInk),
+                context.l10n.onboardingYou,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kInk),
               ),
             ),
           ),
-          const Positioned(
-            right: 22, top: 148, width: 80,
+          PositionedDirectional(
+            end: 22, top: 148, width: 80,
             child: Center(
               child: Text(
-                'Ahmed',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kInk),
+                context.l10n.onboardingSampleFriendName,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kInk),
               ),
             ),
           ),
           // "+3 received" tag.
-          Positioned(
-            right: 0, top: 168,
+          PositionedDirectional(
+            end: 0, top: 168,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
@@ -342,9 +343,9 @@ class _IllusShare extends StatelessWidget {
                   BoxShadow(color: Color(0x1A1F1A14), blurRadius: 12, offset: Offset(0, 4)),
                 ],
               ),
-              child: const Text(
-                '+3 received',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _kSuccess),
+              child: Text(
+                context.l10n.onboardingReceivedTag,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _kSuccess),
               ),
             ),
           ),
@@ -405,8 +406,8 @@ class _IllusManage extends StatelessWidget {
       child: Stack(
         children: [
           // Dark membership card.
-          Positioned(
-            left: 30, top: 30,
+          PositionedDirectional(
+            start: 30, top: 30,
             child: Container(
               width: 180, height: 110,
               decoration: BoxDecoration(
@@ -419,8 +420,8 @@ class _IllusManage extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
-                  Positioned(
-                    right: -30, top: -30,
+                  PositionedDirectional(
+                    end: -30, top: -30,
                     child: Container(
                       width: 100, height: 100,
                       decoration: const BoxDecoration(
@@ -437,17 +438,17 @@ class _IllusManage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'MEMBERSHIP',
-                          style: TextStyle(
+                        Text(
+                          context.l10n.onboardingMembershipTag,
+                          style: const TextStyle(
                             fontSize: 9, fontWeight: FontWeight.w700,
                             color: Color(0x99FFFFFF), letterSpacing: 1.2,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Premium Monthly',
-                          style: TextStyle(
+                        Text(
+                          context.l10n.onboardingSamplePlan,
+                          style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white,
                           ),
                         ),
@@ -455,19 +456,19 @@ class _IllusManage extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'MEMBER #',
-                                    style: TextStyle(
+                                    context.l10n.onboardingMemberNumberTag,
+                                    style: const TextStyle(
                                       fontSize: 8, fontWeight: FontWeight.w700,
                                       color: Color(0x80FFFFFF), letterSpacing: 0.6,
                                     ),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
+                                  const SizedBox(height: 2),
+                                  const Text(
                                     '#A12345',
                                     style: TextStyle(
                                       fontSize: 13, fontWeight: FontWeight.w600,
@@ -484,9 +485,9 @@ class _IllusManage extends StatelessWidget {
                                 color: const Color(0x388CD2A0),
                                 borderRadius: BorderRadius.circular(999),
                               ),
-                              child: const Text(
-                                'ACTIVE',
-                                style: TextStyle(
+                              child: Text(
+                                context.l10n.commonActive.toUpperCase(),
+                                style: const TextStyle(
                                   fontSize: 9, fontWeight: FontWeight.w700, color: _kSuccess,
                                 ),
                               ),
@@ -501,8 +502,8 @@ class _IllusManage extends StatelessWidget {
             ),
           ),
           // Renew chip (rotated -4°).
-          Positioned(
-            left: 14, bottom: 18,
+          PositionedDirectional(
+            start: 14, bottom: 18,
             child: Transform.rotate(
               angle: -0.07,
               child: Container(
@@ -527,18 +528,18 @@ class _IllusManage extends StatelessWidget {
                       child: const Icon(Icons.calendar_today_outlined, size: 14, color: _kInk),
                     ),
                     const SizedBox(width: 8),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'RENEWS',
-                          style: TextStyle(
+                          context.l10n.onboardingRenewsTag,
+                          style: const TextStyle(
                             fontSize: 9, fontWeight: FontWeight.w700,
                             color: _kInk2, letterSpacing: 0.6,
                           ),
                         ),
-                        SizedBox(height: 1),
-                        Text(
+                        const SizedBox(height: 1),
+                        const Text(
                           'May 28, 2026',
                           style: TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600, color: _kInk,
@@ -552,8 +553,8 @@ class _IllusManage extends StatelessWidget {
             ),
           ),
           // Sessions chip (rotated +5°).
-          Positioned(
-            right: 4, bottom: 32,
+          PositionedDirectional(
+            end: 4, bottom: 32,
             child: Transform.rotate(
               angle: 0.087,
               child: Container(
@@ -565,9 +566,9 @@ class _IllusManage extends StatelessWidget {
                     BoxShadow(color: Color(0x52E07A3B), blurRadius: 22, offset: Offset(0, 10)),
                   ],
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Text(
+                    const Text(
                       '12',
                       style: TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w700,
@@ -575,10 +576,10 @@ class _IllusManage extends StatelessWidget {
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
-                    SizedBox(height: 1),
+                    const SizedBox(height: 1),
                     Text(
-                      'LEFT',
-                      style: TextStyle(
+                      context.l10n.onboardingLeftTag,
+                      style: const TextStyle(
                         fontSize: 8, fontWeight: FontWeight.w700,
                         color: Color(0xE6FFFFFF), letterSpacing: 1,
                       ),

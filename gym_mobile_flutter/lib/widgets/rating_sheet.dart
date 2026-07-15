@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:provider/provider.dart';
 import '../models/session_model.dart';
 import '../providers/auth_provider.dart';
@@ -36,7 +37,13 @@ class _RatingSheetState extends State<_RatingSheet> {
   bool _submitted = false;
   bool _submitting = false;
 
-  static const _labels = ['Terrible', 'Bad', 'Okay', 'Good', 'Excellent'];
+  List<String> get _labels => [
+        context.l10n.ratingTerrible,
+        context.l10n.ratingBad,
+        context.l10n.ratingOkay,
+        context.l10n.ratingGood,
+        context.l10n.ratingExcellent,
+      ];
   static const _emojis = ['😞', '😐', '😐', '😊', '😄'];
   static const _emojiColors = [
     Color(0xFFEF4444),
@@ -89,7 +96,7 @@ class _RatingSheetState extends State<_RatingSheet> {
         setState(() => _submitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit: ${friendlyError(e)}'),
+            content: Text(context.l10n.ratingSubmitFailed(friendlyError(e))),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -152,14 +159,14 @@ class _RatingSheetState extends State<_RatingSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Rate your experience',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.ratingTitle,
+                      style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Your feedback helps improve FitCore',
+                      context.l10n.ratingSubtitle,
                       style: TextStyle(
                           fontSize: 13,
                           color: Colors.black.withValues(alpha: 0.5)),
@@ -199,7 +206,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        session.className ?? 'Class',
+                        session.className ?? context.l10n.sessionCardClass,
                         style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),
@@ -234,15 +241,15 @@ class _RatingSheetState extends State<_RatingSheet> {
                         color: const Color(0xFF16A34A)
                             .withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check,
+                      const Icon(Icons.check,
                           size: 12, color: Color(0xFF16A34A)),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        'Attended',
-                        style: TextStyle(
+                        context.l10n.sessionCardAttended,
+                        style: const TextStyle(
                           color: Color(0xFF16A34A),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -257,13 +264,13 @@ class _RatingSheetState extends State<_RatingSheet> {
           const SizedBox(height: 20),
 
           // Session overall rating
-          const Text(
-            'How was the session overall?',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          Text(
+            context.l10n.ratingHowWasSession,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
           ),
           const SizedBox(height: 2),
           Text(
-            'Rate your overall class experience',
+            context.l10n.ratingOverallHint,
             style: TextStyle(
                 fontSize: 12, color: Colors.black.withValues(alpha: 0.5)),
           ),
@@ -345,13 +352,13 @@ class _RatingSheetState extends State<_RatingSheet> {
               Row(
                 children: [
                   Text(
-                    'How was ${session.instructor}?',
+                    context.l10n.ratingHowWasTrainer(session.instructor!),
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'optional',
+                    context.l10n.ratingOptional,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.black.withValues(alpha: 0.4),
@@ -362,7 +369,7 @@ class _RatingSheetState extends State<_RatingSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                "Rate your trainer's performance",
+                context.l10n.ratingTrainerHint,
                 style: TextStyle(
                     fontSize: 12,
                     color: Colors.black.withValues(alpha: 0.5)),
@@ -379,7 +386,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                       setState(() => _trainerRating = rating);
                     },
                     child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsetsDirectional.only(end: 8),
                       child: Icon(
                         filled ? Icons.star_rounded : Icons.star_outline_rounded,
                         size: 32,
@@ -399,14 +406,14 @@ class _RatingSheetState extends State<_RatingSheet> {
             // Review text
             Row(
               children: [
-                const Text(
-                  'Leave a review',
+                Text(
+                  context.l10n.ratingLeaveReview,
                   style:
-                      TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'optional',
+                  context.l10n.ratingOptional,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.black.withValues(alpha: 0.4),
@@ -417,7 +424,7 @@ class _RatingSheetState extends State<_RatingSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Share your experience with the community',
+              context.l10n.ratingShareHint,
               style: TextStyle(
                   fontSize: 12,
                   color: Colors.black.withValues(alpha: 0.5)),
@@ -429,8 +436,7 @@ class _RatingSheetState extends State<_RatingSheet> {
               maxLength: 300,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText:
-                    'What did you think about this class? Your review may be shown to other members…',
+                hintText: context.l10n.ratingReviewHint,
                 hintStyle: TextStyle(
                     color: Colors.black.withValues(alpha: 0.35),
                     fontSize: 13),
@@ -487,7 +493,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Submit rating'),
+                  : Text(context.l10n.ratingSubmit),
             ),
           ),
 
@@ -498,7 +504,7 @@ class _RatingSheetState extends State<_RatingSheet> {
               onTap: () => Navigator.of(context).pop(false),
               child: Center(
                 child: Text(
-                  'Skip for now',
+                  context.l10n.ratingSkipForNow,
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.black.withValues(alpha: 0.45),
@@ -517,7 +523,7 @@ class _RatingSheetState extends State<_RatingSheet> {
 
   Widget _buildSuccess() {
     final authProvider = context.read<AuthProvider>();
-    final name = authProvider.profile?.fullName ?? 'You';
+    final name = authProvider.profile?.fullName ?? context.l10n.ratingYou;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'Y';
     final review = _reviewCtrl.text.trim();
     final trainerStars = _trainerRating ?? 0;
@@ -539,13 +545,13 @@ class _RatingSheetState extends State<_RatingSheet> {
                 size: 32, color: Color(0xFF16A34A)),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Thanks for your review!',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          Text(
+            context.l10n.ratingThanks,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
-            'Your feedback has been submitted and may\nhelp other members choose their classes.',
+            context.l10n.ratingSubmittedDesc,
             textAlign: TextAlign.center,
             style: TextStyle(
                 fontSize: 13, color: Colors.black.withValues(alpha: 0.5)),
@@ -557,7 +563,7 @@ class _RatingSheetState extends State<_RatingSheet> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _SummaryPill(
-                label: 'Session: $_sessionRatingLabel',
+                label: context.l10n.ratingSessionSummary(_sessionRatingLabel),
                 color: _emojiColors[(_sessionRating ?? 1) - 1],
               ),
               if (_trainerRating != null) ...[
@@ -574,8 +580,8 @@ class _RatingSheetState extends State<_RatingSheet> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Trainer: ',
-                          style: TextStyle(
+                      Text(context.l10n.ratingTrainerSummary,
+                          style: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w600)),
                       ...List.generate(
                         trainerStars,
@@ -637,7 +643,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                                   fontSize: 13),
                             ),
                             Text(
-                              'Just now',
+                              context.l10n.ratingJustNow,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.black
@@ -673,7 +679,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                     fontSize: 16, fontWeight: FontWeight.w600),
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Done'),
+              child: Text(context.l10n.commonDone),
             ),
           ),
           const SizedBox(height: 10),
@@ -681,7 +687,7 @@ class _RatingSheetState extends State<_RatingSheet> {
             onTap: () => Navigator.of(context).pop(true),
             child: Center(
               child: Text(
-                'View my bookings',
+                context.l10n.ratingViewBookings,
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.black.withValues(alpha: 0.5),

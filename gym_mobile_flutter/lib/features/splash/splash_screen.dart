@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
@@ -263,7 +264,9 @@ class _SplashScreenState extends State<SplashScreen>
               child: FadeTransition(
                 opacity: _hintCtrl,
                 child: Text(
-                  Env.isWhiteLabel ? 'Powered by CLBY' : 'Loading your gym…',
+                  Env.isWhiteLabel
+                      ? context.l10n.splashPoweredBy
+                      : context.l10n.splashLoadingYourGym,
                   style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.w500,
                     color: _kInk3, letterSpacing: 0.5,

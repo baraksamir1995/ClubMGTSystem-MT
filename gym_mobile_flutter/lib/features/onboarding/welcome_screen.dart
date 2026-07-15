@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -86,7 +87,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 320),
                   child: Text(
-                    "Your gym, your sessions, your friends — all in one place. Let's get you set up.",
+                    context.l10n.welcomeSubtitle,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 15, color: _kInk2, height: 1.55),
                   ),
@@ -108,9 +109,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             shadowColor: const Color(0x57E07A3B),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text(
-                            'Create account',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.welcomeCreateAccount,
+                            style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.1,
                             ),
                           ),
@@ -127,9 +128,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             side: const BorderSide(color: _kInk, width: 1.6),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text(
-                            'I already have an account',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.welcomeAlreadyHaveAccount,
+                            style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.1,
                             ),
                           ),
@@ -147,9 +148,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   width: 18, height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: _kInk2),
                                 )
-                              : const Text(
-                                  'Continue as guest',
-                                  style: TextStyle(
+                              : Text(
+                                  context.l10n.welcomeContinueAsGuest,
+                                  style: const TextStyle(
                                     fontSize: 14, fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -162,8 +163,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
-                        child: const LegalConsentLine(
-                          prefix: 'By continuing, you agree to our ',
+                        child: LegalConsentLine(
+                          prefix: context.l10n.welcomeLegalPrefix,
                         ),
                       ),
                     ],
@@ -191,7 +192,7 @@ class _WelcomeTitle extends StatelessWidget {
           color: _kInk, letterSpacing: -0.8, height: 1.15,
         ),
         children: [
-          const TextSpan(text: 'Welcome to '),
+          TextSpan(text: context.l10n.welcomeTitlePrefix),
           TextSpan(text: Env.brandName, style: const TextStyle(color: _kPrimary)),
         ],
       ),

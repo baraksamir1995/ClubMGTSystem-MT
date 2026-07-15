@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clby/l10n/l10n.dart';
 
 void showGuestRegisterPrompt(BuildContext context) {
   showModalBottomSheet(
@@ -36,14 +37,14 @@ void showGuestRegisterPrompt(BuildContext context) {
           ),
           const SizedBox(height: 16),
           Text(
-            'Members Only',
+            context.l10n.guestPromptMembersOnly,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Create a free account to book classes, track your membership, and more.',
+            context.l10n.guestPromptDescription,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -58,7 +59,7 @@ void showGuestRegisterPrompt(BuildContext context) {
                 Navigator.pop(ctx);
                 context.go('/register');
               },
-              child: const Text('Create Account'),
+              child: Text(context.l10n.guestPromptCreateAccount),
             ),
           ),
           const SizedBox(height: 12),
@@ -70,7 +71,7 @@ void showGuestRegisterPrompt(BuildContext context) {
                 Navigator.pop(ctx);
                 context.go('/login');
               },
-              child: const Text('Sign In'),
+              child: Text(context.l10n.guestPromptSignIn),
             ),
           ),
         ],

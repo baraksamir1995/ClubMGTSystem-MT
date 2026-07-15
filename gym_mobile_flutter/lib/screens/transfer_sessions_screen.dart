@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../services/api_service.dart';
@@ -109,7 +110,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     } on ApiException catch (e) {
       if (mounted) _showSnack(e.message);
     } catch (_) {
-      if (mounted) _showSnack('Lookup failed. Try again.');
+      if (mounted) _showSnack(context.l10n.transferLookupFailed);
     } finally {
       if (mounted) setState(() => _isLooking = false);
     }
@@ -138,7 +139,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
       if (mounted) {
         setState(() {
           _step = _Step.error;
-          _errorMessage = 'Transfer failed. Check your connection and try again.';
+          _errorMessage = context.l10n.transferFailedConnection;
         });
       }
     }
@@ -146,13 +147,13 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
 
   String _mapReason(String raw) {
     final lower = raw.toLowerCase();
-    if (raw.contains('insufficient_sessions')) return 'You don\'t have enough sessions left.';
-    if (raw.contains('no_eligible_membership')) return 'You don\'t have a session-based membership to share.';
-    if (raw.contains('cannot_transfer_to_self')) return 'You can\'t send sessions to yourself.';
-    if (raw.contains('receiver_not_in_gym')) return 'That member is not part of this gym.';
-    if (raw.contains('receiver_not_found')) return 'No member found with that phone.';
-    if (lower.contains('too many attempts')) return 'Too many attempts. Wait a minute and try again.';
-    if (raw.contains('transfer_internal_error')) return 'Server error during transfer. Try again or contact support.';
+    if (raw.contains('insufficient_sessions')) return context.l10n.transferInsufficientSessions;
+    if (raw.contains('no_eligible_membership')) return context.l10n.transferNoEligibleMembership;
+    if (raw.contains('cannot_transfer_to_self')) return context.l10n.transferCannotSelf;
+    if (raw.contains('receiver_not_in_gym')) return context.l10n.transferReceiverNotInGym;
+    if (raw.contains('receiver_not_found')) return context.l10n.transferReceiverNotFound;
+    if (lower.contains('too many attempts')) return context.l10n.transferTooManyAttempts;
+    if (raw.contains('transfer_internal_error')) return context.l10n.transferServerError;
     return raw;
   }
 
@@ -267,7 +268,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     return SafeArea(
       child: Column(
         children: [
-          _header(title: 'Send Sessions', onBack: () => Navigator.of(context).pop()),
+          _header(title: context.l10n.transferSendSessions, onBack: () => Navigator.of(context).pop()),
 
           // Top fixed block (hero + search + balance chip)
           Padding(
@@ -275,17 +276,17 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Who are you sending\nsessions to?',
-                  style: TextStyle(
+                Text(
+                  context.l10n.transferWhoTitle,
+                  style: const TextStyle(
                     fontSize: 28, fontWeight: FontWeight.w600,
                     color: _kInk, letterSpacing: -0.6, height: 1.15,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Search by their registered mobile number.',
-                  style: TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
+                Text(
+                  context.l10n.transferSearchSubtitle,
+                  style: const TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
                 ),
                 const SizedBox(height: 22),
 
@@ -293,11 +294,11 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                 _searchInputRow(primary: primary),
 
                 if (tooShort) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8, left: 4),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(top: 8, start: 4),
                     child: Text(
-                      'Type at least 3 digits to search',
-                      style: TextStyle(fontSize: 12, color: _kInk3),
+                      context.l10n.transferTypeAtLeast3,
+                      style: const TextStyle(fontSize: 12, color: _kInk3),
                     ),
                   ),
                 ],
@@ -314,10 +315,10 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('You have',
-                          style: TextStyle(fontSize: 13, color: _kInk2, fontWeight: FontWeight.w500)),
+                      Text(context.l10n.transferYouHave,
+                          style: const TextStyle(fontSize: 13, color: _kInk2, fontWeight: FontWeight.w500)),
                       Text(
-                        '$available ${available == 1 ? "session" : "sessions"} available',
+                        context.l10n.transferSessionsAvailable(available),
                         style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w600, color: _kInk,
                           fontFeatures: [FontFeature.tabularFigures()],
@@ -339,7 +340,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     child: Text(
-                      "You don't have any sharable sessions right now.",
+                      context.l10n.transferNoSharable,
                       style: const TextStyle(color: _kInk2, fontSize: 14),
                     ),
                   )
@@ -356,11 +357,11 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                   ),
                 ]
                 else if (hasResult) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(left: 4, bottom: 8),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 4, bottom: 8),
                     child: Text(
-                      '1 MATCH',
-                      style: TextStyle(
+                      context.l10n.transferOneMatch,
+                      style: const TextStyle(
                         fontSize: 11, color: _kInk3, fontWeight: FontWeight.w600,
                         letterSpacing: 0.6,
                       ),
@@ -383,16 +384,16 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                             child: const Icon(Icons.search_rounded, color: _kInk, size: 22),
                           ),
                           const SizedBox(height: 14),
-                          const Text(
-                            'No member found',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _kInk),
+                          Text(
+                            context.l10n.transferNoMemberFound,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _kInk),
                           ),
                           const SizedBox(height: 6),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 240),
-                            child: const Text(
-                              'Double-check the number, or ask them to register first.',
-                              style: TextStyle(fontSize: 13, color: _kInk2, height: 1.5),
+                            child: Text(
+                              context.l10n.transferDoubleCheck,
+                              style: const TextStyle(fontSize: 13, color: _kInk2, height: 1.5),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -418,9 +419,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                           const SizedBox(height: 12),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 260),
-                            child: const Text(
-                              "Start typing your friend's mobile number to find them.",
-                              style: TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
+                            child: Text(
+                              context.l10n.transferStartTyping,
+                              style: const TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -491,7 +492,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
           ),
           if (_phoneCtrl.text.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsetsDirectional.only(start: 4),
               child: Material(
                 color: const Color(0x141F1A14),
                 shape: const CircleBorder(),
@@ -519,7 +520,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
   /// VERIFIED pill, masked phone in monospace, chevron. Tapping it advances
   /// to the amount step.
   Widget _resultRow() {
-    final name = _recipient?['full_name'] as String? ?? 'Member';
+    final name = _recipient?['full_name'] as String? ?? context.l10n.transferMemberFallback;
     final masked = _maskedPhone();
     return Material(
       color: _kCard,
@@ -566,9 +567,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                             color: _kSuccess.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Text(
-                            'VERIFIED',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.transferVerified,
+                            style: const TextStyle(
                               fontSize: 10, fontWeight: FontWeight.w600,
                               color: _kSuccess, letterSpacing: 0.3,
                             ),
@@ -587,7 +588,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.only(left: 4),
+                padding: EdgeInsetsDirectional.only(start: 4),
                 child: Icon(Icons.chevron_right_rounded, size: 22, color: _kInk3),
               ),
             ],
@@ -618,13 +619,13 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
   }) {
     final after = balance - _count;
     final presets = [1, 3, 5, 10].where((p) => p <= balance).toList();
-    final recipientName = _recipient?['full_name'] as String? ?? 'Member';
+    final recipientName = _recipient?['full_name'] as String? ?? context.l10n.transferMemberFallback;
     final peachTint = secondary.withValues(alpha: 0.32);
 
     return SafeArea(
       child: Column(
         children: [
-          _header(title: 'How many?', onBack: () => setState(() => _step = _Step.search)),
+          _header(title: context.l10n.transferHowMany, onBack: () => setState(() => _step = _Step.search)),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
@@ -648,9 +649,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'SENDING TO',
-                                style: TextStyle(
+                              Text(
+                                context.l10n.transferSendingTo,
+                                style: const TextStyle(
                                   fontSize: 11, color: _kInk2, fontWeight: FontWeight.w500,
                                   letterSpacing: 0.4,
                                 ),
@@ -671,9 +672,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
 
                   // Big stepper
                   const SizedBox(height: 36),
-                  const Text(
-                    'SESSIONS',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.transferSessionsCaps,
+                    style: const TextStyle(
                       fontSize: 11, color: _kInk2, fontWeight: FontWeight.w600,
                       letterSpacing: 0.7,
                     ),
@@ -721,7 +722,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                     children: [
                       for (final p in presets) _presetChip(p, _count == p, () => setState(() => _count = p)),
                       if (balance > 1)
-                        _presetChip(balance, _count == balance, () => setState(() => _count = balance), label: 'Max'),
+                        _presetChip(balance, _count == balance, () => setState(() => _count = balance), label: context.l10n.transferMax),
                     ],
                   ),
 
@@ -739,11 +740,11 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("You'll have left",
-                                  style: TextStyle(fontSize: 12, color: _kInk2, fontWeight: FontWeight.w500)),
+                              Text(context.l10n.transferYoullHaveLeft,
+                                  style: const TextStyle(fontSize: 12, color: _kInk2, fontWeight: FontWeight.w500)),
                               const SizedBox(height: 1),
                               Text(
-                                '$after ${after == 1 ? "session" : "sessions"}',
+                                context.l10n.transferSessionsCount(after),
                                 style: TextStyle(
                                   fontSize: 17, fontWeight: FontWeight.w600,
                                   color: after < 3 ? _kWarn : _kInk,
@@ -792,8 +793,8 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                           shadowColor: WidgetStatePropertyAll(primary.withValues(alpha: 0.35)),
                         ),
                         onPressed: () => setState(() => _step = _Step.confirm),
-                        child: const Text('Continue',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        child: Text(context.l10n.transferContinue,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
@@ -864,17 +865,17 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     required Color secondary,
   }) {
     final after = balance - _count;
-    final recipientName = _recipient?['full_name'] as String? ?? 'Member';
-    final senderName = context.read<AuthProvider>().profile?.fullName ?? 'You';
+    final recipientName = _recipient?['full_name'] as String? ?? context.l10n.transferMemberFallback;
+    final senderName = context.read<AuthProvider>().profile?.fullName ?? context.l10n.transferYou;
     final membership = context.read<MemberProvider>().currentMembership;
     final sessionTypeLabel = (membership?.planName?.trim().isNotEmpty ?? false)
         ? membership!.planName!
-        : 'Group sessions';
+        : context.l10n.transferGroupSessions;
 
     return SafeArea(
       child: Column(
         children: [
-          _header(title: 'Confirm Transfer', onBack: () => setState(() => _step = _Step.amount)),
+          _header(title: context.l10n.transferConfirmTitle, onBack: () => setState(() => _step = _Step.amount)),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
@@ -892,14 +893,14 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                             children: [
                               _personAvatar(name: senderName, size: 52),
                               const SizedBox(height: 8),
-                              const Text('FROM',
-                                  style: TextStyle(
+                              Text(context.l10n.transferFrom,
+                                  style: const TextStyle(
                                     fontSize: 11, fontWeight: FontWeight.w500,
                                     color: _kInk2, letterSpacing: 1.4,
                                   )),
                               const SizedBox(height: 2),
                               Text(
-                                'You',
+                                context.l10n.transferYou,
                                 style: const TextStyle(
                                   fontSize: 14, fontWeight: FontWeight.w600, color: _kInk,
                                 ),
@@ -925,7 +926,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                                 ],
                               ),
                               child: Text(
-                                '$_count ${_count == 1 ? "session" : "sessions"}',
+                                context.l10n.transferSessionsCount(_count),
                                 maxLines: 1,
                                 softWrap: false,
                                 overflow: TextOverflow.visible,
@@ -948,8 +949,8 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                             children: [
                               _RecipientAvatar(url: _recipient?['photo_url'] as String?, size: 52),
                               const SizedBox(height: 8),
-                              const Text('TO',
-                                  style: TextStyle(
+                              Text(context.l10n.transferTo,
+                                  style: const TextStyle(
                                     fontSize: 11, fontWeight: FontWeight.w500,
                                     color: _kInk2, letterSpacing: 1.4,
                                   )),
@@ -980,12 +981,12 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     child: Column(
                       children: [
-                        _detailRow(label: 'Session type', value: sessionTypeLabel),
-                        _detailRow(label: 'Quantity', value: '$_count ${_count == 1 ? "session" : "sessions"}'),
-                        _detailRow(label: 'Your balance', value: '$balance ${balance == 1 ? "session" : "sessions"}'),
+                        _detailRow(label: context.l10n.transferSessionType, value: sessionTypeLabel),
+                        _detailRow(label: context.l10n.transferQuantity, value: context.l10n.transferSessionsCount(_count)),
+                        _detailRow(label: context.l10n.transferYourBalance, value: context.l10n.transferSessionsCount(balance)),
                         _detailRow(
-                          label: 'Balance after',
-                          value: '$after ${after == 1 ? "session" : "sessions"}',
+                          label: context.l10n.transferBalanceAfter,
+                          value: context.l10n.transferSessionsCount(after),
                           valueColor: after < 3 ? _kWarn : _kInk,
                           last: true,
                         ),
@@ -1001,18 +1002,18 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                       color: _kWarnBg,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Row(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
+                        const Padding(
                           padding: EdgeInsets.only(top: 1),
                           child: Icon(Icons.info_outline, size: 16, color: _kWarn),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            "This action can't be undone. Transferred sessions inherit the recipient's expiry.",
-                            style: TextStyle(
+                            context.l10n.transferWarning,
+                            style: const TextStyle(
                               fontSize: 13, color: _kWarn, height: 1.45,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1030,7 +1031,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                     child: Column(
                       children: [
                         SlideToConfirm(
-                          label: 'Slide to send $_count ${_count == 1 ? "session" : "sessions"}',
+                          label: context.l10n.transferSlideToSend(_count),
                           primary: primary,
                           onConfirm: _runTransfer,
                         ),
@@ -1039,9 +1040,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                           height: 48,
                           child: TextButton(
                             onPressed: () => setState(() => _step = _Step.amount),
-                            child: const Text(
-                              'Edit transfer',
-                              style: TextStyle(
+                            child: Text(
+                              context.l10n.transferEdit,
+                              style: const TextStyle(
                                 color: _kInk2, fontSize: 15, fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1131,7 +1132,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
 
   // ── LOADING step ──────────────────────────────────────────────────────
   Widget _buildLoading({required Color primary, required Color secondary}) {
-    final recipientName = _recipient?['full_name'] as String? ?? 'Member';
+    final recipientName = _recipient?['full_name'] as String? ?? context.l10n.transferMemberFallback;
     final peach = secondary.withValues(alpha: 0.32);
     final logoUrl = context.read<AuthProvider>().gym?.logoUrl;
     return SafeArea(
@@ -1164,9 +1165,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Sending…',
-                style: TextStyle(
+              Text(
+                context.l10n.transferSending,
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
                   color: _kInk,
@@ -1178,7 +1179,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                 TextSpan(
                   style: const TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
                   children: [
-                    TextSpan(text: 'Transferring $_count ${_count == 1 ? "session" : "sessions"} to\n'),
+                    TextSpan(text: '${context.l10n.transferTransferringTo(_count)}\n'),
                     TextSpan(
                       text: recipientName,
                       style: const TextStyle(color: _kInk, fontWeight: FontWeight.w600),
@@ -1206,7 +1207,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     // Total before the transfer = current balance + what was sent.
     final totalBefore = after + _count;
     final progress = totalBefore == 0 ? 0.0 : (after / totalBefore).clamp(0.0, 1.0);
-    final recipientName = _recipient?['full_name'] as String? ?? 'Member';
+    final recipientName = _recipient?['full_name'] as String? ?? context.l10n.transferMemberFallback;
 
     return SafeArea(
       child: Column(
@@ -1241,9 +1242,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  const Text(
-                    'Transfer sent',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.transferSent,
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w600,
                       color: _kInk,
@@ -1256,15 +1257,15 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                       style: const TextStyle(fontSize: 15, color: _kInk2, height: 1.5),
                       children: [
                         TextSpan(
-                          text: '$_count ${_count == 1 ? "session" : "sessions"}',
+                          text: context.l10n.transferSessionsCount(_count),
                           style: const TextStyle(color: _kInk, fontWeight: FontWeight.w600),
                         ),
-                        const TextSpan(text: ' have been delivered to\n'),
+                        TextSpan(text: ' ${context.l10n.transferDeliveredTo}\n'),
                         TextSpan(
                           text: recipientName,
                           style: const TextStyle(color: _kInk, fontWeight: FontWeight.w600),
                         ),
-                        const TextSpan(text: ". They'll get a notification."),
+                        TextSpan(text: '. ${context.l10n.transferNotificationNote}'),
                       ],
                     ),
                     textAlign: TextAlign.center,
@@ -1280,8 +1281,8 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Your remaining balance',
-                                style: TextStyle(fontSize: 13, color: _kInk2, fontWeight: FontWeight.w500)),
+                            Text(context.l10n.transferRemainingBalance,
+                                style: const TextStyle(fontSize: 13, color: _kInk2, fontWeight: FontWeight.w500)),
                             Text(
                               '$after',
                               style: const TextStyle(
@@ -1321,8 +1322,8 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Done',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                    child: Text(context.l10n.commonDone,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1331,9 +1332,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                   height: 48,
                   child: TextButton(
                     onPressed: _restart,
-                    child: const Text(
-                      'Send another transfer',
-                      style: TextStyle(color: _kInk2, fontSize: 15, fontWeight: FontWeight.w500),
+                    child: Text(
+                      context.l10n.transferSendAnother,
+                      style: const TextStyle(color: _kInk2, fontSize: 15, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
@@ -1350,7 +1351,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
     return SafeArea(
       child: Column(
         children: [
-          _header(title: 'Confirm Transfer', onBack: _restart),
+          _header(title: context.l10n.transferConfirmTitle, onBack: _restart),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -1371,17 +1372,17 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                     child: const Icon(Icons.priority_high_rounded, color: Colors.white, size: 44),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Transfer failed',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.transferFailedTitle,
+                    style: const TextStyle(
                       fontSize: 24, fontWeight: FontWeight.w600,
                       color: _kInk, letterSpacing: -0.4,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "We couldn't complete the transfer. No sessions were taken from your balance.",
-                    style: TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
+                  Text(
+                    context.l10n.transferFailedBody,
+                    style: const TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 22),
@@ -1398,7 +1399,7 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            _errorMessage ?? 'Unknown error.',
+                            _errorMessage ?? context.l10n.transferUnknownError,
                             style: const TextStyle(
                               fontSize: 13, color: _kError,
                               fontWeight: FontWeight.w500, height: 1.5,
@@ -1426,8 +1427,8 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                       elevation: 0,
                     ),
                     onPressed: _runTransfer,
-                    child: const Text('Try again',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                    child: Text(context.l10n.transferTryAgain,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1436,9 +1437,9 @@ class _TransferSessionsScreenState extends State<TransferSessionsScreen> {
                   height: 48,
                   child: TextButton(
                     onPressed: _restart,
-                    child: const Text(
-                      'Cancel transfer',
-                      style: TextStyle(color: _kInk2, fontSize: 15, fontWeight: FontWeight.w500),
+                    child: Text(
+                      context.l10n.transferCancel,
+                      style: const TextStyle(color: _kInk2, fontSize: 15, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../widgets/membership_card_unified.dart';
@@ -50,9 +51,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Active Services',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        title: Text(
+          context.l10n.membershipActiveServices,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
@@ -101,7 +102,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                   memberProvider.serviceAssignments.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'Active Services',
+                  context.l10n.membershipActiveServices,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -122,7 +123,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
               // Member details
               if (memberProvider.member != null) ...[
                 Text(
-                  'Member Details',
+                  context.l10n.membershipMemberDetails,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -135,14 +136,14 @@ class _MembershipScreenState extends State<MembershipScreen> {
                       children: [
                         _buildDetailRow(
                           context,
-                          'Member Number',
-                          memberProvider.member!.memberNumber ?? 'No Member ID yet',
+                          context.l10n.membershipMemberNumber,
+                          memberProvider.member!.memberNumber ?? context.l10n.membershipNoMemberIdYet,
                           Icons.badge_outlined,
                         ),
                         const Divider(height: 24),
                         _buildDetailRow(
                           context,
-                          'Status',
+                          context.l10n.membershipStatus,
                           memberProvider.member!.status ?? '—',
                           Icons.circle_outlined,
                           valueColor: memberProvider.member!.status == 'active'
@@ -152,7 +153,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                         const Divider(height: 24),
                         _buildDetailRow(
                           context,
-                          'Member Since',
+                          context.l10n.membershipMemberSince,
                           memberProvider.member!.joinedAt != null
                               ? DateFormat('MMM d, yyyy')
                                   .format(memberProvider.member!.joinedAt!)
@@ -169,7 +170,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
               // Guest Invitations entry point — only shown when plan has invitations enabled
               if (memberProvider.currentMembership?.invitationsEnabled == true) ...[
                 Text(
-                  'Guest Invitations',
+                  context.l10n.membershipGuestInvitations,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -200,7 +201,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      'Guest Passes',
+                                      context.l10n.membershipGuestPasses,
                                       style: theme.textTheme.titleSmall?.copyWith(
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -213,7 +214,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
-                                        '${memberProvider.invitationsRemaining} left',
+                                        context.l10n.membershipInvitationsLeft(memberProvider.invitationsRemaining),
                                         style: const TextStyle(
                                           color: Colors.green,
                                           fontSize: 11,
@@ -224,7 +225,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                                   ],
                                 ),
                                 Text(
-                                  'Invite guests to try the gym',
+                                  context.l10n.membershipInviteGuests,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
@@ -244,7 +245,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
 
               // Billing / Invoices entry point
               Text(
-                'Billing',
+                context.l10n.membershipBilling,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -274,13 +275,13 @@ class _MembershipScreenState extends State<MembershipScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'View Invoices',
+                                context.l10n.membershipViewInvoices,
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               Text(
-                                'See your payment history & invoices',
+                                context.l10n.membershipViewInvoicesSubtitle,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -323,11 +324,11 @@ class _MembershipScreenState extends State<MembershipScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Unfreeze Plan'),
-        content: const Text('Resume your plan now? The remaining freeze days will be forfeited.'),
+        title: Text(ctx.l10n.membershipUnfreezeTitle),
+        content: Text(ctx.l10n.membershipUnfreezeMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Unfreeze')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.l10n.commonCancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.l10n.membershipUnfreeze)),
         ],
       ),
     );
@@ -348,10 +349,10 @@ class _MembershipScreenState extends State<MembershipScreen> {
         children: [
           Icon(Icons.card_membership_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          Text('No active membership', style: theme.textTheme.titleSmall),
+          Text(context.l10n.membershipNoActiveMembership, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(
-            'Contact your gym to get a plan assigned.',
+            context.l10n.membershipNoActiveMembershipSubtitle,
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
@@ -372,10 +373,10 @@ class _MembershipScreenState extends State<MembershipScreen> {
     final color = isExpired ? Colors.red : Colors.orange;
     final icon = isExpired ? Icons.error_outline : Icons.warning_amber_rounded;
     final message = isExpired
-        ? 'Your membership has expired. Contact the gym to renew.'
+        ? context.l10n.membershipExpiredBanner
         : daysLeft == 0
-            ? 'Your membership expires today!'
-            : 'Your membership expires in $daysLeft day${daysLeft == 1 ? '' : 's'}.';
+            ? context.l10n.membershipExpiresToday
+            : context.l10n.membershipExpiresInDays(daysLeft);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -534,9 +535,9 @@ class _ServiceAssignmentCard extends StatelessWidget {
                   color: const Color(0xFF16A34A).withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'Active',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.commonActive,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF16A34A),
@@ -548,7 +549,7 @@ class _ServiceAssignmentCard extends StatelessWidget {
           if (assignment.trainerName != null) ...[
             const SizedBox(height: 10),
             Text(
-              'Specialist: ${assignment.trainerName}',
+              context.l10n.membershipSpecialist(assignment.trainerName!),
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -560,7 +561,7 @@ class _ServiceAssignmentCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$remaining sessions remaining',
+                context.l10n.membershipSessionsRemaining(remaining),
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../models/membership_model.dart';
 
 class MembershipCard extends StatelessWidget {
@@ -55,7 +56,7 @@ class MembershipCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MEMBERSHIP',
+                        context.l10n.memberCardMembership,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 11,
@@ -75,12 +76,12 @@ class MembershipCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  _buildStatusBadge(),
+                  _buildStatusBadge(context),
                 ],
               ),
               const SizedBox(height: 10),
               Text(
-                membership!.planName ?? 'Standard Plan',
+                membership!.planName ?? context.l10n.memberCardStandardPlan,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -101,9 +102,9 @@ class MembershipCard extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildDateInfo('Start', membership!.startDate),
+                  _buildDateInfo(context.l10n.memberCardStart, membership!.startDate),
                   const SizedBox(width: 24),
-                  _buildDateInfo('Expires', membership!.endDate),
+                  _buildDateInfo(context.l10n.memberCardExpires, membership!.endDate),
                   const Spacer(),
                   if (membership!.price != null)
                     Text(
@@ -134,25 +135,25 @@ class MembershipCard extends StatelessWidget {
     if (membership!.visitsPerWeek != null) {
       benefits.add(_Benefit(
         Icons.calendar_view_week_outlined,
-        '${membership!.visitsPerWeek} visits per week',
+        context.l10n.memberCardVisitsPerWeek(membership!.visitsPerWeek!),
       ));
     }
     if (membership!.visitsPerMonth != null) {
       benefits.add(_Benefit(
         Icons.calendar_month_outlined,
-        '${membership!.visitsPerMonth} visits per month',
+        context.l10n.memberCardVisitsPerMonth(membership!.visitsPerMonth!),
       ));
     }
     if (membership!.sessionCount != null) {
       benefits.add(_Benefit(
         Icons.fitness_center_outlined,
-        '${membership!.sessionCount} sessions included',
+        context.l10n.memberCardSessionsIncluded(membership!.sessionCount!),
       ));
     }
     if (membership!.billingCycle != null) {
       benefits.add(_Benefit(
         Icons.autorenew_outlined,
-        '${_capitalize(membership!.billingCycle!)} billing',
+        context.l10n.memberCardBilling(_capitalize(membership!.billingCycle!)),
       ));
     }
     for (final facility in membership!.facilities) {
@@ -176,7 +177,7 @@ class MembershipCard extends StatelessWidget {
                     size: 18, color: color),
                 const SizedBox(width: 8),
                 Text(
-                  'Plan Benefits',
+                  context.l10n.memberCardPlanBenefits,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -208,7 +209,7 @@ class MembershipCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(BuildContext context) {
     // Member suspension takes priority over membership status
     final String status;
     if (memberStatus == 'suspended') {
@@ -234,6 +235,29 @@ class MembershipCard extends StatelessWidget {
         bgColor = Colors.white.withValues(alpha: 0.15);
     }
 
+    // Localized display text — the switch above keeps comparing the raw
+    // model status values.
+    final String displayText;
+    switch (status) {
+      case 'Active':
+        displayText = context.l10n.commonActive;
+        break;
+      case 'Expired':
+        displayText = context.l10n.commonExpired;
+        break;
+      case 'Suspended':
+        displayText = context.l10n.memberCardSuspended;
+        break;
+      case 'Frozen':
+        displayText = context.l10n.memberCardFrozen;
+        break;
+      case 'Inactive':
+        displayText = context.l10n.memberCardInactive;
+        break;
+      default:
+        displayText = status;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -242,7 +266,7 @@ class MembershipCard extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
       ),
       child: Text(
-        status,
+        displayText,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
@@ -295,13 +319,13 @@ class MembershipCard extends StatelessWidget {
               size: 40, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
           Text(
-            'No Active Membership',
+            context.l10n.memberCardNoActiveMembership,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
-            'Contact the gym to get started',
+            context.l10n.memberCardContactGym,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

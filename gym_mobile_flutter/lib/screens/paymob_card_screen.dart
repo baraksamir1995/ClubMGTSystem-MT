@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'package:clby/l10n/l10n.dart';
+
 import 'paymob_webview_screen.dart';
 
 /// A fully custom card payment screen powered by the Paymob Pixel SDK.
@@ -31,6 +33,7 @@ class PaymobCardScreen extends StatefulWidget {
 class _PaymobCardScreenState extends State<PaymobCardScreen> {
   late final WebViewController _controller;
   bool _loading = true;
+  bool _htmlLoaded = false;
 
   static const _redirectBase = 'https://gymapp.redirect/payment/callback';
 
@@ -45,8 +48,18 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
         onPageFinished: (_) => setState(() => _loading = false),
         onWebResourceError: (_) => setState(() => _loading = false),
         onNavigationRequest: _handleNavigation,
-      ))
-      ..loadHtmlString(_buildHtml());
+      ));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Localized strings need an inherited-widget lookup, which isn't allowed
+    // in initState — load the HTML here on the first pass instead.
+    if (!_htmlLoaded) {
+      _htmlLoaded = true;
+      _controller.loadHtmlString(_buildHtml());
+    }
   }
 
   void _onMessage(JavaScriptMessage message) {
@@ -101,15 +114,28 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
   }
 
   String _buildHtml() {
+    final l10n       = context.l10n;
     final primary    = _primaryHex();
     final amount     = widget.amount.toStringAsFixed(2);
     final currency   = widget.currency;
     final pubKey     = widget.publicKey;
     final secret     = widget.clientSecret;
+    final isRtl      = Directionality.of(context) == TextDirection.rtl;
+    final dir        = isRtl ? 'rtl' : 'ltr';
+    final lang       = Localizations.localeOf(context).languageCode;
+
+    final totalAmountLabel = l10n.paymobTotalAmount;
+    final cardDetailsLabel = l10n.paymobCardDetails;
+    final payLabel         = l10n.paymobPayAmount('$amount $currency');
+    // json.encode-d so they can be embedded safely inside the JS below.
+    final payLabelJs       = json.encode(payLabel);
+    final processingJs     = json.encode(l10n.paymobProcessing);
+    final declinedJs       = json.encode(l10n.paymobDeclinedCheckCard);
+    final securedFooter    = l10n.paymobSecuredFooter;
 
     return '''
 <!DOCTYPE html>
-<html lang="en">
+<html lang="$lang" dir="$dir">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
@@ -209,7 +235,7 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
 <body>
 
   <div class="amount-card">
-    <span class="amount-label">Total amount</span>
+    <span class="amount-label">$totalAmountLabel</span>
     <span class="amount-value">$amount $currency</span>
   </div>
 
@@ -218,14 +244,14 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="$primary" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
       </svg>
-      Card Details
+      $cardDetailsLabel
     </div>
     <div id="paymob-fields"></div>
   </div>
 
-  <button id="pay-btn" class="pay-btn" disabled>Pay $amount $currency</button>
+  <button id="pay-btn" class="pay-btn" disabled>$payLabel</button>
   <div id="error-msg" class="error-msg"></div>
-  <div class="secure">🔒 Secured by Paymob &mdash; your card data is never stored</div>
+  <div class="secure">$securedFooter</div>
 
   <script src="https://cdn.jsdelivr.net/npm/paymob-pixel@latest/main.js" type="module"></script>
   <script>
@@ -241,7 +267,7 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
     function resetBtn() {
       paying = false;
       payBtn.disabled = true;
-      payBtn.innerHTML = 'Pay $amount $currency';
+      payBtn.innerHTML = $payLabelJs;
     }
 
     window.addEventListener('load', () => {
@@ -259,7 +285,7 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
         beforePaymentComplete: async () => {
           paying = true;
           payBtn.disabled = true;
-          payBtn.innerHTML = '<div class="spinner"></div> Processing…';
+          payBtn.innerHTML = '<div class="spinner"></div> ' + $processingJs;
           errorEl.classList.remove('show');
           return true;
         },
@@ -273,7 +299,7 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
             // 3DS required — navigate within WebView; Flutter intercepts the final redirect
             window.location.href = res.requirement.redirect_url;
           } else {
-            const msg = res?.requirement?.message || 'Payment was declined. Please check your card details.';
+            const msg = res?.requirement?.message || $declinedJs;
             showError(msg);
             resetBtn();
             PaymobChannel.postMessage(JSON.stringify({ status: 'declined' }));
@@ -295,7 +321,7 @@ class _PaymobCardScreenState extends State<PaymobCardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Card Payment'),
+        title: Text(context.l10n.paymobCardPayment),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close),

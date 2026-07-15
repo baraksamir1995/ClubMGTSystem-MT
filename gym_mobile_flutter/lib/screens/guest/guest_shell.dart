@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -31,7 +32,7 @@ class GuestShell extends StatelessWidget {
     return Scaffold(
       appBar: GymAppBar(
         gym: gym,
-        greeting: 'Welcome',
+        greeting: context.l10n.guestShellWelcome,
         showGuestAvatar: true,
       ),
       body: Column(
@@ -51,7 +52,7 @@ class GuestShell extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Browsing as guest — limited access',
+                        context.l10n.guestShellBrowsingAsGuest,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -69,7 +70,7 @@ class GuestShell extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Join Now',
+                          context.l10n.guestShellJoinNow,
                           style: TextStyle(
                             color: theme.colorScheme.primary,
                             fontSize: 12,
@@ -108,7 +109,7 @@ class GuestShell extends StatelessWidget {
                   child: _GuestNavItem(
                     icon: Icons.home_outlined,
                     activeIcon: Icons.home_rounded,
-                    label: 'Home',
+                    label: context.l10n.guestShellNavHome,
                     index: 0,
                     currentIndex: currentIndex,
                     onTap: (i) => _onTap(context, i),
@@ -119,7 +120,7 @@ class GuestShell extends StatelessWidget {
                   child: _GuestNavItem(
                     icon: Icons.calendar_month_outlined,
                     activeIcon: Icons.calendar_month_rounded,
-                    label: 'Classes',
+                    label: context.l10n.guestShellNavClasses,
                     index: 1,
                     currentIndex: currentIndex,
                     onTap: (i) => _onTap(context, i),
@@ -154,7 +155,7 @@ class GuestShell extends StatelessWidget {
                   child: _GuestNavItem(
                     icon: Icons.explore_outlined,
                     activeIcon: Icons.explore_rounded,
-                    label: 'Explore',
+                    label: context.l10n.guestShellNavExplore,
                     index: 3,
                     currentIndex: currentIndex,
                     onTap: (i) => _onTap(context, i),
@@ -166,7 +167,7 @@ class GuestShell extends StatelessWidget {
                   child: _GuestNavItem(
                     icon: Icons.person_outline_rounded,
                     activeIcon: Icons.person_rounded,
-                    label: 'Profile',
+                    label: context.l10n.guestShellNavProfile,
                     index: 4,
                     currentIndex: currentIndex,
                     onTap: (i) => _onTap(context, i),

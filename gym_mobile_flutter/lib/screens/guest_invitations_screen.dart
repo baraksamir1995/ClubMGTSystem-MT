@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
+import 'package:clby/l10n/l10n.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../models/invitation_model.dart';
@@ -50,7 +52,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Guest Invitations', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+        title: Text(context.l10n.guestInvTitle, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -67,7 +69,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
               backgroundColor: remaining > 0 ? primaryColor : Colors.grey,
               icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
               label: Text(
-                remaining > 0 ? 'Invite Guest' : 'No Invites Left',
+                remaining > 0 ? context.l10n.guestInvInviteGuest : context.l10n.guestInvNoInvitesLeft,
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
             )
@@ -89,7 +91,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
               if (!invitationsEnabled)
                 _buildDisabledState(context, theme)
               else ...[
-                Text('Sent Invitations',
+                Text(context.l10n.guestInvSentInvitations,
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
                 if (memberProvider.isLoadingInvitations)
@@ -122,7 +124,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
             Icon(Icons.mail_outline_rounded, color: theme.colorScheme.onSurfaceVariant, size: 28),
             const SizedBox(width: 14),
             Expanded(
-              child: Text('Guest invitations are not included in your current plan.',
+              child: Text(context.l10n.guestInvNotIncluded,
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             ),
           ],
@@ -131,16 +133,16 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
     }
 
     final passLabel = membership?.invitationDurationType == 'time_based'
-        ? '${membership?.invitationDurationDays ?? '?'}-day pass'
-        : '1 visit';
+        ? context.l10n.guestInvDayPass('${membership?.invitationDurationDays ?? '?'}')
+        : context.l10n.guestInvOneVisit;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [primaryColor, primaryColor.withValues(alpha: 0.7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -151,8 +153,8 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
             children: [
               const Icon(Icons.mail_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 8),
-              const Text('Guest Invitations',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+              Text(context.l10n.guestInvTitle,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
             ],
           ),
           const SizedBox(height: 16),
@@ -171,7 +173,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
               const SizedBox(width: 12),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text('invites remaining',
+                child: Text(context.l10n.guestInvInvitesRemaining,
                     style: const TextStyle(color: Colors.white70, fontSize: 14)),
               ),
             ],
@@ -183,7 +185,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text('Each guest gets a $passLabel',
+            child: Text(context.l10n.guestInvEachGuestGets(passLabel),
                 style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
           ),
         ],
@@ -207,10 +209,10 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
         children: [
           Icon(Icons.mail_outline_rounded, size: 40, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          Text('No invitations sent yet', style: theme.textTheme.titleSmall),
+          Text(context.l10n.guestInvNoneSentYet, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(
-            remaining > 0 ? 'Invite a friend and they\'ll get a free guest pass!' : 'You have no invites remaining.',
+            remaining > 0 ? context.l10n.guestInvInviteFriend : context.l10n.guestInvNoneRemaining,
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
@@ -219,7 +221,7 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
             ElevatedButton.icon(
               onPressed: () => _showSendSheet(context, context.read<MemberProvider>(), primaryColor),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Send Invitation'),
+              label: Text(context.l10n.guestInvSendInvitation),
               style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
             ),
           ],
@@ -344,10 +346,10 @@ class _GuestInvitationsScreenState extends State<GuestInvitationsScreen> {
 
   String _countdown(DateTime dt) {
     final diff = dt.difference(DateTime.now());
-    if (diff.isNegative) return 'Expired';
-    if (diff.inDays > 0) return '${diff.inDays}d left';
-    if (diff.inHours > 0) return '${diff.inHours}h left';
-    return 'Expiring soon';
+    if (diff.isNegative) return context.l10n.commonExpired;
+    if (diff.inDays > 0) return context.l10n.guestInvDaysLeft(diff.inDays);
+    if (diff.inHours > 0) return context.l10n.guestInvHoursLeft(diff.inHours);
+    return context.l10n.guestInvExpiringSoon;
   }
 
   void _showSendSheet(BuildContext context, MemberProvider memberProvider, Color primaryColor) {
@@ -435,8 +437,8 @@ class _SendInvitationSheetState extends State<_SendInvitationSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(widget.isPerVisit && _visitCount > 1
-              ? 'Invitation sent! Your guest gets $_visitCount visits.'
-              : 'Invitation sent! Your guest will receive instructions to register.'),
+              ? context.l10n.guestInvSentWithVisits(_visitCount)
+              : context.l10n.guestInvSentSimple),
           backgroundColor: Colors.green,
         ),
       );
@@ -480,19 +482,19 @@ class _SendInvitationSheetState extends State<_SendInvitationSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Send Guest Invitation',
+            Text(context.l10n.guestInvSendGuestInvitation,
                 style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text('Your guest will receive an invitation to register and get a free pass.',
+            Text(context.l10n.guestInvSheetSubtitle,
                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 24),
 
             // Guest Name (optional)
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Guest Name (optional)',
-                prefixIcon: Icon(Icons.person_outline_rounded),
+              decoration: InputDecoration(
+                labelText: context.l10n.guestInvGuestNameOptional,
+                prefixIcon: const Icon(Icons.person_outline_rounded),
               ),
               textCapitalization: TextCapitalization.words,
             ),
@@ -501,14 +503,14 @@ class _SendInvitationSheetState extends State<_SendInvitationSheet> {
             // Email (required)
             TextFormField(
               controller: _emailCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Email *',
-                prefixIcon: Icon(Icons.email_outlined),
+              decoration: InputDecoration(
+                labelText: context.l10n.guestInvEmailRequired,
+                prefixIcon: const Icon(Icons.email_outlined),
               ),
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Email is required';
-                if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+                if (v == null || v.trim().isEmpty) return context.l10n.guestInvEmailIsRequired;
+                if (!v.contains('@') || !v.contains('.')) return context.l10n.guestInvEnterValidEmail;
                 return null;
               },
             ),
@@ -517,13 +519,13 @@ class _SendInvitationSheetState extends State<_SendInvitationSheet> {
             // Phone (required)
             TextFormField(
               controller: _phoneCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Phone *',
-                prefixIcon: Icon(Icons.phone_outlined),
+              decoration: InputDecoration(
+                labelText: context.l10n.guestInvPhoneRequired,
+                prefixIcon: const Icon(Icons.phone_outlined),
               ),
               keyboardType: TextInputType.phone,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Phone is required';
+                if (v == null || v.trim().isEmpty) return context.l10n.guestInvPhoneIsRequired;
                 return null;
               },
             ),
@@ -543,10 +545,10 @@ class _SendInvitationSheetState extends State<_SendInvitationSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Visits to allocate',
+                          Text(context.l10n.guestInvVisitsToAllocate,
                               style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                           Text(
-                            '${widget.maxInvites - _visitCount} invite${widget.maxInvites - _visitCount == 1 ? '' : 's'} remaining after this',
+                            context.l10n.guestInvRemainingAfter(widget.maxInvites - _visitCount),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -595,8 +597,8 @@ class _SendInvitationSheetState extends State<_SendInvitationSheet> {
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : Text(
                         widget.isPerVisit && _visitCount > 1
-                            ? 'Send Invitation ($_visitCount visits)'
-                            : 'Send Invitation',
+                            ? context.l10n.guestInvSendWithVisits(_visitCount)
+                            : context.l10n.guestInvSendInvitation,
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                       ),
               ),

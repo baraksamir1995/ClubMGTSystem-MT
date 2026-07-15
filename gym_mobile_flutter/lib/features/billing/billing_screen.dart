@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -48,7 +49,7 @@ class _BillingScreenState extends State<BillingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invoices'),
+        title: Text(context.l10n.billingInvoicesTitle),
         centerTitle: false,
       ),
       body: RefreshIndicator(
@@ -122,14 +123,14 @@ class _BillingScreenState extends State<BillingScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'No invoices yet',
+              context.l10n.billingNoInvoicesYet,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Your payment history will appear here.',
+              context.l10n.billingEmptySubtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -152,7 +153,7 @@ class _BillingScreenState extends State<BillingScreen> {
                 size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
-              'Failed to load invoices',
+              context.l10n.billingLoadFailed,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -169,7 +170,7 @@ class _BillingScreenState extends State<BillingScreen> {
             FilledButton.icon(
               onPressed: () => _load(force: true),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Retry'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),

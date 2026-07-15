@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -106,8 +107,8 @@ class _SponsorBannerDetailScreenState extends State<SponsorBannerDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('OFFER',
-                          style: TextStyle(
+                        Text(context.l10n.bannerOffer,
+                          style: const TextStyle(
                             fontSize: 11, fontWeight: FontWeight.w700,
                             color: _kInk2, letterSpacing: 0.6,
                           ),
@@ -162,7 +163,7 @@ class _SponsorBannerDetailScreenState extends State<SponsorBannerDetailScreen> {
           if (_hasCode && !_revealed)
             _StickyCTA(
               child: _PrimaryButton(
-                label: 'Get promo code',
+                label: context.l10n.bannerGetPromoCode,
                 icon: Icons.lock_open_rounded,
                 onTap: _revealAndCopy,
               ),
@@ -170,7 +171,7 @@ class _SponsorBannerDetailScreenState extends State<SponsorBannerDetailScreen> {
           else if (_hasUrl)
             _StickyCTA(
               child: _OutlineButton(
-                label: 'Visit ${_hostFromUrl(banner.sponsorExternalUrl)}',
+                label: context.l10n.bannerVisitHost(_hostFromUrl(banner.sponsorExternalUrl)),
                 onTap: _visitWebsite,
               ),
             ),
@@ -227,9 +228,9 @@ class _Hero extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(
+        PositionedDirectional(
           top: topInset + 8,
-          left: 12,
+          start: 12,
           child: Material(
             color: Colors.white.withValues(alpha: 0.92),
             shape: const CircleBorder(),
@@ -278,8 +279,8 @@ class _CodeCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('YOUR PROMO CODE',
-                  style: TextStyle(
+                Text(context.l10n.bannerYourPromoCode,
+                  style: const TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w700,
                     color: _SponsorBannerDetailScreenState._kInk2, letterSpacing: 0.6,
                   ),
@@ -322,7 +323,7 @@ class _CodeCard extends StatelessWidget {
                         Icon(copied ? Icons.check_rounded : Icons.copy_rounded,
                           size: 14, color: Colors.white),
                         const SizedBox(width: 6),
-                        Text(copied ? 'Copied' : 'Copy',
+                        Text(copied ? context.l10n.bannerCopied : context.l10n.bannerCopy,
                           style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white,
                           ),

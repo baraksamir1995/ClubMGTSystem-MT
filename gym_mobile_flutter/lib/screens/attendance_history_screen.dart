@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/attendance_model.dart';
@@ -116,8 +117,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attendance History',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.attHistoryTitle,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -130,7 +131,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           if (_hasActiveFilters)
             TextButton(
               onPressed: _clearFilters,
-              child: Text('Clear', style: TextStyle(color: primary)),
+              child: Text(context.l10n.attHistoryClear, style: TextStyle(color: primary)),
             ),
         ],
       ),
@@ -146,13 +147,13 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _typeChip('All', null, primary),
+                      _typeChip(context.l10n.attHistoryFilterAll, null, primary),
                       const SizedBox(width: 8),
-                      _typeChip('Gym Entrance', 'gym', primary),
+                      _typeChip(context.l10n.attHistoryGymEntrance, 'gym', primary),
                       const SizedBox(width: 8),
-                      _typeChip('Classes', 'class', primary),
+                      _typeChip(context.l10n.attHistoryFilterClasses, 'class', primary),
                       const SizedBox(width: 8),
-                      _typeChip('Manual', 'manual', primary),
+                      _typeChip(context.l10n.attHistoryFilterManual, 'manual', primary),
                     ],
                   ),
                 ),
@@ -164,7 +165,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       child: _datePicker(
                           label: _from != null
                               ? DateFormat('MMM d, yyyy').format(_from!)
-                              : 'From date',
+                              : context.l10n.attHistoryFromDate,
                           icon: Icons.calendar_today_outlined,
                           onTap: () => _pickDate(true),
                           active: _from != null,
@@ -176,7 +177,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       child: _datePicker(
                           label: _to != null
                               ? DateFormat('MMM d, yyyy').format(_to!)
-                              : 'To date',
+                              : context.l10n.attHistoryToDate,
                           icon: Icons.calendar_today_outlined,
                           onTap: () => _pickDate(false),
                           active: _to != null,
@@ -202,7 +203,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.4)),
                         const SizedBox(height: 12),
-                        Text('No check-ins found',
+                        Text(context.l10n.attHistoryNoCheckIns,
                             style: theme.textTheme.titleSmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant)),
                       ],
@@ -299,12 +300,12 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     final isManual = record.method == 'manual';
 
     final label = isManual
-        ? 'Manual Check-in'
+        ? context.l10n.attHistoryManualCheckIn
         : isGymEntrance
-            ? 'Gym Entrance'
+            ? context.l10n.attHistoryGymEntrance
             : isClass
-                ? record.accessPoint ?? 'Class'
-                : 'Check-in';
+                ? record.accessPoint ?? context.l10n.attHistoryClass
+                : context.l10n.attHistoryCheckIn;
 
     final icon = isManual
         ? Icons.edit_outlined
@@ -367,7 +368,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                     color: primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text('Today',
+                  child: Text(context.l10n.attHistoryToday,
                       style: TextStyle(
                           color: primary,
                           fontSize: 11,

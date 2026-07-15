@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +48,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invoice Details'),
+        title: Text(context.l10n.invoiceDetailsTitle),
         centerTitle: false,
       ),
       body: billing.isLoadingDetail
@@ -80,10 +81,10 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
           if (details.billingPeriod != null) ...[
             _buildSection(
               theme,
-              title: 'Billing Period',
+              title: context.l10n.invoiceBillingPeriod,
               child: _buildInfoRow(
                 theme,
-                label: 'Period',
+                label: context.l10n.invoicePeriod,
                 value: details.billingPeriod!,
                 icon: Icons.date_range_outlined,
               ),
@@ -94,7 +95,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
           // Line items
           _buildSection(
             theme,
-            title: 'Items',
+            title: context.l10n.invoiceItems,
             child: Column(
               children: [
                 ...details.items.asMap().entries.map((entry) {
@@ -116,12 +117,12 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
           // Payment info
           _buildSection(
             theme,
-            title: 'Payment Info',
+            title: context.l10n.invoicePaymentInfo,
             child: Column(
               children: [
                 _buildInfoRow(
                   theme,
-                  label: 'Status',
+                  label: context.l10n.invoiceStatus,
                   value: invoice.status.label,
                   icon: Icons.info_outline,
                   valueWidget: StatusBadge(status: invoice.status),
@@ -129,7 +130,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
                 const Divider(height: 20),
                 _buildInfoRow(
                   theme,
-                  label: 'Due Date',
+                  label: context.l10n.invoiceDueDate,
                   value: DateFormat('MMM d, yyyy').format(invoice.dueDate),
                   icon: Icons.calendar_today_outlined,
                 ),
@@ -137,7 +138,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
                   const Divider(height: 20),
                   _buildInfoRow(
                     theme,
-                    label: 'Paid On',
+                    label: context.l10n.invoicePaidOn,
                     value: DateFormat('MMM d, yyyy').format(invoice.paidAt!),
                     icon: Icons.check_circle_outline,
                   ),
@@ -146,7 +147,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
                   const Divider(height: 20),
                   _buildInfoRow(
                     theme,
-                    label: 'Payment Method',
+                    label: context.l10n.invoicePaymentMethod,
                     value: details.paymentMethod!,
                     icon: Icons.credit_card_outlined,
                   ),
@@ -160,7 +161,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
             const SizedBox(height: 16),
             _buildSection(
               theme,
-              title: 'Notes',
+              title: context.l10n.invoiceNotes,
               child: Text(
                 details.notes!,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -206,7 +207,8 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Created ${DateFormat('MMM d, yyyy').format(invoice.createdAt)}',
+                      context.l10n.invoiceCreatedOn(
+                          DateFormat('MMM d, yyyy').format(invoice.createdAt)),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -223,7 +225,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total Amount',
+                  context.l10n.invoiceTotalAmount,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -358,7 +360,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
       children: [
         Expanded(
           child: Text(
-            'Total Paid',
+            context.l10n.invoiceTotalPaid,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -383,7 +385,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
       child: FilledButton.icon(
         onPressed: () => _handlePayNow(invoice),
         icon: const Icon(Icons.payment_outlined),
-        label: Text('Pay ${invoice.formattedAmount}'),
+        label: Text(context.l10n.invoicePayAmount(invoice.formattedAmount)),
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           textStyle: const TextStyle(
@@ -442,7 +444,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
             Icon(Icons.cloud_off_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
-              'Failed to load invoice',
+              context.l10n.invoiceLoadFailed,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -462,7 +464,7 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
                     widget.memberId,
                   ),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Retry'),
+              label: Text(context.l10n.commonRetry),
             ),
           ],
         ),
@@ -492,7 +494,8 @@ class _PayNowSheetState extends State<_PayNowSheet> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Payment of ${widget.invoice.formattedAmount} submitted'),
+        content: Text(
+            context.l10n.invoicePaymentSubmitted(widget.invoice.formattedAmount)),
         backgroundColor: Colors.green.shade700,
         behavior: SnackBarBehavior.floating,
       ),
@@ -512,7 +515,7 @@ class _PayNowSheetState extends State<_PayNowSheet> {
           children: [
             Row(
               children: [
-                Text('Pay Invoice',
+                Text(context.l10n.invoicePayInvoice,
                     style: theme.textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.w800)),
                 const Spacer(),
@@ -539,7 +542,7 @@ class _PayNowSheetState extends State<_PayNowSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Amount Due',
+                  Text(context.l10n.invoiceAmountDue,
                       style: theme.textTheme.bodyLarge
                           ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   Text(
@@ -563,7 +566,9 @@ class _PayNowSheetState extends State<_PayNowSheet> {
                             strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.payment_outlined),
-                label: Text(_processing ? 'Processing…' : 'Confirm Payment'),
+                label: Text(_processing
+                    ? context.l10n.invoiceProcessing
+                    : context.l10n.invoiceConfirmPayment),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(

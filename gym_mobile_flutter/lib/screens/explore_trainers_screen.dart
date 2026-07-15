@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -59,7 +60,7 @@ class _ExploreTrainersScreenState extends State<ExploreTrainersScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Our trainers')),
+      appBar: AppBar(title: Text(context.l10n.trainerListTitle)),
       body: _loading
           ? _buildSkeleton()
           : Column(
@@ -70,7 +71,7 @@ class _ExploreTrainersScreenState extends State<ExploreTrainersScreen> {
 
                 Expanded(
                   child: _visibleTrainers.isEmpty
-                      ? const Center(child: Text('No trainers found'))
+                      ? Center(child: Text(context.l10n.trainerNoneFound))
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                           children: [
@@ -120,7 +121,7 @@ class _ExploreTrainersScreenState extends State<ExploreTrainersScreen> {
         children: [
           // "All" chip
           _BranchChip(
-            label: 'All',
+            label: context.l10n.trainerFilterAll,
             selected: _filterBranchId == null,
             primary: primary,
             onTap: () => setState(() => _filterBranchId = null),
@@ -196,7 +197,7 @@ class _BranchChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(right: 8),
+        margin: const EdgeInsetsDirectional.only(end: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         decoration: BoxDecoration(
           color: selected ? primary : Colors.transparent,
@@ -239,11 +240,11 @@ class _TrainerRow extends StatelessWidget {
     }
   }
 
-  String _typeLabel() {
+  String _typeLabel(BuildContext context) {
     switch (trainer['trainer_type'] as String?) {
-      case 'nutritionist':    return 'Nutritionist';
-      case 'physiotherapist': return 'Physiotherapist';
-      default:                return 'Personal trainer';
+      case 'nutritionist':    return context.l10n.trainerTypeNutritionist;
+      case 'physiotherapist': return context.l10n.trainerTypePhysiotherapist;
+      default:                return context.l10n.trainerTypePersonal;
     }
   }
 
@@ -255,8 +256,8 @@ class _TrainerRow extends StatelessWidget {
     return '';
   }
 
-  String _subtitleLine() {
-    final type = _typeLabel();
+  String _subtitleLine(BuildContext context) {
+    final type = _typeLabel(context);
     final specs = _specialties();
     return specs.isNotEmpty ? '$type · $specs' : type;
   }
@@ -278,7 +279,7 @@ class _TrainerRow extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(showDivider ? 0 : 14),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 14, 12),
             child: Row(
               children: [
                 // Avatar
@@ -300,7 +301,7 @@ class _TrainerRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        _subtitleLine(),
+                        _subtitleLine(context),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -382,9 +383,9 @@ class _TrainerAvatar extends StatelessWidget {
                       .withValues(alpha: 0.5),
                 ),
         ),
-        Positioned(
+        PositionedDirectional(
           bottom: 1,
-          right: 1,
+          end: 1,
           child: Container(
             width: 11,
             height: 11,

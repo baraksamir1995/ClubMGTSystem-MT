@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../features/auth/auth_widgets.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -40,16 +41,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? get _emailError {
     if (!_submitted) return null;
-    if (_emailCtrl.text.trim().isEmpty) return 'Email is required';
+    if (_emailCtrl.text.trim().isEmpty) return context.l10n.loginEmailRequired;
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(_emailCtrl.text.trim())) {
-      return 'Enter a valid email address';
+      return context.l10n.authEmailInvalid;
     }
     return null;
   }
 
   String? get _passwordError {
     if (!_submitted) return null;
-    if (_passwordCtrl.text.isEmpty) return 'Password is required';
+    if (_passwordCtrl.text.isEmpty) return context.l10n.loginPasswordRequired;
     return null;
   }
 
@@ -67,11 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (error != null) {
       final lower = error.toLowerCase();
       if (lower.contains('banned') || lower.contains('user is banned')) {
-        _err('This account has been deleted. You can still restore it by signing up again.');
+        _err(context.l10n.loginAccountDeleted);
       } else if (lower.contains('verify your email') || lower.contains('not verified') || lower.contains('email not confirmed')) {
         _showUnverifiedEmailSheet(_emailCtrl.text.trim());
       } else if (lower.contains('invalid login') || lower.contains('invalid credentials')) {
-        _err('Incorrect email or password.');
+        _err(context.l10n.loginInvalidCredentials);
       } else {
         _err(error);
       }
@@ -86,15 +87,15 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: kAuthCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Verify your email', style: TextStyle(color: kAuthInk, fontWeight: FontWeight.w600)),
-        content: const Text(
-          "We sent a confirmation link when you signed up. Tap the link in the email to activate your account. Check spam if you can't find it.",
-          style: TextStyle(color: kAuthInk2, height: 1.5),
+        title: Text(context.l10n.loginVerifyEmailTitle, style: const TextStyle(color: kAuthInk, fontWeight: FontWeight.w600)),
+        content: Text(
+          context.l10n.loginVerifyEmailBody,
+          style: const TextStyle(color: kAuthInk2, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(color: kAuthInk2)),
+            child: Text(context.l10n.commonClose, style: const TextStyle(color: kAuthInk2)),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: kAuthPrimary),
@@ -103,15 +104,15 @@ class _LoginScreenState extends State<LoginScreen> {
               try {
                 await ApiService().resendVerificationEmail(email);
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Verification email sent. Check your inbox.'),
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(context.l10n.loginVerificationSent),
                 ));
               } catch (_) {
                 if (!mounted) return;
-                _err('Could not resend. Try again in a minute.');
+                _err(context.l10n.loginResendFailed);
               }
             },
-            child: const Text('Resend email'),
+            child: Text(context.l10n.loginResendEmail),
           ),
         ],
       ),
@@ -142,24 +143,24 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const AuthMark(size: 48),
               const SizedBox(height: 24),
-              const Text(
-                'Welcome back',
-                style: TextStyle(
+              Text(
+                context.l10n.loginWelcomeBack,
+                style: const TextStyle(
                   fontSize: 32, fontWeight: FontWeight.w600,
                   color: kAuthInk, letterSpacing: -0.8, height: 1.1,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Sign in to manage your sessions and transfers.',
-                style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+              Text(
+                context.l10n.loginSubtitle,
+                style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
               ),
               const SizedBox(height: 28),
 
               AuthField(
-                label: 'Email',
+                label: context.l10n.authEmailLabel,
                 controller: _emailCtrl,
-                placeholder: 'you@example.com',
+                placeholder: context.l10n.authEmailPlaceholder,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 leading: const Icon(Icons.mail_outline_rounded, size: 18, color: kAuthInk2),
@@ -168,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 14),
 
               AuthField(
-                label: 'Password',
+                label: context.l10n.authPasswordLabel,
                 controller: _passwordCtrl,
                 placeholder: '••••••••',
                 isPassword: true,
@@ -181,16 +182,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               Align(
-                alignment: Alignment.centerRight,
+                alignment: AlignmentDirectional.centerEnd,
                 child: AuthTextLink(
-                  text: 'Forgot password?',
+                  text: context.l10n.authForgotPassword,
                   onTap: () => context.push('/forgot-password'),
                 ),
               ),
               const SizedBox(height: 24),
 
               AuthButton(
-                label: 'Sign in',
+                label: context.l10n.authSignIn,
                 isLoading: _isLoading,
                 enabled: _isFormValid,
                 onTap: _signIn,
@@ -201,17 +202,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'New here? ',
-                      style: TextStyle(fontSize: 14, color: kAuthInk2),
+                    Text(
+                      context.l10n.loginNewHere,
+                      style: const TextStyle(fontSize: 14, color: kAuthInk2),
                     ),
                     AuthTextLink(
-                      text: 'Create an account',
+                      text: context.l10n.loginCreateAccount,
                       onTap: () => context.go('/register'),
                     ),
                   ],
                 ),
               ),
+              const PoweredByClby(),
             ],
           ),
         ),

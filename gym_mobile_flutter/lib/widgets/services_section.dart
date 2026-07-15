@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clby/l10n/l10n.dart';
 
 import '../models/service_model.dart';
 import 'service_icon.dart';
@@ -94,7 +95,7 @@ class ServicesSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: services.length,
         itemBuilder: (_, i) => Padding(
-          padding: EdgeInsets.only(right: i < services.length - 1 ? 12 : 0),
+          padding: EdgeInsetsDirectional.only(end: i < services.length - 1 ? 12 : 0),
           child: _ServiceCard(
             service: services[i],
             width: 148,
@@ -114,7 +115,7 @@ class ServicesSection extends StatelessWidget {
         itemBuilder: (context, i) {
           final base = Theme.of(context).colorScheme.surfaceContainerHighest;
           return Padding(
-            padding: EdgeInsets.only(right: i < 2 ? 12 : 0),
+            padding: EdgeInsetsDirectional.only(end: i < 2 ? 12 : 0),
             child: _SkeletonCard(baseColor: base),
           );
         },
@@ -140,7 +141,7 @@ class _SectionHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Services',
+            context.l10n.servicesTitle,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
@@ -148,9 +149,9 @@ class _SectionHeader extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {},
-              child: const Text(
-                'See all',
-                style: TextStyle(
+              child: Text(
+                context.l10n.commonSeeAll,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF534AB7),

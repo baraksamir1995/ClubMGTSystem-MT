@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clby/l10n/l10n.dart';
 
 class MainShell extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -62,7 +63,7 @@ class _BottomNav extends StatelessWidget {
                 child: _NavItem(
                   icon: Icons.home_outlined,
                   activeIcon: Icons.home_rounded,
-                  label: 'Home',
+                  label: context.l10n.navHome,
                   index: 0,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -73,7 +74,7 @@ class _BottomNav extends StatelessWidget {
                 child: _NavItem(
                   icon: Icons.calendar_month_outlined,
                   activeIcon: Icons.calendar_month_rounded,
-                  label: 'Classes',
+                  label: context.l10n.navClasses,
                   index: 1,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -113,7 +114,7 @@ class _BottomNav extends StatelessWidget {
                 child: _NavItem(
                   icon: Icons.explore_outlined,
                   activeIcon: Icons.explore_rounded,
-                  label: 'Explore',
+                  label: context.l10n.navExplore,
                   index: 3,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -124,7 +125,7 @@ class _BottomNav extends StatelessWidget {
                 child: _NavItem(
                   icon: Icons.person_outline_rounded,
                   activeIcon: Icons.person_rounded,
-                  label: 'Profile',
+                  label: context.l10n.navProfile,
                   index: 4,
                   currentIndex: currentIndex,
                   onTap: onTap,

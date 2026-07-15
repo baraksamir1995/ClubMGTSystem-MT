@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'package:clby/l10n/l10n.dart';
+
 /// The result returned when the Paymob WebView checkout finishes.
 enum PaymobResult { success, pending, failed, cancelled }
 
@@ -88,7 +90,7 @@ class _PaymobWebviewScreenState extends State<PaymobWebviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Secure Payment'),
+        title: Text(context.l10n.paymobSecurePayment),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close),

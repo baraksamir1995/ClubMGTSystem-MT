@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../../core/config/app_config.dart';
 import '../../services/api_service.dart';
 import '../../utils/error_utils.dart';
@@ -50,7 +51,7 @@ class _GuestTrainersScreenState extends State<GuestTrainersScreen> {
             : _error != null
                 ? Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)))
                 : _trainers.isEmpty
-                    ? const Center(child: Text('No trainers available'))
+                    ? Center(child: Text(context.l10n.guestTrainersEmpty))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _trainers.length,

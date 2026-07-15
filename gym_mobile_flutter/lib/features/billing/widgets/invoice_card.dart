@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/invoice_model.dart';
@@ -79,8 +80,8 @@ class InvoiceCard extends StatelessWidget {
                       children: [
                         Text(
                           invoice.status == InvoiceStatus.paid
-                              ? 'Paid ${DateFormat('MMM d, yyyy').format(invoice.paidAt ?? invoice.createdAt)}'
-                              : 'Due ${DateFormat('MMM d, yyyy').format(invoice.dueDate)}',
+                              ? context.l10n.invoicePaidOnDate(DateFormat('MMM d, yyyy').format(invoice.paidAt ?? invoice.createdAt))
+                              : context.l10n.invoiceDueOnDate(DateFormat('MMM d, yyyy').format(invoice.dueDate)),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -94,7 +95,7 @@ class InvoiceCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              'Offer',
+                              context.l10n.invoiceOfferBadge,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: const Color(0xFF16A34A),
                                 fontWeight: FontWeight.w600,

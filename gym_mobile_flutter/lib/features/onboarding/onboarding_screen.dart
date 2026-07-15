@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
@@ -129,9 +130,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text(
-                      'Skip',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    child: Text(
+                      context.l10n.commonSkip,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -212,7 +213,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     }),
                   ),
                   child: Text(
-                    _isLastPage ? 'Get started' : 'Continue',
+                    _isLastPage
+                        ? context.l10n.onboardingGetStarted
+                        : context.l10n.onboardingContinue,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

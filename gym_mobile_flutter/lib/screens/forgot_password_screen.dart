@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../features/auth/auth_widgets.dart';
 import '../services/api_service.dart';
 
@@ -42,7 +43,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _send({bool isResend = false}) async {
     final email = _emailCtrl.text.trim();
-    if (!_emailValid) { _err('Enter a valid email address'); return; }
+    if (!_emailValid) { _err(context.l10n.authEmailInvalid); return; }
 
     setState(() => _isLoading = true);
     try {
@@ -61,7 +62,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _err('Something went wrong. Please try again.');
+      _err(context.l10n.commonError);
     }
   }
 
@@ -119,32 +120,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           const SizedBox(height: 28),
           const AuthPeachIcon(icon: Icons.mail_outline_rounded),
           const SizedBox(height: 22),
-          const Text(
-            'Forgot password?',
-            style: TextStyle(
+          Text(
+            context.l10n.authForgotPassword,
+            style: const TextStyle(
               fontSize: 28, fontWeight: FontWeight.w600,
               color: kAuthInk, letterSpacing: -0.6, height: 1.15,
             ),
           ),
           const SizedBox(height: 8),
           RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+            text: TextSpan(
+              style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
               children: [
-                TextSpan(text: "Enter the email tied to your account. We'll send a reset link valid for "),
+                TextSpan(text: context.l10n.forgotIntroPrefix),
                 TextSpan(
-                  text: '30 minutes',
-                  style: TextStyle(fontWeight: FontWeight.w600, color: kAuthInk),
+                  text: context.l10n.forgotIntroDuration,
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: kAuthInk),
                 ),
-                TextSpan(text: '.'),
+                const TextSpan(text: '.'),
               ],
             ),
           ),
           const SizedBox(height: 24),
           AuthField(
-            label: 'Email',
+            label: context.l10n.authEmailLabel,
             controller: _emailCtrl,
-            placeholder: 'you@example.com',
+            placeholder: context.l10n.authEmailPlaceholder,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
             autofocus: true,
@@ -153,7 +154,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 28),
           AuthButton(
-            label: 'Send reset link',
+            label: context.l10n.forgotSendLink,
             isLoading: _isLoading,
             enabled: _emailValid,
             onTap: _send,
@@ -198,8 +199,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             clipBehavior: Clip.none,
                             children: [
                               const Icon(Icons.mail_outline_rounded, size: 44, color: kAuthInk),
-                              Positioned(
-                                top: -4, right: -8,
+                              PositionedDirectional(
+                                top: -4, end: -8,
                                 child: Container(
                                   width: 22, height: 22,
                                   decoration: const BoxDecoration(
@@ -214,9 +215,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        const Text(
-                          'Check your email',
-                          style: TextStyle(
+                        Text(
+                          context.l10n.forgotCheckEmail,
+                          style: const TextStyle(
                             fontSize: 26, fontWeight: FontWeight.w600,
                             color: kAuthInk, letterSpacing: -0.5,
                           ),
@@ -226,9 +227,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           TextSpan(
                             style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
                             children: [
-                              const TextSpan(text: 'We sent a reset link to\n'),
+                              TextSpan(text: '${context.l10n.forgotSentLinkTo}\n'),
                               TextSpan(
-                                text: _emailCtrl.text.trim().isEmpty ? 'you@example.com' : _emailCtrl.text.trim(),
+                                text: _emailCtrl.text.trim().isEmpty ? context.l10n.authEmailPlaceholder : _emailCtrl.text.trim(),
                                 style: const TextStyle(color: kAuthInk, fontWeight: FontWeight.w600),
                               ),
                             ],
@@ -244,13 +245,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Icon(Icons.info_outline_rounded, size: 18, color: kAuthInk),
-                              SizedBox(width: 10),
+                            children: [
+                              const Icon(Icons.info_outline_rounded, size: 18, color: kAuthInk),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  "Didn't get it? Check your spam folder, or wait a minute before requesting another link.",
-                                  style: TextStyle(fontSize: 13, color: kAuthInk, fontWeight: FontWeight.w500, height: 1.5),
+                                  context.l10n.forgotSpamHint,
+                                  style: const TextStyle(fontSize: 13, color: kAuthInk, fontWeight: FontWeight.w500, height: 1.5),
                                 ),
                               ),
                             ],
@@ -261,7 +262,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
 
                   AuthButton(
-                    label: 'Back to sign in',
+                    label: context.l10n.forgotBackToSignIn,
                     isGhost: true,
                     onTap: () => context.go('/login'),
                   ),
@@ -274,8 +275,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       child: Center(
                         child: Text(
                           canResend
-                              ? (_resendJustNow ? 'Link sent again ✓' : 'Resend link')
-                              : 'Resend link in ${_resendSeconds}s',
+                              ? (_resendJustNow ? context.l10n.forgotLinkSentAgain : context.l10n.forgotResendLink)
+                              : context.l10n.forgotResendIn(_resendSeconds),
                           style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w500,
                             color: canResend ? kAuthInk2 : kAuthInk3,

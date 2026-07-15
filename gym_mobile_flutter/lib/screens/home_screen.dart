@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -49,16 +50,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() => _loadingSessionId = sessionId);
     try {
       await memberProvider.bookSession(sessionId);
-      if (session != null) {
+      if (session != null && mounted) {
         NotificationService().showBookingConfirmedNotification(
-          session.className ?? 'Class',
+          session.className ?? context.l10n.homeClassFallback,
           session.scheduledAt,
         );
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session booked successfully!'),
+          SnackBar(
+            content: Text(context.l10n.homeSessionBooked),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.green,
           ),
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to book. Please try again.'),
+            content: Text(context.l10n.homeBookFailed),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -87,8 +88,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await memberProvider.cancelBooking(bookingId, gymId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking cancelled.'),
+          SnackBar(
+            content: Text(context.l10n.homeBookingCancelled),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -97,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to cancel. Please try again.'),
+            content: Text(context.l10n.homeCancelFailed),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -292,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final rawName = profile?.fullName?.trim() ?? '';
     final firstName =
         rawName.isNotEmpty ? rawName.split(' ').first : null;
-    final greeting = _timeGreeting(firstName);
+    final greeting = _timeGreeting(context, firstName);
 
     return Scaffold(
       appBar: GymAppBar(
@@ -324,8 +325,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
               // ── Your membership ──────────────────────────────────────
               _SectionHeader(
-                title: 'Your membership',
-                actionLabel: 'View plan',
+                title: context.l10n.homeYourMembership,
+                actionLabel: context.l10n.homeViewPlan,
                 onAction: () => context.push('/membership'),
                 actionColor: primary,
               ),
@@ -346,8 +347,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
               // ── Today's classes ──────────────────────────────────────
               _SectionHeader(
-                title: "Today's classes",
-                actionLabel: 'See all',
+                title: context.l10n.homeTodaysClasses,
+                actionLabel: context.l10n.commonSeeAll,
                 onAction: () => context.go('/schedule'),
                 actionColor: primary,
               ),
@@ -361,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 24),
 
               // ── Your activity ────────────────────────────────────────
-              const _SectionHeader(title: 'Your activity'),
+              _SectionHeader(title: context.l10n.homeYourActivity),
               const SizedBox(height: 12),
               _ProgressGrid(
                 memberProvider: memberProvider,
@@ -370,9 +371,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 24),
 
               // ── Quick access ─────────────────────────────────────────
-              const _SectionHeader(
-                title: 'Quick access',
-                subtitle: 'Jump straight where you need',
+              _SectionHeader(
+                title: context.l10n.homeQuickAccess,
+                subtitle: context.l10n.homeQuickAccessSubtitle,
               ),
               const SizedBox(height: 12),
               const _QuickAccessGrid(),
@@ -387,8 +388,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _SectionHeader(
-                        title: 'Our locations',
-                        actionLabel: 'See all',
+                        title: context.l10n.homeOurLocations,
+                        actionLabel: context.l10n.commonSeeAll,
                         onAction: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const LocationsScreen()),
                         ),
@@ -507,13 +508,13 @@ class _NoMembershipCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              'No active membership',
+              context.l10n.homeNoActiveMembership,
               style: theme.textTheme.titleSmall
                   ?.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
             ),
             const SizedBox(height: 6),
             Text(
-              "You don't have a plan yet. Choose a membership to unlock full access.",
+              context.l10n.homeNoPlanBody,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -534,9 +535,9 @@ class _NoMembershipCard extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Browse membership plans',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                child: Text(
+                  context.l10n.homeBrowsePlans,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
             ),
@@ -722,7 +723,7 @@ class _ClassCard extends StatelessWidget {
         : null;
     final time = DateFormat('h:mm a').format(session.scheduledAt);
     final duration = session.durationMinutes != null
-        ? '${session.durationMinutes} min'
+        ? '${session.durationMinutes} ${context.l10n.commonMinutes}'
         : null;
 
     final hasImage = session.imageUrl != null && session.imageUrl!.isNotEmpty;
@@ -776,7 +777,7 @@ class _ClassCard extends StatelessWidget {
                   _SpotsBadge(available: available),
                   const Spacer(),
                   Text(
-                    session.className ?? 'Class',
+                    session.className ?? context.l10n.homeClassFallback,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -801,7 +802,7 @@ class _ClassCard extends StatelessWidget {
                   if (session.instructor != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Coach ${session.instructor}',
+                      context.l10n.homeCoachName(session.instructor!),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 11,
@@ -828,15 +829,15 @@ class _SpotsBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (available == null) {
-      return _badge('Open', Colors.black.withValues(alpha: 0.55), Colors.white);
+      return _badge(context.l10n.homeSpotsOpen, Colors.black.withValues(alpha: 0.55), Colors.white);
     }
     if (available! <= 0) {
-      return _badge('Full', const Color(0xFFB91C1C), Colors.white);
+      return _badge(context.l10n.homeSpotsFull, const Color(0xFFB91C1C), Colors.white);
     }
     if (available! <= 3) {
-      return _badge('$available spots left', const Color(0xFFC2410C), Colors.white);
+      return _badge(context.l10n.homeSpotsLeft(available!), const Color(0xFFC2410C), Colors.white);
     }
-    return _badge('$available spots left', const Color(0xFF15803D), Colors.white);
+    return _badge(context.l10n.homeSpotsLeft(available!), const Color(0xFF15803D), Colors.white);
   }
 
   Widget _badge(String text, Color bg, Color fg) {
@@ -879,7 +880,7 @@ class _NoClassesToday extends StatelessWidget {
                   theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
           const SizedBox(width: 12),
           Text(
-            'No classes scheduled today',
+            context.l10n.homeNoClassesToday,
             style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -905,10 +906,10 @@ class _ProgressGrid extends StatelessWidget {
 
     final visitsCard = _ProgressCard(
       value: '${memberProvider.monthlyCheckIns}',
-      label: 'This month',
-      headerLabel: 'MONTHLY VISITS',
+      label: context.l10n.homeThisMonth,
+      headerLabel: context.l10n.homeMonthlyVisits,
       headerIcon: Icons.directions_walk_rounded,
-      subtitle: 'This month',
+      subtitle: context.l10n.homeThisMonth,
     );
 
     if (!showCapacity) return visitsCard;
@@ -1034,14 +1035,14 @@ class _GymCapacityCard extends StatelessWidget {
     }
   }
 
-  String get _statusLabel {
+  String _statusLabel(BuildContext context) {
     switch (capacity.status) {
       case 'not_busy':
-        return 'Not crowded';
+        return context.l10n.homeCapacityNotCrowded;
       case 'moderate':
-        return 'Moderately busy';
+        return context.l10n.homeCapacityModerate;
       default:
-        return 'Very busy';
+        return context.l10n.homeCapacityVeryBusy;
     }
   }
 
@@ -1064,7 +1065,7 @@ class _GymCapacityCard extends StatelessWidget {
           ),
         ],
       ),
-      child: isLoading ? _buildSkeleton(theme) : _buildContent(theme),
+      child: isLoading ? _buildSkeleton(theme) : _buildContent(context, theme),
     );
   }
 
@@ -1083,7 +1084,7 @@ class _GymCapacityCard extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(ThemeData theme) {
+  Widget _buildContent(BuildContext context, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -1094,7 +1095,7 @@ class _GymCapacityCard extends StatelessWidget {
                 size: 12, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(width: 4),
             Text(
-              'GYM CAPACITY',
+              context.l10n.homeGymCapacity,
               style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
@@ -1118,7 +1119,7 @@ class _GymCapacityCard extends StatelessWidget {
             const SizedBox(width: 5),
             Expanded(
               child: Text(
-                _statusLabel,
+                _statusLabel(context),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -1159,37 +1160,37 @@ class _QuickAccessGrid extends StatelessWidget {
     final items = <_QuickItem>[
       _QuickItem(
         icon: Icons.calendar_month_outlined,
-        label: 'Classes',
+        label: context.l10n.homeQuickClasses,
         tint: _QATint.peach,
         onTap: () => context.push('/schedule'),
       ),
       _QuickItem(
         icon: Icons.person_outline_rounded,
-        label: 'Trainers',
+        label: context.l10n.homeQuickTrainers,
         tint: _QATint.orange,
         onTap: () => context.push('/explore/trainers'),
       ),
       _QuickItem(
         icon: Icons.bookmark_border_rounded,
-        label: 'Bookings',
+        label: context.l10n.homeQuickBookings,
         tint: _QATint.ink,
         onTap: () => context.push('/my-bookings'),
       ),
       _QuickItem(
         icon: Icons.receipt_long_outlined,
-        label: 'Payments',
+        label: context.l10n.homeQuickPayments,
         tint: _QATint.green,
         onTap: () => context.push('/billing'),
       ),
       _QuickItem(
         icon: Icons.qr_code_scanner_rounded,
-        label: 'Attendance',
+        label: context.l10n.homeQuickAttendance,
         tint: _QATint.peach,
         onTap: () => context.push('/checkin'),
       ),
       _QuickItem(
         icon: Icons.local_offer_outlined,
-        label: 'Offers',
+        label: context.l10n.homeQuickOffers,
         tint: _QATint.orange,
         onTap: () => context.push('/explore/offers'),
       ),
@@ -1397,7 +1398,7 @@ class _LocationCard extends StatelessWidget {
                     // Maps icon (top-right) when maps URL is set
                     if (hasMaps)
                       Align(
-                        alignment: Alignment.topRight,
+                        alignment: AlignmentDirectional.topEnd,
                         child: Container(
                           width: 30,
                           height: 30,
@@ -1478,8 +1479,8 @@ class _LocationCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
           colors: colors,
         ),
       ),
@@ -1553,25 +1554,25 @@ class _RefreshLogoMark extends StatelessWidget {
 ///   Morning   05:00 – 11:59 → "Good morning, <name>" + ☀️
 ///   Afternoon 12:00 – 16:59 → "Good afternoon, <name>" + 🌤️
 ///   Evening   17:00 – 04:59 → "Good evening, <name>" + 🌙
-({String text, String emoji}) _timeGreeting(String? firstName) {
+({String text, String emoji}) _timeGreeting(BuildContext context, String? firstName) {
   final hour = DateTime.now().hour;
 
   final String salutation;
   final String emoji;
 
   if (hour >= 5 && hour < 12) {
-    salutation = 'Good morning';
+    salutation = context.l10n.homeGreetingMorning;
     emoji = '☀️';
   } else if (hour >= 12 && hour < 17) {
-    salutation = 'Good afternoon';
-    emoji = '🌤️';
+    salutation = context.l10n.homeGreetingAfternoon;
+    emoji = '⛅';
   } else {
-    salutation = 'Good evening';
+    salutation = context.l10n.homeGreetingEvening;
     emoji = '🌙';
   }
 
   final text = (firstName != null && firstName.isNotEmpty)
-      ? '$salutation, $firstName'
+      ? context.l10n.homeGreetingWithName(salutation, firstName)
       : salutation;
   return (text: text, emoji: emoji);
 }

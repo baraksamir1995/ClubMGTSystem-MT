@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../features/auth/auth_widgets.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -50,7 +51,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final auth = context.read<AuthProvider>();
     final token = auth.recoveryToken;
     if (token == null || token.isEmpty) {
-      _err('Reset link expired. Please request a new one.');
+      _err(context.l10n.resetPwLinkExpired);
       return;
     }
 
@@ -106,24 +107,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const SizedBox(height: 28),
           const AuthPeachIcon(icon: Icons.lock_outline_rounded),
           const SizedBox(height: 22),
-          const Text(
-            'Set a new password',
-            style: TextStyle(
+          Text(
+            context.l10n.resetPwTitle,
+            style: const TextStyle(
               fontSize: 28, fontWeight: FontWeight.w600,
               color: kAuthInk, letterSpacing: -0.6, height: 1.15,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            "Choose something you haven't used before.",
-            style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+          Text(
+            context.l10n.resetPwSubtitle,
+            style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
           ),
           const SizedBox(height: 24),
 
           AuthField(
-            label: 'New password',
+            label: context.l10n.resetPwNewPassword,
             controller: _pwCtrl,
-            placeholder: 'At least 8 characters',
+            placeholder: context.l10n.authAtLeast8Chars,
             isPassword: true,
             obscureText: !_show,
             onToggleObscure: () => setState(() => _show = !_show),
@@ -134,23 +135,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const SizedBox(height: 14),
 
           AuthField(
-            label: 'Confirm password',
+            label: context.l10n.resetPwConfirmPassword,
             controller: _confirmCtrl,
-            placeholder: 'Type it again',
+            placeholder: context.l10n.resetPwConfirmPlaceholder,
             isPassword: true,
             obscureText: !_show,
             onToggleObscure: () => setState(() => _show = !_show),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _update(),
             leading: const Icon(Icons.lock_outline_rounded, size: 18, color: kAuthInk2),
-            errorText: _mismatch ? "Passwords don't match" : null,
+            errorText: _mismatch ? context.l10n.resetPwMismatch : null,
           ),
           const SizedBox(height: 16),
           AuthPasswordChecks(password: _pwCtrl.text),
           const SizedBox(height: 28),
 
           AuthButton(
-            label: 'Update password',
+            label: context.l10n.resetPwUpdate,
             isLoading: _isLoading,
             enabled: _valid,
             onTap: _update,
@@ -168,22 +169,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const Spacer(),
           const AuthStatusIcon(),
           const SizedBox(height: 26),
-          const Text(
-            'Password updated',
-            style: TextStyle(
+          Text(
+            context.l10n.resetPwUpdated,
+            style: const TextStyle(
               fontSize: 26, fontWeight: FontWeight.w600,
               color: kAuthInk, letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'You can now sign in with your new password.',
+          Text(
+            context.l10n.resetPwUpdatedBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
+            style: const TextStyle(fontSize: 15, color: kAuthInk2, height: 1.5),
           ),
           const Spacer(),
           AuthButton(
-            label: 'Continue to sign in',
+            label: context.l10n.authContinueToSignIn,
             onTap: () => context.go('/login'),
           ),
         ],

@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -47,20 +48,20 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
   static const _headerGradients = [
     // Silver — dark charcoal
     LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+      begin: AlignmentDirectional.topStart,
+      end: AlignmentDirectional.bottomEnd,
       colors: [Color(0xFF3D3D52), Color(0xFF1A1A2E)],
     ),
     // Gold — amber
     LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+      begin: AlignmentDirectional.topStart,
+      end: AlignmentDirectional.bottomEnd,
       colors: [Color(0xFFD97706), Color(0xFF92400E)],
     ),
     // Platinum — indigo → purple
     LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+      begin: AlignmentDirectional.topStart,
+      end: AlignmentDirectional.bottomEnd,
       colors: [Color(0xFF6366F1), Color(0xFF4338CA)],
     ),
   ];
@@ -77,10 +78,10 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
 
   String _formatCycle(String? cycle) {
     switch (cycle) {
-      case 'monthly':   return '/ month';
-      case 'yearly':    return '/ year';
-      case 'quarterly': return '/ quarter';
-      case 'one_time':  return 'one time';
+      case 'monthly':   return context.l10n.explorePerMonth;
+      case 'yearly':    return context.l10n.explorePerYear;
+      case 'quarterly': return context.l10n.explorePerQuarter;
+      case 'one_time':  return context.l10n.exploreOneTime;
       default:          return '';
     }
   }
@@ -99,11 +100,11 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Membership plans')),
+      appBar: AppBar(title: Text(context.l10n.exploreMembershipPlansTitle)),
       body: _loading
           ? _buildSkeleton()
           : _plans.isEmpty
-              ? const Center(child: Text('No plans available'))
+              ? Center(child: Text(context.l10n.exploreNoPlans))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   children: [
@@ -137,7 +138,7 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
               behavior: HitTestBehavior.opaque,
               child: Container(
                 decoration: BoxDecoration(gradient: headerGradient),
-                padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+                padding: const EdgeInsetsDirectional.fromSTEB(18, 16, 16, 16),
                 child: Row(
                   children: [
                     Expanded(
@@ -244,15 +245,16 @@ class _ExploreMembershipsScreenState extends State<ExploreMembershipsScreen> {
                                   type: 'membership',
                                   id: (plan['id'] as String?) ?? '',
                                   title: name,
-                                  subtitle: '${_formatCycle(billingCycle)} membership',
+                                  subtitle: context.l10n.exploreCycleMembership(
+                                      _formatCycle(billingCycle)),
                                   price: planPrice,
                                   badges: [],
                                   applyMemberDiscount: false,
                                 ));
                               },
-                              child: const Text(
-                                'Get this plan',
-                                style: TextStyle(fontWeight: FontWeight.w700),
+                              child: Text(
+                                context.l10n.exploreGetThisPlan,
+                                style: const TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ),
                           ],

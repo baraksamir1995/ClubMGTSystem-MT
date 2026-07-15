@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../../core/config/app_config.dart';
 import '../../services/api_service.dart';
 import '../../widgets/guest_register_prompt.dart';
@@ -51,7 +52,7 @@ class _GuestPlansScreenState extends State<GuestPlansScreen> {
             : _error != null
                 ? Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)))
                 : _plans.isEmpty
-                    ? const Center(child: Text('No plans available'))
+                    ? Center(child: Text(context.l10n.guestPlansEmpty))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _plans.length,
@@ -106,7 +107,7 @@ class _PlanCard extends StatelessWidget {
                       Text(plan['name'] ?? '',
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                       if (plan['plan_type'] != null)
-                        Text(_formatPlanType(plan['plan_type']),
+                        Text(_formatPlanType(context, plan['plan_type']),
                             style: theme.textTheme.bodySmall?.copyWith(
                                 color: primary, fontWeight: FontWeight.w600)),
                     ],
@@ -116,12 +117,12 @@ class _PlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'AED ${price.toStringAsFixed(0)}',
+                      context.l10n.guestPlansPriceAed(price.toStringAsFixed(0)),
                       style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w900, color: primary),
                     ),
                     Text(
-                      '/ $billingCycle',
+                      context.l10n.guestPlansPerCycle(_formatBillingCycle(context, billingCycle)),
                       style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant),
                     ),
@@ -145,16 +146,16 @@ class _PlanCard extends StatelessWidget {
               children: [
                 if ((plan['session_count'] as int?) != null)
                   _chip(theme, primary, Icons.event_available_outlined,
-                      '${plan['session_count']} sessions'),
+                      context.l10n.guestPlansSessionsCount(plan['session_count'] as int)),
                 if ((plan['visits_per_week'] as int?) != null)
                   _chip(theme, primary, Icons.repeat_outlined,
-                      '${plan['visits_per_week']}x / week'),
+                      context.l10n.guestPlansVisitsPerWeek(plan['visits_per_week'] as int)),
                 if ((plan['visits_per_month'] as int?) != null)
                   _chip(theme, primary, Icons.calendar_month_outlined,
-                      '${plan['visits_per_month']}x / month'),
+                      context.l10n.guestPlansVisitsPerMonth(plan['visits_per_month'] as int)),
                 if ((plan['duration_months'] as int?) != null)
                   _chip(theme, primary, Icons.access_time_outlined,
-                      '${plan['duration_months']} months'),
+                      context.l10n.guestPlansMonthsCount(plan['duration_months'] as int)),
               ],
             ),
 
@@ -204,7 +205,8 @@ class _PlanCard extends StatelessWidget {
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Get Started', style: TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(context.l10n.guestPlansGetStarted,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -233,13 +235,22 @@ class _PlanCard extends StatelessWidget {
     );
   }
 
-  String _formatPlanType(String type) {
+  String _formatPlanType(BuildContext context, String type) {
     switch (type) {
-      case 'unlimited': return 'Unlimited Access';
-      case 'limited': return 'Limited Access';
-      case 'sessions': return 'Session Pack';
-      case 'day_pass': return 'Day Pass';
+      case 'unlimited': return context.l10n.guestPlansTypeUnlimited;
+      case 'limited': return context.l10n.guestPlansTypeLimited;
+      case 'sessions': return context.l10n.guestPlansTypeSessions;
+      case 'day_pass': return context.l10n.guestPlansTypeDayPass;
       default: return type.replaceAll('_', ' ').toUpperCase();
+    }
+  }
+
+  String _formatBillingCycle(BuildContext context, String cycle) {
+    switch (cycle) {
+      case 'monthly': return context.l10n.guestPlansBillingMonthly;
+      case 'yearly': return context.l10n.guestPlansBillingYearly;
+      case 'weekly': return context.l10n.guestPlansBillingWeekly;
+      default: return cycle;
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../models/booking_record_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
@@ -54,9 +55,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Bookings',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          context.l10n.bookingsTitle,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -65,7 +66,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Upcoming'),
+                  Text(context.l10n.bookingsUpcoming),
                   if (upcoming.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     Container(
@@ -88,7 +89,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                 ],
               ),
             ),
-            const Tab(text: 'Past'),
+            Tab(text: context.l10n.bookingsPast),
           ],
         ),
       ),
@@ -108,16 +109,14 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                       _BookingList(
                         bookings: upcoming,
                         emptyIcon: Icons.event_available_outlined,
-                        emptyTitle: 'No upcoming bookings',
-                        emptySubtitle:
-                            'Book a class from the Schedule tab',
+                        emptyTitle: context.l10n.bookingsNoUpcoming,
+                        emptySubtitle: context.l10n.bookingsNoUpcomingSubtitle,
                       ),
                       _BookingList(
                         bookings: history,
                         emptyIcon: Icons.history_outlined,
-                        emptyTitle: 'No past bookings',
-                        emptySubtitle:
-                            'Your attended and cancelled sessions will appear here',
+                        emptyTitle: context.l10n.bookingsNoPast,
+                        emptySubtitle: context.l10n.bookingsNoPastSubtitle,
                       ),
                     ],
                   ),
@@ -135,7 +134,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           children: [
             Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
-            Text('Failed to load bookings',
+            Text(context.l10n.bookingsLoadFailed,
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
@@ -150,7 +149,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                   context.read<MemberProvider>().loadMyBookings(),
               style:
                   OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Retry'),
+              child: Text(context.l10n.commonRetry),
             ),
           ],
         ),
@@ -260,7 +259,7 @@ class _BookingCard extends StatelessWidget {
                         children: [
                           // Class name
                           Text(
-                            booking.className ?? 'Class',
+                            booking.className ?? context.l10n.bookingsClassFallback,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
@@ -311,7 +310,7 @@ class _BookingCard extends StatelessWidget {
                           const SizedBox(height: 6),
                           // Booked on date
                           Text(
-                            'Booked on ${DateFormat('MMM d, yyyy').format(booking.bookedAt)}',
+                            context.l10n.bookingsBookedOn(DateFormat('MMM d, yyyy').format(booking.bookedAt)),
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant
                                   .withValues(alpha: 0.7),
@@ -367,23 +366,23 @@ class _StatusBadge extends StatelessWidget {
       case 'attended':
         color = Colors.blue;
         icon = Icons.verified_rounded;
-        label = 'Attended';
+        label = context.l10n.bookingsStatusAttended;
         break;
       case 'cancelled':
         color = Colors.red;
         icon = Icons.cancel_outlined;
-        label = 'Cancelled';
+        label = context.l10n.bookingsStatusCancelled;
         break;
       default:
         if (hasFinished) {
           // Confirmed/booked but the session already ended without a check-in.
           color = Colors.grey;
           icon = Icons.check_circle_outline;
-          label = 'Finished';
+          label = context.l10n.bookingsStatusFinished;
         } else {
           color = Colors.green;
           icon = Icons.check_circle_rounded;
-          label = 'Booked';
+          label = context.l10n.bookingsStatusBooked;
         }
     }
 

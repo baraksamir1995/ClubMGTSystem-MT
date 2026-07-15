@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
 import '../services/api_service.dart';
@@ -69,8 +70,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         // Gym mismatch
         if (qrGymId != null && qrGymId != userGymId) {
           _showResult(_CheckInResult.error(
-            title: 'Wrong Gym',
-            subtitle: 'This QR code belongs to a different gym.',
+            title: context.l10n.qrWrongGymTitle,
+            subtitle: context.l10n.qrWrongGymSubtitle,
           ));
           return;
         }
@@ -91,8 +92,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               && summary != null
               && summary.buckets.any((b) => b.isTransferred)) {
             _showResult(_CheckInResult.error(
-              title: 'Studio access only',
-              subtitle: 'Transferred sessions can only be used at studio classes — gym-floor entry needs your own active membership.',
+              title: context.l10n.qrStudioOnlyTitle,
+              subtitle: context.l10n.qrStudioOnlySubtitle,
               icon: Icons.fitness_center_outlined,
             ));
             return;
@@ -104,8 +105,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           // O(1) branch access check — no extra network call
           if (branchId != null && membership != null && !membership.canAccessBranch(branchId)) {
             _showResult(_CheckInResult.error(
-              title: 'Branch Not Included',
-              subtitle: 'Your plan does not include access to this branch.',
+              title: context.l10n.qrBranchNotIncludedTitle,
+              subtitle: context.l10n.qrBranchNotIncludedSubtitle,
               icon: Icons.location_off_outlined,
             ));
             return;
@@ -134,7 +135,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             _showGymDenyResult(reason);
             return;
           }
-          _showResult(_CheckInResult.gymSuccess(checkInTime: DateTime.now()));
+          _showResult(_CheckInResult.gymSuccess(context: context, checkInTime: DateTime.now()));
           return;
         }
 
@@ -143,8 +144,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           final studioId = jsonPayload['studio_id'] as String?;
           if (studioId == null) {
             _showResult(_CheckInResult.error(
-              title: 'Invalid QR Code',
-              subtitle: 'Missing studio information.',
+              title: context.l10n.qrInvalidTitle,
+              subtitle: context.l10n.qrMissingStudioInfo,
             ));
             return;
           }
@@ -163,8 +164,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           final gymMember = memberProvider.member;
           if (gymMember == null) {
             _showResult(_CheckInResult.error(
-              title: 'Not Registered',
-              subtitle: 'You are not registered as a member of this gym.',
+              title: context.l10n.qrNotRegisteredTitle,
+              subtitle: context.l10n.qrNotRegisteredSubtitle,
             ));
             return;
           }
@@ -182,8 +183,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             final startRaw = result['start_time'] as String? ?? '';
             final endRaw   = result['end_time']   as String? ?? '';
             _showResult(_CheckInResult.classSuccess(
+              context: context,
               checkInTime: DateTime.now(),
-              className:   result['class_name']   as String? ?? 'Class',
+              className:   result['class_name']   as String? ?? context.l10n.bookingsClassFallback,
               sessionDate: DateTime.tryParse(result['session_date'] as String? ?? ''),
               startTime:   startRaw.isNotEmpty ? startRaw.substring(0, 5) : '',
               endTime:     endRaw.isNotEmpty   ? endRaw.substring(0, 5)   : '',
@@ -201,8 +203,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           final trainerId = jsonPayload['trainer_id'] as String?;
           if (trainerId == null) {
             _showResult(_CheckInResult.error(
-              title: 'Invalid QR Code',
-              subtitle: 'Missing specialist information.',
+              title: context.l10n.qrInvalidTitle,
+              subtitle: context.l10n.qrMissingSpecialistInfo,
             ));
             return;
           }
@@ -213,8 +215,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           if (result['ok'] == true) {
             final remaining = (result['sessions_remaining'] as num?)?.toInt() ?? 0;
             _showResult(_CheckInResult.serviceSuccess(
+              context: context,
               checkInTime: DateTime.now(),
-              specialistName: result['trainer_name'] as String? ?? 'Specialist',
+              specialistName: result['trainer_name'] as String? ?? context.l10n.qrSpecialistFallback,
               serviceLabel: _serviceLabel(result['service_type'] as String? ?? result['trainer_type'] as String?),
               sessionsRemaining: remaining,
               completed: result['completed'] == true,
@@ -226,8 +229,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         }
 
         _showResult(_CheckInResult.error(
-          title: 'Invalid QR Code',
-          subtitle: 'This QR code is not recognized by the gym app.',
+          title: context.l10n.qrInvalidTitle,
+          subtitle: context.l10n.qrNotRecognized,
         ));
         return;
       }
@@ -237,8 +240,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         final gymId = code.substring(4);
         if (gymId != userGymId) {
           _showResult(_CheckInResult.error(
-            title: 'Wrong Gym',
-            subtitle: 'This QR code belongs to a different gym.',
+            title: context.l10n.qrWrongGymTitle,
+            subtitle: context.l10n.qrWrongGymSubtitle,
           ));
           return;
         }
@@ -265,42 +268,43 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         }
 
         _showResult(_CheckInResult.gymSuccess(
+          context: context,
           checkInTime: DateTime.now(),
         ));
       } else {
         _showResult(_CheckInResult.error(
-          title: 'Invalid QR Code',
-          subtitle: 'This QR code is not recognized by the gym app.',
+          title: context.l10n.qrInvalidTitle,
+          subtitle: context.l10n.qrNotRecognized,
         ));
       }
     } catch (e) {
       if (!mounted) return;
       if (e.toString().contains('wrong_branch')) {
         _showResult(_CheckInResult.error(
-          title: 'Wrong Branch',
-          subtitle: 'Your membership is not valid for this branch.',
+          title: context.l10n.qrWrongBranchTitle,
+          subtitle: context.l10n.qrWrongBranchSubtitle,
           icon: Icons.location_off_outlined,
         ));
       } else if (e.toString().contains('no_session_today')) {
         _showResult(_CheckInResult.error(
-          title: 'No Session Today',
-          subtitle: 'There is no active session for this class today.',
+          title: context.l10n.qrNoSessionTodayTitle,
+          subtitle: context.l10n.qrNoSessionTodaySubtitle,
           icon: Icons.event_busy_outlined,
         ));
       } else if (e.toString().contains('already_attended')) {
         _showResult(_CheckInResult.error(
-          title: 'Already Checked In',
-          subtitle: 'You have already checked in to this session.',
+          title: context.l10n.qrAlreadyCheckedInTitle,
+          subtitle: context.l10n.qrAlreadyCheckedInSubtitle,
           icon: Icons.check_circle_outline,
         ));
       } else if (e.toString().contains('no_booking')) {
         _showResult(
           _CheckInResult.error(
-            title: 'Not Booked',
-            subtitle: 'You don\'t have a booking for today\'s session.',
+            title: context.l10n.qrNotBookedTitle,
+            subtitle: context.l10n.qrNotBookedSubtitle,
             icon: Icons.event_busy_outlined,
           ),
-          actionLabel: 'Book a Session',
+          actionLabel: context.l10n.qrBookASession,
           onAction: () {
             Navigator.pop(context);
             context.go('/schedule');
@@ -308,8 +312,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         );
       } else if (e.toString().contains('sessions_exhausted')) {
         _showResult(_CheckInResult.error(
-          title: 'No Sessions Left',
-          subtitle: 'You\'ve used all the sessions in your package. Please renew or upgrade your plan.',
+          title: context.l10n.qrNoSessionsLeftTitle,
+          subtitle: context.l10n.qrSessionsExhaustedSubtitle,
           icon: Icons.block_outlined,
         ));
       } else if (e.toString().contains('too_early')) {
@@ -317,19 +321,21 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         final parts = e.toString().split('too_early:');
         final startTime = parts.length > 1 ? parts[1].trim() : '';
         _showResult(_CheckInResult.error(
-          title: 'Too Early',
-          subtitle: 'Check-in opens 15 minutes before the session starts${startTime.isNotEmpty ? ' at $startTime' : ''}.',
+          title: context.l10n.qrTooEarlyTitle,
+          subtitle: startTime.isNotEmpty
+              ? context.l10n.qrTooEarlySubtitleAt(startTime)
+              : context.l10n.qrTooEarlySubtitle,
           icon: Icons.schedule_outlined,
         ));
       } else if (e.toString().contains('session_ended')) {
         _showResult(_CheckInResult.error(
-          title: 'Session Ended',
-          subtitle: 'Check-in is no longer available. The session has already ended.',
+          title: context.l10n.qrSessionEndedTitle,
+          subtitle: context.l10n.qrSessionEndedSubtitle,
           icon: Icons.event_busy_outlined,
         ));
       } else {
         _showResult(_CheckInResult.error(
-          title: 'Something went wrong',
+          title: context.l10n.qrSomethingWentWrong,
           subtitle: friendlyError(e),
         ));
       }
@@ -341,53 +347,53 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     switch (reason) {
       case 'studio_not_found':
         _showResult(_CheckInResult.error(
-          title: 'Invalid QR Code',
-          subtitle: 'This studio was not found. Please contact staff.',
+          title: context.l10n.qrInvalidTitle,
+          subtitle: context.l10n.qrStudioNotFound,
         ));
       case 'no_active_membership':
         _showResult(_CheckInResult.error(
-          title: 'No Active Membership',
-          subtitle: 'You don\'t have an active membership. Please speak to reception.',
+          title: context.l10n.qrNoActiveMembershipTitle,
+          subtitle: context.l10n.qrNoActiveMembershipSubtitle,
           icon: Icons.card_membership_outlined,
         ));
       case 'membership_frozen':
         _showResult(_CheckInResult.error(
-          title: 'Membership Frozen',
-          subtitle: 'Your membership is currently paused. Unfreeze it to check in.',
+          title: context.l10n.qrMembershipFrozenTitle,
+          subtitle: context.l10n.qrMembershipFrozenSubtitle,
           icon: Icons.ac_unit,
         ));
       case 'studio_access_not_included':
         _showResult(_CheckInResult.error(
-          title: 'Studio Access Not Included',
-          subtitle: 'Your current plan only includes gym floor access. Upgrade to a sessions plan to attend classes.',
+          title: context.l10n.qrStudioAccessNotIncludedTitle,
+          subtitle: context.l10n.qrStudioAccessNotIncludedSubtitle,
           icon: Icons.fitness_center_outlined,
         ));
       case 'branch_not_included':
         _showResult(_CheckInResult.error(
-          title: 'Branch Not Included',
-          subtitle: 'Your plan does not include access to this branch.',
+          title: context.l10n.qrBranchNotIncludedTitle,
+          subtitle: context.l10n.qrBranchNotIncludedSubtitle,
           icon: Icons.location_off_outlined,
         ));
       case 'no_active_session':
         _showResult(_CheckInResult.error(
-          title: 'No Active Session',
-          subtitle: 'There is no class running in this studio right now.',
+          title: context.l10n.qrNoActiveSessionTitle,
+          subtitle: context.l10n.qrNoActiveSessionSubtitle,
           icon: Icons.event_busy_outlined,
         ));
       case 'sessions_exhausted':
         _showResult(_CheckInResult.error(
-          title: 'No Sessions Left',
-          subtitle: 'You\'ve used all the sessions in your package. Please renew or upgrade.',
+          title: context.l10n.qrNoSessionsLeftTitle,
+          subtitle: context.l10n.qrSessionsExhaustedShort,
           icon: Icons.block_outlined,
         ));
       case 'no_booking':
         _showResult(
           _CheckInResult.error(
-            title: 'Not Booked',
-            subtitle: 'You don\'t have a booking for today\'s session in this studio.',
+            title: context.l10n.qrNotBookedTitle,
+            subtitle: context.l10n.qrNotBookedStudioSubtitle,
             icon: Icons.event_busy_outlined,
           ),
-          actionLabel: 'Book a Session',
+          actionLabel: context.l10n.qrBookASession,
           onAction: () {
             Navigator.pop(context);
             context.go('/schedule');
@@ -395,13 +401,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         );
       case 'already_attended':
         _showResult(_CheckInResult.error(
-          title: 'Already Checked In',
-          subtitle: 'Your attendance for this session has already been recorded.',
+          title: context.l10n.qrAlreadyCheckedInTitle,
+          subtitle: context.l10n.qrAttendanceRecorded,
           icon: Icons.check_circle_outline,
         ));
       default:
         _showResult(_CheckInResult.error(
-          title: 'Check-in Denied',
+          title: context.l10n.qrCheckinDeniedTitle,
           subtitle: reason,
         ));
     }
@@ -410,10 +416,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   /// Human label for a service / trainer type code.
   String _serviceLabel(String? type) {
     switch (type) {
-      case 'personal_trainer': return 'Personal training';
-      case 'physiotherapist':  return 'Physiotherapy';
-      case 'nutritionist':     return 'Nutrition';
-      default:                 return 'Sessions';
+      case 'personal_trainer': return context.l10n.qrServicePersonalTraining;
+      case 'physiotherapist':  return context.l10n.qrServicePhysiotherapy;
+      case 'nutritionist':     return context.l10n.qrServiceNutrition;
+      default:                 return context.l10n.commonSessions;
     }
   }
 
@@ -443,40 +449,41 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         _showResult(
           _CheckInResult.error(
             title: code == 'no_package'
-                ? 'No Package Yet'
-                : (code == 'package_expired' ? 'Package Expired' : 'No Sessions Left'),
-            subtitle: message ??
-                'You don\'t have an active session package with this specialist.',
+                ? context.l10n.qrNoPackageTitle
+                : (code == 'package_expired'
+                    ? context.l10n.qrPackageExpiredTitle
+                    : context.l10n.qrNoSessionsLeftTitle),
+            subtitle: message ?? context.l10n.qrNoPackageSubtitle,
             icon: Icons.card_membership_outlined,
           ),
-          actionLabel: 'View Packages',
+          actionLabel: context.l10n.qrViewPackages,
           onAction: goToPackages,
         );
       case 'recently_logged':
         final mins = (result['minutes_left'] as num?)?.toInt();
         _showResult(_CheckInResult.error(
-          title: 'Already Logged',
+          title: context.l10n.qrAlreadyLoggedTitle,
           subtitle: mins != null
-              ? 'This session was just logged. Try again in about $mins minute${mins == 1 ? '' : 's'}.'
-              : (message ?? 'This session was already logged a moment ago.'),
+              ? context.l10n.qrTryAgainInMinutes(mins)
+              : (message ?? context.l10n.qrJustLogged),
           icon: Icons.check_circle_outline,
         ));
       case 'specialist_not_found':
         _showResult(_CheckInResult.error(
-          title: 'Invalid QR Code',
-          subtitle: 'This specialist code is not valid for your gym.',
+          title: context.l10n.qrInvalidTitle,
+          subtitle: context.l10n.qrSpecialistCodeInvalid,
           icon: Icons.qr_code_outlined,
         ));
       case 'no_member':
         _showResult(_CheckInResult.error(
-          title: 'Not Registered',
-          subtitle: 'You are not registered as a member of this gym.',
+          title: context.l10n.qrNotRegisteredTitle,
+          subtitle: context.l10n.qrNotRegisteredSubtitle,
           icon: Icons.person_off_outlined,
         ));
       default:
         _showResult(_CheckInResult.error(
-          title: 'Could Not Log Session',
-          subtitle: message ?? 'Something went wrong. Please try again.',
+          title: context.l10n.qrCouldNotLogTitle,
+          subtitle: message ?? context.l10n.commonError,
         ));
     }
   }
@@ -486,49 +493,49 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     switch (reason) {
       case 'not_a_member':
         _showResult(_CheckInResult.error(
-          title: 'Not Registered',
-          subtitle: 'You are not registered as a member of this gym.',
+          title: context.l10n.qrNotRegisteredTitle,
+          subtitle: context.l10n.qrNotRegisteredSubtitle,
           icon: Icons.person_off_outlined,
         ));
       case 'no_active_membership':
         _showResult(_CheckInResult.error(
-          title: 'No Active Membership',
-          subtitle: 'You don\'t have an active membership. Please speak to reception.',
+          title: context.l10n.qrNoActiveMembershipTitle,
+          subtitle: context.l10n.qrNoActiveMembershipSubtitle,
           icon: Icons.card_membership_outlined,
         ));
       case 'membership_frozen':
         _showResult(_CheckInResult.error(
-          title: 'Membership Frozen',
-          subtitle: 'Your membership is currently paused. Unfreeze it to check in.',
+          title: context.l10n.qrMembershipFrozenTitle,
+          subtitle: context.l10n.qrMembershipFrozenSubtitle,
           icon: Icons.ac_unit,
         ));
       case 'gym_access_not_included':
         _showResult(_CheckInResult.error(
-          title: 'Gym Access Not Included',
-          subtitle: 'Your current plan only includes class sessions. Upgrade to access the gym floor.',
+          title: context.l10n.qrGymAccessNotIncludedTitle,
+          subtitle: context.l10n.qrGymAccessNotIncludedSubtitle,
           icon: Icons.fitness_center_outlined,
         ));
       case 'branch_not_included':
         _showResult(_CheckInResult.error(
-          title: 'Branch Not Included',
-          subtitle: 'Your plan does not include access to this branch.',
+          title: context.l10n.qrBranchNotIncludedTitle,
+          subtitle: context.l10n.qrBranchNotIncludedSubtitle,
           icon: Icons.location_off_outlined,
         ));
       case 'already_checked_in':
         _showResult(_CheckInResult.error(
-          title: 'Already Checked In',
-          subtitle: 'You\'ve already checked in recently. Please wait a moment before scanning again.',
+          title: context.l10n.qrAlreadyCheckedInTitle,
+          subtitle: context.l10n.qrAlreadyCheckedInRecently,
           icon: Icons.check_circle_outline,
         ));
       case 'invalid_qr_token':
         _showResult(_CheckInResult.error(
-          title: 'Invalid QR Code',
-          subtitle: 'This QR code has been replaced. Please scan the updated QR code.',
+          title: context.l10n.qrInvalidTitle,
+          subtitle: context.l10n.qrCodeReplaced,
           icon: Icons.qr_code_outlined,
         ));
       default:
         _showResult(_CheckInResult.error(
-          title: 'Check-in Failed',
+          title: context.l10n.qrCheckinFailedTitle,
           subtitle: reason,
         ));
     }
@@ -629,11 +636,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          tooltip: 'Back',
+          tooltip: context.l10n.commonBack,
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('Scan QR Code',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: Text(context.l10n.qrScanTitle,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on_outlined, color: Colors.white),
@@ -666,7 +673,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Point at an entrance, studio, or specialist QR code',
+                    context.l10n.qrPointInstruction,
                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
                     textAlign: TextAlign.center,
                   ),
@@ -719,16 +726,20 @@ class _CheckInResult {
     this.sessionsRemaining,
   });
 
-  factory _CheckInResult.gymSuccess({required DateTime checkInTime}) =>
+  factory _CheckInResult.gymSuccess({
+    required BuildContext context,
+    required DateTime checkInTime,
+  }) =>
       _CheckInResult._(
         type: _CheckInType.gymSuccess,
-        title: 'Checked In!',
-        subtitle: 'Welcome back! Your visit has been recorded.',
+        title: context.l10n.qrCheckedInTitle,
+        subtitle: context.l10n.qrWelcomeBack,
         icon: Icons.sensor_door_outlined,
         checkInTime: checkInTime,
       );
 
   factory _CheckInResult.classSuccess({
+    required BuildContext context,
     required DateTime checkInTime,
     required String className,
     DateTime? sessionDate,
@@ -739,7 +750,7 @@ class _CheckInResult {
   }) =>
       _CheckInResult._(
         type: _CheckInType.classSuccess,
-        title: 'Attendance Marked!',
+        title: context.l10n.qrAttendanceMarkedTitle,
         icon: Icons.fitness_center_outlined,
         checkInTime: checkInTime,
         className: className,
@@ -751,6 +762,7 @@ class _CheckInResult {
       );
 
   factory _CheckInResult.serviceSuccess({
+    required BuildContext context,
     required DateTime checkInTime,
     required String specialistName,
     required String serviceLabel,
@@ -759,10 +771,10 @@ class _CheckInResult {
   }) =>
       _CheckInResult._(
         type: _CheckInType.serviceSuccess,
-        title: 'Session Logged!',
+        title: context.l10n.qrSessionLoggedTitle,
         subtitle: completed
-            ? 'That was your last session with $specialistName.'
-            : 'One session used with $specialistName.',
+            ? context.l10n.qrLastSessionWith(specialistName)
+            : context.l10n.qrOneSessionUsedWith(specialistName),
         icon: Icons.check_circle_outline,
         checkInTime: checkInTime,
         className: specialistName,  // reuse for the specialist's name
@@ -899,7 +911,7 @@ class _ResultSheetState extends State<_ResultSheet>
                   _detailRow(
                     theme,
                     icon: Icons.access_time_outlined,
-                    label: 'Check-in Time',
+                    label: context.l10n.qrCheckInTime,
                     value: r.checkInTime != null
                         ? DateFormat('h:mm a  •  EEE, MMM d').format(r.checkInTime!)
                         : '—',
@@ -911,8 +923,8 @@ class _ResultSheetState extends State<_ResultSheet>
                     _detailRow(
                       theme,
                       icon: Icons.sensor_door_outlined,
-                      label: 'Location',
-                      value: 'Gym Main Entrance',
+                      label: context.l10n.scheduleLocation,
+                      value: context.l10n.qrGymMainEntrance,
                       accentColor: accentColor,
                     ),
                   ],
@@ -922,7 +934,7 @@ class _ResultSheetState extends State<_ResultSheet>
                     _detailRow(
                       theme,
                       icon: Icons.fitness_center_outlined,
-                      label: 'Class',
+                      label: context.l10n.bookingsClassFallback,
                       value: r.className ?? '—',
                       accentColor: accentColor,
                     ),
@@ -931,7 +943,7 @@ class _ResultSheetState extends State<_ResultSheet>
                       _detailRow(
                         theme,
                         icon: Icons.calendar_today_outlined,
-                        label: 'Session',
+                        label: context.l10n.qrSessionLabel,
                         value: [
                           if (r.sessionDate != null)
                             DateFormat('EEE, MMM d').format(r.sessionDate!),
@@ -948,7 +960,7 @@ class _ResultSheetState extends State<_ResultSheet>
                       _detailRow(
                         theme,
                         icon: Icons.location_on_outlined,
-                        label: 'Location',
+                        label: context.l10n.scheduleLocation,
                         value: r.location!,
                         accentColor: accentColor,
                       ),
@@ -958,7 +970,7 @@ class _ResultSheetState extends State<_ResultSheet>
                       _detailRow(
                         theme,
                         icon: Icons.person_outline,
-                        label: 'Instructor',
+                        label: context.l10n.sessionInstructor,
                         value: r.instructor!,
                         accentColor: accentColor,
                       ),
@@ -970,7 +982,7 @@ class _ResultSheetState extends State<_ResultSheet>
                     _detailRow(
                       theme,
                       icon: Icons.person_outline,
-                      label: 'Specialist',
+                      label: context.l10n.qrSpecialistFallback,
                       value: r.className ?? '—',
                       accentColor: accentColor,
                     ),
@@ -979,7 +991,7 @@ class _ResultSheetState extends State<_ResultSheet>
                       _detailRow(
                         theme,
                         icon: Icons.fitness_center_outlined,
-                        label: 'Service',
+                        label: context.l10n.qrServiceLabel,
                         value: r.location!,
                         accentColor: accentColor,
                       ),
@@ -988,7 +1000,7 @@ class _ResultSheetState extends State<_ResultSheet>
                     _detailRow(
                       theme,
                       icon: Icons.confirmation_number_outlined,
-                      label: 'Sessions Left',
+                      label: context.l10n.qrSessionsLeftLabel,
                       value: '${r.sessionsRemaining ?? 0}',
                       accentColor: accentColor,
                     ),
@@ -1014,7 +1026,7 @@ class _ResultSheetState extends State<_ResultSheet>
               ),
             ),
             const SizedBox(height: 6),
-            Text('Closing in $_autoDismissSecs seconds…',
+            Text(context.l10n.qrClosingIn(_autoDismissSecs),
                 style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant)),
           ],
@@ -1050,7 +1062,7 @@ class _ResultSheetState extends State<_ResultSheet>
                   onPressed: widget.onScanAgain,
                   style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 50)),
-                  child: const Text('Scan Again'),
+                  child: Text(context.l10n.qrScanAgain),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1062,8 +1074,8 @@ class _ResultSheetState extends State<_ResultSheet>
                     backgroundColor: accentColor,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Done',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(context.l10n.commonDone,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -1143,14 +1155,14 @@ class _NoGymAccessSheet extends StatelessWidget {
           const SizedBox(height: 16),
 
           Text(
-            'Gym Access Not Included',
+            context.l10n.qrGymAccessNotIncludedTitle,
             style: theme.textTheme.headlineSmall
                 ?.copyWith(fontWeight: FontWeight.w800),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Your current subscription does not include gym access.\nUpgrade your plan to enter the gym.',
+            context.l10n.qrNoGymAccessBody,
             style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
@@ -1164,9 +1176,9 @@ class _NoGymAccessSheet extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onViewMemberships,
               icon: const Icon(Icons.card_membership_outlined, size: 18),
-              label: const Text(
-                'View Memberships',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              label: Text(
+                context.l10n.qrViewMemberships,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
@@ -1181,7 +1193,7 @@ class _NoGymAccessSheet extends StatelessWidget {
             child: OutlinedButton(
               onPressed: onDismiss,
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 50)),
-              child: const Text('Close'),
+              child: Text(context.l10n.commonClose),
             ),
           ),
         ],
@@ -1241,7 +1253,7 @@ class _FrozenSheetState extends State<_FrozenSheet> {
           const SizedBox(height: 16),
 
           Text(
-            'Membership Frozen',
+            context.l10n.qrMembershipFrozenTitle,
             style: theme.textTheme.headlineSmall
                 ?.copyWith(fontWeight: FontWeight.w800),
             textAlign: TextAlign.center,
@@ -1249,8 +1261,9 @@ class _FrozenSheetState extends State<_FrozenSheet> {
           const SizedBox(height: 8),
           Text(
             resumeDate != null
-                ? 'Your membership is paused until ${DateFormat('MMM d, yyyy').format(resumeDate)}.\nYou cannot check in while frozen.'
-                : 'Your membership is currently frozen.\nYou cannot check in while frozen.',
+                ? context.l10n.qrFrozenUntilBody(
+                    DateFormat('MMM d, yyyy').format(resumeDate))
+                : context.l10n.qrFrozenBody,
             style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
@@ -1265,7 +1278,7 @@ class _FrozenSheetState extends State<_FrozenSheet> {
                   onPressed: widget.onDismiss,
                   style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 50)),
-                  child: const Text('Close'),
+                  child: Text(context.l10n.commonClose),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1281,7 +1294,7 @@ class _FrozenSheetState extends State<_FrozenSheet> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Failed to unfreeze: $e'),
+                                  content: Text(context.l10n.qrUnfreezeFailed(e.toString())),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1297,7 +1310,7 @@ class _FrozenSheetState extends State<_FrozenSheet> {
                               strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.play_circle_outline, size: 18),
-                  label: Text(_loading ? 'Resuming…' : 'Resume Now'),
+                  label: Text(_loading ? context.l10n.qrResuming : context.l10n.qrResumeNow),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,

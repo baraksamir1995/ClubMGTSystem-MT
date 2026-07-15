@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:intl/intl.dart';
 import '../../models/session_model.dart' as session_model;
 import '../../services/api_service.dart';
@@ -176,14 +177,14 @@ class _GuestScheduleScreenState extends State<GuestScheduleScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No classes on this day',
+            context.l10n.guestScheduleNoClasses,
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Try selecting a different date',
+            context.l10n.guestScheduleTryDifferentDate,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -203,7 +204,7 @@ class _GuestScheduleScreenState extends State<GuestScheduleScreen> {
           children: [
             Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
-            Text('Failed to load schedule', style: theme.textTheme.titleMedium),
+            Text(context.l10n.guestScheduleLoadFailed, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               _error!,
@@ -216,7 +217,7 @@ class _GuestScheduleScreenState extends State<GuestScheduleScreen> {
             OutlinedButton(
               onPressed: _loadSessions,
               style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-              child: const Text('Retry'),
+              child: Text(context.l10n.commonRetry),
             ),
           ],
         ),

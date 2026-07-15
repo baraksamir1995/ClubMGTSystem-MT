@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:clby/l10n/l10n.dart';
 import '../models/service_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -49,7 +50,9 @@ class _ServicePackagesScreenState extends State<ServicePackagesScreen> {
   }
 
   String _per(Map<String, dynamic> pkg) =>
-      ((pkg['session_count'] as int?) ?? 0) <= 1 ? 'session' : 'pack';
+      ((pkg['session_count'] as int?) ?? 0) <= 1
+          ? context.l10n.packagesUnitSession
+          : context.l10n.packagesUnitPack;
 
   double _perSession(Map<String, dynamic> pkg) {
     final price = (pkg['price'] as num?)?.toDouble() ?? 0;
@@ -74,8 +77,8 @@ class _ServicePackagesScreenState extends State<ServicePackagesScreen> {
   bool _isFeatured(int i) => i == _bestValueIndex();
 
   String _tag(int i) {
-    if (_isFeatured(i)) return 'Best value';
-    if (i == 0 && _packages.length > 2) return 'Starter';
+    if (_isFeatured(i)) return context.l10n.packagesTagBestValue;
+    if (i == 0 && _packages.length > 2) return context.l10n.packagesTagStarter;
     return '';
   }
 
@@ -124,7 +127,7 @@ class _ServicePackagesScreenState extends State<ServicePackagesScreen> {
 
   Widget _buildBody() {
     if (_packages.isEmpty) {
-      return const Center(child: Text('No packages available'));
+      return Center(child: Text(context.l10n.packagesNoneAvailable));
     }
     return ListView(
       padding: EdgeInsets.zero,
@@ -205,7 +208,7 @@ class _InfoBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "Choose a package below. You'll pick your specialist on the next screen.",
+              context.l10n.packagesChooseBanner,
               style: TextStyle(
                 fontSize: 11,
                 color: svc.accentDark,
@@ -329,7 +332,7 @@ class _PackageCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'EGP / $per',
+                        context.l10n.packagesEgpPer(per),
                         style: const TextStyle(
                           fontSize: 9,
                           color: Color(0xFF888780),
@@ -337,7 +340,7 @@ class _PackageCard extends StatelessWidget {
                       ),
                       if (perSession != null)
                         Text(
-                          '$perSession EGP each',
+                          context.l10n.packagesEgpEach(perSession),
                           style: TextStyle(fontSize: 9, color: svc.accent),
                         ),
                     ],
@@ -347,9 +350,9 @@ class _PackageCard extends StatelessWidget {
             ),
             // Featured badge
             if (isFeatured && tag.isNotEmpty)
-              Positioned(
+              PositionedDirectional(
                 top: -1,
-                right: 14,
+                end: 14,
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
                   decoration: BoxDecoration(

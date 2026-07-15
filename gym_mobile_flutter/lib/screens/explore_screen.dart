@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -163,8 +164,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final gym = context.watch<AuthProvider>().gym;
     return GymAppBar(
       gym: gym,
-      fallbackTitle: 'Explore',
-      greeting: 'Explore',
+      fallbackTitle: context.l10n.exploreTitle,
+      greeting: context.l10n.exploreTitle,
       greetingStyle: const TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w800,
@@ -178,7 +179,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildFeed(ThemeData theme, Color primary) {
     final gymName =
-        context.read<AuthProvider>().gym?.name ?? 'Our gym';
+        context.read<AuthProvider>().gym?.name ?? context.l10n.exploreOurGym;
 
     final sections = <Widget>[];
 
@@ -252,7 +253,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             children: List.generate(3, (i) {
               return Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(right: i < 2 ? 16 : 0),
+                  padding: EdgeInsetsDirectional.only(end: i < 2 ? 16 : 0),
                   child: Column(
                     children: const [
                       ShimmerLoader(height: 80, borderRadius: 40),
@@ -279,7 +280,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Text(
-            'Search for classes, specialists, programs or offers',
+            context.l10n.exploreSearchHint,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -297,7 +298,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (_searchResults.isEmpty) {
       return Center(
         child: Text(
-          'No results for "${_searchController.text.trim()}"',
+          context.l10n.exploreNoResultsFor(_searchController.text.trim()),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -398,16 +399,16 @@ class _MembershipsSection extends StatelessWidget {
     return '$fmt $currency';
   }
 
-  String _formatCycle(String? cycle) {
+  String _formatCycle(BuildContext context, String? cycle) {
     switch (cycle) {
       case 'monthly':
-        return '/ month';
+        return context.l10n.explorePerMonth;
       case 'yearly':
-        return '/ year';
+        return context.l10n.explorePerYear;
       case 'quarterly':
-        return '/ quarter';
+        return context.l10n.explorePerQuarter;
       case 'one_time':
-        return 'one time';
+        return context.l10n.exploreOneTime;
       default:
         return '';
     }
@@ -421,7 +422,7 @@ class _MembershipsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Memberships',
+          title: context.l10n.exploreMemberships,
           primary: primary,
         ),
         const SizedBox(height: 12),
@@ -434,7 +435,7 @@ class _MembershipsSection extends StatelessWidget {
                 // Dark header
                 Container(
                   color: const Color(0xFF1A1A2E),
-                  padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+                  padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 14, 14),
                   child: Row(
                     children: [
                       Expanded(
@@ -442,7 +443,7 @@ class _MembershipsSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '$gymName membership plans',
+                              context.l10n.exploreGymMembershipPlans(gymName),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -513,7 +514,7 @@ class _MembershipsSection extends StatelessWidget {
                             // ── Billing cycles row ──────────────────────────
                             Row(
                               children: displayPlans.asMap().entries.map((e) {
-                                final cycle = _formatCycle(
+                                final cycle = _formatCycle(context,
                                     e.value['billing_cycle'] as String?);
                                 return Expanded(
                                   child: Text(
@@ -540,7 +541,7 @@ class _MembershipsSection extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Tap to see full benefits',
+                              context.l10n.exploreTapSeeBenefits,
                               style: TextStyle(
                                 color: Colors.grey.shade400,
                                 fontSize: 12,
@@ -549,7 +550,7 @@ class _MembershipsSection extends StatelessWidget {
                             GestureDetector(
                               onTap: () => context.push('/explore/memberships'),
                               child: Text(
-                                'View plans \u203a',
+                                context.l10n.exploreViewPlans,
                                 style: TextStyle(
                                   color: primary,
                                   fontSize: 12,
@@ -590,8 +591,8 @@ class _CurrentOffersSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Current offers',
-          actionLabel: 'See all',
+          title: context.l10n.exploreCurrentOffers,
+          actionLabel: context.l10n.commonSeeAll,
           onAction: () => context.push('/explore/offers'),
           primary: primary,
         ),
@@ -620,12 +621,12 @@ class _OfferCard extends StatelessWidget {
 
   const _OfferCard({required this.offer, required this.primary});
 
-  String _expiry() {
+  String _expiry(BuildContext context) {
     final raw = offer['expires_at'] as String?;
     if (raw == null) return '';
     try {
       final date = DateTime.parse(raw);
-      return 'Expires ${DateFormat('MMM d').format(date)}';
+      return context.l10n.exploreExpires(DateFormat('MMM d').format(date));
     } catch (_) {
       return '';
     }
@@ -640,7 +641,7 @@ class _OfferCard extends StatelessWidget {
     final imageUrl = offer['hero_image_url'] as String?;
     final tagLabel = (offer['tag_label'] as String?) ?? '';
     final tagColorHex = offer['tag_color'] as String?;
-    final expiry = _expiry();
+    final expiry = _expiry(context);
 
     Color tagColor = const Color(0xFFF59E0B);
     if (tagColorHex != null && tagColorHex.isNotEmpty) {
@@ -696,9 +697,9 @@ class _OfferCard extends StatelessWidget {
                   ),
                   // Tag pill
                   if (tagLabel.isNotEmpty)
-                    Positioned(
+                    PositionedDirectional(
                       bottom: 10,
-                      left: 10,
+                      start: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
@@ -785,7 +786,7 @@ class _TrainersSection extends StatelessWidget {
     }
   }
 
-  String _specialty(Map<String, dynamic> trainer) {
+  String _specialty(BuildContext context, Map<String, dynamic> trainer) {
     final type = trainer['trainer_type'] as String?;
     final specs = trainer['specialties'] as List?;
     if (specs != null && specs.isNotEmpty) {
@@ -793,11 +794,11 @@ class _TrainersSection extends StatelessWidget {
     }
     switch (type) {
       case 'nutritionist':
-        return 'Nutrition';
+        return context.l10n.exploreSpecialtyNutrition;
       case 'physiotherapist':
-        return 'Physio';
+        return context.l10n.exploreSpecialtyPhysio;
       default:
-        return 'PT';
+        return context.l10n.exploreSpecialtyPt;
     }
   }
 
@@ -807,8 +808,8 @@ class _TrainersSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Our specialists',
-          actionLabel: 'See all',
+          title: context.l10n.exploreOurSpecialists,
+          actionLabel: context.l10n.commonSeeAll,
           onAction: () => context.push('/explore/trainers'),
           primary: primary,
         ),
@@ -826,7 +827,7 @@ class _TrainersSection extends StatelessWidget {
               return _TrainerCircle(
                 name: (t['name'] as String?) ?? '',
                 photoUrl: t['photo_url'] as String?,
-                specialty: _specialty(t),
+                specialty: _specialty(context, t),
                 dotColor: _dotColor(t['trainer_type'] as String?, primary),
                 onTap: () => Navigator.push(
                   context,
@@ -897,9 +898,9 @@ class _TrainerCircle extends StatelessWidget {
                         color: Colors.white54,
                       ),
               ),
-              Positioned(
+              PositionedDirectional(
                 bottom: 2,
-                right: 2,
+                end: 2,
                 child: Container(
                   width: 12,
                   height: 12,
@@ -954,8 +955,8 @@ class _ProgramsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Programs',
-          actionLabel: 'See all',
+          title: context.l10n.explorePrograms,
+          actionLabel: context.l10n.commonSeeAll,
           onAction: () => context.push('/explore/programs'),
           primary: primary,
         ),
@@ -1036,9 +1037,9 @@ class _ProgramCard extends StatelessWidget {
                 ),
                 // Duration pill
                 if (weeks != null)
-                  Positioned(
+                  PositionedDirectional(
                     bottom: 12,
-                    left: 12,
+                    start: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
@@ -1048,7 +1049,7 @@ class _ProgramCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '$weeks weeks',
+                        context.l10n.exploreWeeksCount(weeks),
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
@@ -1109,8 +1110,8 @@ class _SessionPackagesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Session packages',
-          actionLabel: 'See all',
+          title: context.l10n.exploreSessionPackages,
+          actionLabel: context.l10n.commonSeeAll,
           onAction: () => context.push('/explore/session-packages'),
           primary: primary,
         ),
@@ -1145,8 +1146,11 @@ class _SessionPackagesSection extends StatelessWidget {
                           extra: CheckoutItem(
                             type: 'session_package',
                             id: (pkg['id'] as String?) ?? '',
-                            title: name.isNotEmpty ? name : '$sessions sessions',
-                            subtitle: '$sessions sessions package',
+                            title: name.isNotEmpty
+                                ? name
+                                : context.l10n.exploreSessionsCount(sessions),
+                            subtitle: context.l10n
+                                .exploreSessionsPackageSubtitle(sessions),
                             price: price,
                           ),
                         )
@@ -1242,7 +1246,7 @@ class _SessionPackageCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'sessions',
+                context.l10n.exploreSessionsLabel,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -1262,7 +1266,8 @@ class _SessionPackageCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${_fmt(perSession.toDouble(), currency)} / session',
+                context.l10n
+                    .explorePerSessionPrice(_fmt(perSession.toDouble(), currency)),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -1312,7 +1317,7 @@ class _PartnersSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
-            'Our partners',
+            context.l10n.exploreOurPartners,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
@@ -1399,16 +1404,16 @@ class _SearchResultTile extends StatelessWidget {
     }
   }
 
-  String _label(String type) {
+  String _label(BuildContext context, String type) {
     switch (type) {
       case 'trainer':
-        return 'Specialist';
+        return context.l10n.exploreTypeSpecialist;
       case 'program':
-        return 'Program';
+        return context.l10n.exploreTypeProgram;
       case 'offer':
-        return 'Offer';
+        return context.l10n.exploreTypeOffer;
       default:
-        return 'Class';
+        return context.l10n.exploreTypeClass;
     }
   }
 
@@ -1440,7 +1445,7 @@ class _SearchResultTile extends StatelessWidget {
             ?.copyWith(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        _label(type),
+        _label(context, type),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

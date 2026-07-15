@@ -6,6 +6,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
+import 'package:clby/providers/locale_provider.dart';
 import '../models/membership_summary_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/member_provider.dart';
@@ -133,12 +135,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _sectionTitle('Active services',
+                          _sectionTitle(context.l10n.profileActiveServices,
                               action: totalCount > 1
                                   ? GestureDetector(
                                       onTap: () => context.push('/membership'),
                                       child: Text(
-                                        'See all',
+                                        context.l10n.commonSeeAll,
                                         style: TextStyle(
                                           fontSize: 12, fontWeight: FontWeight.w600,
                                           color: primary,
@@ -216,28 +218,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
 
                   // Account
-                  _sectionTitle('Account'),
+                  _sectionTitle(context.l10n.profileAccount),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 22),
                     child: _whiteCard(
                       child: Column(
                         children: [
                           _row(
+                            iconBox: const Icon(Icons.language, size: 16, color: _kInk),
+                            label: context.l10n.commonLanguage.toUpperCase(),
+                            value: _localeLabel(context.watch<LocaleProvider>().locale),
+                            onTap: _openLanguageSheet,
+                          ),
+                          _row(
                             iconBox: const Icon(Icons.lock_outline_rounded, size: 16, color: _kInk),
-                            label: 'SECURITY',
-                            value: 'Change password',
+                            label: context.l10n.profileSecurityLabel,
+                            value: context.l10n.profileChangePassword,
                             onTap: _openChangePasswordSheet,
                           ),
                           _row(
                             iconBox: const Icon(Icons.logout_rounded, size: 16, color: _kInk),
-                            label: 'SESSION',
-                            value: 'Sign out',
+                            label: context.l10n.profileSessionLabel,
+                            value: context.l10n.profileSignOut,
                             onTap: _openSignOutSheet,
                           ),
                           _row(
                             iconBox: const Icon(Icons.delete_outline_rounded, size: 16, color: _kError),
-                            label: 'ACCOUNT',
-                            value: 'Delete account',
+                            label: context.l10n.profileAccountLabel,
+                            value: context.l10n.profileDeleteAccount,
                             onTap: _openDeleteSheet,
                             danger: true,
                             last: true,
@@ -248,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
 
                   // Legal
-                  _sectionTitle('Legal'),
+                  _sectionTitle(context.l10n.profileLegal),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 22),
                     child: _whiteCard(
@@ -256,15 +264,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           _row(
                             iconBox: const Icon(Icons.description_outlined, size: 16, color: _kInk),
-                            label: 'DOCUMENT',
-                            value: 'Terms & Conditions',
+                            label: context.l10n.profileDocumentLabel,
+                            value: context.l10n.profileTerms,
                             trailingExt: true,
                             onTap: () => openTermsOfService(),
                           ),
                           _row(
                             iconBox: const Icon(Icons.shield_outlined, size: 16, color: _kInk),
-                            label: 'DOCUMENT',
-                            value: 'Privacy Policy',
+                            label: context.l10n.profileDocumentLabel,
+                            value: context.l10n.profilePrivacy,
                             trailingExt: true,
                             onTap: () => openPrivacyPolicy(),
                             last: true,
@@ -309,9 +317,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             GymLogoMark(gym: gym, fallbackTitle: Env.brandName, size: 32, radius: 8),
             const SizedBox(width: 10),
             // "Profile" title — same scale + weight as GymAppBar greetings
-            const Text(
-              'Profile',
-              style: TextStyle(
+            Text(
+              context.l10n.profileTitle,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: _kInk,
@@ -358,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: _isUploadingPhoto ? null : _showPhotoOptions,
                     child: _Avatar(
                       photoUrl: profile?.avatarUrl as String?,
-                      name: (profile?.fullName as String?) ?? 'Member',
+                      name: (profile?.fullName as String?) ?? context.l10n.profileMemberFallback,
                       size: 64,
                       ringColor: Colors.white,
                       tint: secondary.withValues(alpha: 0.45),
@@ -371,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          (profile?.fullName as String?) ?? 'Member',
+                          (profile?.fullName as String?) ?? context.l10n.profileMemberFallback,
                           maxLines: 1, overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.w600,
@@ -381,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 3),
                         Text(
                           [
-                            if (memberSince.isNotEmpty) 'Member since $memberSince',
+                            if (memberSince.isNotEmpty) context.l10n.profileMemberSince(memberSince),
                             if (gymName != null && gymName.isNotEmpty) gymName,
                           ].join(' · '),
                           maxLines: 2, overflow: TextOverflow.ellipsis,
@@ -397,17 +405,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               _row(
                 iconBox: const Icon(Icons.mail_outline_rounded, size: 16, color: _kInk),
-                label: 'EMAIL',
+                label: context.l10n.profileEmailLabel,
                 value: (profile?.email as String?) ?? '—',
               ),
               _row(
                 iconBox: const Icon(Icons.phone_outlined, size: 16, color: _kInk),
-                label: 'MOBILE',
+                label: context.l10n.profileMobileLabel,
                 value: _maskPhone(profile?.phone as String?),
               ),
               _row(
                 iconBox: const Icon(Icons.cake_outlined, size: 16, color: _kInk),
-                label: 'DATE OF BIRTH',
+                label: context.l10n.profileDobLabel,
                 value: profile?.dateOfBirth != null
                     ? DateFormat('MMM d, yyyy').format(profile.dateOfBirth as DateTime)
                     : '—',
@@ -417,8 +425,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         // Decorative radial peach glow in the top-right corner
-        Positioned(
-          top: -30, right: -30,
+        PositionedDirectional(
+          top: -30, end: -30,
           child: IgnorePointer(
             child: Container(
               width: 140, height: 140,
@@ -452,8 +460,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Stack(
           children: [
             // Decorative primary radial glow
-            Positioned(
-              top: -40, right: -30,
+            PositionedDirectional(
+              top: -40, end: -30,
               child: IgnorePointer(
                 child: Container(
                   width: 160, height: 160,
@@ -491,21 +499,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Share sessions',
-                          style: TextStyle(
+                          context.l10n.profileShareSessions,
+                          style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w600,
                             color: Colors.white, letterSpacing: -0.2,
                           ),
                         ),
-                        SizedBox(height: 3),
+                        const SizedBox(height: 3),
                         Text(
-                          'Transfer sessions to another member',
-                          style: TextStyle(
+                          context.l10n.profileShareSessionsSubtitle,
+                          style: const TextStyle(
                             fontSize: 12, color: Colors.white70,
                             fontWeight: FontWeight.w500, height: 1.4,
                           ),
@@ -634,6 +642,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ── Language ──────────────────────────────────────────────────────────
+  String _localeLabel(Locale? locale) {
+    switch (locale?.languageCode) {
+      case 'en':
+        return context.l10n.commonEnglish;
+      case 'ar':
+        return context.l10n.commonArabic;
+      default:
+        return context.l10n.commonSystemDefault;
+    }
+  }
+
+  void _openLanguageSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final current = ctx.read<LocaleProvider>().locale;
+
+        Widget option(String title, Locale? locale) {
+          final selected = current?.languageCode == locale?.languageCode;
+          return ListTile(
+            leading: Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: selected ? Theme.of(ctx).colorScheme.primary : _kInk3,
+            ),
+            title: Text(
+              title,
+              style: TextStyle(
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: _kInk,
+              ),
+            ),
+            onTap: () {
+              ctx.read<LocaleProvider>().setLocale(locale);
+              Navigator.pop(ctx);
+            },
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0x33000000),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                option(context.l10n.commonSystemDefault, null),
+                option(context.l10n.commonEnglish, const Locale('en')),
+                option(context.l10n.commonArabic, const Locale('ar')),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── Photo upload ──────────────────────────────────────────────────────
   void _showPhotoOptions() {
     showModalBottomSheet(
@@ -658,7 +734,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Take photo'),
+                title: Text(context.l10n.profileTakePhoto),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndUploadPhoto(ImageSource.camera);
@@ -666,7 +742,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choose from library'),
+                title: Text(context.l10n.profileChooseFromLibrary),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndUploadPhoto(ImageSource.gallery);
@@ -684,18 +760,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final picked = await picker.pickImage(source: source, imageQuality: 90);
     if (picked == null) return;
 
+    if (!mounted) return;
+    final cropTitle = context.l10n.profileCropPhoto;
     CroppedFile? cropped;
     try {
       cropped = await ImageCropper().cropImage(
         sourcePath: picked.path,
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
-          IOSUiSettings(title: 'Crop Photo', aspectRatioLockEnabled: true),
-          AndroidUiSettings(toolbarTitle: 'Crop Photo', lockAspectRatio: true),
+          IOSUiSettings(title: cropTitle, aspectRatioLockEnabled: true),
+          AndroidUiSettings(toolbarTitle: cropTitle, lockAspectRatio: true),
         ],
       );
     } catch (_) {
-      if (mounted) _snack('Failed to crop image', error: true);
+      if (mounted) _snack(context.l10n.profileCropFailed, error: true);
       return;
     }
     if (cropped == null || !mounted) return;
@@ -705,7 +783,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final error = await auth.uploadAvatar(cropped.path);
     if (!mounted) return;
     setState(() => _isUploadingPhoto = false);
-    _snack(error ?? 'Profile photo updated', error: error != null);
+    _snack(error ?? context.l10n.profilePhotoUpdated, error: error != null);
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -748,17 +826,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Edit profile',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.3),
+                Text(
+                  context.l10n.profileEditProfile,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.3),
                 ),
                 const SizedBox(height: 16),
-                _editField('Full name', nameCtrl),
+                _editField(context.l10n.profileFullName, nameCtrl),
                 const SizedBox(height: 10),
-                _editField('Mobile (with country code)', phoneCtrl, keyboardType: TextInputType.phone),
+                _editField(context.l10n.profileMobileWithCode, phoneCtrl, keyboardType: TextInputType.phone),
                 const SizedBox(height: 10),
                 _editDateRow(
-                  label: 'Date of birth',
+                  label: context.l10n.profileDateOfBirth,
                   value: dob,
                   onPick: () async {
                     final now = DateTime.now();
@@ -767,7 +845,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       initialDate: dob ?? DateTime(now.year - 25),
                       firstDate: DateTime(now.year - 100),
                       lastDate: DateTime(now.year - 10),
-                      helpText: 'Select Date of Birth',
+                      helpText: context.l10n.profileSelectDob,
                     );
                     if (picked != null) setSheetState(() => dob = picked);
                   },
@@ -785,7 +863,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             foregroundColor: _kInk,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                          child: Text(context.l10n.commonCancel, style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -807,9 +885,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               dob,
                             );
                             if (!mounted) return;
-                            _snack(err ?? 'Profile updated', error: err != null);
+                            _snack(err ?? context.l10n.profileUpdated, error: err != null);
                           },
-                          child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w600)),
+                          child: Text(context.l10n.commonSave, style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -889,7 +967,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    value != null ? DateFormat('MMM d, yyyy').format(value) : 'Tap to choose',
+                    value != null ? DateFormat('MMM d, yyyy').format(value) : context.l10n.profileTapToChoose,
                     style: TextStyle(
                       fontSize: 15,
                       color: value != null ? _kInk : _kInk3,
@@ -937,15 +1015,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Change password',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.3),
+                Text(
+                  context.l10n.profileChangePassword,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.3),
                 ),
                 const SizedBox(height: 16),
-                _passwordField('New password', pwCtrl, obscure1,
+                _passwordField(context.l10n.profileNewPassword, pwCtrl, obscure1,
                     () => setSheet(() => obscure1 = !obscure1)),
                 const SizedBox(height: 10),
-                _passwordField('Confirm password', confirmCtrl, obscure2,
+                _passwordField(context.l10n.profileConfirmPassword, confirmCtrl, obscure2,
                     () => setSheet(() => obscure2 = !obscure2)),
                 const SizedBox(height: 18),
                 SizedBox(
@@ -959,19 +1037,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () async {
                       final pw = pwCtrl.text;
                       if (pw.length < 8) {
-                        _snack('Password must be at least 8 characters', error: true);
+                        _snack(context.l10n.profilePasswordMin, error: true);
                         return;
                       }
                       if (pw != confirmCtrl.text) {
-                        _snack("Passwords don't match", error: true);
+                        _snack(context.l10n.profilePasswordsDontMatch, error: true);
                         return;
                       }
                       Navigator.of(ctx).pop();
                       final err = await context.read<AuthProvider>().changePassword(pw);
                       if (!mounted) return;
-                      _snack(err ?? 'Password updated', error: err != null);
+                      _snack(err ?? context.l10n.profilePasswordUpdated, error: err != null);
                     },
-                    child: const Text('Update password', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text(context.l10n.profileUpdatePassword, style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -1052,14 +1130,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Sign out of your account?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.3),
+              Text(
+                context.l10n.profileSignOutConfirmTitle,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.3),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'You can sign back in any time with your email and password.',
-                style: TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
+              Text(
+                context.l10n.profileSignOutConfirmBody,
+                style: const TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
               ),
               const SizedBox(height: 18),
               Row(
@@ -1074,7 +1152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           foregroundColor: _kInk,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
-                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(context.l10n.commonCancel, style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
@@ -1093,7 +1171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (!mounted) return;
                           context.go('/login');
                         },
-                        child: const Text('Sign out', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(context.l10n.profileSignOut, style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
@@ -1144,38 +1222,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Icon(Icons.error_outline_rounded, color: _kError, size: 28),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Delete your account?',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.4),
+                Text(
+                  context.l10n.profileDeleteConfirmTitle,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: _kInk, letterSpacing: -0.4),
                 ),
                 const SizedBox(height: 8),
-                const Text.rich(
+                Text.rich(
                   TextSpan(
-                    style: TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
+                    style: const TextStyle(fontSize: 14, color: _kInk2, height: 1.5),
                     children: [
-                      TextSpan(text: 'This permanently removes your profile, sessions, and transfer history. This '),
+                      TextSpan(text: context.l10n.profileDeleteWarningPrefix),
                       TextSpan(
-                        text: "can't be undone",
-                        style: TextStyle(color: _kInk, fontWeight: FontWeight.w600),
+                        text: context.l10n.profileDeleteWarningEmphasis,
+                        style: const TextStyle(color: _kInk, fontWeight: FontWeight.w600),
                       ),
-                      TextSpan(text: '.'),
+                      const TextSpan(text: '.'),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text.rich(
+                Text.rich(
                   TextSpan(
-                    style: TextStyle(fontSize: 12, color: _kInk2, fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 12, color: _kInk2, fontWeight: FontWeight.w500),
                     children: [
-                      TextSpan(text: 'Type '),
-                      TextSpan(
+                      TextSpan(text: context.l10n.profileTypeToConfirmPrefix),
+                      const TextSpan(
                         text: 'DELETE',
                         style: TextStyle(
                           color: _kError, fontWeight: FontWeight.w700,
                           fontFamily: 'Menlo',
                         ),
                       ),
-                      TextSpan(text: ' to confirm'),
+                      TextSpan(text: context.l10n.profileTypeToConfirmSuffix),
                     ],
                   ),
                 ),
@@ -1225,7 +1303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             foregroundColor: _kInk,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                          child: Text(context.l10n.commonCancel, style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -1252,8 +1330,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     }
                                   }
                                 : null,
-                            child: const Text('Delete account',
-                                style: TextStyle(fontWeight: FontWeight.w600)),
+                            child: Text(context.l10n.profileDeleteAccount,
+                                style: const TextStyle(fontWeight: FontWeight.w600)),
                           ),
                         ),
                       ),
@@ -1378,7 +1456,7 @@ class _ServiceAssignmentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            (assignment.packageName as String?) ?? 'Package',
+            (assignment.packageName as String?) ?? context.l10n.profilePackageFallback,
             maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 16, fontWeight: FontWeight.w600,
@@ -1394,7 +1472,7 @@ class _ServiceAssignmentCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                'with ${assignment.trainerName}',
+                context.l10n.profileWithTrainer(assignment.trainerName as String),
                 maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 12, color: _kInk2, fontWeight: FontWeight.w500),
               ),
@@ -1414,7 +1492,7 @@ class _ServiceAssignmentCard extends StatelessWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                'of $total left',
+                context.l10n.profileOfTotalLeft(total),
                 style: const TextStyle(fontSize: 13, color: _kInk2, fontWeight: FontWeight.w500),
               ),
             ],
@@ -1474,7 +1552,7 @@ class _ActiveServicesAggregateCard extends StatelessWidget {
     // the first bucket's plan name, then a generic label.
     final title = (membershipName != null && membershipName!.trim().isNotEmpty)
         ? membershipName!
-        : (summary.buckets.firstOrNull?.planName ?? 'Membership');
+        : (summary.buckets.firstOrNull?.planName ?? context.l10n.profileMembershipFallback);
 
     return Container(
       decoration: BoxDecoration(
@@ -1499,7 +1577,7 @@ class _ActiveServicesAggregateCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             summary.nextExpiryDate != null
-                ? 'Expires ${DateFormat('MMM d, yyyy').format(summary.nextExpiryDate!)}'
+                ? context.l10n.profileExpires(DateFormat('MMM d, yyyy').format(summary.nextExpiryDate!))
                 : '',
             style: const TextStyle(fontSize: 12, color: _kInk2, fontWeight: FontWeight.w500),
           ),
@@ -1519,10 +1597,10 @@ class _ActiveServicesAggregateCard extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 hasUnlimited && total == 0
-                    ? 'unlimited sessions'
+                    ? context.l10n.profileUnlimitedSessions
                     : capacity > 0
-                        ? 'of $capacity left'
-                        : (total == 1 ? 'session left' : 'sessions left'),
+                        ? context.l10n.profileOfTotalLeft(capacity)
+                        : context.l10n.profileSessionsLeftSuffix(total),
                 style: const TextStyle(fontSize: 13, color: _kInk2, fontWeight: FontWeight.w500),
               ),
             ],
@@ -1542,7 +1620,7 @@ class _ActiveServicesAggregateCard extends StatelessWidget {
           if (summary.transferredSessions > 0) ...[
             const SizedBox(height: 10),
             Text(
-              'Includes ${summary.transferredSessions} from transfers',
+              context.l10n.profileIncludesTransfers(summary.transferredSessions),
               style: const TextStyle(
                 fontSize: 11, color: _kInk2, fontWeight: FontWeight.w500,
                 fontStyle: FontStyle.italic,

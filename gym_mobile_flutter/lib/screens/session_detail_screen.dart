@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../models/session_model.dart';
 import '../models/trainer_profile_model.dart';
 import '../providers/auth_provider.dart';
@@ -52,11 +53,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final session = widget.session;
     final gym = context.read<AuthProvider>().gym;
 
-    final className = session.className ?? 'a class';
+    final className = session.className ?? context.l10n.sessionShareFallbackName;
     final timeStr = DateFormat('h:mm a').format(session.scheduledAt);
     final dateStr = DateFormat('EEE, MMM d').format(session.scheduledAt);
-    final coachPart =
-        session.instructor != null ? ' with ${session.instructor}' : '';
+    final coachPart = session.instructor != null
+        ? context.l10n.sessionShareWith(session.instructor!)
+        : '';
     final location =
         session.location?.isNotEmpty == true ? session.location! : gym?.name;
 
@@ -67,13 +69,14 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final shareLink = 'https://www.clbyapp.com/session/${session.id}';
 
     final buffer = StringBuffer();
-    buffer.write('Join me for $className$coachPart at $timeStr on $dateStr 💪');
+    buffer.write(
+        context.l10n.sessionShareMessage(className, coachPart, timeStr, dateStr));
     if (location != null) buffer.write('\n📍 $location');
-    buffer.write('\nBook here: $shareLink');
+    buffer.write('\n${context.l10n.sessionShareBookHere(shareLink)}');
 
     Share.share(
       buffer.toString(),
-      subject: 'Join me for $className on $dateStr',
+      subject: context.l10n.sessionShareSubject(className, dateStr),
       sharePositionOrigin: origin,
     );
   }
@@ -134,12 +137,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
   String _friendlyError(String raw) {
     if (raw.contains('23505') || raw.contains('duplicate key')) {
-      return 'You\'ve already booked this session.';
+      return context.l10n.sessionAlreadyBooked;
     }
     if (raw.contains('spots') || raw.contains('capacity')) {
-      return 'Sorry, this class is now full.';
+      return context.l10n.sessionNowFull;
     }
-    return 'Failed to book. Please try again.';
+    return context.l10n.sessionBookFailed;
   }
 
   Future<void> _handleCancel() async {
@@ -151,7 +154,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to cancel: ${friendlyError(e)}'),
+            content: Text(context.l10n.sessionCancelFailed(friendlyError(e))),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -257,7 +260,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         // About this class
                         if (session.description != null &&
                             session.description!.isNotEmpty) ...[
-                          _SectionHeader('ABOUT THIS CLASS'),
+                          _SectionHeader(context.l10n.sessionAboutClass),
                           const SizedBox(height: 10),
                           _AboutCard(description: session.description!),
                           const SizedBox(height: 20),
@@ -265,7 +268,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
                         // What to expect (class type as single tag)
                         if (session.classType != null) ...[
-                          _SectionHeader('WHAT TO EXPECT'),
+                          _SectionHeader(context.l10n.sessionWhatToExpect),
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 8,
@@ -279,7 +282,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
                         // Other classes today
                         if (others.isNotEmpty) ...[
-                          _SectionHeader('OTHER CLASSES TODAY'),
+                          _SectionHeader(context.l10n.sessionOtherClassesToday),
                           const SizedBox(height: 10),
                           _OtherClassesStrip(sessions: others),
                         ],
@@ -318,21 +321,42 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   }
 
   List<String> _expectTags(String classType) {
+    final l10n = context.l10n;
     final map = {
       'hiit': [
-        'Cardio bursts',
-        'Bodyweight moves',
-        'Core work',
-        'High intensity',
-        'No equipment'
+        l10n.sessionTagCardioBursts,
+        l10n.sessionTagBodyweightMoves,
+        l10n.sessionTagCoreWork,
+        l10n.sessionTagHighIntensity,
+        l10n.sessionTagNoEquipment
       ],
-      'yoga': ['Flexibility', 'Breathing', 'Balance', 'Mindfulness'],
-      'cycling': ['Cardio', 'Low impact', 'Endurance', 'Music-driven'],
-      'boxing': ['Cardio', 'Strength', 'Footwork', 'Bag work'],
-      'pilates': ['Core strength', 'Posture', 'Flexibility', 'Low impact'],
+      'yoga': [
+        l10n.sessionTagFlexibility,
+        l10n.sessionTagBreathing,
+        l10n.sessionTagBalance,
+        l10n.sessionTagMindfulness
+      ],
+      'cycling': [
+        l10n.sessionTagCardio,
+        l10n.sessionTagLowImpact,
+        l10n.sessionTagEndurance,
+        l10n.sessionTagMusicDriven
+      ],
+      'boxing': [
+        l10n.sessionTagCardio,
+        l10n.sessionTagStrength,
+        l10n.sessionTagFootwork,
+        l10n.sessionTagBagWork
+      ],
+      'pilates': [
+        l10n.sessionTagCoreStrength,
+        l10n.sessionTagPosture,
+        l10n.sessionTagFlexibility,
+        l10n.sessionTagLowImpact
+      ],
     };
     return map[classType.toLowerCase()] ??
-        [_capitalize(classType), 'Fitness', 'Fun'];
+        [_capitalize(classType), l10n.sessionTagFitness, l10n.sessionTagFun];
   }
 
   String _capitalize(String s) =>
@@ -374,25 +398,25 @@ class _Hero extends StatelessWidget {
     String statusLabel;
     Color statusDot;
     if (isCancelled) {
-      statusLabel = 'Cancelled';
+      statusLabel = context.l10n.sessionStatusCancelled;
       statusDot = const Color(0xFFF87171);
     } else if (isAttended) {
-      statusLabel = 'Attended';
+      statusLabel = context.l10n.sessionStatusAttended;
       statusDot = const Color(0xFF4ADE80);
     } else if (isFinished) {
-      statusLabel = 'Finished';
+      statusLabel = context.l10n.sessionStatusFinished;
       statusDot = Colors.white54;
     } else if (isOngoing) {
-      statusLabel = 'Ongoing';
+      statusLabel = context.l10n.sessionStatusOngoing;
       statusDot = const Color(0xFFFB923C);
     } else if (isBooked) {
-      statusLabel = 'Booked';
+      statusLabel = context.l10n.sessionStatusBooked;
       statusDot = const Color(0xFF4ADE80);
     } else if (isFull) {
-      statusLabel = 'Full';
+      statusLabel = context.l10n.sessionStatusFull;
       statusDot = const Color(0xFFF87171);
     } else {
-      statusLabel = 'Open';
+      statusLabel = context.l10n.sessionStatusOpen;
       statusDot = const Color(0xFF4ADE80);
     }
 
@@ -540,7 +564,7 @@ class _Hero extends StatelessWidget {
 
                   // Class name
                   Text(
-                    session.className ?? 'Class',
+                    session.className ?? context.l10n.bookingsClassFallback,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -648,9 +672,10 @@ class _InfoGrid extends StatelessWidget {
     final timeStr = _formatTime(session.scheduledAt, endTime);
     final dateStr = DateFormat('EEE, MMM d').format(session.scheduledAt);
     final duration = session.durationMinutes != null
-        ? '${session.durationMinutes} minutes'
+        ? context.l10n.sessionMinutesLong(session.durationMinutes!)
         : endTime != null
-            ? '${endTime!.difference(session.scheduledAt).inMinutes} minutes'
+            ? context.l10n.sessionMinutesLong(
+                endTime!.difference(session.scheduledAt).inMinutes)
             : null;
 
     return Column(
@@ -662,7 +687,7 @@ class _InfoGrid extends StatelessWidget {
                 iconBg: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                 iconColor: Theme.of(context).colorScheme.primary,
                 icon: Icons.access_time_rounded,
-                label: 'Time',
+                label: context.l10n.sessionTime,
                 value: timeStr,
               ),
             ),
@@ -672,7 +697,7 @@ class _InfoGrid extends StatelessWidget {
                 iconBg: const Color(0xFFCCFBF1),
                 iconColor: const Color(0xFF0D9488),
                 icon: Icons.calendar_today_outlined,
-                label: 'Date',
+                label: context.l10n.sessionDate,
                 value: dateStr,
               ),
             ),
@@ -686,7 +711,7 @@ class _InfoGrid extends StatelessWidget {
                 iconBg: const Color(0xFFFFEDD5),
                 iconColor: const Color(0xFFEA580C),
                 icon: Icons.timer_outlined,
-                label: 'Duration',
+                label: context.l10n.sessionDuration,
                 value: duration ?? '–',
               ),
             ),
@@ -696,7 +721,7 @@ class _InfoGrid extends StatelessWidget {
                 iconBg: const Color(0xFFFFE4E6),
                 iconColor: const Color(0xFFE11D48),
                 icon: Icons.location_on_outlined,
-                label: 'Location',
+                label: context.l10n.scheduleLocation,
                 value: session.location ?? '–',
               ),
             ),
@@ -823,7 +848,7 @@ class _CoachCardState extends State<_CoachCard> {
     final specialisations = _trainerData?['specialisations'];
     final String specialty = (specialisations is List && specialisations.isNotEmpty)
         ? specialisations.first.toString()
-        : 'Fitness Specialist';
+        : context.l10n.sessionFitnessSpecialist;
     final double? avgRating = (_trainerData?['avg_rating'] as num?)?.toDouble();
 
     void navigateToTrainer() {
@@ -898,7 +923,7 @@ class _CoachCardState extends State<_CoachCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Coach $instructor',
+                  context.l10n.sessionCoachName(instructor),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -1002,7 +1027,7 @@ class _CapacityCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Session capacity',
+                context.l10n.sessionCapacity,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -1031,14 +1056,14 @@ class _CapacityCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$pct% booked',
+                context.l10n.sessionPercentBooked(pct),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               if (spotsLeft != null && spotsLeft! > 0)
                 Text(
-                  '$spotsLeft spots left',
+                  context.l10n.sessionSpotsLeft(spotsLeft!),
                   style: const TextStyle(
                     color: Color(0xFF16A34A),
                     fontSize: 11,
@@ -1046,9 +1071,9 @@ class _CapacityCard extends StatelessWidget {
                   ),
                 )
               else
-                const Text(
-                  'Class is full',
-                  style: TextStyle(
+                Text(
+                  context.l10n.sessionClassFull,
+                  style: const TextStyle(
                     color: Colors.red,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -1204,7 +1229,7 @@ class _OtherClassesStrip extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          s.className ?? 'Class',
+                          s.className ?? context.l10n.bookingsClassFallback,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -1296,11 +1321,11 @@ class _BottomBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // ── Info row ──────────────────────────────────────────
-          _buildInfoRow(theme, startTimeStr),
+          _buildInfoRow(context, theme, startTimeStr),
           const SizedBox(height: 10),
 
           // ── Action button ─────────────────────────────────────
-          _buildButton(theme),
+          _buildButton(context, theme),
 
           // ── Sub-link (booked+not attended → cancel, attended+not rated → rate)
           if (!isCancelled && ((isBooked && !isAttended) || (isAttended && !hasRated))) ...[
@@ -1312,7 +1337,7 @@ class _BottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(ThemeData theme, String startTimeStr) {
+  Widget _buildInfoRow(BuildContext context, ThemeData theme, String startTimeStr) {
     final dimStyle = theme.textTheme.bodySmall
         ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
@@ -1320,11 +1345,11 @@ class _BottomBar extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('This session has been cancelled', style: dimStyle),
+          Text(context.l10n.sessionCancelledInfo, style: dimStyle),
           Row(children: [
             const Icon(Icons.cancel_outlined, size: 14, color: Color(0xFFF87171)),
             const SizedBox(width: 4),
-            Text('Cancelled',
+            Text(context.l10n.sessionStatusCancelled,
                 style: dimStyle?.copyWith(
                     color: const Color(0xFFF87171),
                     fontWeight: FontWeight.w700)),
@@ -1336,11 +1361,11 @@ class _BottomBar extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Great work — you showed up!', style: dimStyle),
+          Text(context.l10n.sessionGreatWork, style: dimStyle),
           Row(children: [
             const Icon(Icons.check_circle, size: 14, color: _green),
             const SizedBox(width: 4),
-            Text('Session logged',
+            Text(context.l10n.sessionLogged,
                 style: dimStyle?.copyWith(
                     color: _green, fontWeight: FontWeight.w700)),
           ]),
@@ -1348,13 +1373,13 @@ class _BottomBar extends StatelessWidget {
       );
     }
     if (isFinished) {
-      return Text('This class has ended · not attended', style: dimStyle);
+      return Text(context.l10n.sessionEndedNotAttended, style: dimStyle);
     }
     if (isOngoing) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Class started at $startTimeStr', style: dimStyle),
+          Text(context.l10n.sessionStartedAt(startTimeStr), style: dimStyle),
           Row(children: [
             Container(
               width: 8,
@@ -1365,7 +1390,7 @@ class _BottomBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 5),
-            Text('In progress',
+            Text(context.l10n.sessionInProgress,
                 style: dimStyle?.copyWith(
                     color: _orange, fontWeight: FontWeight.w700)),
           ]),
@@ -1376,11 +1401,11 @@ class _BottomBar extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("You're confirmed for this class", style: dimStyle),
+          Text(context.l10n.sessionConfirmedInfo, style: dimStyle),
           Row(children: [
             const Icon(Icons.check_circle, size: 14, color: _green),
             const SizedBox(width: 4),
-            Text('Confirmed',
+            Text(context.l10n.sessionConfirmedBadge,
                 style: dimStyle?.copyWith(
                     color: _green, fontWeight: FontWeight.w700)),
           ]),
@@ -1388,21 +1413,21 @@ class _BottomBar extends StatelessWidget {
       );
     }
     if (isFull) {
-      return Text('This class has reached full capacity', style: dimStyle);
+      return Text(context.l10n.sessionFullInfo, style: dimStyle);
     }
     // Open
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('Uses 1 session from your plan', style: dimStyle),
-        Text('Free with plan',
+        Text(context.l10n.sessionUsesOne, style: dimStyle),
+        Text(context.l10n.sessionFreeWithPlan,
             style: dimStyle?.copyWith(
                 color: _green, fontWeight: FontWeight.w700)),
       ],
     );
   }
 
-  Widget _buildButton(ThemeData theme) {
+  Widget _buildButton(BuildContext context, ThemeData theme) {
     final baseShape = OutlinedButton.styleFrom(shape: _outlineStyle);
 
     // CANCELLED — red-tinted outlined, disabled
@@ -1421,8 +1446,8 @@ class _BottomBar extends StatelessWidget {
           ),
           onPressed: null,
           icon: const Icon(Icons.cancel_outlined, size: 18),
-          label: const Text('Session cancelled',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          label: Text(context.l10n.sessionCancelledButton,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       );
     }
@@ -1441,7 +1466,7 @@ class _BottomBar extends StatelessWidget {
                 fontSize: 16, fontWeight: FontWeight.w600),
           ),
           onPressed: null,
-          child: const Text('Attended'),
+          child: Text(context.l10n.sessionStatusAttended),
         ),
       );
     }
@@ -1458,7 +1483,7 @@ class _BottomBar extends StatelessWidget {
             foregroundColor: WidgetStatePropertyAll(_grey),
           ),
           onPressed: null,
-          child: const Text('Class ended'),
+          child: Text(context.l10n.sessionClassEnded),
         ),
       );
     }
@@ -1481,8 +1506,8 @@ class _BottomBar extends StatelessWidget {
             decoration: const BoxDecoration(
                 color: _orange, shape: BoxShape.circle),
           ),
-          label: const Text('Class is ongoing',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          label: Text(context.l10n.sessionClassOngoing,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       );
     }
@@ -1502,8 +1527,8 @@ class _BottomBar extends StatelessWidget {
           ),
           onPressed: null,
           icon: const Icon(Icons.check, size: 18, color: _green),
-          label: const Text('Booking confirmed',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          label: Text(context.l10n.sessionBookingConfirmed,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       );
     }
@@ -1521,8 +1546,8 @@ class _BottomBar extends StatelessWidget {
           ),
           onPressed: null,
           icon: const Icon(Icons.close, size: 16),
-          label: const Text('Class is full',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          label: Text(context.l10n.sessionClassFull,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       );
     }
@@ -1542,8 +1567,8 @@ class _BottomBar extends StatelessWidget {
           ),
           onPressed: null,
           icon: const Icon(Icons.qr_code_scanner_rounded, size: 18, color: _orange),
-          label: const Text('Walk-in · scan the studio QR',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          label: Text(context.l10n.sessionWalkInScan,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         ),
       );
     }
@@ -1569,8 +1594,8 @@ class _BottomBar extends StatelessWidget {
                     strokeWidth: 2,
                     color: theme.colorScheme.onSurface),
               )
-            : const Text('Book this class',
-                style: TextStyle(
+            : Text(context.l10n.sessionBookThisClass,
+                style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
@@ -1581,7 +1606,7 @@ class _BottomBar extends StatelessWidget {
       return GestureDetector(
         onTap: onRate,
         child: Center(
-          child: Text('Rate this class',
+          child: Text(context.l10n.sessionRateThisClass,
               style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w500)),
@@ -1599,7 +1624,7 @@ class _BottomBar extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.red),
                 )
-              : Text('Cancel booking',
+              : Text(context.l10n.sessionCancelBooking,
                   style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.red, fontWeight: FontWeight.w500)),
         ),
@@ -1666,7 +1691,7 @@ class _BookingConfirmSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Confirm Booking',
+                  context.l10n.sessionConfirmBooking,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w600,
@@ -1674,7 +1699,7 @@ class _BookingConfirmSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  session.className ?? 'Class',
+                  session.className ?? context.l10n.bookingsClassFallback,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -1687,35 +1712,35 @@ class _BookingConfirmSheet extends StatelessWidget {
           const SizedBox(height: 20),
           _SheetRow(
               icon: Icons.calendar_today_outlined,
-              label: 'Date',
+              label: context.l10n.sessionDate,
               value: dateStr,
               accentColor: accentColor),
           const SizedBox(height: 12),
           _SheetRow(
               icon: Icons.access_time_outlined,
-              label: 'Time',
+              label: context.l10n.sessionTime,
               value: timeStr,
               accentColor: accentColor),
           const SizedBox(height: 12),
           _SheetRow(
               icon: Icons.person_outline,
-              label: 'Instructor',
-              value: session.instructor ?? 'TBD',
+              label: context.l10n.sessionInstructor,
+              value: session.instructor ?? context.l10n.sessionTbd,
               accentColor: accentColor),
           const SizedBox(height: 12),
           _SheetRow(
               icon: Icons.location_on_outlined,
-              label: 'Location',
-              value: session.location ?? 'TBD',
+              label: context.l10n.scheduleLocation,
+              value: session.location ?? context.l10n.sessionTbd,
               accentColor: accentColor),
           if (spotsLeft != null) ...[
             const SizedBox(height: 12),
             _SheetRow(
               icon: Icons.people_outline,
-              label: 'Availability',
+              label: context.l10n.sessionAvailability,
               value: spotsLeft! <= 0
-                  ? 'Full'
-                  : '$spotsLeft spot${spotsLeft == 1 ? '' : 's'} left',
+                  ? context.l10n.sessionStatusFull
+                  : context.l10n.sessionSpotsLeft(spotsLeft!),
               accentColor: spotsLeft! <= 3 ? Colors.red : accentColor,
             ),
           ],
@@ -1736,7 +1761,7 @@ class _BookingConfirmSheet extends StatelessWidget {
                 ),
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Confirm Booking'),
+              child: Text(context.l10n.sessionConfirmBooking),
             ),
           ),
           const SizedBox(height: 10),
@@ -1746,7 +1771,7 @@ class _BookingConfirmSheet extends StatelessWidget {
             child: TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
-                'Cancel',
+                context.l10n.commonCancel,
                 style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,

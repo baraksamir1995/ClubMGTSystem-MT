@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../models/session_model.dart';
 import '../utils/theme.dart';
 import '../features/branches/branch_provider.dart';
@@ -86,9 +87,9 @@ class SessionCard extends StatelessWidget {
                 width: 5,
                 decoration: BoxDecoration(
                   color: accentColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(14),
-                    bottomLeft: Radius.circular(14),
+                  borderRadius: const BorderRadiusDirectional.only(
+                    topStart: Radius.circular(14),
+                    bottomStart: Radius.circular(14),
                   ),
                 ),
               ),
@@ -107,7 +108,7 @@ class SessionCard extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  session.className ?? 'Class',
+                                  session.className ?? context.l10n.sessionCardClass,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 16,
@@ -148,8 +149,8 @@ class SessionCard extends StatelessWidget {
                           // Row 4: Capacity bar
                           if (capacity != null) ...[
                             const SizedBox(height: 10),
-                            _buildCapacityBar(theme, accentColor, capacity,
-                                booked, spotsLeft, isFull),
+                            _buildCapacityBar(context, theme, accentColor,
+                                capacity, booked, spotsLeft, isFull),
                           ],
 
                           const SizedBox(height: 10),
@@ -251,8 +252,8 @@ class SessionCard extends StatelessWidget {
 
   // ─── Capacity bar ──────────────────────────────────────────────────────────
 
-  Widget _buildCapacityBar(ThemeData theme, Color accentColor, int capacity,
-      int booked, int? spotsLeft, bool isFull) {
+  Widget _buildCapacityBar(BuildContext context, ThemeData theme,
+      Color accentColor, int capacity, int booked, int? spotsLeft, bool isFull) {
     final fraction =
         capacity > 0 ? (booked / capacity).clamp(0.0, 1.0) : 0.0;
     final barColor = isFull ? Colors.red : accentColor;
@@ -260,7 +261,7 @@ class SessionCard extends StatelessWidget {
     return Row(
       children: [
         Text(
-          'Capacity',
+          context.l10n.sessionCardCapacity,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w500,
@@ -281,7 +282,7 @@ class SessionCard extends StatelessWidget {
         const SizedBox(width: 8),
         if (isFull)
           Text(
-            'Full',
+            context.l10n.sessionCardFull,
             style: const TextStyle(
               color: Colors.red,
               fontSize: 12,
@@ -290,7 +291,7 @@ class SessionCard extends StatelessWidget {
           )
         else if (spotsLeft != null && spotsLeft > 0)
           Text(
-            '$spotsLeft spots left',
+            context.l10n.sessionCardSpotsLeft(spotsLeft),
             style: const TextStyle(
               color: Color(0xFF16A34A),
               fontSize: 11,
@@ -330,7 +331,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.cancel_outlined,
-                    label: 'Session Cancelled',
+                    label: context.l10n.sessionCardSessionCancelled,
                     backgroundColor: Colors.red.withValues(alpha: 0.08),
                     foregroundColor: Colors.red.shade400,
                   ),
@@ -340,7 +341,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.check_rounded,
-                    label: 'Attended',
+                    label: context.l10n.sessionCardAttended,
                     backgroundColor: const Color(0xFFDCFCE7),
                     foregroundColor: const Color(0xFF16A34A),
                   ),
@@ -353,7 +354,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.radio_button_checked,
-                    label: 'Class is ongoing',
+                    label: context.l10n.sessionCardClassOngoing,
                     backgroundColor: const Color(0xFFFFF7ED),
                     foregroundColor: const Color(0xFFEA580C),
                   ),
@@ -363,7 +364,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.check_rounded,
-                    label: 'Booked',
+                    label: context.l10n.sessionCardBooked,
                     backgroundColor: const Color(0xFFDCFCE7),
                     foregroundColor: const Color(0xFF16A34A),
                   ),
@@ -375,7 +376,7 @@ class SessionCard extends StatelessWidget {
                       onTap: isLoading ? null : onCancel,
                       child: _ActionButton(
                         icon: Icons.close_rounded,
-                        label: 'Cancel',
+                        label: context.l10n.commonCancel,
                         backgroundColor: const Color(0xFFFFE4E6),
                         foregroundColor: const Color(0xFFDC2626),
                         isLoading: isLoading,
@@ -388,7 +389,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.event_busy_outlined,
-                    label: 'Class ended',
+                    label: context.l10n.sessionCardClassEnded,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest
                         .withValues(alpha: 0.5),
                     foregroundColor: theme.colorScheme.onSurfaceVariant,
@@ -399,7 +400,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.radio_button_checked,
-                    label: 'Class is ongoing',
+                    label: context.l10n.sessionCardClassOngoing,
                     backgroundColor: const Color(0xFFFFF7ED),
                     foregroundColor: const Color(0xFFEA580C),
                   ),
@@ -409,7 +410,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.block_outlined,
-                    label: 'Class is full',
+                    label: context.l10n.sessionCardClassFull,
                     backgroundColor: Colors.transparent,
                     foregroundColor: theme.colorScheme.onSurfaceVariant,
                     outlined: true,
@@ -420,7 +421,7 @@ class SessionCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.qr_code_scanner_rounded,
-                    label: 'Walk-in · scan QR',
+                    label: context.l10n.sessionCardWalkInScanQr,
                     backgroundColor: const Color(0xFFFFF7ED),
                     foregroundColor: const Color(0xFFEA580C),
                   ),
@@ -432,7 +433,7 @@ class SessionCard extends StatelessWidget {
                     onTap: isLoading ? null : onBook,
                     child: _ActionButton(
                       icon: Icons.add_rounded,
-                      label: 'Book now',
+                      label: context.l10n.commonBookNow,
                       backgroundColor: const Color(0xFF4F46E5),
                       foregroundColor: Colors.white,
                       isLoading: isLoading,
@@ -541,32 +542,34 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isCancelled) {
-      return _badge(Icons.cancel_outlined, 'Cancelled', Colors.red.shade400);
+      return _badge(Icons.cancel_outlined, context.l10n.sessionCardCancelled,
+          Colors.red.shade400);
     }
 
     if (isAttended) {
-      return _badge(Icons.check_circle_rounded, 'Attended',
+      return _badge(Icons.check_circle_rounded, context.l10n.sessionCardAttended,
           const Color(0xFF22C55E));
     }
 
     if (isBooked) {
-      return _badge(Icons.check_circle_outline_rounded, 'Booked',
-          const Color(0xFF16A34A));
+      return _badge(Icons.check_circle_outline_rounded,
+          context.l10n.sessionCardBooked, const Color(0xFF16A34A));
     }
 
     if (isFull) {
-      return _badge(Icons.block_outlined, 'Full', Colors.red);
+      return _badge(Icons.block_outlined, context.l10n.sessionCardFull, Colors.red);
     }
 
     final now = DateTime.now();
     if (end != null && now.isAfter(end!)) {
-      return _badge(Icons.check_circle_outline, 'Finished',
+      return _badge(Icons.check_circle_outline, context.l10n.sessionCardFinished,
           const Color(0xFF6B7280));
     } else if (now.isAfter(start) && (end == null || now.isBefore(end!))) {
-      return _badge(Icons.radio_button_checked, 'Ongoing',
+      return _badge(Icons.radio_button_checked, context.l10n.sessionCardOngoing,
           const Color(0xFFEA580C));
     }
-    return _badge(Icons.circle_outlined, 'Open', const Color(0xFF16A34A));
+    return _badge(Icons.circle_outlined, context.l10n.sessionCardOpen,
+        const Color(0xFF16A34A));
   }
 
   Widget _badge(IconData icon, String label, Color color) {
@@ -620,7 +623,7 @@ class _RateButtonState extends State<_RateButton> {
     if (_rated) {
       return _ActionButton(
         icon: Icons.check_circle_rounded,
-        label: 'Rated',
+        label: context.l10n.sessionCardRated,
         backgroundColor: const Color(0xFFFEF9C3),
         foregroundColor: const Color(0xFFB45309),
       );
@@ -637,7 +640,7 @@ class _RateButtonState extends State<_RateButton> {
       },
       child: _ActionButton(
         icon: Icons.star_border_rounded,
-        label: 'Rate',
+        label: context.l10n.sessionCardRate,
         backgroundColor: Colors.transparent,
         foregroundColor: theme.colorScheme.onSurface,
         outlined: true,

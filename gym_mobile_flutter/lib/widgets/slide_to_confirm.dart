@@ -37,7 +37,9 @@ class _SlideToConfirmState extends State<SlideToConfirm> {
   void _onDragUpdate(DragUpdateDetails d) {
     if (widget.disabled || _confirming) return;
     final max = (_trackWidth - _knob - 6).clamp(0, double.infinity).toDouble();
-    setState(() => _x = (_x + d.delta.dx).clamp(0.0, max));
+    // In RTL the knob travels leftwards, so a negative dx advances progress.
+    final dir = Directionality.of(context) == TextDirection.rtl ? -1.0 : 1.0;
+    setState(() => _x = (_x + d.delta.dx * dir).clamp(0.0, max));
   }
 
   void _onDragEnd(DragEndDetails d) {
@@ -79,7 +81,7 @@ class _SlideToConfirmState extends State<SlideToConfirm> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Container(
                       width: _trackWidth * pct,
                       decoration: BoxDecoration(color: widget.primary),
@@ -103,11 +105,11 @@ class _SlideToConfirmState extends State<SlideToConfirm> {
                   ),
                 ),
                 // Draggable white knob with arrow
-                AnimatedPositioned(
+                AnimatedPositionedDirectional(
                   duration: Duration(milliseconds: _x == 0 || _x == max ? 250 : 0),
                   curve: Curves.easeOutCubic,
                   top: _knobInset,
-                  left: _knobInset - 1 + _x,
+                  start: _knobInset - 1 + _x,
                   child: GestureDetector(
                     onHorizontalDragUpdate: _onDragUpdate,
                     onHorizontalDragEnd: _onDragEnd,

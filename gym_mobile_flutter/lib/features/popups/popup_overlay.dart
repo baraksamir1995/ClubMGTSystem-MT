@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -130,16 +131,16 @@ class _PopupCard extends StatelessWidget {
                     ),
                   ),
                   // Close button overlaid on image
-                  Positioned(
+                  PositionedDirectional(
                     top: 10,
-                    right: 10,
+                    end: 10,
                     child: _CloseButton(onTap: onDismiss),
                   ),
                 ],
               )
             else
               Align(
-                alignment: Alignment.topRight,
+                alignment: AlignmentDirectional.topEnd,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: _CloseButton(onTap: onDismiss),
@@ -203,9 +204,9 @@ class _PopupCard extends StatelessWidget {
                       foregroundColor: theme.colorScheme.onSurfaceVariant,
                       padding: const EdgeInsets.symmetric(vertical: 4),
                     ),
-                    child: const Text(
-                      'Not now',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    child: Text(
+                      context.l10n.popupNotNow,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],

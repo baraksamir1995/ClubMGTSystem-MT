@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -94,7 +95,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   Widget _buildNotFound() {
     return Scaffold(
       appBar: AppBar(),
-      body: const Center(child: Text('Program not found')),
+      body: Center(child: Text(context.l10n.programNotFound)),
     );
   }
 
@@ -130,9 +131,12 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
     // Stats to show (only non-null)
     final stats = <({String value, String label})>[
-      if (weeks != null) (value: '$weeks', label: 'Weeks'),
-      if (totalSessions != null) (value: '$totalSessions', label: 'Sessions'),
-      if (sessionMinutes != null) (value: '$sessionMinutes', label: 'Min / class'),
+      if (weeks != null)
+        (value: '$weeks', label: context.l10n.programWeeksLabel),
+      if (totalSessions != null)
+        (value: '$totalSessions', label: context.l10n.commonSessions),
+      if (sessionMinutes != null)
+        (value: '$sessionMinutes', label: context.l10n.programMinPerClass),
     ];
 
     final paymentsEnabled = context.watch<AuthProvider>().gym?.mobilePaymentsEnabled ?? true;
@@ -150,7 +154,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                 onEnrol: () {
                   final subtitle = [
                     if (category != null && category.isNotEmpty) category,
-                    if (weeks != null) '$weeks weeks',
+                    if (weeks != null) context.l10n.exploreWeeksCount(weeks),
                   ].join(' · ');
                   context.push('/payment-summary', extra: CheckoutItem(
                     type: 'program',
@@ -204,8 +208,8 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             .entries
                             .map((e) => Expanded(
                                   child: Padding(
-                                    padding: EdgeInsets.only(
-                                        right: e.key < stats.length - 1
+                                    padding: EdgeInsetsDirectional.only(
+                                        end: e.key < stats.length - 1
                                             ? 10
                                             : 0),
                                     child: _StatBox(
@@ -222,7 +226,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
                     // ── About this program ──────────────────────────────
                     if (description.isNotEmpty) ...[
-                      _SectionLabel('ABOUT THIS PROGRAM'),
+                      _SectionLabel(context.l10n.programAboutTitle),
                       const SizedBox(height: 10),
                       Container(
                         width: double.infinity,
@@ -246,7 +250,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
                     // ── What you'll work on ─────────────────────────────
                     if (focusAreas.isNotEmpty) ...[
-                      _SectionLabel('WHAT YOU\'LL WORK ON'),
+                      _SectionLabel(context.l10n.programFocusTitle),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -260,7 +264,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
                     // ── Led by ─────────────────────────────────────────
                     if (_trainer != null || trainerName != null) ...[
-                      _SectionLabel('LED BY'),
+                      _SectionLabel(context.l10n.programLedByTitle),
                       const SizedBox(height: 10),
                       _TrainerCard(
                         trainer: _trainer,
@@ -285,9 +289,9 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           onPressed: () {},
                           icon: const Icon(Icons.check_rounded,
                               size: 18, color: Colors.white),
-                          label: const Text(
-                            'Enrol in this program',
-                            style: TextStyle(
+                          label: Text(
+                            context.l10n.programEnrolCta,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
@@ -354,7 +358,7 @@ class _PricingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Programme price',
+                  context.l10n.programPriceLabel,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -384,7 +388,7 @@ class _PricingCard extends StatelessWidget {
                 ),
                 if (weeks != null)
                   Text(
-                    'Full $weeks-week programme',
+                    context.l10n.programFullDuration(weeks!),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -406,7 +410,7 @@ class _PricingCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Per session',
+                    context.l10n.programPerSessionLabel,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -436,7 +440,7 @@ class _PricingCard extends StatelessWidget {
                   ),
                   if (totalSessions != null)
                     Text(
-                      '$totalSessions sessions total',
+                      context.l10n.programSessionsTotal(totalSessions!),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -500,7 +504,7 @@ class _PricingBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Programme price',
+                      context.l10n.programPriceLabel,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -519,7 +523,8 @@ class _PricingBar extends StatelessWidget {
                           ),
                           if (perSession != null)
                             TextSpan(
-                              text: '  ·  ${_fmt(perSession!)} EGP/session',
+                              text:
+                                  '  ·  ${context.l10n.programPerSessionEgp(_fmt(perSession!))}',
                               style: TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 12,
@@ -541,7 +546,7 @@ class _PricingBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '$weeks weeks',
+                    context.l10n.exploreWeeksCount(weeks!),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -566,9 +571,9 @@ class _PricingBar extends StatelessWidget {
               onPressed: onEnrol,
               icon: const Icon(Icons.check_rounded,
                   size: 18, color: Colors.white),
-              label: const Text(
-                'Enrol in this program',
-                style: TextStyle(
+              label: Text(
+                context.l10n.programEnrolCta,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
@@ -636,9 +641,9 @@ class _HeroSection extends StatelessWidget {
           ),
 
           // Back button
-          Positioned(
+          PositionedDirectional(
             top: topPadding + 8,
-            left: 12,
+            start: 12,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
@@ -655,9 +660,9 @@ class _HeroSection extends StatelessWidget {
           ),
 
           // Badges + title + meta at bottom
-          Positioned(
-            left: 20,
-            right: 20,
+          PositionedDirectional(
+            start: 20,
+            end: 20,
             bottom: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,7 +672,7 @@ class _HeroSection extends StatelessWidget {
                 Row(
                   children: [
                     if (weeks != null) ...[
-                      _HeroBadge(label: '$weeks weeks'),
+                      _HeroBadge(label: context.l10n.exploreWeeksCount(weeks!)),
                       const SizedBox(width: 8),
                     ],
                     if (level != null && level!.isNotEmpty)
@@ -843,20 +848,20 @@ class _TrainerCard extends StatelessWidget {
     required this.primary,
   });
 
-  String _trainerType(String? type) {
+  String _trainerType(BuildContext context, String? type) {
     switch (type) {
-      case 'nutritionist':    return 'Nutritionist';
-      case 'physiotherapist': return 'Physiotherapist';
-      default:                return 'Personal trainer';
+      case 'nutritionist':    return context.l10n.trainerTypeNutritionist;
+      case 'physiotherapist': return context.l10n.trainerTypePhysiotherapist;
+      default:                return context.l10n.trainerTypePersonal;
     }
   }
 
-  String _specialties() {
+  String _specialties(BuildContext context) {
     final specs = trainer?['specialties'] as List?;
     if (specs != null && specs.isNotEmpty) {
       return specs.take(3).map((s) => s.toString()).join(' & ');
     }
-    return _trainerType(trainer?['trainer_type'] as String?);
+    return _trainerType(context, trainer?['trainer_type'] as String?);
   }
 
   @override
@@ -925,7 +930,7 @@ class _TrainerCard extends StatelessWidget {
                     if (trainer != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        _specialties(),
+                        _specialties(context),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

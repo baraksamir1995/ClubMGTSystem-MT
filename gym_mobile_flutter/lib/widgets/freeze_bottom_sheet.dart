@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../models/membership_model.dart';
 
 class FreezeBottomSheet extends StatefulWidget {
@@ -54,7 +55,7 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to freeze: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(context.l10n.freezeFailed(e.toString())), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -100,14 +101,14 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
               Icon(Icons.ac_unit, color: Colors.blue, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Freeze Plan',
+                context.l10n.freezeTitle,
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            '${ms.planName ?? 'Your plan'} will be paused and the end date extended.',
+            context.l10n.freezeWillPause(ms.planName ?? context.l10n.freezeYourPlan),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -119,14 +120,16 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
           Row(
             children: [
               _QuotaChip(
-                label: 'Days available',
-                value: '${ms.freezeDaysRemaining} of ${ms.freezeMaxDays ?? 0}',
+                label: context.l10n.freezeDaysAvailable,
+                value: context.l10n.freezeXOfY(
+                    '${ms.freezeDaysRemaining}', '${ms.freezeMaxDays ?? 0}'),
                 icon: Icons.timer_outlined,
               ),
               const SizedBox(width: 12),
               _QuotaChip(
-                label: 'Freezes used',
-                value: '${ms.freezeCount} of ${ms.freezeMaxCount ?? '∞'}',
+                label: context.l10n.freezeFreezesUsed,
+                value: context.l10n.freezeXOfY(
+                    '${ms.freezeCount}', '${ms.freezeMaxCount ?? '∞'}'),
                 icon: Icons.repeat_outlined,
               ),
             ],
@@ -151,8 +154,8 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
                   Expanded(
                     child: Text(
                       ms.freezeMaxDays != null && ms.freezeDaysUsed >= ms.freezeMaxDays!
-                          ? 'All ${ms.freezeMaxDays} freeze days have been used for this plan. No further freezes are allowed.'
-                          : 'Maximum freeze count (${ms.freezeMaxCount}) has been reached for this plan. No further freezes are allowed.',
+                          ? context.l10n.freezeAllDaysUsed(ms.freezeMaxDays!)
+                          : context.l10n.freezeMaxCountReached(ms.freezeMaxCount ?? 0),
                       style: const TextStyle(fontSize: 13, color: Colors.red),
                     ),
                   ),
@@ -163,7 +166,7 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
           ] else ...[
           // Day picker
           Text(
-            'How many days?',
+            context.l10n.freezeHowManyDays,
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
@@ -189,7 +192,7 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
           const SizedBox(height: 6),
           Center(
             child: Text(
-              'Max $max days',
+              context.l10n.freezeMaxDaysHint(max),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -217,7 +220,7 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
                       text: TextSpan(
                         style: const TextStyle(fontSize: 13, color: Colors.blue),
                         children: [
-                          const TextSpan(text: 'Your plan will extend to '),
+                          TextSpan(text: context.l10n.freezeExtendTo),
                           TextSpan(
                             text: _formatDate(_newExpiry),
                             style: const TextStyle(fontWeight: FontWeight.w700),
@@ -243,7 +246,7 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.commonCancel),
                 ),
               ),
               const SizedBox(width: 12),
@@ -256,7 +259,7 @@ class _FreezeBottomSheetState extends State<FreezeBottomSheet> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.ac_unit, size: 16),
-                  label: Text(_loading ? 'Freezing…' : 'Freeze Plan'),
+                  label: Text(_loading ? context.l10n.freezeFreezing : context.l10n.freezeTitle),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,

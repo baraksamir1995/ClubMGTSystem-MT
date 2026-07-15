@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +41,8 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
   String _formatExpiry(String? raw) {
     if (raw == null) return '';
     try {
-      return 'Expires ${DateFormat('MMM d, yyyy').format(DateTime.parse(raw))}';
+      return context.l10n.exploreExpires(
+          DateFormat('MMM d, yyyy').format(DateTime.parse(raw)));
     } catch (_) { return ''; }
   }
 
@@ -54,9 +56,15 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
   // Extract a numeric stat from the tag label e.g. "20% off" → ("20%", "Discount")
   ({String value, String label})? _discountStat(String tagLabel) {
     final pct = RegExp(r'(\d+)\s*%').firstMatch(tagLabel);
-    if (pct != null) return (value: '${pct.group(1)}%', label: 'Discount');
-    if (tagLabel.toLowerCase() == 'free') return (value: 'Free', label: 'Access');
-    if (tagLabel.isNotEmpty) return (value: tagLabel, label: 'Offer');
+    if (pct != null) {
+      return (value: '${pct.group(1)}%', label: context.l10n.offerStatDiscount);
+    }
+    if (tagLabel.toLowerCase() == 'free') {
+      return (value: context.l10n.commonFree, label: context.l10n.offerStatAccess);
+    }
+    if (tagLabel.isNotEmpty) {
+      return (value: tagLabel, label: context.l10n.offerStatOffer);
+    }
     return null;
   }
 
@@ -105,7 +113,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
             Icon(Icons.local_offer_outlined, size: 48,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 12),
-            Text('Offer not found',
+            Text(context.l10n.offerNotFound,
                 style: Theme.of(context).textTheme.titleMedium),
           ],
         ),
@@ -130,7 +138,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
     final expiry = _formatExpiry(offer['expires_at'] as String?);
     final ctaLabel = (offer['cta_label'] as String?)?.isNotEmpty == true
         ? offer['cta_label'] as String
-        : 'Claim this offer';
+        : context.l10n.offerClaimCta;
     final terms = (offer['terms'] as List?)
             ?.map((e) => e.toString())
             .where((s) => s.isNotEmpty)
@@ -161,7 +169,8 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
           onClaim: offerPrice != null
               ? () {
                   final subtitle = [
-                    if (sessionCount != null) '$sessionCount sessions',
+                    if (sessionCount != null)
+                      context.l10n.exploreSessionsCount(sessionCount),
                     if (expiry.isNotEmpty) expiry,
                   ].join(' · ');
                   context.push('/payment-summary', extra: CheckoutItem(
@@ -227,7 +236,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                             Expanded(
                               child: _StatBox(
                                 value: '$sessionCount',
-                                label: 'PT sessions',
+                                label: context.l10n.offerPtSessions,
                               ),
                             ),
                         ],
@@ -238,7 +247,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                     // ── About this offer ──────────────────────────────────
                     if (fullDesc.isNotEmpty) ...[
                       Text(
-                        'ABOUT THIS OFFER',
+                        context.l10n.offerAboutTitle,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w700,
@@ -269,7 +278,7 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
                     // ── Terms & conditions ────────────────────────────────
                     if (terms.isNotEmpty) ...[
                       Text(
-                        'TERMS & CONDITIONS',
+                        context.l10n.offerTermsTitle,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w700,
@@ -331,7 +340,7 @@ class _OfferPricingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Offer price',
+                  context.l10n.offerPriceLabel,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -378,7 +387,7 @@ class _OfferPricingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'Save ${_fmt(savings!)} EGP',
+                context.l10n.offerSaveAmount(_fmt(savings!)),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -444,7 +453,7 @@ class _OfferBottomBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total price',
+                        context.l10n.offerTotalPrice,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 11,
@@ -579,9 +588,9 @@ class _HeroSection extends StatelessWidget {
           ),
 
           // Back button
-          Positioned(
+          PositionedDirectional(
             top: topPadding + 8,
-            left: 12,
+            start: 12,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
@@ -598,9 +607,9 @@ class _HeroSection extends StatelessWidget {
           ),
 
           // Tag + title + expiry
-          Positioned(
-            left: 20,
-            right: 20,
+          PositionedDirectional(
+            start: 20,
+            end: 20,
             bottom: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

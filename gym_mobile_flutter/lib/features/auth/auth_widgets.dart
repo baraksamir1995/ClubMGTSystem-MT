@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:clby/l10n/l10n.dart';
 import '../../services/api_service.dart';
 import '../../utils/env.dart';
 
@@ -285,7 +286,7 @@ class _AuthFieldState extends State<AuthField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4),
+          padding: const EdgeInsetsDirectional.only(start: 4),
           child: Text(
             widget.label.toUpperCase(),
             style: const TextStyle(
@@ -344,7 +345,7 @@ class _AuthFieldState extends State<AuthField> {
                   onTap: widget.onToggleObscure,
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsetsDirectional.only(start: 8),
                     child: Icon(
                       widget.obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                       color: kAuthInk2, size: 20,
@@ -357,7 +358,7 @@ class _AuthFieldState extends State<AuthField> {
         if (hasError) ...[
           const SizedBox(height: 6),
           Padding(
-            padding: const EdgeInsets.only(left: 4),
+            padding: const EdgeInsetsDirectional.only(start: 4),
             child: Text(
               widget.errorText!,
               style: const TextStyle(fontSize: 12, color: kAuthError, fontWeight: FontWeight.w500),
@@ -393,7 +394,7 @@ class AuthTapField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4),
+          padding: const EdgeInsetsDirectional.only(start: 4),
           child: Text(
             label.toUpperCase(),
             style: const TextStyle(
@@ -638,11 +639,11 @@ class AuthDivider extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Container(height: 1, color: kAuthHair)),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            'or',
-            style: TextStyle(fontSize: 12, color: kAuthInk3, fontWeight: FontWeight.w500),
+            context.l10n.authOr,
+            style: const TextStyle(fontSize: 12, color: kAuthInk3, fontWeight: FontWeight.w500),
           ),
         ),
         Expanded(child: Container(height: 1, color: kAuthHair)),
@@ -668,7 +669,13 @@ class AuthStrengthMeter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = authPasswordStrength(password);
-    const labels = ['Too short', 'Weak', 'Okay', 'Strong', 'Very strong'];
+    final labels = [
+      context.l10n.authStrengthTooShort,
+      context.l10n.authStrengthWeak,
+      context.l10n.authStrengthOkay,
+      context.l10n.authStrengthStrong,
+      context.l10n.authStrengthVeryStrong,
+    ];
     const colors = [kAuthInk3, kAuthError, kAuthWarn, kAuthSuccess, kAuthSuccess];
     return Padding(
       padding: const EdgeInsets.only(left: 4, right: 4),
@@ -678,7 +685,7 @@ class AuthStrengthMeter extends StatelessWidget {
             child: Row(
               children: List.generate(4, (i) => Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
+                  margin: EdgeInsetsDirectional.only(end: i < 3 ? 4 : 0),
                   height: 4,
                   decoration: BoxDecoration(
                     color: i < s ? colors[s] : kAuthHair,
@@ -693,7 +700,7 @@ class AuthStrengthMeter extends StatelessWidget {
             width: 78,
             child: Text(
               password.isEmpty ? '' : labels[s],
-              textAlign: TextAlign.right,
+              textAlign: TextAlign.end,
               style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w600,
                 color: password.isEmpty ? kAuthInk3 : colors[s],
@@ -714,9 +721,9 @@ class AuthPasswordChecks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ('At least 8 characters', password.length >= 8),
-      ('One uppercase letter',  RegExp(r'[A-Z]').hasMatch(password)),
-      ('One number',            RegExp(r'[0-9]').hasMatch(password)),
+      (context.l10n.authAtLeast8Chars, password.length >= 8),
+      (context.l10n.authOneUppercase,  RegExp(r'[A-Z]').hasMatch(password)),
+      (context.l10n.authOneNumber,     RegExp(r'[0-9]').hasMatch(password)),
     ];
     return Column(
       children: items.map((c) {
@@ -759,9 +766,9 @@ class AuthReqChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ('8+ chars',  password.length >= 8),
-      ('Uppercase', RegExp(r'[A-Z]').hasMatch(password)),
-      ('Number',    RegExp(r'[0-9]').hasMatch(password)),
+      (context.l10n.authChip8Chars,    password.length >= 8),
+      (context.l10n.authChipUppercase, RegExp(r'[A-Z]').hasMatch(password)),
+      (context.l10n.authChipNumber,    RegExp(r'[0-9]').hasMatch(password)),
     ];
     return Padding(
       padding: const EdgeInsets.only(left: 4, right: 4),
@@ -805,15 +812,21 @@ class AuthReqChips extends StatelessWidget {
 // ── Step bar (Account / You / Club) for the sign-up flow ─────────────────────
 class AuthStepBar extends StatelessWidget {
   final int step; // 0..(labels.length-1)
-  final List<String> labels;
+  final List<String>? labels;
   const AuthStepBar({
     super.key,
     required this.step,
-    this.labels = const ['Account', 'You', 'Club'],
+    this.labels,
   });
 
   @override
   Widget build(BuildContext context) {
+    final labels = this.labels ??
+        [
+          context.l10n.registerStepAccount,
+          context.l10n.registerStepYou,
+          context.l10n.registerStepClub,
+        ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
@@ -910,7 +923,7 @@ class AuthProgressBar extends StatelessWidget {
         color: kAuthHair,
         child: LayoutBuilder(
           builder: (_, c) => Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeInOut,
@@ -918,6 +931,30 @@ class AuthProgressBar extends StatelessWidget {
               height: 3,
               color: kAuthPrimary,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown at the bottom of auth screens in white-label flavors only.
+class PoweredByClby extends StatelessWidget {
+  const PoweredByClby({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Env.isWhiteLabel) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Center(
+        child: Text(
+          context.l10n.authPoweredByClby,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: kAuthInk3,
+            letterSpacing: 0.4,
           ),
         ),
       ),

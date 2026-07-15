@@ -1,3 +1,4 @@
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -101,7 +102,7 @@ class _TrainerDetailScreenState extends State<TrainerDetailScreen> {
                       children: [
                         // Specialties
                         if (trainer.specialisations.isNotEmpty) ...[
-                          const _SectionLabel('SPECIALTIES'),
+                          _SectionLabel(context.l10n.trainerSpecialtiesTitle),
                           const SizedBox(height: 10),
                           _SpecialtiesStrip(
                               specialisations: trainer.specialisations),
@@ -111,7 +112,7 @@ class _TrainerDetailScreenState extends State<TrainerDetailScreen> {
                         // About
                         if (trainer.bio != null &&
                             trainer.bio!.trim().isNotEmpty) ...[
-                          const _SectionLabel('ABOUT'),
+                          _SectionLabel(context.l10n.trainerAboutTitle),
                           const SizedBox(height: 10),
                           _AboutCard(bio: trainer.bio!),
                           const SizedBox(height: 22),
@@ -121,14 +122,14 @@ class _TrainerDetailScreenState extends State<TrainerDetailScreen> {
                         if (trainer.trainerType == 'personal_trainer' &&
                             !_loading &&
                             _sessions.isNotEmpty) ...[
-                          const _SectionLabel('CLASSES'),
+                          _SectionLabel(context.l10n.trainerClassesTitle),
                           const SizedBox(height: 10),
                           _ClassesStrip(sessions: _sessions),
                           const SizedBox(height: 22),
                         ],
 
                         // Reviews
-                        const _SectionLabel('REVIEWS'),
+                        _SectionLabel(context.l10n.trainerReviewsTitle),
                         const SizedBox(height: 10),
                         if (_loading || _reviewsLoading)
                           ..._skeletonReviews()
@@ -160,7 +161,8 @@ class _TrainerDetailScreenState extends State<TrainerDetailScreen> {
                                         vertical: 14),
                                   ),
                                   child: Text(
-                                    'Show All Reviews (${_reviews.length})',
+                                    context.l10n
+                                        .trainerShowAllReviews(_reviews.length),
                                     style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 14,
@@ -286,9 +288,9 @@ class _TrainerHero extends StatelessWidget {
                   ),
 
                   // Bottom: badge + name + stars
-                  Positioned(
-                    left: 20,
-                    right: 20,
+                  PositionedDirectional(
+                    start: 20,
+                    end: 20,
                     bottom: 24,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,7 +528,7 @@ class _ClassTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final classInfo = session['classes'] as Map<String, dynamic>?;
-    final name = classInfo?['name'] as String? ?? 'Class';
+    final name = classInfo?['name'] as String? ?? context.l10n.exploreTypeClass;
     final rawColor = classInfo?['color'] as String? ?? '#6b7280';
     final color = _hexColor(rawColor);
     final timeStr =
@@ -619,7 +621,8 @@ class _ReviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final memberName = data['member_name'] as String? ?? 'Member';
+    final memberName =
+        data['member_name'] as String? ?? context.l10n.trainerMemberFallback;
     // Prefer trainer-specific rating; fall back to session rating
     final trainerRating = (data['trainer_rating'] as num?)?.toInt()
         ?? (data['session_rating'] as num?)?.toInt()
@@ -750,7 +753,7 @@ class _EmptyReviews extends StatelessWidget {
               size: 32, color: Colors.grey.shade400),
           const SizedBox(height: 8),
           Text(
-            'No reviews yet',
+            context.l10n.trainerNoReviews,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

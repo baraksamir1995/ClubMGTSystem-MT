@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -42,11 +43,11 @@ class _ExploreOffersScreenState extends State<ExploreOffersScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Current offers')),
+      appBar: AppBar(title: Text(context.l10n.exploreCurrentOffers)),
       body: _loading
           ? _buildSkeleton()
           : _offers.isEmpty
-              ? const Center(child: Text('No current offers'))
+              ? Center(child: Text(context.l10n.exploreNoOffers))
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   itemCount: _offers.length,
@@ -73,11 +74,12 @@ class _OfferCard extends StatelessWidget {
 
   const _OfferCard({required this.offer});
 
-  String _expiry() {
+  String _expiry(BuildContext context) {
     final raw = offer['expires_at'] as String?;
     if (raw == null) return '';
     try {
-      return 'Expires ${DateFormat('MMM d, yyyy').format(DateTime.parse(raw))}';
+      return context.l10n.exploreExpires(
+          DateFormat('MMM d, yyyy').format(DateTime.parse(raw)));
     } catch (_) {
       return '';
     }
@@ -92,7 +94,7 @@ class _OfferCard extends StatelessWidget {
     final imageUrl = offer['hero_image_url'] as String?;
     final tagLabel = (offer['tag_label'] as String?) ?? '';
     final tagColorHex = offer['tag_color'] as String?;
-    final expiry = _expiry();
+    final expiry = _expiry(context);
 
     Color tagColor = const Color(0xFFF59E0B);
     if (tagColorHex != null && tagColorHex.isNotEmpty) {
@@ -142,9 +144,9 @@ class _OfferCard extends StatelessWidget {
                             color: theme.colorScheme.surfaceContainerHighest),
                   ),
                   if (tagLabel.isNotEmpty)
-                    Positioned(
+                    PositionedDirectional(
                       bottom: 12,
-                      left: 12,
+                      start: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),

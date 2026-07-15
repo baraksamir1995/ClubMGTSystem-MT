@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:clby/l10n/l10n.dart';
 import '../models/checkout_item.dart';
 import '../models/service_model.dart';
 import '../providers/auth_provider.dart';
@@ -63,37 +64,39 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   List<String> get _skills {
+    final l10n = context.l10n;
     switch (widget.service.iconType) {
       case 'physio':
         return [
-          'Injury assessment',
-          'Rehabilitation',
-          'Pain management',
-          'Posture correction',
-          'Exercise therapy',
+          l10n.packageSkillInjuryAssessment,
+          l10n.packageSkillRehabilitation,
+          l10n.packageSkillPainManagement,
+          l10n.packageSkillPostureCorrection,
+          l10n.packageSkillExerciseTherapy,
         ];
       case 'nutrition':
         return [
-          'Meal planning',
-          'Body composition',
-          'Diet analysis',
-          'Weight management',
-          'Supplement advice',
+          l10n.packageSkillMealPlanning,
+          l10n.packageSkillBodyComposition,
+          l10n.packageSkillDietAnalysis,
+          l10n.packageSkillWeightManagement,
+          l10n.packageSkillSupplementAdvice,
         ];
       default:
         return [
-          'Strength training',
-          'Cardio',
-          'Form coaching',
-          'Goal setting',
-          'HIIT',
-          'Flexibility',
+          l10n.packageSkillStrengthTraining,
+          l10n.packageSkillCardio,
+          l10n.packageSkillFormCoaching,
+          l10n.packageSkillGoalSetting,
+          l10n.packageSkillHiit,
+          l10n.packageSkillFlexibility,
         ];
     }
   }
 
-  String get _coachSectionLabel =>
-      widget.service.iconType == 'pt' ? 'Choose your coach' : 'Your specialist';
+  String get _coachSectionLabel => widget.service.iconType == 'pt'
+      ? context.l10n.packageChooseCoach
+      : context.l10n.packageYourSpecialist;
 
   bool get _canBuy {
     if (_loadingCoaches) return false;
@@ -106,9 +109,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     if (spec is List && spec.isNotEmpty) return spec.first.toString();
     if (spec is String && spec.isNotEmpty) return spec;
     switch (widget.service.trainerType) {
-      case 'physiotherapist': return 'Physiotherapist';
-      case 'nutritionist': return 'Nutritionist';
-      default: return 'Personal Trainer';
+      case 'physiotherapist': return context.l10n.packageRolePhysiotherapist;
+      case 'nutritionist': return context.l10n.packageRoleNutritionist;
+      default: return context.l10n.packageRolePersonalTrainer;
     }
   }
 
@@ -121,7 +124,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     final coachName = (coach?['name'] as String?) ?? '';
 
     final subtitle = sessionCount > 1
-        ? '$sessionCount sessions · ${widget.service.name}'
+        ? context.l10n.packageSessionsSubtitle(sessionCount, widget.service.name)
         : widget.service.name;
 
     context.push('/payment-summary', extra: CheckoutItem(
@@ -212,9 +215,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
           ),
 
           // Back button — sits below the status bar
-          Positioned(
+          PositionedDirectional(
             top: topPad + 8,
-            left: 16,
+            start: 16,
             child: Material(
               color: Colors.transparent,
               shape: const CircleBorder(),
@@ -303,7 +306,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     final pkg = widget.package;
     final svc = widget.service;
     final price = (pkg['price'] as num?)?.toDouble() ?? 0;
-    final per = (pkg['per'] as String?) ?? 'session';
+    final per = (pkg['per'] as String?) ?? context.l10n.packagesUnitSession;
     final sessionCount = (pkg['session_count'] as int?) ?? 0;
     final perSession = sessionCount > 1 ? (price / sessionCount).round() : null;
     final tag = (pkg['tag'] as String?) ?? '';
@@ -323,9 +326,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Price',
-                style: TextStyle(fontSize: 11, color: Color(0xFF888780)),
+              Text(
+                context.l10n.packagePrice,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF888780)),
               ),
               const SizedBox(height: 3),
               RichText(
@@ -339,9 +342,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const TextSpan(
-                      text: ' EGP',
-                      style: TextStyle(
+                    TextSpan(
+                      text: ' ${context.l10n.packageCurrencyEgp}',
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                         color: Color(0xFF888780),
@@ -353,8 +356,8 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
               const SizedBox(height: 2),
               Text(
                 perSession != null
-                    ? 'per $per · $perSession EGP / session'
-                    : 'per $per',
+                    ? context.l10n.packagePricePerWithEach(per, perSession)
+                    : context.l10n.packagePricePer(per),
                 style: const TextStyle(fontSize: 10, color: Color(0xFF888780)),
               ),
             ],
@@ -392,13 +395,13 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
 
     final stats = hasMultiple
         ? [
-            _StatItem(value: '$sessionCount', label: 'Sessions'),
-            _StatItem(value: '60', label: 'Min each'),
-            _StatItem(value: '$perSession', label: 'EGP/session'),
+            _StatItem(value: '$sessionCount', label: context.l10n.commonSessions),
+            _StatItem(value: '60', label: context.l10n.packageMinEach),
+            _StatItem(value: '$perSession', label: context.l10n.packageEgpPerSession),
           ]
         : [
-            _StatItem(value: '60', label: 'Min each'),
-            _StatItem(value: '$perSession', label: 'EGP/session'),
+            _StatItem(value: '60', label: context.l10n.packageMinEach),
+            _StatItem(value: '$perSession', label: context.l10n.packageEgpPerSession),
           ];
 
     return Padding(
@@ -409,7 +412,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
             .entries
             .map((e) => Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(left: e.key > 0 ? 8 : 0),
+                    padding: EdgeInsetsDirectional.only(start: e.key > 0 ? 8 : 0),
                     child: _StatCard(item: e.value, accent: svc.accent),
                   ),
                 ))
@@ -427,9 +430,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "WHAT'S INCLUDED",
-            style: TextStyle(
+          Text(
+            context.l10n.packageWhatsIncluded,
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: Color(0xFF888780),
@@ -498,7 +501,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
             )
           else if (_coaches.isEmpty)
             Text(
-              'No specialist assigned yet',
+              context.l10n.packageNoSpecialist,
               style: const TextStyle(fontSize: 13, color: Color(0xFF888780)),
             )
           else
@@ -564,19 +567,19 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
               elevation: 0,
             ),
             child: noneSelected
-                ? const Row(
+                ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.timelapse_rounded, size: 16),
-                      SizedBox(width: 6),
+                      const Icon(Icons.timelapse_rounded, size: 16),
+                      const SizedBox(width: 6),
                       Text(
-                        'Select a coach to continue',
-                        style: TextStyle(fontSize: 14),
+                        context.l10n.packageSelectCoach,
+                        style: const TextStyle(fontSize: 14),
                       ),
                     ],
                   )
                 : Text(
-                    'Buy now — ${price.toInt()} EGP',
+                    context.l10n.packageBuyNow(price.toInt()),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -667,7 +670,7 @@ class _CoachCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 14, 12),
         decoration: BoxDecoration(
           color: isSelected
               ? svc.accentLight.withValues(alpha: 0.5)
@@ -726,7 +729,7 @@ class _CoachCard extends StatelessWidget {
                   if (rating != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '$rating rating',
+                      context.l10n.packageRating(rating.toString()),
                       style: const TextStyle(
                         fontSize: 9,
                         color: Color(0xFF888780),

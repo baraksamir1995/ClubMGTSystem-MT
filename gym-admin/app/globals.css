@@ -140,8 +140,11 @@
 
 /* Visible 2px focus indicator on everything focusable, in both themes.
    Components may replace it with an equivalent ring (never with
-   nothing). */
-:focus-visible {
+   nothing). `:where()` keeps this at zero specificity so a component's
+   `outline-none` (paired with its own focus-within ring) can override
+   it — otherwise inputs inside ring-bearing wrappers get a doubled
+   focus indicator. */
+:where(:focus-visible) {
   outline: 2px solid rgb(var(--focus));
   outline-offset: 2px;
 }

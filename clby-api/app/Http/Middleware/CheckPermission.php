@@ -7,12 +7,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Enforces fine-grained module+action permissions from staff_role_permissions.
+ * Enforces module-level permissions from staff_role_permissions.
  *
  * Usage in routes:  ->middleware('permission:members,create')
  *
+ * Access is granted per module (tab): any staff_role_permissions row for
+ * the module unlocks every action in it. The action segment is kept in
+ * route definitions for audit/log readability but is not part of the
+ * check.
+ *
  * gym_admin bypasses all checks (full access).
- * staff/trainer must have the exact module+action in their assigned roles.
  */
 class CheckPermission
 {
@@ -34,7 +38,7 @@ class CheckPermission
         }
 
         // staff/trainer — check role permissions, with three additional
-        // guards beyond the original module+action match:
+        // guards beyond the module match:
         //   1. staff_roles.gym_id must equal staff_members.gym_id
         //      (closes the "cross-gym role id grants permissions" vector
         //      where a tampered request body inserted a foreign role).
@@ -53,13 +57,12 @@ class CheckPermission
             ->where('staff_members.status', 'active')
             ->whereNull('staff_members.deleted_at')
             ->where('staff_role_permissions.module', $module)
-            ->where('staff_role_permissions.action', $action)
             ->exists();
 
         if (! $hasPermission) {
             return response()->json([
                 'error' => 'Forbidden — insufficient permissions',
-                'required' => "{$module}:{$action}",
+                'required' => $module,
             ], 403);
         }
 

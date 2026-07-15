@@ -51,7 +51,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// Map each nav route to the permission module key (null = always visible)
+// Map each nav route to the permission module key that gates it (null =
+// always visible). Services and analytics have no module of their own —
+// their API routes are gated under classes/members respectively, so the
+// tabs follow those grants.
 const ALL_NAV = [
   { href: '/dashboard',              module: 'overview' },
   { href: '/dashboard/members',      module: 'members' },
@@ -59,11 +62,11 @@ const ALL_NAV = [
   { href: '/dashboard/payments',     module: 'payments' },
   { href: '/dashboard/classes',      module: 'classes' },
   { href: '/dashboard/promotions',   module: 'promotions' },
-  { href: '/dashboard/services',     module: 'services' },
+  { href: '/dashboard/services',     module: 'classes' },
   { href: '/dashboard/attendance',   module: 'attendance' },
   { href: '/dashboard/invitations',  module: 'invitations' },
   { href: '/dashboard/content',      module: 'content' },
-  { href: '/dashboard/analytics',    module: 'analytics' },
+  { href: '/dashboard/analytics',    module: 'members' },
   { href: '/dashboard/staff',        module: 'staff' },
   { href: '/dashboard/settings',     module: 'settings' },
 ];
@@ -99,9 +102,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         // null = unrestricted (gym owner or unrecognized)
         allowedModules = null;
       } else {
+        // Module-level access: any grant on a module makes its tab
+        // visible (and unlocks every action inside it).
         const modules = new Set<string>();
         for (const p of perms) {
-          if (p.action === 'view') modules.add(p.module);
+          modules.add(p.module);
         }
         allowedModules = modules;
       }

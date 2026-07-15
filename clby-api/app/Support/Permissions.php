@@ -5,17 +5,18 @@ namespace App\Support;
 /**
  * Server-side allowlist of (module, action) permission tuples.
  *
- * The set of permissions a staff role can hold is closed: every entry
- * here corresponds to at least one route or controller branch that
- * actually checks for it. Free-form strings would let an admin grant
- * `super_secret.delete` (which would never be checked but pollutes the
- * permission matrix), or worse, paste a typo'd permission that silently
- * never grants access.
+ * Access is MODULE-LEVEL: CheckPermission grants every action in a
+ * module as soon as the role holds any row for it, and the gym-admin
+ * role editor saves a single `view` row per granted module. The
+ * per-action entries below remain only to keep legacy rows valid and to
+ * bound what a tampered payload can insert.
  *
- * Keep in sync with:
+ * Keep the module list in sync with:
  *   - routes/api.php  (->middleware('permission:module,action'))
- *   - any controller that resolves permissions for the UI
- *   - the gym-admin frontend's RoleEditor permission grid
+ *   - the gym-admin frontend's role editor module list
+ *
+ * `overview` has no gated route of its own — it only controls sidebar
+ * visibility of the dashboard homepage in gym-admin.
  */
 class Permissions
 {
@@ -26,6 +27,7 @@ class Permissions
         'content'     => ['view', 'create', 'edit', 'delete'],
         'invitations' => ['view', 'edit'],
         'members'     => ['view', 'create', 'edit', 'delete'],
+        'overview'    => ['view'],
         'payments'    => ['view', 'create', 'edit', 'delete'],
         'plans'       => ['view', 'create', 'edit', 'delete'],
         'promotions'  => ['view', 'create', 'edit', 'delete'],

@@ -48,6 +48,7 @@
     "memberCount_other": "{count} أعضاء",
     "colModule": "الوحدة",
     "colAll": "الكل",
+    "colAccess": "الوصول",
     "permissionsGranted_one": "صلاحية واحدة ممنوحة",
     "permissionsGranted_other": "{count} صلاحيات ممنوحة",
     "staffAssigned_one": "موظف واحد معيّن",
@@ -66,6 +67,7 @@
     "content": "المحتوى",
     "notifications": "الاتصالات",
     "analytics": "التحليلات",
+    "invitations": "الدعوات",
     "settings": "الإعدادات",
     "staff": "الموظفون والأدوار"
   },

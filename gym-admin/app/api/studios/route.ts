@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const denied = await denyUnlessPermitted(token, 'studios', 'create');
+  const denied = await denyUnlessPermitted(token, 'settings', 'create');
   if (denied) return denied;
 
   const body = await req.json();

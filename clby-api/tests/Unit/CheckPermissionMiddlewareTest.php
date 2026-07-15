@@ -18,6 +18,7 @@ class CheckPermissionMiddlewareTest extends TestCase
         $user->role = 'gym_admin';
         $user->id = 'test-id';
         $user->gym_id = 'gym-id';
+        $user->is_active = true;
 
         $request = Request::create('/test', 'POST');
         $request->setUserResolver(fn () => $user);

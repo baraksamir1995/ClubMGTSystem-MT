@@ -12,8 +12,8 @@ import toast from 'react-hot-toast';
 import { can, type Permission } from '@/lib/get-permissions';
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
-type ActionKey = 'view' | 'create' | 'edit' | 'delete';
-type PermSet = Record<string, Set<ActionKey>>;
+// Access is module-level: a role either has a tab or it doesn't.
+type PermSet = Set<string>;
 
 interface StaffMember {
   id: string; full_name: string; email: string; phone?: string;
@@ -37,26 +37,22 @@ interface OverviewData {
 }
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
+// Must stay in sync with Permissions::ALLOWLIST in clby-api.
 const MODULE_KEYS = [
   'overview', 'members', 'plans', 'payments', 'classes',
-  'trainers', 'promotions', 'attendance', 'content',
-  'notifications', 'analytics', 'settings', 'staff',
+  'promotions', 'attendance', 'invitations', 'content',
+  'settings', 'staff',
 ] as const;
-type ModuleKey = typeof MODULE_KEYS[number];
-
-const ACTIONS = ['view', 'create', 'edit', 'delete'] as const;
 
 /* ─── helpers ────────────────────────────────────────────────────────── */
 function initPerms(permissions: { module: string; action: string }[]): PermSet {
-  const ps: PermSet = {};
-  MODULE_KEYS.forEach(k => { ps[k] = new Set(); });
-  permissions.forEach(p => { ps[p.module]?.add(p.action as ActionKey); });
-  return ps;
+  // Any legacy per-action row counts as module access.
+  return new Set(permissions.map(p => p.module));
 }
 function permsToArray(ps: PermSet) {
-  const out: { module: string; action: string }[] = [];
-  Object.entries(ps).forEach(([mod, acts]) => acts.forEach(a => out.push({ module: mod, action: a })));
-  return out;
+  // One canonical row per granted module; the backend treats any row as
+  // full module access.
+  return [...ps].map(module => ({ module, action: 'view' }));
 }
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -235,18 +231,12 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
     setRfPerms(initPerms(r.permissions));
     setRoleModal({ open: true, editing: r });
   };
-  const togglePerm = (mod: string, action: ActionKey) => {
+  const toggleModule = (mod: string) => {
     setRfPerms(prev => {
-      const next = { ...prev, [mod]: new Set(prev[mod]) };
-      if (next[mod].has(action)) next[mod].delete(action); else next[mod].add(action);
+      const next = new Set(prev);
+      if (next.has(mod)) next.delete(mod); else next.add(mod);
       return next;
     });
-  };
-  const toggleModule = (mod: string, allChecked: boolean) => {
-    setRfPerms(prev => ({
-      ...prev,
-      [mod]: allChecked ? new Set<ActionKey>() : new Set<ActionKey>(ACTIONS),
-    }));
   };
   const saveRole = async () => {
     if (!rf.name.trim()) { toast.error(t('roleModal.validationRoleName')); return; }
@@ -614,28 +604,24 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <thead>
                       <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wider">
                         <th className="px-5 py-3 text-start">{t('roles.colModule')}</th>
-                        {ACTIONS.map(a => (
-                          <th key={a} className="px-4 py-3 text-center">{t(`actions.${a}`)}</th>
-                        ))}
+                        <th className="px-4 py-3 text-center">{t('roles.colAccess')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line">
                       {MODULE_KEYS.map(mk => {
-                        const permsForMod = selectedRole.permissions.filter(p => p.module === mk).map(p => p.action);
+                        const hasAccess = selectedRole.permissions.some(p => p.module === mk);
                         return (
                           <tr key={mk} className="hover:bg-surface-3/20">
                             <td className="px-5 py-3 text-fg-muted font-medium">{t(`modules.${mk}`)}</td>
-                            {ACTIONS.map(a => (
-                              <td key={a} className="px-4 py-3 text-center">
-                                {permsForMod.includes(a) ? (
-                                  <Check className="w-4 h-4 text-success mx-auto" />
-                                ) : (
-                                  <span className="w-4 h-4 flex items-center justify-center mx-auto">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-surface-3 block" />
-                                  </span>
-                                )}
-                              </td>
-                            ))}
+                            <td className="px-4 py-3 text-center">
+                              {hasAccess ? (
+                                <Check className="w-4 h-4 text-success mx-auto" />
+                              ) : (
+                                <span className="w-4 h-4 flex items-center justify-center mx-auto">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-surface-3 block" />
+                                </span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -644,7 +630,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 </div>
                 <div className="px-5 py-3 border-t border-line">
                   <p className="text-xs text-fg-faint">
-                    {t('roles.permissionsGranted_other', { count: selectedRole.permissions.length })}
+                    {t('roles.permissionsGranted_other', { count: new Set(selectedRole.permissions.map(p => p.module)).size })}
                     {' · '}
                     {t('roles.staffAssigned_other', { count: selectedRole.memberCount })}
                   </p>
@@ -882,33 +868,21 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <thead>
                       <tr className="bg-surface-3/50 text-xs text-fg-muted uppercase tracking-wider">
                         <th className="px-4 py-2.5 text-start">{t('roles.colModule')}</th>
-                        {ACTIONS.map(a => (
-                          <th key={a} className="px-3 py-2.5 text-center">{t(`actions.${a}`)}</th>
-                        ))}
-                        <th className="px-3 py-2.5 text-center">{t('roles.colAll')}</th>
+                        <th className="px-3 py-2.5 text-center">{t('roles.colAccess')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line">
-                      {MODULE_KEYS.map(mk => {
-                        const allChecked = ACTIONS.every(a => rfPerms[mk]?.has(a));
-                        return (
-                          <tr key={mk} className="hover:bg-surface-3/20">
-                            <td className="px-4 py-2.5 text-fg-muted">{t(`modules.${mk}`)}</td>
-                            {ACTIONS.map(a => (
-                              <td key={a} className="px-3 py-2.5 text-center">
-                                <input type="checkbox" checked={rfPerms[mk]?.has(a) ?? false}
-                                  onChange={() => togglePerm(mk, a)}
-                                  className="w-4 h-4 accent-brand cursor-pointer" />
-                              </td>
-                            ))}
-                            <td className="px-3 py-2.5 text-center">
-                              <input type="checkbox" checked={allChecked}
-                                onChange={() => toggleModule(mk, allChecked)}
-                                className="w-4 h-4 accent-brand cursor-pointer" />
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {MODULE_KEYS.map(mk => (
+                        <tr key={mk} className="hover:bg-surface-3/20 cursor-pointer" onClick={() => toggleModule(mk)}>
+                          <td className="px-4 py-2.5 text-fg-muted">{t(`modules.${mk}`)}</td>
+                          <td className="px-3 py-2.5 text-center">
+                            <input type="checkbox" checked={rfPerms.has(mk)}
+                              onChange={() => toggleModule(mk)}
+                              onClick={e => e.stopPropagation()}
+                              className="w-4 h-4 accent-brand cursor-pointer" />
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

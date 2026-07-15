@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const denied = await denyUnlessPermitted(token, 'offers', 'create');
+  const denied = await denyUnlessPermitted(token, 'promotions', 'create');
   if (denied) return denied;
 
   const body = await req.json();

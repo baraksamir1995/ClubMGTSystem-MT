@@ -82,10 +82,14 @@ export const getStaffPermissions = cache(async (token: string): Promise<Permissi
 /**
  * Check if a user can perform an action.
  * null permissions = admin (always true).
+ *
+ * Access is module-level: any grant on a module unlocks every action in
+ * it (mirrors CheckPermission on the Laravel side). The action param is
+ * kept so call sites stay self-documenting.
  */
-export function can(permissions: Permission[] | null, module: string, action: string): boolean {
+export function can(permissions: Permission[] | null, module: string, _action?: string): boolean {
   if (permissions === null) return true;
-  return permissions.some(p => p.module === module && p.action === action);
+  return permissions.some(p => p.module === module);
 }
 
 /**

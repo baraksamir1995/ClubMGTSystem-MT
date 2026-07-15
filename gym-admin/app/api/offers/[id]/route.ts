@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const denied = await denyUnlessPermitted(token, 'offers', 'update');
+  const denied = await denyUnlessPermitted(token, 'promotions', 'update');
   if (denied) return denied;
 
   const body = await req.json();
@@ -27,7 +27,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const denied = await denyUnlessPermitted(token, 'offers', 'delete');
+  const denied = await denyUnlessPermitted(token, 'promotions', 'delete');
   if (denied) return denied;
 
   const res = await laravelApi(`/offers/${params.id}`, token, { method: 'DELETE' });

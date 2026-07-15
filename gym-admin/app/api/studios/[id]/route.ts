@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const denied = await denyUnlessPermitted(token, 'studios', 'update');
+  const denied = await denyUnlessPermitted(token, 'settings', 'update');
   if (denied) return denied;
 
   const body = await req.json();
@@ -42,7 +42,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (resolved.response) return resolved.response;
   const { token } = resolved;
 
-  const denied = await denyUnlessPermitted(token, 'studios', 'delete');
+  const denied = await denyUnlessPermitted(token, 'settings', 'delete');
   if (denied) return denied;
 
   const res = await laravelApi(`/studios/${params.id}`, token, { method: 'DELETE' });

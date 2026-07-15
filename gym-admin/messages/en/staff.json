@@ -48,6 +48,7 @@
     "memberCount_other": "{count} members",
     "colModule": "Module",
     "colAll": "All",
+    "colAccess": "Access",
     "permissionsGranted_one": "{count} permission granted",
     "permissionsGranted_other": "{count} permissions granted",
     "staffAssigned_one": "{count} staff member assigned",
@@ -66,6 +67,7 @@
     "content": "Content",
     "notifications": "Communications",
     "analytics": "Analytics",
+    "invitations": "Invitations",
     "settings": "Settings",
     "staff": "Staff & Roles"
   },

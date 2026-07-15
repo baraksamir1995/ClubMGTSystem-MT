@@ -1,0 +1,12 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Flutter/Generated.xcconfig"
+
+APP_DISPLAY_NAME = The Barn
+PRODUCT_BUNDLE_IDENTIFIER = com.clbyapp.thebarnapp
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon-thebarn
+DEVELOPMENT_TEAM = AXBRK75K78
+
+FLUTTER_BUILD_NAME = 1.0.0
+FLUTTER_BUILD_NUMBER = 1
+
+LAUNCH_STORYBOARD_NAME = LaunchScreenTheBarn

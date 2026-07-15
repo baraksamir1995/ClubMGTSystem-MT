@@ -25,6 +25,12 @@ if (shiftKeystorePropertiesFile.exists()) {
     shiftKeystoreProperties.load(FileInputStream(shiftKeystorePropertiesFile))
 }
 
+val theBarnKeystoreProperties = Properties()
+val theBarnKeystorePropertiesFile = rootProject.file("the_barn-key.properties")
+if (theBarnKeystorePropertiesFile.exists()) {
+    theBarnKeystoreProperties.load(FileInputStream(theBarnKeystorePropertiesFile))
+}
+
 android {
     namespace = "com.clubmgt.gym_mobile_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -61,6 +67,12 @@ android {
             storeFile = shiftKeystoreProperties.getProperty("storeFile")?.let { f -> file(f) }
             storePassword = shiftKeystoreProperties.getProperty("storePassword")
         }
+        create("releaseTheBarn") {
+            keyAlias = theBarnKeystoreProperties.getProperty("keyAlias")
+            keyPassword = theBarnKeystoreProperties.getProperty("keyPassword")
+            storeFile = theBarnKeystoreProperties.getProperty("storeFile")?.let { f -> file(f) }
+            storePassword = theBarnKeystoreProperties.getProperty("storePassword")
+        }
     }
     // Per-brand white-label dimension. Each flavor owns its applicationId,
     // user-visible app name, signing keystore, version, and (via
@@ -86,6 +98,14 @@ android {
             versionCode = 1
             versionName = "1.0.0"
             signingConfig = signingConfigs.getByName("releaseShift")
+        }
+        create("theBarn") {
+            dimension = "brand"
+            applicationId = "com.clbyapp.thebarnapp"
+            resValue("string", "app_name", "The Barn")
+            versionCode = 1
+            versionName = "1.0.0"
+            signingConfig = signingConfigs.getByName("releaseTheBarn")
         }
     }
     buildTypes {

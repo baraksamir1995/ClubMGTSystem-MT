@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "779409498248",
+    "project_id": "the-barn-62e5e",
+    "storage_bucket": "the-barn-62e5e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:779409498248:android:9a1d25d7394a43be3e7f3d",
+        "android_client_info": {
+          "package_name": "com.clbyapp.thebarn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVkxDN5QHX39SDrBlAZrxG1q_px1dz_Qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -52,13 +52,14 @@ export default function NavLinks({ allowedHrefs }: Props) {
           <Link
             key={href}
             href={href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+            aria-current={isActive ? 'page' : undefined}
+            className={`flex items-center gap-3 px-3 min-h-11 rounded-lg text-sm transition-colors ${
               isActive
-                ? 'bg-clby-green/15 text-clby-green font-medium'
-                : 'text-gray-400 hover:text-white hover:bg-clby-surface'
+                ? 'bg-brand/15 text-brand font-medium'
+                : 'text-fg-muted hover:text-fg hover:bg-surface-2'
             }`}
           >
-            <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-clby-green' : ''}`} />
+            <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-brand' : ''}`} aria-hidden />
             <span className="flex-1 text-start">{t(labelKey)}</span>
           </Link>
         );

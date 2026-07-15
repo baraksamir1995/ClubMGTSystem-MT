@@ -148,7 +148,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={t('searchCodesPlaceholder')}
-              className="w-full ps-9 pe-8 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand" />
+              className="w-full ps-9 pe-8 py-2 bg-surface-2 border border-line-strong rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
             {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-3.5 h-3.5" /></button>}
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
 
                       {/* Discount */}
                       <td className="px-5 py-3.5">
-                        <span className="font-semibold text-emerald-400">
+                        <span className="font-semibold text-success">
                           {promo.discount_type === 'percent'
                             ? t('discountPercent', { value: promo.discount_value })
                             : t('discountFixed',   { value: promo.discount_value })}
@@ -207,7 +207,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
                         {!promo.valid_from && !promo.valid_until ? (
                           <span className="text-fg-faint">{t('noLimit')}</span>
                         ) : (
-                          <span className={expired ? 'text-red-400' : ''}>
+                          <span className={expired ? 'text-danger' : ''}>
                             {promo.valid_from ? new Date(promo.valid_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : t('unlimited')}
                             {' – '}
                             {promo.valid_until ? new Date(promo.valid_until).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : t('unlimited')}
@@ -247,7 +247,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
                               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors"
                               title={promo.is_active ? t('titleDeactivate') : t('titleActivate')}>
                               {promo.is_active
-                                ? <ToggleRight className="w-3.5 h-3.5 text-emerald-400" />
+                                ? <ToggleRight className="w-3.5 h-3.5 text-success" />
                                 : <ToggleLeft  className="w-3.5 h-3.5" />}
                             </button>
                           )}

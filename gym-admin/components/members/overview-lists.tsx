@@ -38,18 +38,22 @@ function Pager({ page, total, onChange, tPage }: { page: number; total: number; 
       <p className="text-xs text-fg-faint">{tPage}</p>
       <div className="flex items-center gap-1">
         <button
+          type="button"
+          aria-label="Previous page"
           onClick={() => onChange(Math.max(1, page - 1))}
           disabled={page === 1}
           className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" aria-hidden />
         </button>
         <button
+          type="button"
+          aria-label="Next page"
           onClick={() => onChange(Math.min(total, page + 1))}
           disabled={page === total}
           className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden />
         </button>
       </div>
     </div>
@@ -70,7 +74,7 @@ export default function OverviewLists({ memberships, promoMap }: Props) {
       {memberships.length > 0 && (
         <div className="bg-surface-2 border border-line rounded-xl p-6 lg:col-span-2">
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-4 h-4 text-brand" />
+            <CreditCard className="w-4 h-4 text-brand" aria-hidden />
             <h2 className="text-sm font-semibold text-fg">{t('planHistory')}</h2>
             <span className="ms-auto text-xs text-fg-faint">{t('planHistoryRecords', { count: memberships.length })}</span>
           </div>
@@ -78,11 +82,11 @@ export default function OverviewLists({ memberships, promoMap }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                  <th className="text-start pb-3">{t('planHistoryCol.plan')}</th>
-                  <th className="text-start pb-3">{t('planHistoryCol.start')}</th>
-                  <th className="text-start pb-3">{t('planHistoryCol.expiry')}</th>
-                  <th className="text-start pb-3">{t('planHistoryCol.pricePaid')}</th>
-                  <th className="text-start pb-3">{t('planHistoryCol.status')}</th>
+                  <th scope="col" className="text-start pb-3">{t('planHistoryCol.plan')}</th>
+                  <th scope="col" className="text-start pb-3">{t('planHistoryCol.start')}</th>
+                  <th scope="col" className="text-start pb-3">{t('planHistoryCol.expiry')}</th>
+                  <th scope="col" className="text-start pb-3">{t('planHistoryCol.pricePaid')}</th>
+                  <th scope="col" className="text-start pb-3">{t('planHistoryCol.status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -109,14 +113,14 @@ export default function OverviewLists({ memberships, promoMap }: Props) {
                             {hasDiscount && (
                               <p className="text-xs text-fg-faint line-through">{fmt(m.original_price, currency)}</p>
                             )}
-                            <p className={`text-sm font-semibold ${hasDiscount ? 'text-emerald-400' : 'text-fg'}`}>
+                            <p className={`text-sm font-semibold ${hasDiscount ? 'text-success' : 'text-fg'}`}>
                               {fmt(m.final_price, currency)}
                             </p>
                             {hasDiscount && (
-                              <p className="text-xs text-emerald-500 mt-0.5">
+                              <p className="text-xs text-success mt-0.5">
                                 − {fmt(m.discount_amount, currency)}
                                 {promo && <span className="ms-1 font-mono text-brand">({promo.code})</span>}
-                                {m.plan_promotion_id && !promo && <span className="ms-1 text-blue-400">(promo pricing)</span>}
+                                {m.plan_promotion_id && !promo && <span className="ms-1 text-info">(promo pricing)</span>}
                               </p>
                             )}
                           </div>

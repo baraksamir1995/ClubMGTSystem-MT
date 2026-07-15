@@ -21,12 +21,12 @@ const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
 const planTypeColor: Record<string, string> = {
-  duration:         'bg-blue-400/10 text-blue-400',
-  sessions:         'bg-amber-400/10 text-amber-400',
+  duration:         'bg-info-soft text-info',
+  sessions:         'bg-warning-soft text-warning',
   duration_session: 'bg-brand/10 text-brand',
   // legacy
-  monthly:          'bg-blue-400/10 text-blue-400',
-  annual:           'bg-blue-400/10 text-blue-400',
+  monthly:          'bg-info-soft text-info',
+  annual:           'bg-info-soft text-info',
 };
 
 export default function PlansTable({ plans: initialPlans, branches, permissions, meta, filters }: { plans: Plan[]; branches: { id: string; name: string }[]; permissions: Permission[] | null; meta?: PageMeta | null; filters: Filters }) {
@@ -139,7 +139,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         <div className="grid grid-cols-3 gap-4">
           {([
             { labelKey: 'totalPlans',    value: totalCount,    color: 'text-fg',          filter: 'all' as const },
-            { labelKey: 'activePlans',   value: totalActive,   color: 'text-emerald-400', filter: 'active' as const },
+            { labelKey: 'activePlans',   value: totalActive,   color: 'text-success', filter: 'active' as const },
             { labelKey: 'inactivePlans', value: totalInactive, color: 'text-fg-muted',    filter: 'inactive' as const },
           ]).map(s => (
             <button
@@ -156,7 +156,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         {/* Search + Filters */}
         <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" aria-hidden />
             <input
               type="text"
               value={searchDraft}
@@ -203,13 +203,13 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-start px-5 py-3">{t('colPlan')}</th>
-                    <th className="text-start px-5 py-3">{t('colType')}</th>
-                    <th className="text-start px-5 py-3">{tc('price')}</th>
-                    <th className="text-start px-5 py-3">{t('colDurationSessions')}</th>
-                    <th className="text-start px-5 py-3">{t('colBranches')}</th>
-                    <th className="text-start px-5 py-3">{tc('status')}</th>
-                    <th className="text-end px-5 py-3">{tc('actions')}</th>
+                    <th scope="col" className="text-start px-5 py-3">{t('colPlan')}</th>
+                    <th scope="col" className="text-start px-5 py-3">{t('colType')}</th>
+                    <th scope="col" className="text-start px-5 py-3">{tc('price')}</th>
+                    <th scope="col" className="text-start px-5 py-3">{t('colDurationSessions')}</th>
+                    <th scope="col" className="text-start px-5 py-3">{t('colBranches')}</th>
+                    <th scope="col" className="text-start px-5 py-3">{tc('status')}</th>
+                    <th scope="col" className="text-end px-5 py-3">{tc('actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -229,13 +229,13 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                             <span className="px-1.5 py-0.5 bg-surface-3/60 text-fg-faint text-xs rounded">{t('moreChips', { count: (plan.facilities ?? []).length - 3 })}</span>
                           )}
                           {plan.visits_per_week && (
-                            <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{t('visitsPerWeek', { count: plan.visits_per_week })}</span>
+                            <span className="px-1.5 py-0.5 bg-info-soft text-info text-xs rounded">{t('visitsPerWeek', { count: plan.visits_per_week })}</span>
                           )}
                           {plan.visits_per_month && !plan.visits_per_week && (
-                            <span className="px-1.5 py-0.5 bg-blue-900/40 text-blue-400 text-xs rounded">{t('visitsPerMonth', { count: plan.visits_per_month })}</span>
+                            <span className="px-1.5 py-0.5 bg-info-soft text-info text-xs rounded">{t('visitsPerMonth', { count: plan.visits_per_month })}</span>
                           )}
                           {(plan.add_ons ?? []).length > 0 && (
-                            <span className="px-1.5 py-0.5 bg-amber-900/40 text-amber-400 text-xs rounded">
+                            <span className="px-1.5 py-0.5 bg-warning-soft text-warning text-xs rounded">
                               {(plan.add_ons ?? []).length === 1
                                 ? t('perksCount', { count: (plan.add_ons ?? []).length })
                                 : t('perksCountPlural', { count: (plan.add_ons ?? []).length })}
@@ -244,7 +244,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${planTypeColor[plan.plan_type] ?? 'bg-gray-400/10 text-fg-muted'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${planTypeColor[plan.plan_type] ?? 'bg-surface-3 text-fg-muted'}`}>
                           {planTypeLabel[plan.plan_type] ?? plan.plan_type}
                         </span>
                       </td>
@@ -262,7 +262,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                       </td>
                       <td className="px-5 py-3.5">
                         {plan.access_scope === 'all_branches' ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400">{t('allBranches')}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-success-soft text-success">{t('allBranches')}</span>
                         ) : plan.allowed_branch_ids && plan.allowed_branch_ids.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {plan.allowed_branch_ids.map(bid => (
@@ -287,7 +287,7 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                               aria-label={t('editPlan')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-4 h-4" aria-hidden />
                             </button>
                           )}
                           {can(permissions, 'members', 'edit') && (
@@ -298,13 +298,13 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
                               aria-label={plan.is_active ? t('deactivate') : t('activate')}
                               className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
                                 plan.is_active
-                                  ? 'text-fg-faint hover:text-amber-400 hover:bg-amber-400/10'
-                                  : 'text-fg-faint hover:text-emerald-400 hover:bg-emerald-400/10'
+                                  ? 'text-fg-faint hover:text-warning hover:bg-warning-soft'
+                                  : 'text-fg-faint hover:text-success hover:bg-success-soft'
                               }`}
                             >
                               {plan.is_active
-                                ? <ToggleRight className="w-4 h-4" />
-                                : <ToggleLeft className="w-4 h-4" />}
+                                ? <ToggleRight className="w-4 h-4" aria-hidden />
+                                : <ToggleLeft className="w-4 h-4" aria-hidden />}
                             </button>
                           )}
                         </div>

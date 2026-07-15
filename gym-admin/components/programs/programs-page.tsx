@@ -12,8 +12,8 @@ import { can, type Permission } from '@/lib/get-permissions';
 type StatusFilter = 'all' | 'draft' | 'published';
 
 const STATUS_STYLES: Record<string, string> = {
-  published: 'bg-emerald-400/10 text-emerald-400',
-  draft:     'bg-gray-400/10 text-fg-muted',
+  published: 'bg-success-soft text-success',
+  draft:     'bg-surface-3 text-fg-muted',
 };
 
 export default function ProgramsPage({
@@ -107,7 +107,7 @@ export default function ProgramsPage({
         <div className="grid grid-cols-3 gap-4">
           {([
             { labelKey: 'programsPage.statTotal',     value: counts.total,     color: 'text-fg',          filter: 'all' as StatusFilter },
-            { labelKey: 'programsPage.statPublished',  value: counts.published, color: 'text-emerald-400', filter: 'published' as StatusFilter },
+            { labelKey: 'programsPage.statPublished',  value: counts.published, color: 'text-success', filter: 'published' as StatusFilter },
             { labelKey: 'programsPage.statDraft',      value: counts.draft,     color: 'text-fg-muted',    filter: 'draft' as StatusFilter },
           ] as const).map(s => (
             <button
@@ -132,7 +132,7 @@ export default function ProgramsPage({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('programsPage.searchPlaceholder')}
-              className="w-full ps-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
+              className="w-full ps-9 pr-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div className="flex gap-3 items-center">
@@ -236,7 +236,7 @@ export default function ProgramsPage({
 
                       {/* Status */}
                       <td className="px-5 py-3.5">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[program.status] ?? 'bg-gray-400/10 text-fg-muted'}`}>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[program.status] ?? 'bg-surface-3 text-fg-muted'}`}>
                           {program.status === 'published' ? t('programsPage.statusPublished') : t('programsPage.statusDraft')}
                         </span>
                       </td>
@@ -263,7 +263,7 @@ export default function ProgramsPage({
                               onClick={() => handleDelete(program.id)}
                               disabled={deletingId === program.id}
                               title={t('programsPage.deleteTitle')}
-                              className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-40"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

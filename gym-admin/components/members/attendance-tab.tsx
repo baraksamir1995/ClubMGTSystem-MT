@@ -125,11 +125,11 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-start px-4 py-3">{t('col.date')}</th>
-                    <th className="text-start px-4 py-3">{t('col.checkIn')}</th>
-                    <th className="text-start px-4 py-3">{t('col.branch')}</th>
-                    <th className="text-start px-4 py-3">{t('col.entryPoint')}</th>
-                    <th className="text-start px-4 py-3">{t('col.method')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.date')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.checkIn')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.branch')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.entryPoint')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.method')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -138,7 +138,7 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
                       <td className="px-4 py-3 text-fg">
                         {fmtDateGym(log.check_in_at)}
                       </td>
-                      <td className="px-4 py-3 text-emerald-400 font-mono text-xs">
+                      <td className="px-4 py-3 text-success font-mono text-xs">
                         {fmtTime12(parsePgTimestamp(log.check_in_at))}
                       </td>
                       <td className="px-4 py-3">
@@ -151,7 +151,7 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
                       </td>
                       <td className="px-4 py-3">
                         {log.access_point
-                          ? <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400">{log.access_point}</span>
+                          ? <span className="text-xs px-2 py-0.5 rounded-full bg-info-soft text-info">{log.access_point}</span>
                           : <span className="text-fg-faint text-xs">—</span>}
                       </td>
                       <td className="px-4 py-3">
@@ -168,19 +168,19 @@ export default function AttendanceTab({ logs, membershipStart, membershipEnd, pl
                   {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
                 </p>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page"
                     className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4" aria-hidden />
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                    <button key={n} onClick={() => setPage(n)}
+                    <button key={n} type="button" onClick={() => setPage(n)}
                       className={`w-7 h-7 text-xs rounded-lg transition-colors ${n === page ? 'bg-brand text-brand-ink font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>
                       {n}
                     </button>
                   ))}
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page"
                     className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4" aria-hidden />
                   </button>
                 </div>
               </div>

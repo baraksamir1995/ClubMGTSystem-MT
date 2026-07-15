@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Dumbbell } from 'lucide-react';
 import { Button, Field, Input, PasswordInput } from '@/components/ui';
 import LanguageSwitcher from '@/components/language-switcher';
+import ThemeToggle from '@/components/theme/theme-toggle';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
@@ -113,7 +114,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-clby-bg flex flex-col items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4 relative">
+      <div className="absolute top-4 end-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         {/* Gym Identity */}
         <div className="flex flex-col items-center mb-8">
@@ -121,7 +125,7 @@ export default function LoginPage() {
             {gymInfo?.logoUrl ? (
               <img src={gymInfo.logoUrl} alt={gymInfo.name} className="w-full h-full object-cover" />
             ) : (
-              <Dumbbell className="w-8 h-8 text-brand" />
+              <Dumbbell className="w-8 h-8 text-brand" aria-hidden />
             )}
           </div>
           <h1 className="text-2xl font-bold text-fg">{gymInfo?.name ?? t('defaultGymName')}</h1>
@@ -163,7 +167,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-600 mt-6">
+        <p className="text-center text-xs text-fg-muted mt-6">
           {t('contactAdmin')}
         </p>
 
@@ -176,8 +180,8 @@ export default function LoginPage() {
       </div>
 
       {/* Brand footer */}
-      <footer className="absolute bottom-4 inset-x-0 text-center text-[11px] text-gray-500 tracking-wide">
-        Powered by <span className="text-clby-green font-semibold">CLBY</span>
+      <footer className="absolute bottom-4 inset-x-0 text-center text-[11px] text-fg-faint tracking-wide">
+        Powered by <span className="text-brand font-semibold">CLBY</span>
       </footer>
     </div>
   );

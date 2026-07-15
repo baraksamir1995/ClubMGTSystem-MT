@@ -108,21 +108,21 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-faint mb-1">{t('totalPaid')}</p>
-          <p className="text-xl font-bold text-emerald-400">{fmt(totalPaid, filtered[0]?.currency ?? 'EGP')}</p>
+          <p className="text-xl font-bold text-success">{fmt(totalPaid, filtered[0]?.currency ?? 'EGP')}</p>
           <p className="text-xs text-fg-faint mt-0.5">
             {t('payments', { count: filtered.filter(p => p.status === 'paid').length })}
           </p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-faint mb-1">{t('outstanding')}</p>
-          <p className="text-xl font-bold text-amber-400">{fmt(totalPending, filtered[0]?.currency ?? 'EGP')}</p>
+          <p className="text-xl font-bold text-warning">{fmt(totalPending, filtered[0]?.currency ?? 'EGP')}</p>
           <p className="text-xs text-fg-faint mt-0.5">
             {t('pending', { count: filtered.filter(p => p.status === 'pending' || p.status === 'overdue').length })}
           </p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-faint mb-1">{t('refunded')}</p>
-          <p className="text-xl font-bold text-blue-400">{fmt(totalRefunded, filtered[0]?.currency ?? 'EGP')}</p>
+          <p className="text-xl font-bold text-info">{fmt(totalRefunded, filtered[0]?.currency ?? 'EGP')}</p>
           <p className="text-xs text-fg-faint mt-0.5">
             {t('refunds', { count: filtered.filter(p => p.status === 'refunded' || p.status === 'partial_refund').length })}
           </p>
@@ -179,12 +179,12 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="text-start px-4 py-3">{t('col.date')}</th>
-                    <th className="text-start px-4 py-3">{t('col.serviceItem')}</th>
-                    <th className="text-start px-4 py-3">{t('col.method')}</th>
-                    <th className="text-start px-4 py-3">{t('col.source')}</th>
-                    <th className="text-start px-4 py-3">{t('col.status')}</th>
-                    <th className="text-end px-4 py-3">{t('col.amount')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.date')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.serviceItem')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.method')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.source')}</th>
+                    <th scope="col" className="text-start px-4 py-3">{t('col.status')}</th>
+                    <th scope="col" className="text-end px-4 py-3">{t('col.amount')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -223,7 +223,7 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={sc.variant}>
-                          <Icon className="w-3 h-3" />
+                          <Icon className="w-3 h-3" aria-hidden />
                           {sc.label}
                         </Badge>
                         {p.notes && (
@@ -232,13 +232,13 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                       </td>
                       <td className="px-4 py-3 text-end">
                         {isRefundEntry(p) ? (
-                          <span className="font-semibold text-blue-400">
+                          <span className="font-semibold text-info">
                             -{fmt(p.amount, p.currency)}
                           </span>
                         ) : p.discount_amount && p.discount_amount > 0 ? (
                           <div>
                             <p className="text-xs text-fg-faint line-through">{fmt(p.original_amount ?? p.amount, p.currency)}</p>
-                            <p className="font-semibold text-emerald-400">{fmt(p.amount, p.currency)}</p>
+                            <p className="font-semibold text-success">{fmt(p.amount, p.currency)}</p>
                             {p.promo_code && (
                               <p className="text-xs text-brand mt-0.5 font-mono">{p.promo_code}</p>
                             )}
@@ -261,19 +261,19 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                   {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
                 </p>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page"
                     className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4" aria-hidden />
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                    <button key={n} onClick={() => setPage(n)}
+                    <button key={n} type="button" onClick={() => setPage(n)}
                       className={`w-7 h-7 text-xs rounded-lg transition-colors ${n === page ? 'bg-brand text-brand-ink font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>
                       {n}
                     </button>
                   ))}
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page"
                     className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4" aria-hidden />
                   </button>
                 </div>
               </div>

@@ -23,15 +23,20 @@ export interface AvatarProps extends Omit<HTMLAttributes<HTMLDivElement>, 'child
   ring?: string;
 }
 
+// Fixed (theme-invariant) avatar fill tokens. Each shade keeps the
+// white initials text at ≥7:1 (WCAG AAA) — verified alongside the
+// theme palettes in scripts/contrast-audit.mjs. Darkened from the
+// original Flutter-matching set for contrast; the hash (slot per name)
+// is unchanged, only the shade differs cross-platform.
 const PALETTE = [
-  '#B04B36', // red
-  '#B67833', // orange
-  '#3E8C8C', // teal
-  '#6B4DA8', // purple
-  '#A84D8A', // magenta
-  '#3F8B5C', // green
-  '#3F6BB6', // blue
-  '#8F8A2C', // olive
+  '#8C2B1A', // red
+  '#7A4A0E', // orange
+  '#155E5E', // teal
+  '#563397', // purple
+  '#8A2F68', // magenta
+  '#1F5E3A', // green
+  '#2A4A8C', // blue
+  '#5C5813', // olive
 ];
 
 function colorFor(name: string): string {

@@ -37,7 +37,7 @@ export default function TrainerSessionsModal({ trainer, onClose }: Props) {
   }, [trainer.id]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
       <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line flex-shrink-0">
@@ -56,8 +56,8 @@ export default function TrainerSessionsModal({ trainer, onClose }: Props) {
               <p className="text-xs text-fg-muted">{t('trainersPage.upcomingSessionsLabel')}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
+            <X className="w-4 h-4" aria-hidden />
           </button>
         </div>
 
@@ -82,21 +82,21 @@ export default function TrainerSessionsModal({ trainer, onClose }: Props) {
                     <p className="text-xs text-fg-faint capitalize mt-0.5">{s.class_type}</p>
                     <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-fg-faint">
                       <span className="flex items-center gap-1">
-                        <CalendarDays className="w-3 h-3" />
+                        <CalendarDays className="w-3 h-3" aria-hidden />
                         {new Date(s.session_date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3 h-3" aria-hidden />
                         {fmt12(s.start_time)} – {fmt12(s.end_time)}
                       </span>
                       {s.location && (
                         <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />{s.location}
+                          <MapPin className="w-3 h-3" aria-hidden />{s.location}
                         </span>
                       )}
                     </div>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-400/10 text-emerald-400 font-medium flex-shrink-0">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-success-soft text-success font-medium flex-shrink-0">
                     {t('trainersPage.sessionScheduled')}
                   </span>
                 </div>

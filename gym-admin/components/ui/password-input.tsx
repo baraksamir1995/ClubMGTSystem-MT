@@ -45,11 +45,13 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         ref={ref}
         type={shown ? 'text' : 'password'}
         rightIcon={
+          // Keyboard-reachable (no negative tabIndex): sighted keyboard
+          // users need the reveal too. aria-pressed conveys the state.
           <button
             type="button"
-            tabIndex={-1}
             onClick={() => setShown(!shown)}
-            className="p-1 -me-1 rounded text-fg-muted hover:text-fg transition-colors"
+            aria-pressed={shown}
+            className="min-w-11 self-stretch -my-1 inline-flex items-center justify-center rounded text-fg-muted hover:text-fg transition-colors"
             aria-label={shown ? 'Hide password' : 'Show password'}
           >
             {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

@@ -40,8 +40,8 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     paid:          { label: t('status.paid'),         icon: CheckCircle, variant: 'success', dot: 'bg-success' },
     pending:       { label: t('status.pending'),      icon: Clock,       variant: 'warning', dot: 'bg-warning' },
     overdue:       { label: t('status.overdue'),      icon: AlertCircle, variant: 'danger',  dot: 'bg-danger' },
-    refunded:      { label: t('status.refunded'),     icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
-    partial_refund:{ label: t('status.partialRefund'),icon: RotateCcw,   variant: 'neutral', dot: 'bg-blue-400' },
+    refunded:      { label: t('status.refunded'),     icon: RotateCcw,   variant: 'neutral', dot: 'bg-info' },
+    partial_refund:{ label: t('status.partialRefund'),icon: RotateCcw,   variant: 'neutral', dot: 'bg-info' },
   };
 
   const methodLabel: Record<string, string> = {
@@ -173,12 +173,12 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-surface-2 border border-line rounded-xl p-4">
             <p className="text-xs text-fg-muted mb-1">{t('summary.totalRevenue')}</p>
-            <p className="text-xl font-bold text-emerald-400">{fmt(totalRevenue)}</p>
+            <p className="text-xl font-bold text-success">{fmt(totalRevenue)}</p>
           </div>
           {[
-            { label: t('summary.paid'),    value: totalPaid,    color: 'text-emerald-400', filter: 'paid' },
-            { label: t('summary.pending'), value: totalPending, color: 'text-amber-400',   filter: 'pending' },
-            { label: t('summary.overdue'), value: totalOverdue, color: 'text-red-400',     filter: 'overdue' },
+            { label: t('summary.paid'),    value: totalPaid,    color: 'text-success', filter: 'paid' },
+            { label: t('summary.pending'), value: totalPending, color: 'text-warning', filter: 'pending' },
+            { label: t('summary.overdue'), value: totalOverdue, color: 'text-danger',  filter: 'overdue' },
           ].map(s => (
             <button key={s.filter}
               onClick={() => setStatusFilter(statusFilter === s.filter ? 'all' : s.filter)}
@@ -192,20 +192,20 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         {/* Search + Filters */}
         <div className="bg-surface-2 border border-line rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" aria-hidden />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={t('filters.searchPlaceholder')}
-              className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
+              className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg">
-                <X className="w-4 h-4" />
+              <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg">
+                <X className="w-4 h-4" aria-hidden />
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Filter className="w-4 h-4 text-fg-muted" />
+            <Filter className="w-4 h-4 text-fg-muted" aria-hidden />
             <span className="text-sm font-medium text-fg">{tc('filters')}</span>
             {hasActiveFilters && (
               <button onClick={clearFilters} className="ms-auto text-xs text-fg-muted hover:text-fg transition-colors">{t('filters.clearAll')}</button>
@@ -309,16 +309,16 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                      <th className="text-start px-5 py-3">{t('table.member')}</th>
-                      <th className="text-start px-5 py-3">{t('table.amount')}</th>
-                      <th className="text-start px-5 py-3">{t('table.serviceItem')}</th>
-                      <th className="text-start px-5 py-3">{t('table.branch')}</th>
-                      <th className="text-start px-5 py-3">{t('table.specialist')}</th>
-                      <th className="text-start px-5 py-3">{t('table.method')}</th>
-                      <th className="text-start px-5 py-3">{t('table.source')}</th>
-                      <th className="text-start px-5 py-3">{t('table.date')}</th>
-                      <th className="text-start px-5 py-3">{t('table.status')}</th>
-                      <th className="text-end px-5 py-3">{t('table.actions')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.member')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.amount')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.serviceItem')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.branch')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.specialist')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.method')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.source')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.date')}</th>
+                      <th scope="col" className="text-start px-5 py-3">{t('table.status')}</th>
+                      <th scope="col" className="text-end px-5 py-3">{t('table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -372,7 +372,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                           <td className="px-5 py-3.5">
                             <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                               payment.source === 'mobile_app'
-                                ? 'bg-blue-400/10 text-blue-400'
+                                ? 'bg-info-soft text-info'
                                 : 'bg-brand/10 text-brand'
                             }`}>
                               {payment.source === 'mobile_app' ? t('source.mobileApp') : t('source.admin')}
@@ -395,18 +395,20 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                               <button
                                 onClick={() => setInvoicePayment(payment)}
                                 title={payment.status === 'paid' ? t('tooltips.viewReceipt') : t('tooltips.viewInvoice')}
+                                aria-label={payment.status === 'paid' ? t('tooltips.viewReceipt') : t('tooltips.viewInvoice')}
                                 className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors"
                               >
-                                <FileText className="w-4 h-4" />
+                                <FileText className="w-4 h-4" aria-hidden />
                               </button>
                               {/* Refund — only on paid entries with remaining balance */}
                               {payment.status === 'paid' && payment.refunded_amount < payment.amount && can(permissions, 'payments', 'edit') && (
                                 <button
                                   onClick={() => setRefundPayment(payment)}
                                   title={t('tooltips.processRefund')}
-                                  className="p-1.5 rounded-lg text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
+                                  aria-label={t('tooltips.processRefund')}
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-info hover:bg-info-soft transition-colors"
                                 >
-                                  <RotateCcw className="w-4 h-4" />
+                                  <RotateCcw className="w-4 h-4" aria-hidden />
                                 </button>
                               )}
                               {/* Quick status change */}
@@ -415,9 +417,10 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   onClick={() => updateStatus(payment, 'paid')}
                                   disabled={updatingId === payment.id}
                                   title={t('tooltips.markAsPaid')}
-                                  className="p-1.5 rounded-lg text-fg-faint hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40 text-xs font-medium"
+                                  aria-label={t('tooltips.markAsPaid')}
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-success hover:bg-success-soft transition-colors disabled:opacity-40 text-xs font-medium"
                                 >
-                                  <CheckCircle className="w-4 h-4" />
+                                  <CheckCircle className="w-4 h-4" aria-hidden />
                                 </button>
                               )}
                               {payment.status === 'pending' && can(permissions, 'payments', 'edit') && (
@@ -425,9 +428,10 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   onClick={() => updateStatus(payment, 'overdue')}
                                   disabled={updatingId === payment.id}
                                   title={t('tooltips.markAsOverdue')}
-                                  className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                                  aria-label={t('tooltips.markAsOverdue')}
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-40"
                                 >
-                                  <AlertCircle className="w-4 h-4" />
+                                  <AlertCircle className="w-4 h-4" aria-hidden />
                                 </button>
                               )}
                               {payment.status === 'paid' && can(permissions, 'payments', 'edit') && (
@@ -435,9 +439,10 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   onClick={() => updateStatus(payment, 'pending')}
                                   disabled={updatingId === payment.id}
                                   title={t('tooltips.markAsPending')}
-                                  className="p-1.5 rounded-lg text-fg-faint hover:text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
+                                  aria-label={t('tooltips.markAsPending')}
+                                  className="p-1.5 rounded-lg text-fg-faint hover:text-warning hover:bg-warning-soft transition-colors disabled:opacity-40"
                                 >
-                                  <Clock className="w-4 h-4" />
+                                  <Clock className="w-4 h-4" aria-hidden />
                                 </button>
                               )}
                             </div>
@@ -460,9 +465,9 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                     })}
                   </p>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page"
                       className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-4 h-4" aria-hidden />
                     </button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                       <button key={n} onClick={() => setPage(n)}
@@ -470,9 +475,9 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                         {n}
                       </button>
                     ))}
-                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page"
                       className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4" aria-hidden />
                     </button>
                   </div>
                 </div>

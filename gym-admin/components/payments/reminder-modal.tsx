@@ -60,7 +60,7 @@ export default function ReminderModal({ overduePayments, gym, onClose }: Props) 
   return (
     <Modal open onClose={onClose} size="lg">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><Mail className="w-4 h-4 text-danger" /> {t('reminder.title')}</span>
+        <span className="inline-flex items-center gap-2"><Mail className="w-4 h-4 text-danger" aria-hidden /> {t('reminder.title')}</span>
       </Modal.Header>
 
       {results ? (
@@ -70,8 +70,8 @@ export default function ReminderModal({ overduePayments, gym, onClose }: Props) 
           {overduePayments.filter(p => selected.has(p.id) && p.email).map(p => (
             <div key={p.id} className="flex items-center gap-3 bg-surface-3/40 rounded-xl px-4 py-3">
               {results[p.id] === 'sent'
-                ? <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
-                : <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />
+                ? <CheckCircle className="w-4 h-4 text-success flex-shrink-0" aria-hidden />
+                : <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" aria-hidden />
               }
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-fg font-medium truncate">{p.full_name}</p>
@@ -87,7 +87,7 @@ export default function ReminderModal({ overduePayments, gym, onClose }: Props) 
         <Modal.Body className="space-y-3">
           {/* Info */}
           <div className="bg-danger-soft border border-danger/20 rounded-xl p-3 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" aria-hidden />
             <p className="text-xs text-danger">
               {overduePayments.length === 1
                 ? t('reminder.overdueCount', { count: overduePayments.length })

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ThemeToggle from '@/components/theme/theme-toggle';
 
 export default function ChangePasswordPage() {
   const [password, setPassword] = useState('');
@@ -36,11 +37,14 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 end-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-brand/20 border border-brand/30 rounded-2xl flex items-center justify-center mb-4">
-            <ShieldCheck className="w-8 h-8 text-brand" />
+            <ShieldCheck className="w-8 h-8 text-brand" aria-hidden />
           </div>
           <h1 className="text-2xl font-bold text-fg">Set new password</h1>
           <p className="text-sm text-fg-muted mt-2 text-center">
@@ -59,11 +63,12 @@ export default function ChangePasswordPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Min. 8 characters"
-                  className="w-full px-3 py-2.5 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors pr-10"
+                  className="w-full px-3 py-2.5 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors pr-10"
                 />
                 <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg-muted">
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg">
+                  {showPw ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
                 </button>
               </div>
             </div>
@@ -76,12 +81,12 @@ export default function ChangePasswordPage() {
                 value={confirm}
                 onChange={e => setConfirm(e.target.value)}
                 placeholder="Repeat new password"
-                className="w-full px-3 py-2.5 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
+                className="w-full px-3 py-2.5 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors"
               />
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full py-2.5 px-4 bg-brand hover:bg-brand disabled:opacity-50 text-brand-ink text-sm font-semibold rounded-lg transition-colors mt-2">
+              className="w-full py-2.5 px-4 bg-brand-fill hover:bg-brand-dim disabled:opacity-50 text-brand-ink border border-brand-edge text-sm font-semibold rounded-lg transition-colors mt-2">
               {loading ? 'Saving…' : 'Set password & continue'}
             </button>
           </form>

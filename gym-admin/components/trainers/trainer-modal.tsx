@@ -221,8 +221,9 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                   <div className="font-mono text-sm text-fg truncate">{createdCreds.username}</div>
                 </div>
                 <button onClick={() => copy(createdCreds.username, t('trainerModal.usernameLabel'))}
+                  aria-label={t('trainerModal.usernameLabel')}
                   className="p-2 rounded-md hover:bg-surface-3 text-fg-muted">
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-4 h-4" aria-hidden />
                 </button>
               </div>
               <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-surface border border-line">
@@ -231,13 +232,14 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                   <div className="font-mono text-sm text-fg truncate">{createdCreds.password}</div>
                 </div>
                 <button onClick={() => copy(createdCreds.password, t('trainerModal.passwordLabel'))}
+                  aria-label={t('trainerModal.passwordLabel')}
                   className="p-2 rounded-md hover:bg-surface-3 text-fg-muted">
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-4 h-4" aria-hidden />
                 </button>
               </div>
             </div>
             <div className="flex items-start gap-2 text-xs text-fg-faint">
-              <Check className="w-3.5 h-3.5 mt-0.5 text-emerald-400 flex-shrink-0" />
+              <Check className="w-3.5 h-3.5 mt-0.5 text-success flex-shrink-0" aria-hidden />
               <span>{t('trainerModal.credentialsConfirm')}</span>
             </div>
             <div className="pt-2">
@@ -254,12 +256,16 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
           <div className="flex flex-col items-center gap-3">
             <div
               onClick={() => fileRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              aria-label={t('trainerModal.photoLabel')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click(); } }}
               className="relative w-24 h-24 rounded-full bg-surface-3 border-2 border-dashed border-line hover:border-brand cursor-pointer overflow-hidden flex items-center justify-center group transition-colors">
               {photoPreview ? (
                 <>
                   <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="w-6 h-6 text-fg" />
+                    <Camera className="w-6 h-6 text-white" aria-hidden />
                   </div>
                 </>
               ) : (
@@ -272,7 +278,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
               )}
               {uploadingPhoto && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 text-fg animate-spin" />
+                  <Loader2 className="w-5 h-5 text-white animate-spin" aria-hidden />
                 </div>
               )}
             </div>
@@ -286,7 +292,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
 
           {/* Trainer Type */}
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">{t('trainerModal.typeField')} <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('trainerModal.typeField')} <span className="text-danger">*</span></label>
             <div className="flex gap-2">
               {([
                 ['personal_trainer', t('trainerModal.typePT')],
@@ -300,7 +306,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                   className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
                     trainerType === val
                       ? 'bg-brand border-brand text-brand-ink'
-                      : 'border-line text-fg-muted hover:border-gray-500 hover:text-fg'
+                      : 'border-line text-fg-muted hover:border-line-strong hover:text-fg'
                   }`}
                 >
                   {label}
@@ -396,6 +402,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                 <span key={tag} className="flex items-center gap-1 bg-brand/20 border border-brand/30 text-brand text-xs px-2 py-0.5 rounded-full">
                   {tag}
                   <button onClick={() => setSpecialisations(prev => prev.filter(tg => tg !== tag))}
+                    aria-label={`Remove ${tag}`}
                     className="hover:text-fg transition-colors">×</button>
                 </span>
               ))}
@@ -405,7 +412,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                 onKeyDown={handleTagKeyDown}
                 onBlur={() => tagInput.trim() && addTag(tagInput)}
                 placeholder={specialisations.length === 0 ? t('trainerModal.specialisationsPlaceholder') : ''}
-                className="flex-1 min-w-[120px] bg-transparent text-sm text-fg placeholder-gray-500 outline-none" />
+                className="flex-1 min-w-[120px] bg-transparent text-sm text-fg placeholder:text-fg-faint outline-none" />
             </div>
             <p className="text-xs text-fg-faint mt-1">{t('trainerModal.specialisationsHint')}</p>
           </div>
@@ -414,7 +421,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
           {branches.length > 1 && (
             <div>
               <label className="block text-xs text-fg-muted mb-1.5">
-                {t('trainerModal.branchesField')} <span className="text-red-400">*</span>
+                {t('trainerModal.branchesField')} <span className="text-danger">*</span>
               </label>
               <div className="flex flex-col gap-2">
                 {branches.map(b => (
@@ -428,10 +435,10 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                     <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
                       selectedBranchIds.includes(b.id)
                         ? 'bg-brand border-brand'
-                        : 'border-gray-500 group-hover:border-brand'
+                        : 'border-line-strong group-hover:border-brand'
                     }`}>
                       {selectedBranchIds.includes(b.id) && (
-                        <svg className="w-2.5 h-2.5 text-fg" fill="none" viewBox="0 0 10 8">
+                        <svg className="w-2.5 h-2.5 text-brand-ink" fill="none" viewBox="0 0 10 8" aria-hidden>
                           <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
@@ -441,7 +448,7 @@ export default function TrainerModal({ existing, defaultType, branches = [], gym
                 ))}
               </div>
               {selectedBranchIds.length === 0 && (
-                <p className="text-xs text-red-400 mt-1.5">{t('trainerModal.branchesRequired')}</p>
+                <p className="text-xs text-danger mt-1.5">{t('trainerModal.branchesRequired')}</p>
               )}
             </div>
           )}

@@ -2,31 +2,209 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ────────────────────────────────────────────────────
+   Every color in the app resolves through these variables. Values are
+   space-separated RGB triplets so Tailwind can compose alpha
+   (`bg-danger/40` → `rgb(var(--danger) / 0.4)`).
+
+   Both palettes are WCAG 2.2 AAA verified (scripts/contrast-audit.mjs):
+   text roles ≥ 7:1 on every surface they may sit on, UI component
+   colors (focus ring, strong borders, status icons, chart series)
+   ≥ 3:1 against adjacent surfaces. Don't tweak a value without
+   re-running the audit script. */
+
+:root {
+  color-scheme: light;
+
+  /* Warm neutrals matched to the Ippon academy-admin light theme,
+     darkened where Ippon's AA values fall short of AAA. */
+  --surface:    246 246 244; /* #F6F6F4 page background            */
+  --surface-2:  255 255 255; /* #FFFFFF cards / modals / tables    */
+  --surface-3:  240 240 237; /* #F0F0ED hover / pressed            */
+  --surface-4:  231 231 227; /* #E7E7E3 tertiary fills             */
+
+  --fg:          15  15  14; /* #0F0F0E primary text               */
+  --fg-muted:    75  75  68; /* #4B4B44 secondary text  (≥7:1)     */
+  --fg-faint:    80  80  74; /* #50504A de-emphasized text (≥7:1)  */
+
+  --line:       221 221 214; /* #DDDDD6 decorative hairline        */
+  --line-strong:116 116 108; /* #74746C control boundary (≥3:1)    */
+
+  --brand:       55  83   9; /* #375309 brand green as TEXT/icon   */
+  --brand-fill:  55  83   9; /* solid CTA fill (Ippon style)       */
+  --brand-dim:   44  66   7; /* #2C4207 fill hover darken          */
+  --brand-ink:  255 255 255; /* white text ON the dark green fill  */
+  --brand-edge:  55  83   9; /* fill boundary (≥3:1 vs bg)         */
+
+  --accent:     143  48  15; /* #8F300F energy orange as text      */
+
+  --success:      15  76  42; /* #0F4C2A */
+  --success-soft:233 246 239; /* #E9F6EF */
+  --warning:     107  68   0; /* #6B4400 */
+  --warning-soft:249 240 222; /* #F9F0DE */
+  --danger:      139  30  36; /* #8B1E24 */
+  --danger-soft: 251 235 235; /* #FBEBEB */
+  --info:         26  68 137; /* #1A4489 */
+  --info-soft:   234 241 250; /* #EAF1FB */
+  --on-status:  255 255 255; /* text on solid status fills         */
+
+  --focus:       55  83   9; /* focus indicator (≥3:1 everywhere)  */
+  --overlay:     10  10  10; /* modal backdrop base                */
+
+  /* Charts (hex — consumed directly by SVG fill/stroke). Series are
+     ≥3:1 against the card surface in both themes; charts must ALSO
+     encode series by label/shape, never color alone. */
+  --chart-1: #375309;
+  --chart-2: #075985;
+  --chart-3: #92400E;
+  --chart-4: #9F1239;
+  --chart-5: #5B21B6;
+  --chart-6: #B34A0D;
+  --chart-grid: #DDDDD6;
+  --chart-axis: #4B4B44;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* True CLBY near-black ramp (matches the Ippon dark theme), with
+     muted/faint text lifted to AAA (Ippon's dark faint is 2.8:1). */
+  --surface:     10  10  10; /* #0A0A0A */
+  --surface-2:   22  22  22; /* #161616 */
+  --surface-3:   31  31  31; /* #1F1F1F */
+  --surface-4:   39  39  39; /* #272727 */
+
+  --fg:         245 245 242; /* #F5F5F2 off-white                  */
+  --fg-muted:   184 182 175; /* #B8B6AF */
+  --fg-faint:   176 174 167; /* #B0AEA7 */
+
+  --line:        38  38  38; /* #262626 */
+  --line-strong:118 118 118; /* #767676 */
+
+  --brand:      184 255  46; /* neon reads as text on dark         */
+  --brand-fill: 184 255  46;
+  --brand-dim:  161 225  37; /* #A1E125 */
+  --brand-ink:   10  10  10;
+  --brand-edge: 184 255  46;
+
+  --accent:     255 160 112; /* #FFA070 */
+
+  --success:     140 217 168; /* #8CD9A8 */
+  --success-soft: 23  37  28; /* #17251C */
+  --warning:     242 197 114; /* #F2C572 */
+  --warning-soft: 41  32  20; /* #292014 */
+  --danger:      245 169 169; /* #F5A9A9 */
+  --danger-soft:  43  25  25; /* #2B1919 */
+  --info:        156 201 251; /* #9CC9FB */
+  --info-soft:    22  32  45; /* #16202D */
+  --on-status:    10  10  10;
+
+  --focus:      184 255  46;
+  --overlay:     10  10  10;
+
+  --chart-1: #B8FF2E;
+  --chart-2: #7DD3FC;
+  --chart-3: #FCD34D;
+  --chart-4: #FDA4AF;
+  --chart-5: #C4B5FD;
+  --chart-6: #FDBA74;
+  --chart-grid: #2E2E2E;
+  --chart-axis: #B8B6AF;
+}
+
+/* No-JS / pre-hydration fallback: honor the OS preference when the
+   bootstrap script hasn't stamped an explicit choice. Values mirror
+   the [data-theme='dark'] block above — keep them in sync. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    color-scheme: dark;
+    --surface: 10 10 10; --surface-2: 22 22 22; --surface-3: 31 31 31; --surface-4: 39 39 39;
+    --fg: 245 245 242; --fg-muted: 184 182 175; --fg-faint: 176 174 167;
+    --line: 38 38 38; --line-strong: 118 118 118;
+    --brand: 184 255 46; --brand-fill: 184 255 46; --brand-dim: 161 225 37;
+    --brand-ink: 10 10 10; --brand-edge: 184 255 46;
+    --accent: 255 160 112;
+    --success: 140 217 168; --success-soft: 23 37 28;
+    --warning: 242 197 114; --warning-soft: 41 32 20;
+    --danger: 245 169 169; --danger-soft: 43 25 25;
+    --info: 156 201 251; --info-soft: 22 32 45;
+    --on-status: 10 10 10;
+    --focus: 184 255 46; --overlay: 10 10 10;
+    --chart-1: #B8FF2E; --chart-2: #7DD3FC; --chart-3: #FCD34D;
+    --chart-4: #FDA4AF; --chart-5: #C4B5FD; --chart-6: #FDBA74;
+    --chart-grid: #2E2E2E; --chart-axis: #B8B6AF;
+  }
+}
+
+/* ── Global accessibility baseline ─────────────────────────────────── */
+
+/* Visible 2px focus indicator on everything focusable, in both themes.
+   Components may replace it with an equivalent ring (never with
+   nothing). */
+:focus-visible {
+  outline: 2px solid rgb(var(--focus));
+  outline-offset: 2px;
+}
+
+/* Skip-to-content link: first tab stop, invisible until focused. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 0.75rem;
+  z-index: 100;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  background: rgb(var(--brand-fill));
+  color: rgb(var(--brand-ink));
+  font-size: 0.875rem;
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* Honor prefers-reduced-motion everywhere: collapse animations and
+   transitions to imperceptible durations. Theme switching itself is
+   instant (no transition) by design. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Hide spinner arrows on number inputs marked with .no-spinner */
-input[type="number"].no-spinner::-webkit-inner-spin-button,
-input[type="number"].no-spinner::-webkit-outer-spin-button {
+input[type='number'].no-spinner::-webkit-inner-spin-button,
+input[type='number'].no-spinner::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-input[type="number"].no-spinner {
+input[type='number'].no-spinner {
   -moz-appearance: textfield;
   appearance: textfield;
 }
 
-/* ── Brand-green button contrast ─────────────────────────────────────
-   The remapped `purple-*` ramp puts neon brand green (#B8FF2E) on the
-   500–700 range. Existing components hardcode `text-white` on those
-   backgrounds, which is unreadable against the neon. Force near-black
-   text wherever a SOLID brand-green background is applied, and on
-   their direct icon/text children. Translucent variants like
-   `bg-purple-600/20` use a different class name and are intentionally
-   left alone — text on those still benefits from light colors. */
+/* ── Brand-fill contrast guard ───────────────────────────────────────
+   The brand fill is neon green in dark mode and stays neon for filled
+   CTAs in light mode. Legacy components hardcode `text-white` on those
+   backgrounds, which is unreadable against the neon. Force the ink
+   token wherever a SOLID brand fill is applied, and on direct
+   children. Translucent variants (`bg-purple-600/20`) use different
+   class names and are intentionally left alone. */
 .bg-purple-500,
 .bg-purple-600,
 .bg-purple-700,
 .hover\:bg-purple-500:hover,
 .hover\:bg-purple-600:hover,
 .hover\:bg-purple-700:hover,
+.bg-brand-fill,
+.hover\:bg-brand-fill:hover,
+.bg-brand-dim,
 .bg-clby-green,
 .hover\:bg-clby-green:hover,
 .bg-clby-greenDim,
@@ -36,7 +214,9 @@ input[type="number"].no-spinner {
 .hover\:bg-purple-500:hover > *,
 .hover\:bg-purple-600:hover > *,
 .hover\:bg-purple-700:hover > *,
+.bg-brand-fill > *,
+.bg-brand-dim > *,
 .bg-clby-green > *,
 .bg-clby-greenDim > * {
-  color: #0A0A0A !important;
+  color: rgb(var(--brand-ink)) !important;
 }

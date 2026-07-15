@@ -18,8 +18,8 @@ const SERVICE_ICONS: Record<ServiceTypeKey, React.ElementType> = {
 
 const SERVICE_STYLES: Record<ServiceTypeKey, { color: string; bg: string; border: string }> = {
   personal_trainer: { color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30' },
-  nutritionist:     { color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
-  physiotherapist:  { color: 'text-blue-400',    bg: 'bg-blue-400/10',    border: 'border-blue-400/30' },
+  nutritionist:     { color: 'text-success', bg: 'bg-success-soft', border: 'border-success/40' },
+  physiotherapist:  { color: 'text-info',    bg: 'bg-info-soft',    border: 'border-info/40' },
 };
 
 const PAYMENT_METHOD_KEYS = ['cash', 'bank_transfer', 'card', 'other'] as const;
@@ -131,6 +131,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
                 return (
                   <button
                     key={key}
+                    type="button"
                     onClick={() => setServiceType(key)}
                     className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-xs font-medium transition-all ${
                       serviceType === key
@@ -138,7 +139,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
                         : 'bg-surface-2 text-fg-muted border-line hover:border-line-strong'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4" aria-hidden />
                     {label}
                   </button>
                 );
@@ -158,6 +159,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
                 {packages.map(pkg => (
                   <button
                     key={pkg.id}
+                    type="button"
                     onClick={() => setSelectedPkg(pkg)}
                     className={`w-full flex items-center justify-between p-3 rounded-xl border text-start transition-all ${
                       selectedPkg?.id === pkg.id

@@ -226,14 +226,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                   value={form.caption}
                   onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
                   placeholder={t('banners.captionPlaceholder')}
-                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                 />
                 <input
                   value={form.sortOrder}
                   onChange={e => setForm(f => ({ ...f, sortOrder: e.target.value }))}
                   type="number"
                   placeholder={t('banners.sortOrderPlaceholder')}
-                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                 />
               </div>
 
@@ -242,7 +242,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder={t('banners.descriptionPlaceholder')}
                 rows={2}
-                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
+                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand resize-none"
               />
 
               <div className="flex items-center gap-2">
@@ -250,7 +250,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                   value={form.tag}
                   onChange={e => setForm(f => ({ ...f, tag: e.target.value }))}
                   placeholder={t('banners.tagPlaceholder')}
-                  className="flex-1 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                  className="flex-1 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                 />
                 <div className="flex items-center gap-1.5 shrink-0">
                   <label className="text-xs text-fg-muted whitespace-nowrap">{t('banners.tagColor')}</label>
@@ -286,7 +286,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     value={form.actionValue}
                     onChange={e => setForm(f => ({ ...f, actionValue: e.target.value }))}
                     placeholder="https://example.com"
-                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                   />
                 )}
                 {form.actionType === 'internal' && (
@@ -308,19 +308,19 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                     value={form.sponsorPromoCode}
                     onChange={e => setForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
                     placeholder={t('banners.sponsorPromoPlaceholder')}
-                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                   />
                   <input
                     value={form.sponsorExternalUrl}
                     onChange={e => setForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
                     placeholder={t('banners.sponsorUrlPlaceholder')}
-                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                   />
                   <input
                     value={form.sponsorTerms}
                     onChange={e => setForm(f => ({ ...f, sponsorTerms: e.target.value }))}
                     placeholder={t('banners.sponsorTermsPlaceholder')}
-                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand sm:col-span-2"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand sm:col-span-2"
                   />
                 </div>
               )}
@@ -408,14 +408,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             value={ef.caption}
                             onChange={e => setEditForm(f => ({ ...f, caption: e.target.value }))}
                             placeholder={t('banners.captionEditPlaceholder')}
-                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                           />
                           <input
                             value={ef.sortOrder}
                             onChange={e => setEditForm(f => ({ ...f, sortOrder: e.target.value }))}
                             type="number"
                             placeholder={t('banners.sortOrderEditPlaceholder')}
-                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                           />
                         </div>
                         <textarea
@@ -423,14 +423,14 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                           placeholder={t('banners.descriptionEditPlaceholder')}
                           rows={2}
-                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
+                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand resize-none"
                         />
                         <div className="flex items-center gap-2">
                           <input
                             value={ef.tag}
                             onChange={e => setEditForm(f => ({ ...f, tag: e.target.value }))}
                             placeholder={t('banners.tagEditPlaceholder')}
-                            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                           />
                           <div className="flex items-center gap-1.5 shrink-0">
                             <label className="text-xs text-fg-muted whitespace-nowrap">{t('banners.tagColorShort')}</label>
@@ -464,7 +464,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                               value={ef.actionValue}
                               onChange={e => setEditForm(f => ({ ...f, actionValue: e.target.value }))}
                               placeholder="https://…"
-                              className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                              className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                             />
                           )}
                           {ef.actionType === 'internal' && (
@@ -486,19 +486,19 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                               value={ef.sponsorPromoCode ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorPromoCode: e.target.value }))}
                               placeholder={t('banners.sponsorPromoEditPlaceholder')}
-                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                             />
                             <input
                               value={ef.sponsorExternalUrl ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorExternalUrl: e.target.value }))}
                               placeholder={t('banners.sponsorUrlEditPlaceholder')}
-                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                             />
                             <input
                               value={ef.sponsorTerms ?? ''}
                               onChange={e => setEditForm(f => ({ ...f, sponsorTerms: e.target.value }))}
                               placeholder={t('banners.sponsorTermsEditPlaceholder')}
-                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand sm:col-span-2"
+                              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand sm:col-span-2"
                             />
                           </div>
                         )}
@@ -548,7 +548,8 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           onClick={() => saveEdit(banner)}
                           disabled={savingId === banner.id}
                           title={tc('save')}
-                          className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/40 text-green-400 transition-colors">
+                          aria-label={tc('save')}
+                          className="p-1.5 rounded-lg bg-success-soft hover:bg-success/25 text-success transition-colors">
                           {savingId === banner.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
                             : <Check className="w-4 h-4" />}
@@ -556,6 +557,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                         <button
                           onClick={() => setEditingId(null)}
                           title={tc('cancel')}
+                          aria-label={tc('cancel')}
                           className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                           <X className="w-4 h-4" />
                         </button>
@@ -566,6 +568,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                           <button
                             onClick={() => startEdit(banner)}
                             title={tc('edit')}
+                            aria-label={tc('edit')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -575,6 +578,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             onClick={() => toggleActive(banner)}
                             disabled={togglingId === banner.id}
                             title={banner.is_active ? t('banners.deactivate') : t('banners.activate')}
+                            aria-label={banner.is_active ? t('banners.deactivate') : t('banners.activate')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             {togglingId === banner.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -588,7 +592,8 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                             onClick={() => deleteBanner(banner)}
                             disabled={deletingId === banner.id}
                             title={tc('delete')}
-                            className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors">
+                            aria-label={tc('delete')}
+                            className="p-1.5 rounded-lg bg-danger-soft hover:bg-danger/25 text-danger transition-colors">
                             {deletingId === banner.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
                               : <Trash2 className="w-4 h-4" />}
@@ -616,8 +621,8 @@ interface ActionBadgeProps {
 function ActionBadge({ type, value, labels }: ActionBadgeProps) {
   if (type === 'external_link') {
     return (
-      <span className="inline-flex items-center gap-1 text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
-        <ExternalLink className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1 text-xs bg-info-soft text-info px-2 py-0.5 rounded-full border border-info/40">
+        <ExternalLink className="w-3 h-3" aria-hidden />
         {value ? (
           <span className="max-w-[120px] truncate">{value}</span>
         ) : labels.urlNotSet}
@@ -627,15 +632,15 @@ function ActionBadge({ type, value, labels }: ActionBadgeProps) {
   if (type === 'internal') {
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-brand/15 text-brand px-2 py-0.5 rounded-full border border-brand/20">
-        <Smartphone className="w-3 h-3" />
+        <Smartphone className="w-3 h-3" aria-hidden />
         {value || labels.screenNotSet}
       </span>
     );
   }
   if (type === 'sponsor') {
     return (
-      <span className="inline-flex items-center gap-1 text-xs bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/20">
-        <Tag className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1 text-xs bg-warning-soft text-warning px-2 py-0.5 rounded-full border border-warning/40">
+        <Tag className="w-3 h-3" aria-hidden />
         {labels.sponsor}
       </span>
     );

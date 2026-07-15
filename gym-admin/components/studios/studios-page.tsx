@@ -36,7 +36,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
   const [qrStudio, setQrStudio] = useState<GymStudio | null>(null);
   const [branchFilter, setBranchFilter] = useState('all');
 
-  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand';
+  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand';
   const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
 
   const openCreate = () => {
@@ -183,15 +183,15 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
                         </div>
                         <div className="flex items-center gap-1">
                           {can(permissions, 'classes', 'edit') && (
-                            <button onClick={() => openEdit(studio)}
+                            <button onClick={() => openEdit(studio)} aria-label={t('studios.editStudio')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Pencil className="w-3.5 h-3.5" aria-hidden />
                             </button>
                           )}
                           {can(permissions, 'classes', 'delete') && (
-                            <button onClick={() => handleDelete(studio)}
-                              className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors">
-                              <Trash2 className="w-3.5 h-3.5" />
+                            <button onClick={() => handleDelete(studio)} aria-label={tc('delete')}
+                              className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -212,22 +212,22 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
 
       {/* Create / Edit modal */}
       {form !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-line">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-brand" />
                 <h2 className="text-base font-semibold text-fg">{editId ? t('studios.editStudio') : t('studios.newStudioTitle')}</h2>
               </div>
-              <button onClick={closeForm} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
-                <X className="w-4 h-4" />
+              <button onClick={closeForm} aria-label={tc('cancel')} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
+                <X className="w-4 h-4" aria-hidden />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
               {branches.length > 1 && (
                 <div>
-                  <label className="block text-xs text-fg-muted mb-1.5">{t('studios.labelBranch')} <span className="text-red-400">*</span></label>
+                  <label className="block text-xs text-fg-muted mb-1.5">{t('studios.labelBranch')} <span className="text-danger">*</span></label>
                   <select value={form.branchId} onChange={e => setForm(f => f && ({ ...f, branchId: e.target.value }))}
                     className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
                     <option value="">{t('studios.selectBranch')}</option>
@@ -237,7 +237,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
               )}
 
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">{t('studios.labelStudioName')} <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('studios.labelStudioName')} <span className="text-danger">*</span></label>
                 <input value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))}
                   placeholder={t('studios.studioNamePlaceholder')}
                   className={inputCls} />

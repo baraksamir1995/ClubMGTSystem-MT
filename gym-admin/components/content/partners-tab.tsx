@@ -24,7 +24,7 @@ interface Props {
 }
 
 const emptyForm = { name: '' };
-const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand';
+const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand';
 
 export default function PartnersTab({ initialPartners, permissions, gymId }: Props) {
   const t = useTranslations('content');
@@ -143,7 +143,7 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
         <div className="bg-surface-2 border border-brand/40 rounded-xl p-5 space-y-4">
           <p className="text-sm font-medium text-fg">{editId ? t('partners.editPartner') : t('partners.newPartner')}</p>
           <div>
-            <label className="block text-xs text-fg-muted mb-1.5">{t('partners.nameLabel')} <span className="text-red-400">*</span></label>
+            <label className="block text-xs text-fg-muted mb-1.5">{t('partners.nameLabel')} <span className="text-danger">*</span></label>
             <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
               placeholder={t('partners.namePlaceholder')} className={inp} />
           </div>
@@ -161,7 +161,7 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                 className="flex items-center gap-2 px-4 py-2 border border-dashed border-line text-fg-muted hover:text-fg hover:border-brand rounded-lg text-sm transition-colors disabled:opacity-50">
-                <Upload className="w-4 h-4" />
+                <Upload className="w-4 h-4" aria-hidden />
                 {uploading ? t('partners.uploading') : t('partners.uploadLogo')}
               </button>
             )}
@@ -196,19 +196,21 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
               <div className="px-3 py-2 border-t border-line flex items-center gap-2">
                 <p className="text-xs font-medium text-fg truncate flex-1">{p.name}</p>
                 {can(permissions, 'content', 'edit') && (
-                  <button onClick={() => openEdit(p)}
+                  <button onClick={() => openEdit(p)} aria-label={tc('edit')}
                     className="p-1 rounded text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
                     <Pencil className="w-3 h-3" />
                   </button>
                 )}
                 {can(permissions, 'content', 'edit') && (
                   <button onClick={() => toggleVisible(p)} disabled={togglingId === p.id}
+                    aria-label={p.is_visible ? 'Hide partner' : 'Show partner'}
                     className="p-1 rounded text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
                     {p.is_visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                   </button>
                 )}
                 {can(permissions, 'content', 'delete') && (
                   <button onClick={() => deletePartner(p)} disabled={deletingId === p.id}
+                    aria-label={tc('delete')}
                     className="p-1 rounded text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors">
                     {deletingId === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                   </button>

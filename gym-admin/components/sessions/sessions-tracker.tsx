@@ -231,24 +231,24 @@ export default function SessionsTracker({ initialMembers }: Props) {
 
   function statusBadge(m: SessionsMember) {
     if (m.sessionsRemaining === 0)
-      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">{t('sessionsTracker.exhausted')}</span>;
+      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-danger-soft text-danger">{t('sessionsTracker.exhausted')}</span>;
     if (m.pctUsed >= 80)
-      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">{t('sessionsTracker.low')}</span>;
-    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">{tc('active')}</span>;
+      return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-warning-soft text-warning">{t('sessionsTracker.low')}</span>;
+    return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success">{tc('active')}</span>;
   }
 
   function expiryWarning(endDate: string | null) {
     if (!endDate) return null;
     const days = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
-    if (days < 0)  return <span className="text-xs text-red-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{t('sessionsTracker.expired')}</span>;
-    if (days <= 7) return <span className="text-xs text-amber-400 flex items-center gap-1"><Clock className="w-3 h-3" />{t('sessionsTracker.daysLeft', { days })}</span>;
+    if (days < 0)  return <span className="text-xs text-danger flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{t('sessionsTracker.expired')}</span>;
+    if (days <= 7) return <span className="text-xs text-warning flex items-center gap-1"><Clock className="w-3 h-3" />{t('sessionsTracker.daysLeft', { days })}</span>;
     return null;
   }
 
   function sourceLabel(source: string) {
-    if (source === 'class_qr') return { label: t('sessionsTracker.sourceQr'),     cls: 'bg-blue-500/20 text-blue-400' };
-    if (source === 'manual')   return { label: t('sessionsTracker.sourceManual'), cls: 'bg-amber-500/20 text-amber-400' };
-    return                            { label: source,                             cls: 'bg-gray-500/20 text-fg-muted' };
+    if (source === 'class_qr') return { label: t('sessionsTracker.sourceQr'),     cls: 'bg-info-soft text-info' };
+    if (source === 'manual')   return { label: t('sessionsTracker.sourceManual'), cls: 'bg-warning-soft text-warning' };
+    return                            { label: source,                             cls: 'bg-surface-3 text-fg-muted' };
   }
 
   const sortArrow = (key: SortKey) =>
@@ -318,7 +318,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full ps-9 pe-4 py-2.5 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full ps-9 pe-4 py-2.5 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
         {activeTab === 'members' && (
@@ -350,29 +350,29 @@ export default function SessionsTracker({ initialMembers }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                  <th className="px-4 py-3 text-start">
+                  <th scope="col" className="px-4 py-3 text-start">
                     <button onClick={() => toggleSort('name')} className="hover:text-fg transition-colors">
                       {t('sessionsTracker.colMember')}{sortArrow('name')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-start">{t('sessionsTracker.colPlan')}</th>
-                  <th className="px-4 py-3 text-start">
+                  <th scope="col" className="px-4 py-3 text-start">{t('sessionsTracker.colPlan')}</th>
+                  <th scope="col" className="px-4 py-3 text-start">
                     <button onClick={() => toggleSort('pctUsed')} className="hover:text-fg transition-colors">
                       {t('sessionsTracker.colSessionsUsage')}{sortArrow('pctUsed')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">
+                  <th scope="col" className="px-4 py-3 text-center">
                     <button onClick={() => toggleSort('sessionsRemaining')} className="hover:text-fg transition-colors">
                       {t('sessionsTracker.colRemaining')}{sortArrow('sessionsRemaining')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-start">
+                  <th scope="col" className="px-4 py-3 text-start">
                     <button onClick={() => toggleSort('endDate')} className="hover:text-fg transition-colors">
                       {t('sessionsTracker.colExpires')}{sortArrow('endDate')}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center">{tc('status')}</th>
-                  <th className="px-4 py-3 text-end">{tc('actions')}</th>
+                  <th scope="col" className="px-4 py-3 text-center">{tc('status')}</th>
+                  <th scope="col" className="px-4 py-3 text-end">{tc('actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -426,13 +426,13 @@ export default function SessionsTracker({ initialMembers }: Props) {
                             className="group flex-1" title={t('sessionsTracker.clickToEdit')}
                           >
                             <div className="flex justify-between text-xs mb-1">
-                              <span className="text-fg-muted group-hover:text-gray-200 transition-colors">{t('sessionsTracker.sessionsUsedLabel', { count: m.sessionsUsed })}</span>
+                              <span className="text-fg-muted group-hover:text-fg transition-colors">{t('sessionsTracker.sessionsUsedLabel', { count: m.sessionsUsed })}</span>
                               <span className="text-fg-faint">{m.pctUsed}%</span>
                             </div>
                             <div className="h-1.5 bg-surface-3 rounded-full overflow-hidden w-36">
                               <div
                                 className={`h-full rounded-full transition-all ${
-                                  m.pctUsed >= 100 ? 'bg-red-500' : m.pctUsed >= 80 ? 'bg-amber-500' : 'bg-brand'
+                                  m.pctUsed >= 100 ? 'bg-danger' : m.pctUsed >= 80 ? 'bg-warning' : 'bg-brand'
                                 }`}
                                 style={{ width: `${m.pctUsed}%` }}
                               />
@@ -444,8 +444,8 @@ export default function SessionsTracker({ initialMembers }: Props) {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`font-semibold ${
-                        m.sessionsRemaining === 0 ? 'text-red-400'
-                        : m.sessionsRemaining <= 3 ? 'text-amber-400'
+                        m.sessionsRemaining === 0 ? 'text-danger'
+                        : m.sessionsRemaining <= 3 ? 'text-warning'
                         : 'text-fg'
                       }`}>{m.sessionsRemaining}</span>
                     </td>
@@ -497,13 +497,13 @@ export default function SessionsTracker({ initialMembers }: Props) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colDateTime')}</th>
-                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colMember')}</th>
-                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colPlan')}</th>
-                    <th className="px-4 py-3 text-start">{t('sessionsTracker.colClassSource')}</th>
-                    <th className="px-4 py-3 text-center">{t('sessionsTracker.colSessionsAtTime')}</th>
-                    <th className="px-4 py-3 text-center">{t('sessionsTracker.colSource')}</th>
-                    <th className="px-4 py-3 text-end">{t('sessionsTracker.colProfile')}</th>
+                    <th scope="col" className="px-4 py-3 text-start">{t('sessionsTracker.colDateTime')}</th>
+                    <th scope="col" className="px-4 py-3 text-start">{t('sessionsTracker.colMember')}</th>
+                    <th scope="col" className="px-4 py-3 text-start">{t('sessionsTracker.colPlan')}</th>
+                    <th scope="col" className="px-4 py-3 text-start">{t('sessionsTracker.colClassSource')}</th>
+                    <th scope="col" className="px-4 py-3 text-center">{t('sessionsTracker.colSessionsAtTime')}</th>
+                    <th scope="col" className="px-4 py-3 text-center">{t('sessionsTracker.colSource')}</th>
+                    <th scope="col" className="px-4 py-3 text-end">{t('sessionsTracker.colProfile')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -528,7 +528,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                             {fmtTime12(new Date(l.consumedAt))}
                           </p>
                           {isReversed && (
-                            <p className="text-xs text-red-400 mt-0.5">{t('sessionsTracker.reversed')}</p>
+                            <p className="text-xs text-danger mt-0.5">{t('sessionsTracker.reversed')}</p>
                           )}
                         </td>
 
@@ -542,10 +542,10 @@ export default function SessionsTracker({ initialMembers }: Props) {
                         <td className="px-4 py-3">
                           <p className="text-fg-muted text-xs">{l.planName}</p>
                           <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${
-                            l.membershipStatus === 'active'    ? 'bg-emerald-500/10 text-emerald-400' :
-                            l.membershipStatus === 'exhausted' ? 'bg-red-500/10 text-red-400' :
-                            l.membershipStatus === 'expired'   ? 'bg-gray-500/10 text-fg-muted' :
-                            'bg-gray-500/10 text-fg-muted'
+                            l.membershipStatus === 'active'    ? 'bg-success-soft text-success' :
+                            l.membershipStatus === 'exhausted' ? 'bg-danger-soft text-danger' :
+                            l.membershipStatus === 'expired'   ? 'bg-surface-3 text-fg-muted' :
+                            'bg-surface-3 text-fg-muted'
                           }`}>{l.membershipStatus === 'active' ? tc('active') : l.membershipStatus === 'exhausted' ? t('sessionsTracker.exhausted') : l.membershipStatus === 'expired' ? t('sessionsTracker.expired') : l.membershipStatus}</span>
                         </td>
 
@@ -560,7 +560,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
                                 />
                               )}
                               <div>
-                                <p className="text-gray-200 text-xs font-medium">{l.className}</p>
+                                <p className="text-fg text-xs font-medium">{l.className}</p>
                                 {l.sessionDate && (
                                   <p className="text-fg-faint text-xs">
                                     {new Date(l.sessionDate).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}

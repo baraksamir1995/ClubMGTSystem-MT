@@ -48,7 +48,7 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
       <Modal.Header>
         <span className="inline-flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-lg bg-warning-soft flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4 text-warning" />
+            <AlertTriangle className="w-4 h-4 text-warning" aria-hidden />
           </span>
           {t('deactivateModal.title')}
         </span>
@@ -81,7 +81,7 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
         {/* Members on this plan */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-fg-muted" />
+            <Users className="w-4 h-4 text-fg-muted" aria-hidden />
             <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">
               {t('deactivateModal.membersOnPlan')}
             </p>
@@ -93,7 +93,7 @@ export default function DeactivatePlanModal({ plan, onConfirm, onClose }: Props)
             </div>
           ) : members.length === 0 ? (
             <div className="flex items-center gap-2.5 p-3 bg-surface-3/30 rounded-xl">
-              <CheckCircle className="w-4 h-4 text-success flex-shrink-0" />
+              <CheckCircle className="w-4 h-4 text-success flex-shrink-0" aria-hidden />
               <p className="text-sm text-fg-muted">{t('deactivateModal.noMembers')}</p>
             </div>
           ) : (

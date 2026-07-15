@@ -48,21 +48,25 @@ export default function ToggleStatusButton({ memberId, memberName, currentStatus
 
   return isActive ? (
     <button
+      type="button"
       onClick={handleToggle}
       disabled={loading}
       title={t('deactivateTitle')}
-      className="p-1.5 rounded-lg text-gray-500 hover:text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
+      aria-label={t('deactivateTitle')}
+      className="p-1.5 rounded-lg text-fg-faint hover:text-warning hover:bg-warning-soft transition-colors disabled:opacity-40"
     >
-      <UserX className="w-4 h-4" />
+      <UserX className="w-4 h-4" aria-hidden />
     </button>
   ) : (
     <button
+      type="button"
       onClick={handleToggle}
       disabled={loading}
       title={t('reactivateTitle')}
-      className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40"
+      aria-label={t('reactivateTitle')}
+      className="p-1.5 rounded-lg text-fg-faint hover:text-success hover:bg-success-soft transition-colors disabled:opacity-40"
     >
-      <UserCheck className="w-4 h-4" />
+      <UserCheck className="w-4 h-4" aria-hidden />
     </button>
   );
 }

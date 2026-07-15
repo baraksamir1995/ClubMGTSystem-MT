@@ -86,8 +86,8 @@ function TagInput({
         {tags.map(tag => (
           <span key={tag} className="flex items-center gap-1 px-2 py-0.5 bg-brand/20 border border-brand/40 text-brand text-xs rounded-md">
             {tag}
-            <button type="button" onClick={() => onRemove(tag)} className="hover:text-fg">
-              <X className="w-3 h-3" />
+            <button type="button" onClick={() => onRemove(tag)} aria-label={`Remove ${tag}`} className="hover:text-fg">
+              <X className="w-3 h-3" aria-hidden />
             </button>
           </span>
         ))}
@@ -98,7 +98,7 @@ function TagInput({
           onKeyDown={handleKey}
           onBlur={() => { if (input.trim()) add(input); }}
           placeholder={tags.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[120px] bg-transparent text-sm text-fg placeholder-gray-500 outline-none"
+          className="flex-1 min-w-[120px] bg-transparent text-sm text-fg placeholder:text-fg-faint outline-none"
         />
       </div>
       {hint && <p className="text-xs text-fg-faint">{hint}</p>}
@@ -224,7 +224,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
     <Modal open onClose={onClose} size="lg">
       <Modal.Header>
         <span className="inline-flex items-center gap-2">
-          <CreditCard className="w-4 h-4 text-brand" />
+          <CreditCard className="w-4 h-4 text-brand" aria-hidden />
           {isEdit ? t('modal.editTitle') : t('modal.createTitle')}
         </span>
       </Modal.Header>
@@ -365,7 +365,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                         onClick={() => setSelectedBranchIds(prev => selected ? prev.filter(id => id !== b.id) : [...prev, b.id])}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-start transition-colors ${selected ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong'}`}>
                         <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center ${selected ? 'border-brand bg-brand' : 'border-line'}`}>
-                          {selected && <svg className="w-2.5 h-2.5 text-fg" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          {selected && <svg className="w-2.5 h-2.5 text-brand-ink" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         </div>
                         <span className={`text-sm ${selected ? 'text-fg' : 'text-fg-muted'}`}>{b.name}</span>
                       </button>
@@ -394,9 +394,12 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => setFreezeEnabled(v => !v)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${freezeEnabled ? 'bg-blue-500' : 'bg-gray-600'}`}
+                  role="switch"
+                  aria-checked={freezeEnabled}
+                  aria-label={t('modal.freezePlan')}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${freezeEnabled ? 'bg-info' : 'bg-surface-4'}`}
                 >
-                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${freezeEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-surface-2 shadow transition-transform ${freezeEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                 </button>
               </div>
               {freezeEnabled && (
@@ -432,9 +435,12 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => setInvitationsEnabled(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${invitationsEnabled ? 'bg-green-500' : 'bg-gray-600'}`}
+                role="switch"
+                aria-checked={invitationsEnabled}
+                aria-label={t('modal.guestInvitations')}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${invitationsEnabled ? 'bg-success' : 'bg-surface-4'}`}
               >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${invitationsEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-surface-2 shadow transition-transform ${invitationsEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </button>
             </div>
             {invitationsEnabled && (
@@ -459,8 +465,8 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                     ].map(opt => (
                       <button key={opt.value} type="button"
                         onClick={() => setInviteDurationType(opt.value as 'per_visit' | 'time_based')}
-                        className={`p-3 rounded-xl border text-start transition-colors ${inviteDurationType === opt.value ? 'border-green-500 bg-green-500/10' : 'border-line hover:border-line-strong'}`}>
-                        <p className={`text-xs font-semibold ${inviteDurationType === opt.value ? 'text-green-400' : 'text-fg-muted'}`}>{opt.label}</p>
+                        className={`p-3 rounded-xl border text-start transition-colors ${inviteDurationType === opt.value ? 'border-success/40 bg-success-soft' : 'border-line hover:border-line-strong'}`}>
+                        <p className={`text-xs font-semibold ${inviteDurationType === opt.value ? 'text-success' : 'text-fg-muted'}`}>{opt.label}</p>
                         <p className="text-xs text-fg-faint mt-0.5">{opt.hint}</p>
                       </button>
                     ))}

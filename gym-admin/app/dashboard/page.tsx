@@ -38,10 +38,10 @@ export default async function DashboardPage() {
     new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
 
   const stats = [
-    { label: t('stats.totalMembers'), value: totalMembers.toLocaleString(), icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: t('stats.activeStaff'), value: activeStaff.toLocaleString(), icon: UserCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: t('stats.thisMonthRevenue'), value: fmt(monthRevenue), icon: TrendingUp, color: 'text-brand', bg: 'bg-brand/10' },
-    { label: t('stats.totalRevenue'), value: fmt(totalRevenue), icon: CreditCard, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: t('stats.totalMembers'), value: totalMembers.toLocaleString(), icon: Users, color: 'text-info', bg: 'bg-info-soft' },
+    { label: t('stats.activeStaff'), value: activeStaff.toLocaleString(), icon: UserCheck, color: 'text-success', bg: 'bg-success-soft' },
+    { label: t('stats.thisMonthRevenue'), value: fmt(monthRevenue), icon: TrendingUp, color: 'text-brand', bg: 'bg-brand/15' },
+    { label: t('stats.totalRevenue'), value: fmt(totalRevenue), icon: CreditCard, color: 'text-warning', bg: 'bg-warning-soft' },
   ];
 
   return (
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
         {stats.map((s) => (
           <div key={s.label} className="bg-surface-2 border border-line rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center mb-3`}>
-              <s.icon className={`w-4 h-4 ${s.color}`} />
+              <s.icon className={`w-4 h-4 ${s.color}`} aria-hidden />
             </div>
             <p className="text-xs text-fg-muted mb-1">{s.label}</p>
             <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Shield, Building2, CreditCard, FileText } from 'lucide-react';
 import SignOutButton from '@/components/sign-out-button';
+import ThemeToggle from '@/components/theme/theme-toggle';
 import SuperAdminNav from './nav';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
@@ -27,17 +28,19 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   return (
     <div className="min-h-screen bg-surface flex">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       {/* Sidebar */}
       <aside className="w-60 flex-shrink-0 bg-surface-2 border-r border-line flex flex-col">
         <div className="p-5 border-b border-line">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-brand/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Shield className="w-5 h-5 text-brand" />
+              <Shield className="w-5 h-5 text-brand" aria-hidden />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-fg truncate">Platform Admin</p>
               <p className="text-xs text-fg-muted truncate">Super Admin</p>
             </div>
+            <ThemeToggle className="flex-shrink-0" />
           </div>
         </div>
 
@@ -54,7 +57,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 p-6 overflow-auto">
+      <main id="main-content" className="flex-1 min-w-0 p-6 overflow-auto">
         {children}
       </main>
     </div>

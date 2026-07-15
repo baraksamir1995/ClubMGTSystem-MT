@@ -72,7 +72,7 @@ export default function PlanPromoModal({ plans, existing, onClose, onSaved }: Pr
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><Percent className="w-4 h-4 text-brand" /> {existing ? t('editPlanPromotion') : t('setPlanPromotion')}</span>
+        <span className="inline-flex items-center gap-2"><Percent className="w-4 h-4 text-brand" aria-hidden /> {existing ? t('editPlanPromotion') : t('setPlanPromotion')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">

@@ -184,14 +184,14 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder={t('popups.titlePlaceholder')}
-                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                 />
                 <input
                   value={form.priority}
                   onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
                   type="number"
                   placeholder={t('popups.priorityPlaceholder')}
-                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                  className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                 />
               </div>
 
@@ -200,14 +200,14 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                 onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
                 placeholder={t('popups.subtitlePlaceholder')}
                 rows={2}
-                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
+                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand resize-none"
               />
 
               <input
                 value={form.ctaLabel}
                 onChange={e => setForm(f => ({ ...f, ctaLabel: e.target.value }))}
                 placeholder={t('popups.ctaPlaceholder')}
-                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                className="w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -225,7 +225,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                     value={form.ctaActionValue}
                     onChange={e => setForm(f => ({ ...f, ctaActionValue: e.target.value }))}
                     placeholder="https://example.com"
-                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                    className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                   />
                 )}
                 {form.ctaActionType === 'internal' && (
@@ -258,6 +258,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                   <button
                     type="button"
                     onClick={() => setPendingFile(null)}
+                    aria-label={tc('cancel')}
                     className="text-fg-faint hover:text-fg-muted transition-colors">
                     <X className="w-4 h-4" />
                   </button>
@@ -308,7 +309,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                       <Smartphone className="w-8 h-8 text-fg-faint" />
                     )}
                     {popup.is_active && (
-                      <span className="absolute top-1.5 start-1.5 text-xs bg-green-500/90 text-fg px-1.5 py-0.5 rounded-full font-medium">
+                      <span className="absolute top-1.5 start-1.5 text-xs bg-success text-on-status px-1.5 py-0.5 rounded-full font-medium">
                         {t('popups.active')}
                       </span>
                     )}
@@ -323,14 +324,14 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                             value={ef.title}
                             onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
                             placeholder={t('popups.titleEditPlaceholder')}
-                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                           />
                           <input
                             value={ef.priority}
                             onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
                             type="number"
                             placeholder={t('popups.priorityEditPlaceholder')}
-                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                           />
                         </div>
                         <textarea
@@ -338,13 +339,13 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                           onChange={e => setEditForm(f => ({ ...f, subtitle: e.target.value }))}
                           placeholder={t('popups.subtitleEditPlaceholder')}
                           rows={2}
-                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand resize-none"
+                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand resize-none"
                         />
                         <input
                           value={ef.ctaLabel}
                           onChange={e => setEditForm(f => ({ ...f, ctaLabel: e.target.value }))}
                           placeholder={t('popups.ctaEditPlaceholder')}
-                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                          className="w-full bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                         />
                         <div className="flex gap-2">
                           <select
@@ -360,7 +361,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                               value={ef.ctaActionValue}
                               onChange={e => setEditForm(f => ({ ...f, ctaActionValue: e.target.value }))}
                               placeholder="https://…"
-                              className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                              className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1.5 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
                             />
                           )}
                           {ef.ctaActionType === 'internal' && (
@@ -384,7 +385,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           {popup.cta_label && (
-                            <span className="text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-brand/15 text-brand border border-brand/40 px-2 py-0.5 rounded-full">
                               {popup.cta_label}
                             </span>
                           )}
@@ -411,7 +412,8 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                           onClick={() => saveEdit(popup)}
                           disabled={savingId === popup.id}
                           title={tc('save')}
-                          className="p-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/40 text-green-400 transition-colors">
+                          aria-label={tc('save')}
+                          className="p-1.5 rounded-lg bg-success-soft hover:bg-success/25 text-success transition-colors">
                           {savingId === popup.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
                             : <Check className="w-4 h-4" />}
@@ -419,6 +421,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                         <button
                           onClick={() => setEditingId(null)}
                           title={tc('cancel')}
+                          aria-label={tc('cancel')}
                           className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                           <X className="w-4 h-4" />
                         </button>
@@ -429,6 +432,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                           <button
                             onClick={() => startEdit(popup)}
                             title={tc('edit')}
+                            aria-label={tc('edit')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -438,6 +442,7 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                             onClick={() => toggleActive(popup)}
                             disabled={togglingId === popup.id}
                             title={popup.is_active ? t('popups.deactivate') : t('popups.activate')}
+                            aria-label={popup.is_active ? t('popups.deactivate') : t('popups.activate')}
                             className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors">
                             {togglingId === popup.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -451,7 +456,8 @@ export default function PopupsTab({ initialPopups, permissions }: Props) {
                             onClick={() => deletePopup(popup)}
                             disabled={deletingId === popup.id}
                             title={tc('delete')}
-                            className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 transition-colors">
+                            aria-label={tc('delete')}
+                            className="p-1.5 rounded-lg bg-danger-soft hover:bg-danger/25 text-danger transition-colors">
                             {deletingId === popup.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />
                               : <Trash2 className="w-4 h-4" />}
@@ -479,8 +485,8 @@ interface CtaActionBadgeProps {
 function CtaActionBadge({ type, value, labels }: CtaActionBadgeProps) {
   if (type === 'external_link') {
     return (
-      <span className="inline-flex items-center gap-1 text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
-        <ExternalLink className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1 text-xs bg-info-soft text-info px-2 py-0.5 rounded-full border border-info/40">
+        <ExternalLink className="w-3 h-3" aria-hidden />
         {value ? <span className="max-w-[100px] truncate">{value}</span> : labels.urlNotSet}
       </span>
     );
@@ -488,7 +494,7 @@ function CtaActionBadge({ type, value, labels }: CtaActionBadgeProps) {
   if (type === 'internal') {
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-brand/15 text-brand px-2 py-0.5 rounded-full border border-brand/20">
-        <Smartphone className="w-3 h-3" />
+        <Smartphone className="w-3 h-3" aria-hidden />
         {value || labels.screenNotSet}
       </span>
     );

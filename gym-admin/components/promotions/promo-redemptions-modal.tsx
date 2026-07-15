@@ -69,16 +69,16 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
           </div>
 
           {/* Remaining */}
-          <div className={`rounded-xl p-3 ${remaining === 0 ? 'bg-red-400/10' : remaining != null && remaining <= 5 ? 'bg-amber-400/10' : 'bg-surface-3/40'}`}>
+          <div className={`rounded-xl p-3 ${remaining === 0 ? 'bg-danger-soft' : remaining != null && remaining <= 5 ? 'bg-warning-soft' : 'bg-surface-3/40'}`}>
             <p className="text-xs text-fg-muted mb-1">{t('remainingUses')}</p>
-            <p className={`text-2xl font-bold ${remaining === 0 ? 'text-red-400' : remaining != null && remaining <= 5 ? 'text-amber-400' : 'text-fg'}`}>
+            <p className={`text-2xl font-bold ${remaining === 0 ? 'text-danger' : remaining != null && remaining <= 5 ? 'text-warning' : 'text-fg'}`}>
               {remaining != null ? remaining : '∞'}
             </p>
             {usagePct != null && (
               <div className="mt-1.5">
                 <div className="h-1 bg-surface-4 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${usagePct >= 100 ? 'bg-red-400' : usagePct >= 80 ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                    className={`h-full rounded-full transition-all ${usagePct >= 100 ? 'bg-danger' : usagePct >= 80 ? 'bg-warning' : 'bg-success'}`}
                     style={{ width: `${Math.min(usagePct, 100)}%` }}
                   />
                 </div>
@@ -87,8 +87,8 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
             )}
             {remaining === 0 && (
               <div className="flex items-center gap-1 mt-1">
-                <AlertTriangle className="w-3 h-3 text-red-400" />
-                <p className="text-xs text-red-400">{t('limitReached')}</p>
+                <AlertTriangle className="w-3 h-3 text-danger" aria-hidden />
+                <p className="text-xs text-danger">{t('limitReached')}</p>
               </div>
             )}
           </div>
@@ -96,7 +96,7 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
           {/* Total savings given */}
           <div className="bg-surface-3/40 rounded-xl p-3">
             <p className="text-xs text-fg-muted mb-1">{t('totalDiscountsGiven')}</p>
-            <p className="text-xl font-bold text-emerald-400">{fmt(totalSavings, currency)}</p>
+            <p className="text-xl font-bold text-success">{fmt(totalSavings, currency)}</p>
             <p className="text-xs text-fg-faint mt-0.5">
               {promo.discount_type === 'percent'
                 ? t('perUsePercent', { value: promo.discount_value })
@@ -139,8 +139,8 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
                     </td>
                     <td className="px-5 py-3.5 text-end">
                       <p className="text-xs text-fg-faint line-through">{fmt(r.original_price, r.currency)}</p>
-                      <p className="text-sm font-semibold text-emerald-400">{fmt(r.final_price, r.currency)}</p>
-                      <p className="text-xs text-emerald-600">− {fmt(r.discount_amount, r.currency)}</p>
+                      <p className="text-sm font-semibold text-success">{fmt(r.final_price, r.currency)}</p>
+                      <p className="text-xs text-success">− {fmt(r.discount_amount, r.currency)}</p>
                     </td>
                   </tr>
                 ))}

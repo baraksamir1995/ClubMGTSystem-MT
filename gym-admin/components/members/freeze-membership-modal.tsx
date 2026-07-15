@@ -100,8 +100,8 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
         <span className="inline-flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center">
-            <Snowflake className="w-5 h-5 text-blue-400" />
+          <span className="w-9 h-9 rounded-xl bg-info-soft flex items-center justify-center">
+            <Snowflake className="w-5 h-5 text-info" aria-hidden />
           </span>
           <span>
             {isFrozen ? t('titleUnfreeze') : t('titleFreeze')}
@@ -143,7 +143,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
             {/* Limit reached banner */}
             {isLimitReached ? (
               <div className="flex items-start gap-3 bg-danger-soft border border-danger/20 rounded-xl p-4">
-                <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" aria-hidden />
                 <p className="text-danger text-sm">
                   {isDaysExhausted
                     ? t('limitReachedDays', { max: membership.freeze_max_days ?? 0 })
@@ -158,6 +158,8 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
                   <label className="block text-fg-muted text-sm font-medium mb-3">{t('howManyDays')}</label>
                   <div className="flex items-center justify-center gap-6">
                     <button
+                      type="button"
+                      aria-label="Decrease days"
                       onClick={() => setDays(d => Math.max(1, d - 1))}
                       disabled={days <= 1}
                       className="w-10 h-10 rounded-xl bg-surface-3 hover:bg-surface-4 text-fg flex items-center justify-center text-xl font-bold disabled:opacity-30 transition-colors"
@@ -166,6 +168,8 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
                     </button>
                     <span className="text-fg text-3xl font-bold w-12 text-center">{days}</span>
                     <button
+                      type="button"
+                      aria-label="Increase days"
                       onClick={() => setDays(d => Math.min(maxAllowed, d + 1))}
                       disabled={days >= maxAllowed}
                       className="w-10 h-10 rounded-xl bg-surface-3 hover:bg-surface-4 text-fg flex items-center justify-center text-xl font-bold disabled:opacity-30 transition-colors"
@@ -178,11 +182,11 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
 
                 {/* New expiry preview */}
                 {newExpiry && (
-                  <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm">
-                    <Snowflake className="w-4 h-4 text-blue-400 shrink-0" />
-                    <span className="text-blue-300">
+                  <div className="flex items-center gap-2 bg-info-soft border border-info/40 rounded-xl p-3 text-sm">
+                    <Snowflake className="w-4 h-4 text-info shrink-0" aria-hidden />
+                    <span className="text-info">
                       {t('newExpiry')}
-                      <span className="font-semibold text-blue-200">
+                      <span className="font-semibold text-info">
                         {newExpiry.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </span>

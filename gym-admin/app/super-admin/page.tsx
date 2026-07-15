@@ -137,7 +137,7 @@ export default function SuperAdminPage() {
     catch { return '—'; }
   };
 
-  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line-strong rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
 
   return (
     <div className="space-y-5">
@@ -148,18 +148,18 @@ export default function SuperAdminPage() {
           <p className="text-sm text-fg-muted mt-0.5">{gyms.length} gym{gyms.length !== 1 ? 's' : ''} on the platform</p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-          <Plus className="w-4 h-4" /> Create Gym
+          className="flex items-center gap-2 px-4 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors">
+          <Plus className="w-4 h-4" aria-hidden /> Create Gym
         </button>
       </div>
 
       {/* Create Form Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-lg shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">Create New Gym</h2>
-              <button onClick={() => { setShowCreate(false); resetForm(); }} className="text-fg-muted hover:text-fg"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setShowCreate(false); resetForm(); }} aria-label="Close" className="text-fg-muted hover:text-fg"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               {/* Gym info */}
@@ -212,8 +212,8 @@ export default function SuperAdminPage() {
                     <label className="block text-xs font-medium text-fg-muted mb-1">Admin Password *</label>
                     <div className="relative">
                       <input type={showPassword ? 'text' : 'password'} value={adminPassword} onChange={e => setAdminPassword(e.target.value)} placeholder="Min 6 characters" className={inp + ' pr-10'} required minLength={6} />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg-muted">
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg">
+                        {showPassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
                       </button>
                     </div>
                   </div>
@@ -226,8 +226,8 @@ export default function SuperAdminPage() {
                   Cancel
                 </button>
                 <button type="submit" disabled={creating}
-                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                  {creating ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Creating...</> : 'Create Gym'}
+                  className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                  {creating ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden /> Creating...</> : 'Create Gym'}
                 </button>
               </div>
             </form>
@@ -245,7 +245,7 @@ export default function SuperAdminPage() {
       {/* Empty state */}
       {!loading && gyms.length === 0 && (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
-          <Building2 className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <Building2 className="w-10 h-10 text-fg-faint mx-auto mb-3" aria-hidden />
           <p className="text-sm text-fg-muted">No gyms yet. Create your first gym to get started.</p>
         </div>
       )}
@@ -273,7 +273,7 @@ export default function SuperAdminPage() {
                     )}
                   </div>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${gym.is_active ? 'bg-emerald-400/20 text-emerald-400' : 'bg-gray-400/20 text-fg-muted'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${gym.is_active ? 'bg-success-soft text-success' : 'bg-surface-3 text-fg-muted'}`}>
                   {gym.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -281,11 +281,11 @@ export default function SuperAdminPage() {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-fg-faint" />
+                  <Users className="w-3.5 h-3.5 text-fg-faint" aria-hidden />
                   <span className="text-sm text-fg-muted">{gym.members_count} members</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <GitBranch className="w-3.5 h-3.5 text-fg-faint" />
+                  <GitBranch className="w-3.5 h-3.5 text-fg-faint" aria-hidden />
                   <span className="text-sm text-fg-muted">{gym.branches_count} / {gym.max_branches} branches</span>
                 </div>
               </div>
@@ -294,10 +294,10 @@ export default function SuperAdminPage() {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-fg-faint">Branch limit</span>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateMaxBranches(gym, Math.max(1, gym.max_branches - 1))}
+                  <button onClick={() => updateMaxBranches(gym, Math.max(1, gym.max_branches - 1))} aria-label="Decrease branch limit"
                     className="w-6 h-6 flex items-center justify-center rounded bg-surface-3 text-fg-muted hover:text-fg text-xs font-bold transition-colors">-</button>
                   <span className="text-sm text-fg font-medium w-6 text-center">{gym.max_branches}</span>
-                  <button onClick={() => updateMaxBranches(gym, gym.max_branches + 1)}
+                  <button onClick={() => updateMaxBranches(gym, gym.max_branches + 1)} aria-label="Increase branch limit"
                     className="w-6 h-6 flex items-center justify-center rounded bg-surface-3 text-fg-muted hover:text-fg text-xs font-bold transition-colors">+</button>
                 </div>
               </div>
@@ -309,12 +309,12 @@ export default function SuperAdminPage() {
                 <button onClick={() => toggleActive(gym)} disabled={togglingId === gym.id}
                   className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors disabled:opacity-40">
                   {gym.is_active
-                    ? <><ToggleRight className="w-3.5 h-3.5" /> Deactivate</>
-                    : <><ToggleLeft className="w-3.5 h-3.5" /> Activate</>}
+                    ? <><ToggleRight className="w-3.5 h-3.5" aria-hidden /> Deactivate</>
+                    : <><ToggleLeft className="w-3.5 h-3.5" aria-hidden /> Activate</>}
                 </button>
                 <button onClick={() => deleteGym(gym)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" aria-hidden /> Delete
                 </button>
               </div>
             </div>

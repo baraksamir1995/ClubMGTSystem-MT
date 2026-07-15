@@ -62,9 +62,9 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 function actionColor(t: string) {
-  if (t === 'create' || t === 'reactivate') return 'text-emerald-400';
-  if (t === 'delete' || t === 'deactivate') return 'text-red-400';
-  if (t === 'update') return 'text-blue-400';
+  if (t === 'create' || t === 'reactivate') return 'text-success';
+  if (t === 'delete' || t === 'deactivate') return 'text-danger';
+  if (t === 'update') return 'text-info';
   return 'text-fg-muted';
 }
 
@@ -349,26 +349,26 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 </div>
                 <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-600/15 flex items-center justify-center">
-                      <UserCheck2 className="w-4.5 h-4.5 text-emerald-400" />
+                    <div className="w-9 h-9 rounded-lg bg-success-soft flex items-center justify-center">
+                      <UserCheck2 className="w-4.5 h-4.5 text-success" />
                     </div>
                     <p className="text-xs text-fg-muted">{t('overview.active')}</p>
                   </div>
-                  <p className="text-2xl font-bold text-emerald-400">{overview.activeStaff}</p>
+                  <p className="text-2xl font-bold text-success">{overview.activeStaff}</p>
                 </div>
                 <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-red-600/15 flex items-center justify-center">
-                      <UserX2 className="w-4.5 h-4.5 text-red-400" />
+                    <div className="w-9 h-9 rounded-lg bg-danger-soft flex items-center justify-center">
+                      <UserX2 className="w-4.5 h-4.5 text-danger" />
                     </div>
                     <p className="text-xs text-fg-muted">{t('overview.inactive')}</p>
                   </div>
-                  <p className="text-2xl font-bold text-red-400">{overview.inactiveStaff}</p>
+                  <p className="text-2xl font-bold text-danger">{overview.inactiveStaff}</p>
                 </div>
                 <div className="bg-surface-2 border border-line rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-blue-600/15 flex items-center justify-center">
-                      <Shield className="w-4.5 h-4.5 text-blue-400" />
+                    <div className="w-9 h-9 rounded-lg bg-info-soft flex items-center justify-center">
+                      <Shield className="w-4.5 h-4.5 text-info" />
                     </div>
                     <p className="text-xs text-fg-muted">{t('overview.roles')}</p>
                   </div>
@@ -388,7 +388,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       <p className="text-sm text-fg-muted">{t('overview.noRolesYet')}</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-700/50">
+                    <div className="divide-y divide-line">
                       {overview.roleBreakdown.map(r => (
                         <div key={r.id} className="flex items-center justify-between px-5 py-3.5">
                           <div className="flex items-center gap-3">
@@ -459,7 +459,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     <th className="px-5 py-3 text-end">{t('accounts.colActions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700/50">
+                <tbody className="divide-y divide-line">
                   {staff.map(s => (
                     <tr key={s.id} className="hover:bg-surface-3/30 transition-colors">
                       <td className="px-5 py-3.5">
@@ -489,9 +489,9 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          s.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-surface-4/40 text-fg-muted'
+                          s.status === 'active' ? 'bg-success-soft text-success' : 'bg-surface-4/40 text-fg-muted'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'active' ? 'bg-emerald-400' : 'bg-gray-500'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.status === 'active' ? 'bg-success' : 'bg-surface-4'}`} />
                           {s.status === 'active' ? t('accounts.statusActive') : t('accounts.statusInactive')}
                         </span>
                       </td>
@@ -505,19 +505,19 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                           )}
                           {can(permissions, 'staff', 'edit') && (
                             <button onClick={() => resetStaffPassword(s.id)} title={t('accounts.resetPasswordTooltip')}
-                              className="p-1.5 rounded-lg text-fg-muted hover:text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-warning hover:bg-warning-soft transition-colors">
                               <KeyRound className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {s.status === 'active' && can(permissions, 'staff', 'edit') && (
                             <button onClick={() => setConfirmDeactivate(s)} title={t('accounts.deactivateTooltip')}
-                              className="p-1.5 rounded-lg text-fg-muted hover:text-amber-400 hover:bg-amber-400/10 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-warning hover:bg-warning-soft transition-colors">
                               <UserX className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {s.status !== 'active' && can(permissions, 'staff', 'edit') && (
                             <button onClick={() => toggleStatus(s)} title={t('accounts.reactivateTooltip')}
-                              className="p-1.5 rounded-lg text-fg-muted hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
+                              className="p-1.5 rounded-lg text-fg-muted hover:text-success hover:bg-success-soft transition-colors">
                               <UserCheck className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -601,7 +601,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                     )}
                     {can(permissions, 'staff', 'delete') && (
                       <button onClick={() => deleteRole(selectedRole)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-colors border border-red-500/20">
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-danger-soft hover:bg-danger/25 text-danger text-xs font-medium rounded-lg transition-colors border border-danger/40">
                         <Trash2 className="w-3.5 h-3.5" /> {tc('delete')}
                       </button>
                     )}
@@ -619,7 +619,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-700/50">
+                    <tbody className="divide-y divide-line">
                       {MODULE_KEYS.map(mk => {
                         const permsForMod = selectedRole.permissions.filter(p => p.module === mk).map(p => p.action);
                         return (
@@ -628,7 +628,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                             {ACTIONS.map(a => (
                               <td key={a} className="px-4 py-3 text-center">
                                 {permsForMod.includes(a) ? (
-                                  <Check className="w-4 h-4 text-emerald-400 mx-auto" />
+                                  <Check className="w-4 h-4 text-success mx-auto" />
                                 ) : (
                                   <span className="w-4 h-4 flex items-center justify-center mx-auto">
                                     <span className="w-1.5 h-1.5 rounded-full bg-surface-3 block" />
@@ -718,7 +718,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                   {t('activity.logCount_other', { count: logTotal })}
                 </p>
               </div>
-              <div className="divide-y divide-gray-700/50">
+              <div className="divide-y divide-line">
                 {logs.map(log => (
                   <div key={log.id} className="flex items-start gap-4 px-5 py-3.5">
                     <div className="flex-1 min-w-0">
@@ -766,7 +766,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
       {/* ── STAFF MODAL ──────────────────────────────────────── */}
       {staffModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">
@@ -849,7 +849,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
       {/* ── ROLE MODAL ───────────────────────────────────────── */}
       {roleModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">
@@ -888,7 +888,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                         <th className="px-3 py-2.5 text-center">{t('roles.colAll')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-700/50">
+                    <tbody className="divide-y divide-line">
                       {MODULE_KEYS.map(mk => {
                         const allChecked = ACTIONS.every(a => rfPerms[mk]?.has(a));
                         return (
@@ -930,11 +930,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
       {/* ── DEACTIVATE CONFIRM ──────────────────────────────── */}
       {confirmDeactivate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 rounded-full bg-warning-soft flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-warning" />
               </div>
               <div>
                 <h2 className="font-semibold text-fg">{t('deactivateModal.title')}</h2>
@@ -950,7 +950,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                 {tc('cancel')}
               </button>
               <button onClick={() => toggleStatus(confirmDeactivate)}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-fg text-sm font-medium rounded-lg transition-colors">
+                className="flex-1 py-2.5 bg-warning hover:bg-warning/90 text-on-status text-sm font-medium rounded-lg transition-colors">
                 {t('deactivateModal.btnDeactivate')}
               </button>
             </div>
@@ -960,11 +960,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
 
       {/* ── RESET PASSWORD RESULT ───────────────────────────── */}
       {resetPwResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-yellow-400" />
+                <KeyRound className="w-5 h-5 text-warning" />
                 <h2 className="text-base font-semibold text-fg">{t('resetPassword.title')}</h2>
               </div>
               <button onClick={() => setResetPwResult(null)} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3">
@@ -972,7 +972,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               </button>
             </div>
             <p className="text-xs text-fg-muted">{t('resetPassword.hint')}</p>
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 flex items-center gap-3 overflow-hidden">
+            <div className="bg-warning-soft border border-warning/40 rounded-xl px-4 py-3 flex items-center gap-3 overflow-hidden">
               <span className="text-base font-bold text-fg tracking-wide flex-1 break-all">{resetPwResult.password}</span>
               <CopyButton text={resetPwResult.password} />
             </div>
@@ -993,7 +993,7 @@ function CopyButton({ text }: { text: string }) {
   const copy = () => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
     <button onClick={copy} className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted transition-colors flex-shrink-0">
-      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+      {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
     </button>
   );
 }
@@ -1003,8 +1003,8 @@ function StaffCreatedCard({ email, password, onDone }: { email: string; password
   const tc = useTranslations('common');
   return (
     <div className="p-6 space-y-4">
-      <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-        <p className="text-green-400 font-semibold text-sm mb-1">{t('createdCard.successTitle')}</p>
+      <div className="bg-success-soft border border-success/40 rounded-xl p-4 text-center">
+        <p className="text-success font-semibold text-sm mb-1">{t('createdCard.successTitle')}</p>
         <p className="text-fg-muted text-xs">{t('createdCard.successHint')}</p>
       </div>
       <div className="bg-surface-3/50 rounded-xl p-4 space-y-3">

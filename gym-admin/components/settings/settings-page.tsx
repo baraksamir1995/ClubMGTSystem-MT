@@ -77,7 +77,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [paymentLoaded, setPaymentLoaded] = useState(false);
 
-  const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand';
+  const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus';
 
   const saveProfile = async () => {
     if (!profile.name.trim()) { toast.error(t('profile.gymNameRequired')); return; }
@@ -286,7 +286,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                     <input ref={fileRef} type="file" accept="image/*" className="hidden"
                       onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ''; }} />
                     <button onClick={() => fileRef.current?.click()} disabled={uploadingLogo}
-                      className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-4 border border-line text-gray-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                      className="flex items-center gap-2 px-4 py-2 bg-surface-3 hover:bg-surface-4 border border-line text-fg text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                       {uploadingLogo
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('profile.uploading')}</>
                         : <><Upload className="w-4 h-4" /> {t('profile.uploadLogo')}</>}
@@ -301,7 +301,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             {/* Profile fields */}
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">{t('profile.gymName')} <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('profile.gymName')} <span className="text-danger">*</span></label>
                 <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                   placeholder={t('profile.gymNamePlaceholder')} className={inp} />
               </div>
@@ -332,7 +332,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               </div>
               {can(permissions, 'settings', 'edit') && (
                 <button onClick={saveProfile} disabled={savingProfile}
-                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingProfile ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('profile.saveProfile')}</>}
                 </button>
               )}
@@ -433,7 +433,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
             {can(permissions, 'settings', 'edit') && (
               <button onClick={saveBranding} disabled={savingBranding}
-                className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                 {savingBranding ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('branding.saveColors')}</>}
               </button>
             )}
@@ -465,7 +465,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 aria-pressed={mobilePaymentsEnabled}
                 aria-label={t('app.mobilePayments')}
               >
-                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface border border-line-strong shadow ring-0 transition duration-200 ${
                   mobilePaymentsEnabled ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
@@ -488,14 +488,14 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 aria-pressed={sessionTransferEnabled}
                 aria-label={t('app.sessionTransfers')}
               >
-                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface border border-line-strong shadow ring-0 transition duration-200 ${
                   sessionTransferEnabled ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
             {can(permissions, 'settings', 'edit') && (
               <button onClick={saveAppSettings} disabled={savingAppSettings}
-                className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                 {savingAppSettings ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('app.saveAppSettings')}</>}
               </button>
             )}
@@ -512,10 +512,10 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 {/* Current status */}
                 {paymentLoaded && paymentStatus && (
                   <div className={`rounded-xl p-4 border ${paymentStatus.configured && paymentStatus.is_active
-                    ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+                    ? 'bg-success-soft border-success/40' : 'bg-warning-soft border-warning/40'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <ShieldCheck className={`w-4 h-4 ${paymentStatus.configured ? 'text-emerald-400' : 'text-amber-400'}`} />
-                      <p className={`text-sm font-medium ${paymentStatus.configured ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      <ShieldCheck className={`w-4 h-4 ${paymentStatus.configured ? 'text-success' : 'text-warning'}`} />
+                      <p className={`text-sm font-medium ${paymentStatus.configured ? 'text-success' : 'text-warning'}`}>
                         {paymentStatus.configured ? t('app.gatewayConfigured') : t('app.gatewayNotConfigured')}
                       </p>
                     </div>
@@ -525,9 +525,9 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                         {paymentStatus.secret_key_hint && <p>{t('app.secretKeyHint')}: <span className="text-fg font-mono">{paymentStatus.secret_key_hint}</span></p>}
                         {paymentStatus.public_key_hint && <p>{t('app.publicKeyHint')}: <span className="text-fg font-mono">{paymentStatus.public_key_hint}</span></p>}
                         <div className="flex gap-3 mt-1">
-                          <span className={paymentStatus.has_card ? 'text-emerald-400' : 'text-fg-faint'}>{t('app.cardMethod')} {paymentStatus.has_card ? '✓' : '✗'}</span>
-                          <span className={paymentStatus.has_valu ? 'text-emerald-400' : 'text-fg-faint'}>{t('app.valuMethod')} {paymentStatus.has_valu ? '✓' : '✗'}</span>
-                          <span className={paymentStatus.has_applepay ? 'text-emerald-400' : 'text-fg-faint'}>{t('app.applePayMethod')} {paymentStatus.has_applepay ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_card ? 'text-success' : 'text-fg-faint'}>{t('app.cardMethod')} {paymentStatus.has_card ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_valu ? 'text-success' : 'text-fg-faint'}>{t('app.valuMethod')} {paymentStatus.has_valu ? '✓' : '✗'}</span>
+                          <span className={paymentStatus.has_applepay ? 'text-success' : 'text-fg-faint'}>{t('app.applePayMethod')} {paymentStatus.has_applepay ? '✓' : '✗'}</span>
                         </div>
                         {paymentStatus.updated_at && (
                           <p className="text-fg-faint mt-1">{t('app.lastUpdated')}: {new Date(paymentStatus.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
@@ -542,53 +542,55 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.secretKey')} <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.secretKey')} <span className="text-danger">*</span></label>
                     <div className="relative">
                       <input
                         type={showSecretKey ? 'text' : 'password'}
                         value={paymentForm.secretKey}
                         onChange={e => setPaymentForm(p => ({ ...p, secretKey: e.target.value }))}
                         placeholder={t('app.secretKeyPlaceholder')}
-                        className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full pe-10 focus:outline-none focus:border-brand"
+                        className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full pe-10 focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus"
                       />
                       <button type="button" onClick={() => setShowSecretKey(v => !v)}
-                        className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg">
-                        {showSecretKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        aria-pressed={showSecretKey}
+                        aria-label={showSecretKey ? 'Hide secret key' : 'Show secret key'}
+                        className="absolute end-0 top-1/2 -translate-y-1/2 min-w-11 min-h-11 inline-flex items-center justify-center text-fg-muted hover:text-fg">
+                        {showSecretKey ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.publicKey')} <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.publicKey')} <span className="text-danger">*</span></label>
                     <input type="text" value={paymentForm.publicKey}
                       onChange={e => setPaymentForm(p => ({ ...p, publicKey: e.target.value }))}
                       placeholder={t('app.publicKeyPlaceholder')}
-                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
                   </div>
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.cardIntegrationId')} <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('app.cardIntegrationId')} <span className="text-danger">*</span></label>
                     <input type="text" value={paymentForm.integrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, integrationId: e.target.value }))}
                       placeholder={t('app.cardIntegrationIdPlaceholder')}
-                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
                   </div>
                   <div>
                     <label className="block text-xs text-fg-muted mb-1.5">{t('app.valuIntegrationId')} <span className="text-fg-faint">({tc('optional')})</span></label>
                     <input type="text" value={paymentForm.valuIntegrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, valuIntegrationId: e.target.value }))}
                       placeholder={t('app.valuIntegrationIdPlaceholder')}
-                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
                   </div>
                   <div>
                     <label className="block text-xs text-fg-muted mb-1.5">{t('app.applepayIntegrationId')} <span className="text-fg-faint">({tc('optional')})</span></label>
                     <input type="text" value={paymentForm.applepayIntegrationId}
                       onChange={e => setPaymentForm(p => ({ ...p, applepayIntegrationId: e.target.value }))}
                       placeholder={t('app.applepayIntegrationIdPlaceholder')}
-                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-brand" />
+                      className="bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg w-full focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
                   </div>
                 </div>
 
                 <button onClick={savePaymentConfig} disabled={savingPayment}
-                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingPayment ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><CreditCard className="w-4 h-4" /> {t('app.savePaymentConfig')}</>}
                 </button>
               </>
@@ -630,10 +632,10 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                       ) : (
                         <div className="flex items-center gap-2 flex-1">
                           <input type="time" value={dh.open} onChange={e => updateDay(day, 'open', e.target.value)}
-                            className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]" />
+                            className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
                           <span className="text-fg-faint text-xs">{t('hours.to')}</span>
                           <input type="time" value={dh.close} onChange={e => updateDay(day, 'close', e.target.value)}
-                            className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]" />
+                            className="bg-surface border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus" />
                         </div>
                       )}
                     </div>
@@ -642,7 +644,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
               </div>
               {can(permissions, 'settings', 'edit') && (
                 <button onClick={saveHours} disabled={savingHours}
-                  className="mt-5 flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                  className="mt-5 flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingHours ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('hours.saveHours')}</>}
                 </button>
               )}
@@ -672,7 +674,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                     aria-pressed={capacityEnabled}
                     aria-label={t('capacity.enableTracking')}
                   >
-                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface border border-line-strong shadow ring-0 transition duration-200 ${
                       capacityEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`} />
                   </button>
@@ -680,10 +682,10 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
                 {capacityEnabled && (
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">{t('capacity.maxCapacity')} <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('capacity.maxCapacity')} <span className="text-danger">*</span></label>
                     <input type="number" min={1} value={maxCapacity}
                       onChange={e => setMaxCapacity(e.target.value)} placeholder={t('capacity.maxCapacityPlaceholder')}
-                      className="w-48 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+                      className="w-48 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus"
                       readOnly={!can(permissions, 'settings', 'edit')} />
                     <p className="text-xs text-fg-faint mt-1">{t('capacity.maxCapacityHint')}</p>
                   </div>
@@ -694,22 +696,22 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                     <p className="text-xs text-fg-muted font-semibold uppercase tracking-wider mb-3">{t('capacity.livePreview')}</p>
                     <div className="flex items-center gap-3 mb-2">
                       <span className={`inline-block w-2 h-2 rounded-full ${
-                        liveCapacity.status === 'not_busy' ? 'bg-green-500' :
-                        liveCapacity.status === 'moderate' ? 'bg-amber-500' : 'bg-red-500'
+                        liveCapacity.status === 'not_busy' ? 'bg-success' :
+                        liveCapacity.status === 'moderate' ? 'bg-warning' : 'bg-danger'
                       }`} />
                       <span className="text-sm font-semibold text-fg">
                         {liveCapacity.status === 'not_busy' ? t('capacity.notCrowded') :
                          liveCapacity.status === 'moderate' ? t('capacity.moderatelyBusy') : t('capacity.veryBusy')}
                       </span>
                       <span className={`ms-auto text-sm font-bold ${
-                        liveCapacity.status === 'not_busy' ? 'text-green-400' :
-                        liveCapacity.status === 'moderate' ? 'text-amber-400' : 'text-red-400'
+                        liveCapacity.status === 'not_busy' ? 'text-success' :
+                        liveCapacity.status === 'moderate' ? 'text-warning' : 'text-danger'
                       }`}>{liveCapacity.capacity_percentage}%</span>
                     </div>
                     <div className="w-full h-2 bg-surface-3 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all ${
-                        liveCapacity.status === 'not_busy' ? 'bg-green-500' :
-                        liveCapacity.status === 'moderate' ? 'bg-amber-500' : 'bg-red-500'
+                        liveCapacity.status === 'not_busy' ? 'bg-success' :
+                        liveCapacity.status === 'moderate' ? 'bg-warning' : 'bg-danger'
                       }`} style={{ width: `${liveCapacity.capacity_percentage}%` }} />
                     </div>
                     <p className="text-xs text-fg-faint mt-2">
@@ -720,7 +722,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
                 {can(permissions, 'settings', 'edit') && (
                   <button onClick={saveCapacity} disabled={savingCapacity}
-                    className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                    className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                     {savingCapacity ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('capacity.saveCapacity')}</>}
                   </button>
                 )}

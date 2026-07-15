@@ -285,7 +285,7 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
                 </p>
               </div>
               {isChange && (
-                <p className="text-amber-400 mt-1">⚠ {t('warningPlanChange')}</p>
+                <p className="text-warning mt-1">⚠ {t('warningPlanChange')}</p>
               )}
             </div>
           )}

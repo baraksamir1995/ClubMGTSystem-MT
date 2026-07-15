@@ -166,7 +166,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
     <div className="space-y-6">
       {/* Breadcrumb */}
       <Link href="/dashboard/members" className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg transition-colors">
-        <ChevronLeft className="w-4 h-4" /> {t('breadcrumb')}
+        <ChevronLeft className="w-4 h-4" aria-hidden /> {t('breadcrumb')}
       </Link>
 
       {/* Header */}
@@ -223,20 +223,20 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
         {/* Personal Info */}
         <div className="bg-surface-2 border border-line rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <User className="w-4 h-4 text-brand" />
+            <User className="w-4 h-4 text-brand" aria-hidden />
             <h2 className="text-sm font-semibold text-fg">{t('personalInfo')}</h2>
           </div>
           <dl className="space-y-3">
             {/* Email with verification status */}
             <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-fg-faint mt-0.5 flex-shrink-0" />
+              <Mail className="w-4 h-4 text-fg-faint mt-0.5 flex-shrink-0" aria-hidden />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-fg-faint">{t('email')}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-fg truncate">{profile?.email ?? '---'}</p>
                   {profile?.email && (
                     profile?.email_verified ? (
-                      <Badge variant="success" size="sm"><MailCheck className="w-3 h-3" /> {t('verified')}</Badge>
+                      <Badge variant="success" size="sm"><MailCheck className="w-3 h-3" aria-hidden /> {t('verified')}</Badge>
                     ) : (
                       <Badge variant="warning" size="sm">{t('unverified')}</Badge>
                     )
@@ -249,7 +249,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
             </div>
             {personalInfoFields.map(({ icon: Icon, label, value, key }) => (
               <div key={key} className="flex items-start gap-3">
-                <Icon className="w-4 h-4 text-fg-faint mt-0.5 flex-shrink-0" />
+                <Icon className="w-4 h-4 text-fg-faint mt-0.5 flex-shrink-0" aria-hidden />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-fg-faint">{label}</p>
                   <p className="text-sm text-fg truncate">{value}</p>
@@ -262,7 +262,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
         {/* Active Services */}
         <div className="bg-surface-2 border border-line rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-4 h-4 text-brand" />
+            <CreditCard className="w-4 h-4 text-brand" aria-hidden />
             <h2 className="text-sm font-semibold text-fg">{t('activeServices')}</h2>
           </div>
 
@@ -350,7 +350,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">{t('freezeHistory')}</p>
                     {currentMembership.freeze_status === 'frozen' && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 text-xs font-medium">
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-info-soft text-info text-xs font-medium">
                         {t('frozenUntil', { date: currentMembership.frozen_until ? new Date(currentMembership.frozen_until).toLocaleDateString('en-GB') : '---' })}
                       </span>
                     )}
@@ -374,12 +374,12 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
                             <span className="text-xs text-fg">
                               {new Date(log.frozen_at).toLocaleDateString('en-GB')} &rarr; {new Date(log.frozen_until).toLocaleDateString('en-GB')}
                             </span>
-                            <span className="text-xs text-blue-400">{log.freeze_days}d</span>
+                            <span className="text-xs text-info">{log.freeze_days}d</span>
                           </div>
                           {log.resumed_at ? (
-                            <span className="text-xs text-emerald-400">{t('freezeResumed')}</span>
+                            <span className="text-xs text-success">{t('freezeResumed')}</span>
                           ) : (
-                            <span className="text-xs text-blue-400">{t('freezeActive')}</span>
+                            <span className="text-xs text-info">{t('freezeActive')}</span>
                           )}
                         </div>
                       ))}

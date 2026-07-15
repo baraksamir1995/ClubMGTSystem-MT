@@ -23,7 +23,7 @@ export default function SuperAdminNav() {
         return (
           <Link key={item.href} href={item.href}
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${active ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg hover:bg-surface-3/50'}`}>
-            <item.icon className="w-4 h-4" /> {item.label}
+            <item.icon className="w-4 h-4" aria-hidden /> {item.label}
           </Link>
         );
       })}

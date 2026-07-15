@@ -31,6 +31,9 @@ import { cn } from '@/lib/cn';
  * the top/bottom of the panel.
  */
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const SIZE_CLASSES = {
   sm: 'max-w-sm',
   md: 'max-w-md',
@@ -82,6 +85,39 @@ export function Modal({
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  // Focus management: move focus into the panel on open, trap Tab
+  // inside it while open, and return focus to the opener on close.
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    if (panel) {
+      const first = panel.querySelector<HTMLElement>(FOCUSABLE);
+      (first ?? panel).focus();
+    }
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE))
+        .filter(el => el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === panelRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', trap);
+    return () => {
+      window.removeEventListener('keydown', trap);
+      opener?.focus?.();
+    };
+  }, [open]);
+
   // Lock background scroll while open. Restore the previous value on
   // unmount so a torn-down modal doesn't strand `overflow: hidden`.
   useEffect(() => {
@@ -105,11 +141,12 @@ export function Modal({
       aria-modal="true"
       aria-labelledby={titleId}
       onMouseDown={handleBackdrop}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm"
     >
       <ModalContext.Provider value={{ titleId, onClose }}>
         <div
           ref={panelRef}
+          tabIndex={-1}
           className={cn(
             'w-full bg-surface-2 border border-line rounded-2xl shadow-2xl',
             'flex flex-col max-h-[90vh] overflow-hidden',
@@ -142,13 +179,15 @@ function ModalHeader({ children, className }: SlotProps) {
       <h2 id={titleId} className="text-base font-semibold text-fg">
         {children}
       </h2>
+      {/* -m-2 keeps the header visually compact while the hit area
+          meets the 44px target minimum. */}
       <button
         type="button"
         onClick={onClose}
-        className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors"
+        className="min-w-11 min-h-11 -m-2 inline-flex items-center justify-center rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors"
         aria-label="Close"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden />
       </button>
     </div>
   );

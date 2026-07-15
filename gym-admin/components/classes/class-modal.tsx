@@ -180,7 +180,7 @@ export default function ClassModal({ existing, branches, defaultBranchId, onClos
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><Dumbbell className="w-4 h-4 text-brand" /> {existing ? t('classModal.titleEdit') : t('classModal.titleNew')}</span>
+        <span className="inline-flex items-center gap-2"><Dumbbell aria-hidden className="w-4 h-4 text-brand" /> {existing ? t('classModal.titleEdit') : t('classModal.titleNew')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
@@ -209,8 +209,9 @@ export default function ClassModal({ existing, branches, defaultBranchId, onClos
               <div key={tp.id} className={`group flex items-center gap-1 rounded-lg text-xs font-medium capitalize transition-colors ${classType === tp.name ? 'bg-brand text-brand-ink' : 'bg-surface-3 text-fg-muted'}`}>
                 <button onClick={() => setClassType(tp.name)} className="px-3 py-1.5">{tp.name}</button>
                 <button onClick={() => handleDeleteType(tp.id, tp.name)}
+                  aria-label={`Delete type ${tp.name}`}
                   className="pe-2 opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity">
-                  <X className="w-3 h-3" />
+                  <X aria-hidden className="w-3 h-3" />
                 </button>
               </div>
             ))}
@@ -224,6 +225,7 @@ export default function ClassModal({ existing, branches, defaultBranchId, onClos
                 className="w-24 bg-surface border border-line rounded-lg px-2 py-1.5 text-xs text-fg placeholder-fg-faint focus:outline-none focus:border-brand"
               />
               <button onClick={handleAddType} disabled={addingType || !newTypeName.trim()}
+                aria-label="Add class type"
                 className="p-1.5 rounded-lg bg-surface-3 hover:bg-surface-4 text-fg-muted disabled:opacity-40 transition-colors">
                 {addingType ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
               </button>
@@ -254,6 +256,8 @@ export default function ClassModal({ existing, branches, defaultBranchId, onClos
           <div className="flex gap-2 flex-wrap">
             {COLORS.map(c => (
               <button key={c} onClick={() => setColor(c)}
+                aria-label={`Select color ${c}`}
+                aria-pressed={color === c}
                 style={{ backgroundColor: c }}
                 className={`w-7 h-7 rounded-full transition-all ${color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-surface-2 scale-110' : 'opacity-70 hover:opacity-100'}`} />
             ))}

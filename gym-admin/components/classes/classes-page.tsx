@@ -33,11 +33,11 @@ interface Props {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  yoga:'bg-brand/10 text-brand', pilates:'bg-pink-400/10 text-pink-400',
-  spinning:'bg-orange-400/10 text-orange-400', boxing:'bg-red-400/10 text-red-400',
-  hiit:'bg-red-400/10 text-red-400', strength:'bg-blue-400/10 text-blue-400',
-  cardio:'bg-green-400/10 text-green-400', dance:'bg-pink-400/10 text-pink-400',
-  swimming:'bg-cyan-400/10 text-cyan-400', general:'bg-gray-400/10 text-fg-muted',
+  yoga:'bg-brand/10 text-brand', pilates:'bg-accent/15 text-accent',
+  spinning:'bg-accent/15 text-accent', boxing:'bg-danger-soft text-danger',
+  hiit:'bg-danger-soft text-danger', strength:'bg-info-soft text-info',
+  cardio:'bg-success-soft text-success', dance:'bg-accent/15 text-accent',
+  swimming:'bg-info-soft text-info', general:'bg-surface-3 text-fg-muted',
 };
 
 export default function ClassesPageClient({ initialClasses, initialSessions, initialSessionsMembers, initialClassTypes, initialBranches, initialStudios, gymId, gym, permissions }: Props) {
@@ -180,7 +180,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
               {[
                 { label: t('sessions.thisMonth'), value: sessions.filter(s => s.session_date >= monthStart && s.session_date < nextMonthStart && s.status === 'scheduled').length, color: 'text-brand', filter: 'upcoming' },
                 { label: t('sessions.past'),      value: sessions.filter(s => s.session_date < today).length,                              color: 'text-fg-muted',   filter: 'past' },
-                { label: t('sessions.cancelled'), value: sessions.filter(s => s.status === 'cancelled').length,                            color: 'text-red-400',    filter: 'cancelled' },
+                { label: t('sessions.cancelled'), value: sessions.filter(s => s.status === 'cancelled').length,                            color: 'text-danger',    filter: 'cancelled' },
               ].map(s => (
                 <button key={s.filter} onClick={() => { setStatusFilter(s.filter); setPage(1); }}
                   className={`bg-surface-2 border rounded-xl p-4 text-start transition-colors ${statusFilter === s.filter ? "border-brand" : "border-line hover:border-line-strong"}`}>
@@ -197,7 +197,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
                   placeholder={t('sessions.searchPlaceholder')}
                   className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand" />
-                {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-4 h-4" /></button>}
+                {search && <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X aria-hidden className="w-4 h-4" /></button>}
               </div>
               <div className="flex gap-3 items-center">
                 <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className={selectCls}>
@@ -236,17 +236,17 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                                 {new Date(session.session_date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                               </span>
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                                <Clock aria-hidden className="w-3 h-3" />
                                 {fmt12(session.start_time)} – {fmt12(session.end_time)}
                               </span>
                               {session.location && (
                                 <span className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />{session.location}
+                                  <MapPin aria-hidden className="w-3 h-3" />{session.location}
                                 </span>
                               )}
                               {session.instructor && (
                                 <span className="flex items-center gap-1">
-                                  <Users className="w-3 h-3" />{session.instructor}
+                                  <Users aria-hidden className="w-3 h-3" />{session.instructor}
                                 </span>
                               )}
                             </div>
@@ -256,7 +256,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                         {/* End: members + cancelled at */}
                         <div className="flex-shrink-0 text-end">
                           <div className="flex items-center gap-1 text-xs text-fg-muted justify-end">
-                            <Users className="w-3 h-3" />
+                            <Users aria-hidden className="w-3 h-3" />
                             <span>
                               {session.booked_count !== 1
                                 ? t('sessions.bookedCountPlural', { count: session.booked_count })
@@ -287,11 +287,11 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                     <div className="flex items-center justify-between px-1 py-2">
                       <p className="text-xs text-fg-faint">{tc('showingResults', { from: (page-1)*PAGE_SIZE+1, to: Math.min(page*PAGE_SIZE, filteredSessions.length), total: filteredSessions.length })}</p>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                        <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} aria-label="Previous page" className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronLeft aria-hidden className="w-4 h-4" /></button>
                         {Array.from({ length: totalPages }, (_, i) => i+1).map(n => (
                           <button key={n} onClick={() => setPage(n)} className={`w-8 h-8 text-xs rounded-lg transition-colors ${n===page ? "bg-brand text-brand-ink" : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>{n}</button>
                         ))}
-                        <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages} aria-label="Next page" className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronRight aria-hidden className="w-4 h-4" /></button>
                       </div>
                     </div>
                   )}
@@ -316,13 +316,13 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                            <th className="text-start px-5 py-3">{t('sessions.colClass')}</th>
-                            <th className="text-start px-5 py-3">{t('sessions.colDate')}</th>
-                            <th className="text-start px-5 py-3">{t('sessions.colTime')}</th>
-                            <th className="text-start px-5 py-3">{t('sessions.colLocation')}</th>
-                            <th className="text-start px-5 py-3">{t('sessions.colCapacity')}</th>
-                            <th className="text-start px-5 py-3">{t('sessions.colStatus')}</th>
-                            <th className="text-end px-5 py-3">{t('sessions.colActions')}</th>
+                            <th scope="col" className="text-start px-5 py-3">{t('sessions.colClass')}</th>
+                            <th scope="col" className="text-start px-5 py-3">{t('sessions.colDate')}</th>
+                            <th scope="col" className="text-start px-5 py-3">{t('sessions.colTime')}</th>
+                            <th scope="col" className="text-start px-5 py-3">{t('sessions.colLocation')}</th>
+                            <th scope="col" className="text-start px-5 py-3">{t('sessions.colCapacity')}</th>
+                            <th scope="col" className="text-start px-5 py-3">{t('sessions.colStatus')}</th>
+                            <th scope="col" className="text-end px-5 py-3">{t('sessions.colActions')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-line">
@@ -350,16 +350,16 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                               </td>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center gap-1 text-fg-muted text-xs">
-                                  <Clock className="w-3 h-3" />
+                                  <Clock aria-hidden className="w-3 h-3" />
                                   {fmt12(session.start_time)} – {fmt12(session.end_time)}
                                 </div>
                               </td>
                               <td className="px-5 py-3.5 text-fg-muted text-xs">
-                                {session.location ? <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{session.location}</span> : '—'}
+                                {session.location ? <span className="flex items-center gap-1"><MapPin aria-hidden className="w-3 h-3" />{session.location}</span> : '—'}
                               </td>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center gap-1 text-xs text-fg-muted">
-                                  <Users className="w-3 h-3" />
+                                  <Users aria-hidden className="w-3 h-3" />
                                   {session.booked_count}{session.capacity ? `/${session.capacity}` : ''}
                                 </div>
                               </td>
@@ -375,7 +375,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                                 <div className="flex items-center justify-end gap-1">
                                   <button onClick={() => setBookingsSession(session)}
                                     title={t('sessions.titleViewBookings')}
-                                    className="p-1.5 rounded-lg text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
+                                    className="p-1.5 rounded-lg text-fg-faint hover:text-info hover:bg-info-soft transition-colors">
                                     <Users className="w-4 h-4" />
                                   </button>
                                   {session.status === 'scheduled' && can(permissions, 'classes', 'edit') && (
@@ -388,7 +388,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                                   {session.status === 'scheduled' && can(permissions, 'classes', 'delete') && (
                                     <button onClick={() => setCancelModal(session)}
                                       title={t('sessions.titleCancelSession')}
-                                      className="p-1.5 rounded-lg text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                                      className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors">
                                       <XCircle className="w-4 h-4" />
                                     </button>
                                   )}
@@ -403,11 +403,11 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                       <div className="flex items-center justify-between px-5 py-3 border-t border-line">
                         <p className="text-xs text-fg-faint">{tc('showingResults', { from: (page-1)*PAGE_SIZE+1, to: Math.min(page*PAGE_SIZE, filteredSessions.length), total: filteredSessions.length })}</p>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                          <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} aria-label="Previous page" className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronLeft aria-hidden className="w-4 h-4" /></button>
                           {Array.from({ length: totalPages }, (_, i) => i+1).map(n => (
                             <button key={n} onClick={() => setPage(n)} className={`w-8 h-8 text-xs rounded-lg transition-colors ${n===page ? "bg-brand text-brand-ink" : 'text-fg-muted hover:text-fg hover:bg-surface-3'}`}>{n}</button>
                           ))}
-                          <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                          <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages} aria-label="Next page" className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 transition-colors"><ChevronRight aria-hidden className="w-4 h-4" /></button>
                         </div>
                       </div>
                     )}
@@ -457,7 +457,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                 <input value={classSearch} onChange={e => setClassSearch(e.target.value)}
                   placeholder={t('classes.searchPlaceholder')}
                   className="w-full ps-9 pe-9 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand" />
-                {classSearch && <button onClick={() => setClassSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-4 h-4" /></button>}
+                {classSearch && <button onClick={() => setClassSearch('')} aria-label="Clear search" className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X aria-hidden className="w-4 h-4" /></button>}
               </div>
               <div className="flex gap-3 items-center">
                 <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={selectCls}>
@@ -500,8 +500,9 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                         <div className="flex items-center gap-1">
                           {can(permissions, 'classes', 'edit') && (
                             <button onClick={() => setClassModal({ open: true, existing: cls })}
+                              aria-label={`Edit ${cls.name}`}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Pencil aria-hidden className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -526,7 +527,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                           )}
                           {can(permissions, 'classes', 'edit') && (
                             <button onClick={() => toggleClass(cls)}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${cls.is_active ? 'bg-surface-3 hover:bg-surface-4 text-fg-muted' : 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400'}`}>
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${cls.is_active ? 'bg-surface-3 hover:bg-surface-4 text-fg-muted' : 'bg-success-soft hover:bg-success/25 text-success'}`}>
                               {cls.is_active ? t('classes.deactivate') : t('classes.activate')}
                             </button>
                           )}
@@ -545,8 +546,9 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                   </p>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setClassPage(p => Math.max(1, p - 1))} disabled={classPage === 1}
+                      aria-label="Previous page"
                       className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft aria-hidden className="w-4 h-4" />
                     </button>
                     {Array.from({ length: classTotalPages }, (_, i) => i + 1).map(n => (
                       <button key={n} onClick={() => setClassPage(n)}
@@ -555,8 +557,9 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
                       </button>
                     ))}
                     <button onClick={() => setClassPage(p => Math.min(classTotalPages, p + 1))} disabled={classPage === classTotalPages}
+                      aria-label="Next page"
                       className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight aria-hidden className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

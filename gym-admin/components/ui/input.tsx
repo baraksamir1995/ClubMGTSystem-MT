@@ -28,11 +28,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div
       className={cn(
-        'group relative flex items-center w-full',
-        'bg-surface-2 border border-line rounded-lg',
-        'focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/30',
+        'group relative flex items-center w-full min-h-11',
+        // `line-strong` keeps the control boundary ≥3:1 in both themes;
+        // the solid `focus` ring is the 2px ≥3:1 focus indicator.
+        'bg-surface-2 border border-line-strong rounded-lg',
+        'focus-within:border-focus focus-within:ring-2 focus-within:ring-focus',
         'transition-colors duration-150',
-        invalid && 'border-danger focus-within:border-danger focus-within:ring-danger/30',
+        invalid && 'border-danger focus-within:border-danger focus-within:ring-danger',
         className,
       )}
     >

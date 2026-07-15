@@ -29,7 +29,7 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
   return (
     <div className="bg-surface-2 border border-line rounded-xl p-6 mt-6">
       <div className="flex items-center gap-2 mb-4">
-        <Dumbbell className="w-4 h-4 text-brand" />
+        <Dumbbell className="w-4 h-4 text-brand" aria-hidden />
         <h2 className="text-sm font-semibold text-fg">{t('title')}</h2>
         <span className="ms-auto text-xs text-fg-faint">{t('assigned', { count: assignments.length })}</span>
       </div>
@@ -45,7 +45,7 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
             <div key={a.id} className="bg-surface-3/30 rounded-xl p-4 border border-line">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-fg-muted shrink-0" />
+                  <Icon className="w-4 h-4 text-fg-muted shrink-0" aria-hidden />
                   <div>
                     <p className="text-sm font-medium text-fg">{a.package_name}</p>
                     <p className="text-xs text-fg-faint">{serviceLabel}</p>
@@ -80,18 +80,22 @@ export default function ServicePackagesList({ assignments }: { assignments: any[
           </span>
           <div className="flex items-center gap-1">
             <button
+              type="button"
+              aria-label="Previous page"
               onClick={() => setPage(p => p - 1)}
               disabled={page === 0}
               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden />
             </button>
             <button
+              type="button"
+              aria-label="Next page"
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages - 1}
               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden />
             </button>
           </div>
         </div>

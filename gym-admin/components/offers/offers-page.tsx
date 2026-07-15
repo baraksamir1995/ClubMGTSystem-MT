@@ -153,9 +153,9 @@ export default function OffersPage({
         <div className="grid grid-cols-4 gap-4">
           {([
             { labelKey: 'cardTotalOffers', value: counts.total,   color: 'text-fg',           filter: 'all'     as StatusFilter },
-            { labelKey: 'cardActive',      value: counts.active,  color: 'text-emerald-400',   filter: 'active'  as StatusFilter },
+            { labelKey: 'cardActive',      value: counts.active,  color: 'text-success',   filter: 'active'  as StatusFilter },
             { labelKey: 'cardDraft',       value: counts.draft,   color: 'text-fg-muted',      filter: 'draft'   as StatusFilter },
-            { labelKey: 'cardExpired',     value: counts.expired, color: 'text-red-400',       filter: 'expired' as StatusFilter },
+            { labelKey: 'cardExpired',     value: counts.expired, color: 'text-danger',       filter: 'expired' as StatusFilter },
           ] as const).map(s => (
             <button
               key={s.filter}
@@ -170,8 +170,8 @@ export default function OffersPage({
 
         {/* Active limit notice */}
         {counts.active >= 10 && (
-          <div className="flex items-center gap-3 bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">
-            <span className="text-amber-400 text-sm font-medium">
+          <div className="flex items-center gap-3 bg-warning-soft border border-warning/40 rounded-xl px-4 py-3">
+            <span className="text-warning text-sm font-medium">
               {t('activeOfferLimit')}
             </span>
           </div>
@@ -186,7 +186,7 @@ export default function OffersPage({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('searchOffersPlaceholder')}
-              className="w-full ps-9 pe-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
+              className="w-full ps-9 pe-4 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div className="flex flex-wrap gap-3 items-center">

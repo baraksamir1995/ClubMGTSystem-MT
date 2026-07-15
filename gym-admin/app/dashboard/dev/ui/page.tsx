@@ -114,7 +114,7 @@ export default function UiPlayground() {
           <Avatar name="Barak Samir" size={28} />
           <Avatar name="Salma Ahmed" size={40} />
           <Avatar name="Coach PT" size={56} />
-          <Avatar name="Ring" size={40} ring="#B8FF2E" />
+          <Avatar name="Ring" size={40} ring="rgb(var(--brand-fill))" />
         </div>
       </Section>
 

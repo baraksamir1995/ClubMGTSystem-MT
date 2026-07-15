@@ -110,6 +110,7 @@ export default function TransferModal({
               {filtered.map(m => (
                 <button
                   key={m.id}
+                  type="button"
                   onClick={() => setSelected(m)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-start transition-colors ${
                     selected?.id === m.id
@@ -148,7 +149,7 @@ export default function TransferModal({
                 <p className="text-xs text-fg-faint mb-1">{t('from')}</p>
                 <p className="text-sm font-medium text-fg">{sourceMemberName}</p>
               </div>
-              <ArrowRight className="w-5 h-5 text-brand flex-shrink-0" />
+              <ArrowRight className="w-5 h-5 text-brand flex-shrink-0" aria-hidden />
               <div className="flex-1 bg-surface-3/40 rounded-lg p-3 border border-brand/40 text-center">
                 <p className="text-xs text-fg-faint mb-1">{t('to')}</p>
                 <p className="text-sm font-medium text-fg">{selected?.full_name ?? '—'}</p>
@@ -173,7 +174,7 @@ export default function TransferModal({
             </div>
 
             <div className="flex items-start gap-2 bg-warning-soft border border-warning/30 rounded-lg p-3">
-              <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" aria-hidden />
               <p className="text-xs text-warning">
                 {t('warningText')}
               </p>

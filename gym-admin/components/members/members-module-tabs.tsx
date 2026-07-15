@@ -42,7 +42,7 @@ export default function MembersModuleTabs() {
               active ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-4 h-4" aria-hidden />
             {tab.label}
           </Link>
         );

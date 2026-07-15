@@ -26,26 +26,29 @@ const button = cva(
     'inline-flex items-center justify-center gap-2',
     'rounded-lg font-medium select-none whitespace-nowrap',
     'transition-colors duration-150',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
     'disabled:opacity-40 disabled:cursor-not-allowed',
   ].join(' '),
   {
     variants: {
       variant: {
-        // Filled brand-green button. Text is brand-ink (dark) — the
-        // neon green is too bright for white text.
-        primary: 'bg-brand text-brand-ink hover:bg-brand-dim active:bg-brand-dim',
-        // Subtle dark fill. Used for cancel / secondary actions.
-        secondary: 'bg-surface-3 text-fg border border-line hover:bg-surface-4',
+        // Filled brand button. `brand-fill` stays neon in both themes;
+        // ink text + `brand-edge` border keep AAA text contrast and a
+        // ≥3:1 boundary on light surfaces.
+        primary: 'bg-brand-fill text-brand-ink border border-brand-edge hover:bg-brand-dim active:bg-brand-dim',
+        // Subtle surface fill. Used for cancel / secondary actions.
+        secondary: 'bg-surface-3 text-fg border border-line-strong hover:bg-surface-4',
         // Borderless transparent button. Used in dense rows or table cells.
         ghost: 'bg-transparent text-fg hover:bg-surface-3',
-        // Destructive — red-tinted background, brighter danger text.
-        danger: 'bg-danger-soft text-danger border border-danger hover:bg-danger hover:text-fg',
+        // Destructive — danger-tinted background; solid fill on hover
+        // pairs with `on-status` text so contrast holds in both themes.
+        danger: 'bg-danger-soft text-danger border border-danger hover:bg-danger hover:text-on-status',
       },
+      // All sizes meet the 44px (2.5.5 AAA) minimum target height.
       size: {
-        sm: 'h-8  px-3   text-xs',
-        md: 'h-10 px-4   text-sm',
-        lg: 'h-12 px-5   text-[15px]',
+        sm: 'min-h-11 px-3 text-xs',
+        md: 'min-h-11 px-4 text-sm',
+        lg: 'min-h-12 px-5 text-[15px]',
       },
       fullWidth: {
         true: 'w-full',

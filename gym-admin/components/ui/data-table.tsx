@@ -96,6 +96,7 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  scope="col"
                   className={cn(
                     'px-4 py-2.5 font-medium',
                     alignClass(col.align),
@@ -134,6 +135,19 @@ export function DataTable<T>({
                     rowClassName?.(row),
                   )}
                   onClick={clickable ? () => onRowClick!(row) : undefined}
+                  // Clickable rows must be reachable and operable from
+                  // the keyboard, not just the mouse.
+                  tabIndex={clickable ? 0 : undefined}
+                  onKeyDown={
+                    clickable
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onRowClick!(row);
+                          }
+                        }
+                      : undefined
+                  }
                 >
                   {columns.map((col) => (
                     <td

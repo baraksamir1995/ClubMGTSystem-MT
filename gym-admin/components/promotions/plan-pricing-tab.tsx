@@ -62,7 +62,7 @@ export default function PlanPricingTab({ plans }: Props) {
 
   const statusConfig = {
     active:   { label: t('statusActive'),   icon: CheckCircle2, cls: 'text-success bg-success-soft' },
-    upcoming: { label: t('statusUpcoming'), icon: Clock,        cls: 'text-blue-400 bg-blue-400/10'  },
+    upcoming: { label: t('statusUpcoming'), icon: Clock,        cls: 'text-info bg-info-soft'  },
     expired:  { label: t('statusExpired'),  icon: XCircle,      cls: 'text-fg-muted bg-surface-4'    },
   };
 
@@ -85,9 +85,9 @@ export default function PlanPricingTab({ plans }: Props) {
       <div className="space-y-4">
         {/* Active promotions highlight */}
         {activeCount > 0 && (
-          <div className="bg-emerald-400/5 border border-emerald-400/20 rounded-xl px-5 py-3 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <p className="text-sm text-emerald-300">
+          <div className="bg-success-soft border border-success/40 rounded-xl px-5 py-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" aria-hidden />
+            <p className="text-sm text-success">
               {activeCount === 1
                 ? t('planPricingActiveNotice')
                 : t('planPricingActiveNoticePlural', { count: activeCount })}
@@ -130,13 +130,13 @@ export default function PlanPricingTab({ plans }: Props) {
               const pct        = planPrice > 0 ? Math.round((discount / planPrice) * 100) : 0;
 
               return (
-                <div key={promo.id} className={`bg-surface-2 border rounded-xl p-5 flex items-center gap-4 ${status === 'expired' ? 'border-line opacity-60' : status === 'active' ? 'border-emerald-400/20' : 'border-line'}`}>
+                <div key={promo.id} className={`bg-surface-2 border rounded-xl p-5 flex items-center gap-4 ${status === 'expired' ? 'border-line opacity-60' : status === 'active' ? 'border-success/40' : 'border-line'}`}>
                   {/* Plan info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-fg font-semibold truncate">{promo.plan_name}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${cls}`}>
-                        <Icon className="w-3 h-3" />{label}
+                        <Icon className="w-3 h-3" aria-hidden />{label}
                       </span>
                     </div>
                     <p className="text-xs text-fg-faint">
@@ -153,19 +153,19 @@ export default function PlanPricingTab({ plans }: Props) {
                       <span className="text-lg font-bold text-fg">{promo.currency} {promoPrice.toFixed(2)}</span>
                     </div>
                     {discount > 0 && (
-                      <p className="text-xs text-emerald-400 mt-0.5">{t('savePct', { currency: promo.currency, amount: discount.toFixed(2), pct })}</p>
+                      <p className="text-xs text-success mt-0.5">{t('savePct', { currency: promo.currency, amount: discount.toFixed(2), pct })}</p>
                     )}
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => setModal({ open: true, existing: promo })}
+                    <button onClick={() => setModal({ open: true, existing: promo })} aria-label={t('editPlanPromotion')}
                       className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" aria-hidden />
                     </button>
-                    <button onClick={() => deletePromo(promo)} disabled={deletingId === promo.id}
+                    <button onClick={() => deletePromo(promo)} disabled={deletingId === promo.id} aria-label="Remove promotion"
                       className="p-1.5 rounded-lg text-fg-muted hover:text-danger hover:bg-danger-soft transition-colors">
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden />
                     </button>
                   </div>
                 </div>

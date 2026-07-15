@@ -31,7 +31,7 @@ const TAG_COLORS = [
   { label: 'Orange', value: '#F97316' },
 ];
 
-const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors';
+const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
 const labelCls = 'block text-xs font-medium text-fg-muted mb-1.5';
 
 function toDateInputValue(iso: string | null | undefined): string {
@@ -241,7 +241,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
           {/* Title */}
           <div>
-            <label className={labelCls}>{t('labelTitle')} <span className="text-red-400">*</span></label>
+            <label className={labelCls}>{t('labelTitle')} <span className="text-danger">*</span></label>
             <input
               className={inputCls}
               value={title}
@@ -256,7 +256,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={labelCls.replace('mb-1.5', '')}>{t('labelShortDescription')}</label>
-              <span className={`text-xs ${shortDesc.length > 150 ? 'text-red-400' : 'text-fg-faint'}`}>
+              <span className={`text-xs ${shortDesc.length > 150 ? 'text-danger' : 'text-fg-faint'}`}>
                 {t('hintShortDesc', { count: shortDesc.length })}
               </span>
             </div>
@@ -274,7 +274,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={labelCls.replace('mb-1.5', '')}>{t('labelFullDescription')}</label>
-              <span className={`text-xs ${fullDesc.length > 500 ? 'text-red-400' : 'text-fg-faint'}`}>
+              <span className={`text-xs ${fullDesc.length > 500 ? 'text-danger' : 'text-fg-faint'}`}>
                 {t('hintFullDesc', { count: fullDesc.length })}
               </span>
             </div>
@@ -318,7 +318,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className={labelCls.replace('mb-1.5', '')}>{t('labelTagLabel')}</label>
-                <span className={`text-xs ${tagLabel.length > 12 ? 'text-red-400' : 'text-fg-faint'}`}>
+                <span className={`text-xs ${tagLabel.length > 12 ? 'text-danger' : 'text-fg-faint'}`}>
                   {t('hintTagLabel', { count: tagLabel.length })}
                 </span>
               </div>
@@ -364,7 +364,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                 <button
                   type="button"
                   onClick={() => { setHeroUrl(''); if (fileRef.current) fileRef.current.value = ''; }}
-                  className="absolute top-2 end-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors"
+                  className="absolute top-2 end-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-white transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -372,7 +372,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="absolute bottom-2 end-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors"
+                  className="absolute bottom-2 end-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-white text-xs rounded-lg transition-colors"
                 >
                   <Upload className="w-3 h-3" />
                   {uploading ? t('uploading') : t('replaceImage')}
@@ -407,7 +407,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
 
           {/* Expiry date */}
           <div>
-            <label className={labelCls}>{t('labelExpiryDate')} <span className="text-red-400">*</span></label>
+            <label className={labelCls}>{t('labelExpiryDate')} <span className="text-danger">*</span></label>
             <input
               className={inputCls}
               type="date"
@@ -456,12 +456,12 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
                   </span>
                 )}
                 {linkedOption.session_count != null && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600/10 text-blue-300 text-xs rounded-full">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-info-soft text-info text-xs rounded-full">
                     {t('sessionsTag', { count: linkedOption.session_count })}
                   </span>
                 )}
                 {linkedOption.duration_days != null && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-600/10 text-teal-300 text-xs rounded-full">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-info-soft text-info text-xs rounded-full">
                     {t('daysTag', { count: linkedOption.duration_days })}
                   </span>
                 )}

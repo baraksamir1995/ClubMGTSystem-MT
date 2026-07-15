@@ -13,7 +13,13 @@ import toast from 'react-hot-toast';
 
 const PRESET_DAYS = [30, 90, 180, 365] as const;
 
-const PIE_COLORS = ['#7c3aed','#6d28d9','#5b21b6','#4c1d95','#8b5cf6','#a78bfa','#c4b5fd'];
+const PIE_COLORS = ['var(--chart-1)','var(--chart-2)','var(--chart-3)','var(--chart-4)','var(--chart-5)','var(--chart-6)'];
+
+const TOOLTIP_STYLE = {
+  contentStyle: { backgroundColor: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--line))', borderRadius: 8, color: 'rgb(var(--fg))' },
+  labelStyle: { color: 'rgb(var(--fg))' },
+  itemStyle: { color: 'rgb(var(--fg))' },
+} as const;
 
 function dateStr(offsetDays = 0) {
   const d = new Date();
@@ -172,7 +178,7 @@ export default function AnalyticsPage() {
   const tabCls = (tab: string) =>
     `flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab ? 'bg-surface-3 text-fg' : 'text-fg-muted hover:text-fg'}`;
 
-  const inp = 'bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand [color-scheme:dark]';
+  const inp = 'bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand';
 
   return (
     <div className="space-y-5">
@@ -185,21 +191,21 @@ export default function AnalyticsPage() {
         <div className="relative">
           <button onClick={() => setShowExport(v => !v)}
             className="flex items-center gap-2 px-4 py-2 bg-surface-2 border border-line text-fg-muted text-sm font-medium rounded-lg hover:bg-surface-3 transition-colors">
-            <Download className="w-4 h-4" /> {tc('export')}
+            <Download aria-hidden className="w-4 h-4" /> {tc('export')}
           </button>
           {showExport && (
             <div className="absolute end-0 top-full mt-1 z-20 bg-surface-2 border border-line rounded-xl shadow-xl overflow-hidden min-w-[160px]">
               <button onClick={() => exportAs('csv')}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
-                <Download className="w-4 h-4 text-emerald-400" /> {t('export.csv')}
+                <Download aria-hidden className="w-4 h-4 text-success" /> {t('export.csv')}
               </button>
               <button onClick={() => exportAs('xlsx')}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
-                <FileSpreadsheet className="w-4 h-4 text-blue-400" /> {t('export.excel')}
+                <FileSpreadsheet aria-hidden className="w-4 h-4 text-info" /> {t('export.excel')}
               </button>
               <button onClick={() => exportAs('print')}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
-                <Printer className="w-4 h-4 text-brand" /> {t('export.print')}
+                <Printer aria-hidden className="w-4 h-4 text-brand" /> {t('export.print')}
               </button>
             </div>
           )}
@@ -209,16 +215,16 @@ export default function AnalyticsPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit flex-wrap">
         <button onClick={() => setActiveTab('dashboard')} className={tabCls('dashboard')}>
-          <LayoutDashboard className="w-4 h-4" /> {t('tabs.dashboard')}
+          <LayoutDashboard aria-hidden className="w-4 h-4" /> {t('tabs.dashboard')}
         </button>
         <button onClick={() => setActiveTab('members')} className={tabCls('members')}>
-          <Users className="w-4 h-4" /> {t('tabs.members')}
+          <Users aria-hidden className="w-4 h-4" /> {t('tabs.members')}
         </button>
         <button onClick={() => setActiveTab('revenue')} className={tabCls('revenue')}>
-          <DollarSign className="w-4 h-4" /> {t('tabs.revenue')}
+          <DollarSign aria-hidden className="w-4 h-4" /> {t('tabs.revenue')}
         </button>
         <button onClick={() => setActiveTab('classes')} className={tabCls('classes')}>
-          <Dumbbell className="w-4 h-4" /> {t('tabs.classes')}
+          <Dumbbell aria-hidden className="w-4 h-4" /> {t('tabs.classes')}
         </button>
       </div>
 
@@ -235,7 +241,12 @@ export default function AnalyticsPage() {
                 {p === 'day' ? t('period.today') : p === 'week' ? t('period.thisWeek') : t('period.thisMonth')}
               </button>
             ))}
-            {dashLoading && <RefreshCw className="w-4 h-4 text-brand animate-spin ms-2" />}
+            {dashLoading && (
+              <span role="status" className="ms-2">
+                <RefreshCw aria-hidden className="w-4 h-4 text-brand animate-spin" />
+                <span className="sr-only">Loading</span>
+              </span>
+            )}
           </div>
 
           {!dashLoading && dashData && (() => {
@@ -249,15 +260,15 @@ export default function AnalyticsPage() {
                     label={t('dashboard.kpi.activeMembers')}
                     value={kpis.activeMembers.toLocaleString()}
                     sub={kpis.newMembers > 0 ? t('dashboard.kpi.newSuffix', { count: kpis.newMembers }) : undefined} />
-                  <KpiCard icon={DollarSign}   color="text-emerald-400" bg="bg-emerald-400/10"
+                  <KpiCard icon={DollarSign}   color="text-success" bg="bg-success-soft"
                     label={t('dashboard.kpi.revenue')}
                     value={fmt(kpis.revenue, kpis.currency)}
                     sub={t('dashboard.kpi.collected')} />
-                  <KpiCard icon={ScanLine}     color="text-blue-400" bg="bg-blue-400/10"
+                  <KpiCard icon={ScanLine}     color="text-info" bg="bg-info-soft"
                     label={t('dashboard.kpi.checkins')}
                     value={kpis.checkins.toLocaleString()}
                     sub={t('dashboard.kpi.gymEntries')} />
-                  <KpiCard icon={CalendarDays} color="text-amber-400" bg="bg-amber-400/10"
+                  <KpiCard icon={CalendarDays} color="text-warning" bg="bg-warning-soft"
                     label={t('dashboard.kpi.sessions')}
                     value={kpis.sessions.toLocaleString()}
                     sub={t('dashboard.kpi.bookings', { count: kpis.totalBookings })} />
@@ -272,24 +283,24 @@ export default function AnalyticsPage() {
                         margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                         <defs>
                           <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="chkGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                            <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="rev" orientation="right" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false}
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                        <XAxis dataKey="date" tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="rev" orientation="right" tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false}
                           tickFormatter={v => fmt(v, kpis.currency)} />
-                        <YAxis yAxisId="cnt" orientation="left" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                          labelStyle={{ color: '#f9fafb' }} itemStyle={{ color: '#d1d5db' }}
+                        <YAxis yAxisId="cnt" orientation="left" tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                        <Tooltip {...TOOLTIP_STYLE}
                           formatter={(v: any, name: any) => name === t('dashboard.kpi.checkins') ? v : fmt(v, kpis.currency)} />
-                        <Area yAxisId="cnt" type="monotone" dataKey="checkins" name={t('dashboard.kpi.checkins')} stroke="#7c3aed" fill="url(#chkGrad)" strokeWidth={2} dot={false} />
-                        <Area yAxisId="rev" type="monotone" dataKey="revenue"  name={t('dashboard.kpi.revenue')}   stroke="#10b981" fill="url(#revGrad)" strokeWidth={2} dot={false} />
+                        <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--chart-axis)' }} />
+                        <Area yAxisId="cnt" type="monotone" dataKey="checkins" name={t('dashboard.kpi.checkins')} stroke="var(--chart-2)" fill="url(#chkGrad)" strokeWidth={2} dot={false} />
+                        <Area yAxisId="rev" type="monotone" dataKey="revenue"  name={t('dashboard.kpi.revenue')}   stroke="var(--chart-1)" fill="url(#revGrad)" strokeWidth={2} dot={false} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -319,15 +330,16 @@ export default function AnalyticsPage() {
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className={inp} />
           <button onClick={applyCustom} disabled={loading}
             className="flex items-center gap-1.5 px-3 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium rounded-lg transition-colors disabled:opacity-40">
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <BarChart3 className="w-3.5 h-3.5" />}
+            {loading ? <RefreshCw aria-hidden className="w-3.5 h-3.5 animate-spin" /> : <BarChart3 aria-hidden className="w-3.5 h-3.5" />}
             {t('dateRange.apply')}
           </button>
         </div>
       </div>}
 
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 text-brand animate-spin" />
+        <div role="status" className="flex items-center justify-center py-20">
+          <RefreshCw aria-hidden className="w-6 h-6 text-brand animate-spin" />
+          <span className="sr-only">Loading</span>
         </div>
       )}
 
@@ -344,11 +356,11 @@ export default function AnalyticsPage() {
         const retry = () => activeTab === 'dashboard' ? fetchDashboard(dashPeriod) : fetchData(fromDate, toDate);
         return (
           <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
-            <AlertCircle className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+            <AlertCircle aria-hidden className="w-10 h-10 text-fg-faint mx-auto mb-3" />
             <p className="text-sm text-fg-muted">{error ?? t('fallback.noAnalyticsData')}</p>
             <button onClick={retry}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-              <RefreshCw className="w-4 h-4" /> {tc('retry')}
+              <RefreshCw aria-hidden className="w-4 h-4" /> {tc('retry')}
             </button>
           </div>
         );
@@ -359,16 +371,16 @@ export default function AnalyticsPage() {
         <div className="space-y-5">
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={TrendingUp} color="text-emerald-400" bg="bg-emerald-400/10"
+            <StatCard icon={TrendingUp} color="text-success" bg="bg-success-soft"
               label={t('members.newMembers')} value={memberData.totalNew.toString()} />
-            <StatCard icon={TrendingDown} color="text-red-400" bg="bg-red-400/10"
+            <StatCard icon={TrendingDown} color="text-danger" bg="bg-danger-soft"
               label={t('members.cancellations')} value={memberData.totalChurned.toString()} />
             <StatCard icon={Users} color="text-brand" bg="bg-brand/10"
               label={t('members.netGrowth')} value={(memberData.totalNew - memberData.totalChurned >= 0 ? '+' : '') + (memberData.totalNew - memberData.totalChurned)}
-              valueColor={memberData.totalNew >= memberData.totalChurned ? 'text-emerald-400' : 'text-red-400'} />
-            <StatCard icon={BarChart3} color="text-amber-400" bg="bg-amber-400/10"
-              label={t('members.churnRate')} value={`${memberData.churnRate}%`}
-              valueColor={memberData.churnRate > 10 ? 'text-red-400' : 'text-emerald-400'} />
+              valueColor={memberData.totalNew >= memberData.totalChurned ? 'text-success' : 'text-danger'} />
+            <StatCard icon={BarChart3} color="text-warning" bg="bg-warning-soft"
+              label={t('members.churnRate')} value={`${memberData.churnRate > 10 ? '▲ ' : ''}${memberData.churnRate}%`}
+              valueColor={memberData.churnRate > 10 ? 'text-danger' : 'text-success'} />
           </div>
 
           {/* Growth vs Churn chart */}
@@ -380,14 +392,13 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={memberData.timeline.map(d => ({ ...d, month: fmtMonth(d.month) }))}
                   margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                    labelStyle={{ color: '#f9fafb' }} itemStyle={{ color: '#d1d5db' }} />
-                  <Legend wrapperStyle={{ fontSize: '12px', color: '#9ca3af' }} />
-                  <Bar dataKey="new_members"   name={t('members.chartLegend.newMembers')}   fill="#10b981" radius={[4,4,0,0]} />
-                  <Bar dataKey="cancellations" name={t('members.chartLegend.cancellations')} fill="#ef4444" radius={[4,4,0,0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip {...TOOLTIP_STYLE} />
+                  <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--chart-axis)' }} />
+                  <Bar dataKey="new_members"   name={t('members.chartLegend.newMembers')}   fill="var(--chart-1)" radius={[4,4,0,0]} />
+                  <Bar dataKey="cancellations" name={t('members.chartLegend.cancellations')} fill="var(--chart-4)" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -404,13 +415,12 @@ export default function AnalyticsPage() {
                     net: d.new_members - d.cancellations,
                   }))}
                   margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                    labelStyle={{ color: '#f9fafb' }} itemStyle={{ color: '#d1d5db' }} />
-                  <Line type="monotone" dataKey="net" name={t('members.chartLegend.netGrowth')} stroke="#7c3aed" strokeWidth={2}
-                    dot={{ fill: '#7c3aed', r: 4 }} activeDot={{ r: 6 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip {...TOOLTIP_STYLE} />
+                  <Line type="monotone" dataKey="net" name={t('members.chartLegend.netGrowth')} stroke="var(--chart-1)" strokeWidth={2}
+                    dot={{ fill: 'var(--chart-1)', r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -423,22 +433,22 @@ export default function AnalyticsPage() {
         <div className="space-y-5">
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={DollarSign} color="text-emerald-400" bg="bg-emerald-400/10"
+            <StatCard icon={DollarSign} color="text-success" bg="bg-success-soft"
               label={t('revenue.totalCollected')} value={fmt(revenueData.totalRevenue, revenueData.currency)} />
             <StatCard icon={BarChart3} color="text-brand" bg="bg-brand/10"
               label={t('revenue.paidTransactions')} value={revenueData.paidCount.toString()} />
-            <StatCard icon={AlertCircle} color="text-red-400" bg="bg-red-400/10"
+            <StatCard icon={AlertCircle} color="text-danger" bg="bg-danger-soft"
               label={t('revenue.overdueAmount')} value={fmt(revenueData.totalOverdue, revenueData.currency)} />
-            <StatCard icon={AlertCircle} color="text-amber-400" bg="bg-amber-400/10"
+            <StatCard icon={AlertCircle} color="text-warning" bg="bg-warning-soft"
               label={t('revenue.pendingAmount')} value={fmt(revenueData.totalPending, revenueData.currency)} />
           </div>
 
           {/* Outstanding balances warning */}
           {(revenueData.totalOverdue > 0 || revenueData.totalPending > 0) && (
-            <div className="bg-red-400/5 border border-red-400/20 rounded-xl p-4 flex items-start gap-3">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="bg-danger-soft border border-danger/40 rounded-xl p-4 flex items-start gap-3">
+              <AlertCircle aria-hidden className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-400">{t('revenue.outstandingBalances')}</p>
+                <p className="text-sm font-medium text-danger">{t('revenue.outstandingBalances')}</p>
                 <p className="text-xs text-fg-muted mt-0.5">
                   {revenueData.overdueCount !== 1
                     ? t('revenue.outstandingDetailPlural', { overdue: fmt(revenueData.totalOverdue, revenueData.currency), count: revenueData.overdueCount })
@@ -458,16 +468,15 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={revenueData.timeline.map(d => ({ ...d, month: fmtMonth(d.month) }))}
                   margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} axisLine={false} tickLine={false}
                     tickFormatter={v => fmt(v, revenueData.currency).replace(/\.00$/, '')} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                    labelStyle={{ color: '#f9fafb' }} itemStyle={{ color: '#d1d5db' }}
+                    {...TOOLTIP_STYLE}
                     formatter={(v: any) => [fmt(v, revenueData.currency), t('revenue.chartLegend.revenue')]} />
                   <Bar dataKey="revenue" name={t('revenue.chartLegend.revenue')} radius={[4,4,0,0]}>
-                    {revenueData.timeline.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#7c3aed' : '#6d28d9'} />)}
+                    {revenueData.timeline.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? 'var(--chart-1)' : 'var(--chart-2)'} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -485,12 +494,12 @@ export default function AnalyticsPage() {
                     <Pie data={revenueData.byPlan} dataKey="revenue" nameKey="plan"
                       cx="50%" cy="50%" outerRadius={85} label={(entry: any) =>
                         `${entry.name} ${((entry.percent ?? 0) * 100).toFixed(0)}%`}
-                      labelLine={{ stroke: '#4b5563' }}>
+                      labelLine={{ stroke: 'var(--chart-axis)' }}>
                       {revenueData.byPlan.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
+                    <Tooltip {...TOOLTIP_STYLE}
                       formatter={(v: any) => [fmt(v, revenueData.currency), t('revenue.chartLegend.revenue')]} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -542,15 +551,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Dumbbell}    color="text-brand" bg="bg-brand/10"
               label={t('classes.totalSessions')} value={classData.totalSessions.toString()} />
-            <StatCard icon={Users}       color="text-emerald-400" bg="bg-emerald-400/10"
+            <StatCard icon={Users}       color="text-success" bg="bg-success-soft"
               label={t('classes.totalBookings')} value={classData.totalBookings.toString()} />
             {(() => {
               const sorted = [...classData.byClass].sort((a, b) => b.totalBooked - a.totalBooked);
               return (
                 <>
-                  <StatCard icon={TrendingUp} color="text-blue-400" bg="bg-blue-400/10"
+                  <StatCard icon={TrendingUp} color="text-info" bg="bg-info-soft"
                     label={t('classes.mostPopular')} value={sorted[0]?.name ?? '—'} />
-                  <StatCard icon={TrendingDown} color="text-amber-400" bg="bg-amber-400/10"
+                  <StatCard icon={TrendingDown} color="text-warning" bg="bg-warning-soft"
                     label={t('classes.leastPopular')} value={sorted.length > 1 ? (sorted[sorted.length - 1]?.name ?? '—') : '—'} />
                 </>
               );
@@ -560,21 +569,21 @@ export default function AnalyticsPage() {
           {/* Class ranking table */}
           {classData.byClass.length === 0 ? (
             <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
-              <Dumbbell className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+              <Dumbbell aria-hidden className="w-10 h-10 text-fg-faint mx-auto mb-3" />
               <p className="text-sm text-fg-muted">{t('classes.noSessionsInPeriod')}</p>
             </div>
           ) : (
             <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-line flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-brand" />
+                <BarChart3 aria-hidden className="w-4 h-4 text-brand" />
                 <h2 className="text-sm font-semibold text-fg">{t('classes.classesByAttendance')}</h2>
               </div>
               <div className="divide-y divide-line">
                 {classData.byClass.map((c, i) => {
                   const rate = c.bookingRate;
                   const rateColor = rate == null ? 'text-fg-faint'
-                    : rate >= 75 ? 'text-emerald-400'
-                    : rate >= 40 ? 'text-amber-400' : 'text-red-400';
+                    : rate >= 75 ? 'text-success'
+                    : rate >= 40 ? 'text-warning' : 'text-danger';
                   return (
                     <div key={c.name} className="flex items-center gap-4 px-5 py-3.5">
                       <span className="text-lg font-bold text-fg-faint w-6 flex-shrink-0">#{i + 1}</span>
@@ -612,15 +621,14 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={classData.byDay.map(d => ({ day: d.day.slice(0, 3), booked: d.booked }))}
                     margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="day" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                      labelStyle={{ color: '#f9fafb' }} itemStyle={{ color: '#d1d5db' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="day" tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip {...TOOLTIP_STYLE} />
                     <Bar dataKey="booked" name={t('classes.chartLegend.bookings')} radius={[4,4,0,0]}>
                       {classData.byDay.map((d, i) => {
                         const maxB = Math.max(...classData.byDay.map(x => x.booked));
-                        return <Cell key={i} fill={d.booked === maxB && maxB > 0 ? '#10b981' : '#7c3aed'} />;
+                        return <Cell key={i} fill={d.booked === maxB && maxB > 0 ? 'var(--chart-1)' : 'var(--chart-5)'} />;
                       })}
                     </Bar>
                   </BarChart>
@@ -636,15 +644,14 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={classData.byHour}
                     margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="hour" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                      labelStyle={{ color: '#f9fafb' }} itemStyle={{ color: '#d1d5db' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                    <XAxis dataKey="hour" tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip {...TOOLTIP_STYLE} />
                     <Bar dataKey="booked" name={t('classes.chartLegend.bookings')} radius={[4,4,0,0]}>
                       {classData.byHour.map((d, i) => {
                         const maxB = Math.max(...classData.byHour.map(x => x.booked));
-                        return <Cell key={i} fill={d.booked === maxB && maxB > 0 ? '#f59e0b' : '#6d28d9'} />;
+                        return <Cell key={i} fill={d.booked === maxB && maxB > 0 ? 'var(--chart-3)' : 'var(--chart-5)'} />;
                       })}
                     </Bar>
                   </BarChart>
@@ -665,7 +672,7 @@ function StatCard({ icon: Icon, color, bg, label, value, valueColor }: {
     <div className="bg-surface-2 border border-line rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
-          <Icon className={`w-3.5 h-3.5 ${color}`} />
+          <Icon aria-hidden className={`w-3.5 h-3.5 ${color}`} />
         </div>
         <p className="text-xs text-fg-muted">{label}</p>
       </div>
@@ -681,7 +688,7 @@ function KpiCard({ icon: Icon, color, bg, label, value, sub }: {
     <div className="bg-surface-2 border border-line rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
-          <Icon className={`w-3.5 h-3.5 ${color}`} />
+          <Icon aria-hidden className={`w-3.5 h-3.5 ${color}`} />
         </div>
         <p className="text-xs text-fg-muted">{label}</p>
       </div>

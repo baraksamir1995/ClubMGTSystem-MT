@@ -47,12 +47,14 @@ export default function VerifyEmailButton({ memberId, memberName, emailVerified,
 
   return (
     <button
+      type="button"
       onClick={handleVerify}
       disabled={loading}
       title={t('titleAttr')}
-      className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40"
+      aria-label={t('titleAttr')}
+      className="p-1.5 rounded-lg text-fg-faint hover:text-success hover:bg-success-soft transition-colors disabled:opacity-40"
     >
-      <MailCheck className="w-4 h-4" />
+      <MailCheck className="w-4 h-4" aria-hidden />
     </button>
   );
 }

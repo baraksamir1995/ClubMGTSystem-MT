@@ -43,11 +43,11 @@ interface Profile {
 }
 
 const SESSION_RATING_CONFIG: Record<number, { label: string; emoji: string; color: string; bgColor: string }> = {
-  1: { label: 'Terrible', emoji: '😞', color: 'text-red-400',    bgColor: 'bg-red-400/10' },
-  2: { label: 'Bad',      emoji: '😐', color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
-  3: { label: 'Okay',     emoji: '😐', color: 'text-yellow-400', bgColor: 'bg-yellow-400/10' },
-  4: { label: 'Good',     emoji: '😊', color: 'text-green-400',  bgColor: 'bg-green-400/10' },
-  5: { label: 'Excellent',emoji: '😄', color: 'text-emerald-400',bgColor: 'bg-emerald-400/10' },
+  1: { label: 'Terrible', emoji: '😞', color: 'text-danger',  bgColor: 'bg-danger-soft' },
+  2: { label: 'Bad',      emoji: '😐', color: 'text-accent',  bgColor: 'bg-accent/15' },
+  3: { label: 'Okay',     emoji: '😐', color: 'text-warning', bgColor: 'bg-warning-soft' },
+  4: { label: 'Good',     emoji: '😊', color: 'text-success', bgColor: 'bg-success-soft' },
+  5: { label: 'Excellent',emoji: '😄', color: 'text-success', bgColor: 'bg-success-soft' },
 };
 
 function relativeTime(dateStr: string): string {
@@ -63,11 +63,12 @@ function relativeTime(dateStr: string): string {
 
 function StarRating({ value, max = 5 }: { value: number; max?: number }) {
   return (
-    <span className="flex items-center gap-0.5">
+    <span className="flex items-center gap-0.5" role="img" aria-label={`${value} out of ${max} stars`}>
       {Array.from({ length: max }).map((_, i) => (
         <Star
           key={i}
-          className={`w-3.5 h-3.5 ${i < value ? 'text-yellow-400 fill-yellow-400' : 'text-fg-faint'}`}
+          aria-hidden
+          className={`w-3.5 h-3.5 ${i < value ? 'text-warning fill-current' : 'text-fg-faint'}`}
         />
       ))}
     </span>
@@ -188,7 +189,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5" /> {t('reviews.avgSessionRating')}
+            <TrendingUp aria-hidden className="w-3.5 h-3.5" /> {t('reviews.avgSessionRating')}
           </p>
           {loading ? (
             <div className="h-8 bg-surface-3 rounded w-16 animate-pulse mt-1" />
@@ -206,13 +207,13 @@ export default function ReviewsTab({ gymId, classes }: Props) {
 
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
-            <Star className="w-3.5 h-3.5" /> {t('reviews.avgTrainerRating')}
+            <Star aria-hidden className="w-3.5 h-3.5" /> {t('reviews.avgTrainerRating')}
           </p>
           {loading ? (
             <div className="h-8 bg-surface-3 rounded w-16 animate-pulse mt-1" />
           ) : (
             <div className="flex items-end gap-2">
-              <p className="text-2xl font-bold text-yellow-400">
+              <p className="text-2xl font-bold text-warning">
                 {stats.trainerCount && stats.trainerCount > 0 ? stats.avgTrainer.toFixed(1) : '—'}
               </p>
               {stats.trainerCount && stats.trainerCount > 0 && (
@@ -224,7 +225,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
 
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> {t('reviews.totalReviews')}
+            <Users aria-hidden className="w-3.5 h-3.5" /> {t('reviews.totalReviews')}
           </p>
           {loading ? (
             <div className="h-8 bg-surface-3 rounded w-12 animate-pulse mt-1" />
@@ -249,7 +250,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-            <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
+            <ChevronDown aria-hidden className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           {/* Trainer filter */}
@@ -264,7 +265,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                 <option key={tr} value={tr}>{tr}</option>
               ))}
             </select>
-            <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
+            <ChevronDown aria-hidden className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           {/* Rating filter */}
@@ -278,7 +279,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
               <option value="positive">{t('reviews.positive')}</option>
               <option value="negative">{t('reviews.negative')}</option>
             </select>
-            <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
+            <ChevronDown aria-hidden className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted pointer-events-none" />
           </div>
 
           <span className="ms-auto text-xs text-fg-faint">
@@ -347,8 +348,8 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                     </span>
                     <span className="text-xs text-fg-faint">{relativeTime(review.created_at)}</span>
                     {isExpanded
-                      ? <ChevronUp className="w-4 h-4 text-fg-faint" />
-                      : <ChevronDown className="w-4 h-4 text-fg-faint" />
+                      ? <ChevronUp aria-hidden className="w-4 h-4 text-fg-faint" />
+                      : <ChevronDown aria-hidden className="w-4 h-4 text-fg-faint" />
                     }
                   </div>
                 </div>
@@ -410,8 +411,9 @@ export default function ReviewsTab({ gymId, classes }: Props) {
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                aria-label="Previous page"
                 className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft aria-hidden className="w-4 h-4" />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                 <button key={n} onClick={() => setPage(n)}
@@ -420,8 +422,9 @@ export default function ReviewsTab({ gymId, classes }: Props) {
                 </button>
               ))}
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                aria-label="Next page"
                 className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight aria-hidden className="w-4 h-4" />
               </button>
             </div>
           </div>

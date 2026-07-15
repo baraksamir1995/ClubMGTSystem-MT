@@ -56,7 +56,7 @@ export function Pagination({
         type="button"
         disabled={atFirst || loading}
         onClick={goPrev}
-        className="px-2.5 py-1.5 border border-line rounded-lg hover:bg-surface-3 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="px-3 min-h-11 border border-line-strong rounded-lg hover:bg-surface-3 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         ← Newer
       </button>
@@ -67,7 +67,7 @@ export function Pagination({
         type="button"
         disabled={atLast || loading}
         onClick={goNext}
-        className="px-2.5 py-1.5 border border-line rounded-lg hover:bg-surface-3 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="px-3 min-h-11 border border-line-strong rounded-lg hover:bg-surface-3 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         Older →
       </button>

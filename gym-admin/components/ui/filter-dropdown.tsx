@@ -51,11 +51,11 @@ export function FilterDropdown({
   return (
     <label
       className={cn(
-        'relative inline-flex items-center gap-2 pl-2.5 pr-7 py-2',
-        'bg-surface-2 border border-line rounded-lg',
+        'relative inline-flex items-center gap-2 pl-2.5 pr-7 min-h-11',
+        'bg-surface-2 border border-line-strong rounded-lg',
         'text-xs text-fg',
         disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-surface-3',
-        'focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/30',
+        'focus-within:border-focus focus-within:ring-2 focus-within:ring-focus',
         'transition-colors duration-150',
         className,
       )}
@@ -73,8 +73,9 @@ export function FilterDropdown({
             key={opt.value || '_all'}
             value={opt.value}
             disabled={opt.disabled}
-            // Inline bg for the native popup — Chrome ignores Tailwind here.
-            style={{ background: '#0A0A0A', color: '#F5F5F2' }}
+            // Inline bg for the native popup — Chrome ignores Tailwind
+            // here. CSS variables keep it on-theme in both modes.
+            style={{ background: 'rgb(var(--surface-2))', color: 'rgb(var(--fg))' }}
           >
             {opt.label}
           </option>

@@ -44,9 +44,9 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
   };
 
   const STATUSES = [
-    { value: 'paid',    label: t('status.paid'),    color: 'text-emerald-400' },
-    { value: 'pending', label: t('status.pending'), color: 'text-amber-400' },
-    { value: 'overdue', label: t('status.overdue'), color: 'text-red-400' },
+    { value: 'paid',    label: t('status.paid'),    color: 'text-success' },
+    { value: 'pending', label: t('status.pending'), color: 'text-warning' },
+    { value: 'overdue', label: t('status.overdue'), color: 'text-danger' },
   ];
 
   const TYPE_LABELS: Record<string, string> = {
@@ -224,7 +224,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
       <Modal.Header>
         <span className="inline-flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-lg bg-success-soft flex items-center justify-center">
-            <DollarSign className="w-4 h-4 text-success" />
+            <DollarSign className="w-4 h-4 text-success" aria-hidden />
           </span>
           {t('recordModal.title')}
         </span>
@@ -248,14 +248,14 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                       <p className="text-xs text-brand mt-0.5">{selectedMember.plan_name} · {fmt(selectedMember.plan_price ?? 0, selectedMember.currency ?? 'EGP')}</p>
                     )}
                   </div>
-                  <button type="button" onClick={() => setSelectedMember(null)} className="text-fg-faint hover:text-fg transition-colors">
-                    <X className="w-4 h-4" />
+                  <button type="button" onClick={() => setSelectedMember(null)} aria-label="Clear selected member" className="text-fg-faint hover:text-fg transition-colors">
+                    <X className="w-4 h-4" aria-hidden />
                   </button>
                 </div>
               ) : (
                 <div>
                   <div className="relative mb-2">
-                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" aria-hidden />
                     <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                       placeholder={t('recordModal.memberSearchPlaceholder')}
                       className="w-full ps-9 pe-3 py-2 bg-surface border border-line rounded-lg text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand transition-colors"
@@ -309,14 +309,14 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
               {/* Selected service chip */}
               {selectedService && !isOther && (
-                <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
-                  <span className="text-xs font-medium text-indigo-400">{TYPE_LABELS[selectedService.type] ?? selectedService.type}</span>
+                <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-info-soft border border-info/40 rounded-lg">
+                  <span className="text-xs font-medium text-info">{TYPE_LABELS[selectedService.type] ?? selectedService.type}</span>
                   <span className="text-xs text-fg-muted flex-1 truncate">{selectedService.name}</span>
                   {selectedService.price != null && (
                     <span className="text-xs font-semibold text-fg flex-shrink-0">{selectedService.price} {selectedService.currency}</span>
                   )}
-                  <button type="button" onClick={() => handleSelectService('')} className="text-fg-faint hover:text-fg transition-colors flex-shrink-0">
-                    <X className="w-3 h-3" />
+                  <button type="button" onClick={() => handleSelectService('')} aria-label="Clear selected service" className="text-fg-faint hover:text-fg transition-colors flex-shrink-0">
+                    <X className="w-3 h-3" aria-hidden />
                   </button>
                 </div>
               )}
@@ -350,8 +350,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     placeholder={t('recordModal.otherDescribePlaceholder')}
                     className={`${inputCls} flex-1`}
                   />
-                  <button type="button" onClick={() => handleSelectService('')} className="p-2 text-fg-faint hover:text-fg transition-colors flex-shrink-0">
-                    <X className="w-4 h-4" />
+                  <button type="button" onClick={() => handleSelectService('')} aria-label="Clear custom service" className="p-2 text-fg-faint hover:text-fg transition-colors flex-shrink-0">
+                    <X className="w-4 h-4" aria-hidden />
                   </button>
                 </div>
               )}
@@ -362,10 +362,10 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               <div className="space-y-3">
                 {/* Plan has active promotion — toggle original vs discounted */}
                 {selectedService.original_price != null && (
-                  <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                  <div className="p-3 bg-success-soft border border-success/40 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-medium text-emerald-400">{t('recordModal.activePromotion')}</p>
+                        <p className="text-xs font-medium text-success">{t('recordModal.activePromotion')}</p>
                         <p className="text-xs text-fg-muted mt-0.5">
                           {t('recordModal.discounted')} {selectedService.price} {selectedService.currency}
                           <span className="line-through ms-2 text-fg-faint">{selectedService.original_price}</span>
@@ -381,7 +381,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                         className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                           useOriginalPrice
                             ? 'bg-surface-3 text-fg-muted'
-                            : 'bg-emerald-600/20 text-emerald-400'
+                            : 'bg-success-soft text-success'
                         }`}
                       >
                         {useOriginalPrice ? t('recordModal.usingOriginalPrice') : t('recordModal.usingPromoPrice')}
@@ -473,7 +473,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     className={`py-2 rounded-lg border text-xs font-medium transition-colors ${
                       method === m
                         ? m === 'payment_link'
-                          ? 'border-blue-500 bg-blue-500/10 text-blue-400'
+                          ? 'border-info/40 bg-info-soft text-info'
                           : 'border-brand bg-brand/10 text-brand'
                         : 'border-line text-fg-muted hover:border-line-strong'
                     }`}>
@@ -482,8 +482,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                 ))}
               </div>
               {isPaymentLink && (
-                <p className="mt-2 text-xs text-blue-400 flex items-center gap-1.5">
-                  <Link2 className="w-3 h-3 flex-shrink-0" />
+                <p className="mt-2 text-xs text-info flex items-center gap-1.5">
+                  <Link2 className="w-3 h-3 flex-shrink-0" aria-hidden />
                   {t('recordModal.paymentLinkNote')}
                 </p>
               )}
@@ -510,7 +510,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               <label className={labelCls}>
                 {t('recordModal.statusLabel')}
                 {isPaymentLink && (
-                  <span className="ms-2 text-blue-400 font-normal">{t('recordModal.statusAutomatic')}</span>
+                  <span className="ms-2 text-info font-normal">{t('recordModal.statusAutomatic')}</span>
                 )}
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -521,7 +521,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     className={`py-2.5 rounded-xl border text-xs font-semibold transition-colors ${
                       isPaymentLink
                         ? s.value === 'pending'
-                          ? 'border-amber-500/40 bg-amber-500/5 text-amber-400/50 cursor-not-allowed'
+                          ? 'border-warning/40 bg-warning-soft text-warning/50 cursor-not-allowed'
                           : 'border-line text-fg-faint cursor-not-allowed opacity-40'
                         : status === s.value
                           ? `border-current bg-current/10 ${s.color}`
@@ -547,9 +547,9 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
       {generatedLink ? (
         <Modal.Footer className="flex-col items-stretch gap-3">
           <p className="text-xs text-fg-muted">{t('recordModal.linkGenerated')}</p>
-          <div className="flex items-center gap-2 p-3 bg-surface border border-blue-500/30 rounded-xl">
-            <Link2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
-            <p className="text-xs text-blue-300 truncate flex-1">{generatedLink}</p>
+          <div className="flex items-center gap-2 p-3 bg-surface border border-info/40 rounded-xl">
+            <Link2 className="w-4 h-4 text-info flex-shrink-0" aria-hidden />
+            <p className="text-xs text-info truncate flex-1">{generatedLink}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" fullWidth onClick={handleCopy}
@@ -557,8 +557,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               {copied ? t('recordModal.copied') : t('recordModal.copyLink')}
             </Button>
             <button type="button" onClick={handleWhatsApp}
-              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-sm font-medium text-fg transition-colors">
-              <MessageCircle className="w-4 h-4" />
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-success hover:bg-success/90 text-sm font-medium text-on-status transition-colors">
+              <MessageCircle className="w-4 h-4" aria-hidden />
               {t('recordModal.sendWhatsApp')}
             </button>
           </div>

@@ -279,6 +279,7 @@ export default function MembershipsTable() {
           type="checkbox"
           checked={allSelected}
           onChange={toggleAll}
+          aria-label="Select all rows"
           className="rounded border-line bg-surface-3 accent-brand focus:ring-0 focus:ring-offset-0"
         />
       ),
@@ -287,6 +288,7 @@ export default function MembershipsTable() {
           type="checkbox"
           checked={selected.has(r.id)}
           onChange={() => toggleOne(r.id)}
+          aria-label={`Select ${r.member_name ?? r.member_number ?? 'row'}`}
           className="rounded border-line bg-surface-3 accent-brand focus:ring-0 focus:ring-offset-0"
         />
       ),
@@ -371,7 +373,7 @@ export default function MembershipsTable() {
           href={`/dashboard/members/${r.gym_member_id}`}
           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium text-brand hover:text-fg hover:bg-surface-3 transition-colors"
         >
-          <Eye className="w-3.5 h-3.5" /> {t('col.view')}
+          <Eye className="w-3.5 h-3.5" aria-hidden /> {t('col.view')}
         </Link>
       ),
     },
@@ -597,6 +599,7 @@ function SummaryTile({
   }[tone];
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`flex items-center gap-3 p-4 bg-surface-2 border ${tones.border} rounded-xl hover:bg-surface-3 transition-colors text-start`}
     >

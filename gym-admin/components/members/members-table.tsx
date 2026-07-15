@@ -201,12 +201,12 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
       align: 'right',
       cell: (m) => (
         <div className="flex items-center justify-end gap-1">
-          <Link href={`/dashboard/members/${m.id}`} title={t('action.viewProfile')} className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
-            <Eye className="w-4 h-4" />
+          <Link href={`/dashboard/members/${m.id}`} title={t('action.viewProfile')} aria-label={t('action.viewProfile')} className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
+            <Eye className="w-4 h-4" aria-hidden />
           </Link>
           {can(permissions, 'members', 'edit') && (
-            <button onClick={() => openEdit(m)} title={t('action.editMember')} className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-surface-3 transition-colors">
-              <Pencil className="w-4 h-4" />
+            <button type="button" onClick={() => openEdit(m)} title={t('action.editMember')} aria-label={t('action.editMember')} className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-surface-3 transition-colors">
+              <Pencil className="w-4 h-4" aria-hidden />
             </button>
           )}
           {can(permissions, 'members', 'edit') && !m.profile?.email_verified && m.profile?.email && (
@@ -259,7 +259,7 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
             )}
 
             <span className="ms-auto text-xs text-fg-faint flex items-center gap-2">
-              {loading && <RefreshCw className="w-3 h-3 animate-spin" />}
+              {loading && <RefreshCw className="w-3 h-3 animate-spin" aria-hidden />}
               {t('totalCount', { total })}
             </span>
           </div>

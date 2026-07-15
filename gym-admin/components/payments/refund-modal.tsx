@@ -55,10 +55,10 @@ export default function RefundModal({ payment, onClose, onRefunded }: Props) {
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
         <span className="inline-flex items-center gap-2">
-          <RotateCcw className="w-4 h-4 text-blue-400" /> {t('refund.title')}
+          <RotateCcw className="w-4 h-4 text-info" aria-hidden /> {t('refund.title')}
           {isPaymob && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-medium">
-              <Zap className="w-3 h-3" /> Paymob
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-info-soft border border-info/40 text-info text-xs font-medium">
+              <Zap className="w-3 h-3" aria-hidden /> Paymob
             </span>
           )}
         </span>
@@ -146,7 +146,7 @@ export default function RefundModal({ payment, onClose, onRefunded }: Props) {
 
         {/* Warning */}
         <div className="flex items-start gap-2 bg-warning-soft border border-warning/20 rounded-xl p-3">
-          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" aria-hidden />
           <p className="text-xs text-warning">
             {isPaymob
               ? t('refund.paymobWarning', { amount: fmt(refundAmount || payment.amount, payment.currency) })

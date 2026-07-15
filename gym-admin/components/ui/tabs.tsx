@@ -7,6 +7,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
   type ElementType,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -55,9 +56,29 @@ export function Tabs({ value, onValueChange, className, children }: TabsProps) {
 
 /** Horizontal pill bar holding the triggers. Wraps on small screens. */
 function TabsList({ children, className }: { children: ReactNode; className?: string }) {
+  // Standard tablist arrow-key navigation: Left/Right (both fine in
+  // RTL — we move by DOM order), Home/End move focus between tabs.
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(e.key)) return;
+    const tabs = Array.from(
+      e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]:not([disabled])'),
+    );
+    if (tabs.length === 0) return;
+    const current = tabs.indexOf(document.activeElement as HTMLElement);
+    let next = current;
+    if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else next = tabs.length - 1;
+    e.preventDefault();
+    tabs[next].focus();
+  };
+
   return (
     <div
       role="tablist"
+      onKeyDown={onKeyDown}
       className={cn(
         'inline-flex flex-wrap gap-1 bg-surface-2 border border-line rounded-xl p-1',
         className,
@@ -94,7 +115,7 @@ function TabsTrigger({ value, icon: Icon, className, children, ...rest }: TabsTr
       aria-selected={isActive}
       onClick={() => onValueChange(value)}
       className={cn(
-        'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
+        'inline-flex items-center gap-2 px-3.5 min-h-11 rounded-lg text-sm font-medium transition-colors',
         isActive
           ? 'bg-surface-3 text-fg'
           : 'text-fg-muted hover:text-fg',

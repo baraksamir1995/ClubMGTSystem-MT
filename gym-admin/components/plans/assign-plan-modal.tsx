@@ -108,7 +108,7 @@ export default function AssignPlanModal({ plan, onClose }: Props) {
       <Modal.Header>
         <span className="inline-flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
-            <UserCheck className="w-4 h-4 text-brand" />
+            <UserCheck className="w-4 h-4 text-brand" aria-hidden />
           </span>
           <span>
             {t('assignModal.title')}
@@ -166,7 +166,7 @@ export default function AssignPlanModal({ plan, onClose }: Props) {
               />
               <button type="button" onClick={toggleAll}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line text-xs text-fg-muted hover:text-fg hover:border-line-strong transition-colors whitespace-nowrap">
-                {allSelected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                {allSelected ? <CheckSquare className="w-3.5 h-3.5" aria-hidden /> : <Square className="w-3.5 h-3.5" aria-hidden />}
                 {allSelected ? t('assignModal.deselectAll') : t('assignModal.selectAll')}
               </button>
             </div>
@@ -179,7 +179,7 @@ export default function AssignPlanModal({ plan, onClose }: Props) {
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="w-8 h-8 text-fg-faint mx-auto mb-2" />
+                  <Users className="w-8 h-8 text-fg-faint mx-auto mb-2" aria-hidden />
                   <p className="text-sm text-fg-faint">{t('assignModal.noMembersFound')}</p>
                 </div>
               ) : (

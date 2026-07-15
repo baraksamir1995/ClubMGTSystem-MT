@@ -174,25 +174,25 @@ export default function ScheduleTab({
         <div className={`flex items-center justify-between px-5 py-4 rounded-xl border ${
           isPublished
             ? hasUnpublishedChanges
-              ? 'bg-amber-400/5 border-amber-400/30'
-              : 'bg-emerald-400/5 border-emerald-400/30'
+              ? 'bg-warning-soft border-warning/40'
+              : 'bg-success-soft border-success/40'
             : 'bg-surface-2 border-line'
         }`}>
           <div className="flex items-center gap-3">
             {isPublished ? (
               hasUnpublishedChanges ? (
                 <>
-                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <AlertTriangle aria-hidden className="w-4 h-4 text-warning flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-amber-300">{t('schedule.unpublishedChanges')}</p>
+                    <p className="text-sm font-medium text-warning">{t('schedule.unpublishedChanges')}</p>
                     <p className="text-xs text-fg-muted mt-0.5">{t('schedule.republishHint')}</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <Globe aria-hidden className="w-4 h-4 text-success flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-emerald-300">{t('schedule.scheduleIsLive')}</p>
+                    <p className="text-sm font-medium text-success">{t('schedule.scheduleIsLive')}</p>
                     {settings?.published_at && (
                       <p className="text-xs text-fg-muted mt-0.5">
                         {t('schedule.publishedOn', { date: new Date(settings.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) })}
@@ -203,7 +203,7 @@ export default function ScheduleTab({
               )
             ) : (
               <>
-                <EyeOff className="w-4 h-4 text-fg-muted flex-shrink-0" />
+                <EyeOff aria-hidden className="w-4 h-4 text-fg-muted flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-fg-muted">{t('schedule.notPublished')}</p>
                   <p className="text-xs text-fg-faint mt-0.5">{t('schedule.notPublishedHint')}</p>
@@ -276,15 +276,17 @@ export default function ScheduleTab({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekOffset(w => w - 1)}
+            aria-label="Previous week"
             className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft aria-hidden className="w-4 h-4" />
           </button>
           <span className="text-sm font-medium text-fg min-w-[200px] text-center">
             {formatWeekRange(weekDates)}
           </span>
           <button onClick={() => setWeekOffset(w => w + 1)}
+            aria-label="Next week"
             className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight aria-hidden className="w-4 h-4" />
           </button>
         </div>
         {weekOffset !== 0 && (
@@ -298,7 +300,7 @@ export default function ScheduleTab({
       {/* ── Legend ── */}
       <div className="flex items-center gap-4 text-xs text-fg-faint">
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> {t('schedule.legendPopup')}
+          <span className="w-2 h-2 rounded-full bg-warning inline-block" /> {t('schedule.legendPopup')}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-brand inline-block" /> {t('schedule.legendRecurring')}
@@ -343,7 +345,8 @@ export default function ScheduleTab({
                   can(permissions, 'classes', 'create') ? (
                     <button
                       onClick={() => onCreateSession(dateStr, activeBranchId ?? undefined)}
-                      className="w-full border border-dashed border-line rounded-lg py-5 flex items-center justify-center text-fg-faint hover:text-fg-faint hover:border-gray-600 transition-colors">
+                      aria-label={t('schedule.add')}
+                      className="w-full border border-dashed border-line rounded-lg py-5 flex items-center justify-center text-fg-faint hover:text-fg-faint hover:border-line-strong transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                   ) : (
@@ -427,8 +430,8 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
       {/* Unpublished badge */}
       {isUnpublished && (
         <div className="flex items-center gap-1 mb-1.5">
-          <EyeOff className="w-2.5 h-2.5 text-amber-400/70" />
-          <span className="text-xs text-amber-400/70 font-medium">{t('schedule.unpublishedLabel')}</span>
+          <EyeOff aria-hidden className="w-2.5 h-2.5 text-warning/70" />
+          <span className="text-xs text-warning/70 font-medium">{t('schedule.unpublishedLabel')}</span>
         </div>
       )}
       {/* Color dot + name + type badge */}
@@ -437,7 +440,7 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
         <div className="min-w-0">
           <p className="text-xs font-semibold text-fg leading-tight line-clamp-2">{session.class_name}</p>
           {isPopup && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-medium mt-1 inline-block">{t('sessions.popup')}</span>
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-warning-soft text-warning font-medium mt-1 inline-block">{t('sessions.popup')}</span>
           )}
           {isRecurring && (
             <span className="text-xs px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-medium mt-1 inline-block">{t('sessions.recurring')}</span>
@@ -446,33 +449,33 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
       </div>
 
       <div className="flex items-center gap-1 text-xs text-fg-faint mb-1">
-        <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+        <Clock aria-hidden className="w-2.5 h-2.5 flex-shrink-0" />
         <span className="truncate">{fmt12(session.start_time)}–{fmt12(session.end_time)}</span>
       </div>
 
       {session.location && (
         <div className="flex items-center gap-1 text-xs text-fg-faint mb-1">
-          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+          <MapPin aria-hidden className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{session.location}</span>
         </div>
       )}
 
       {session.instructor && (
         <div className="flex items-center gap-1 text-xs text-fg-faint mb-1">
-          <User className="w-2.5 h-2.5 flex-shrink-0" />
+          <User aria-hidden className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{session.instructor}</span>
         </div>
       )}
 
       <div className="flex items-center gap-1 text-xs text-fg-faint">
-        <Users className="w-2.5 h-2.5 flex-shrink-0" />
+        <Users aria-hidden className="w-2.5 h-2.5 flex-shrink-0" />
         <span>{t('schedule.bookedSlots', { booked: `${session.booked_count}${session.capacity ? `/${session.capacity}` : ''}` })}</span>
       </div>
 
       {/* Hover actions */}
       <div className="flex items-center gap-1 mt-2 pt-2 border-t border-line opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={onBookings} title={t('schedule.titleBookings')}
-          className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors">
+          className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-info hover:bg-info-soft transition-colors">
           <Users className="w-3 h-3" />
         </button>
         {can(permissions, 'classes', 'edit') && (
@@ -483,13 +486,13 @@ function _SessionCard({ session, permissions, onEdit, onCancel, onBookings, onSt
         )}
         {can(permissions, 'classes', 'delete') && (
           <button onClick={onCancel} title={t('schedule.titleCancelSession')}
-            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-red-400 hover:bg-red-400/10 transition-colors">
+            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors">
             <XCircle className="w-3 h-3" />
           </button>
         )}
         {isRecurring && onStopRecurring && can(permissions, 'classes', 'delete') && (
           <button onClick={onStopRecurring} title={t('schedule.titleStopRecurring')}
-            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-orange-400 hover:bg-orange-400/10 transition-colors">
+            className="flex-1 flex items-center justify-center py-1 rounded text-fg-faint hover:text-accent hover:bg-accent/15 transition-colors">
             <StopCircle className="w-3 h-3" />
           </button>
         )}

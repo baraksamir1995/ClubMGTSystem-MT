@@ -26,11 +26,11 @@ export default function MemberDetailError({
         href="/dashboard/members"
         className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg transition-colors"
       >
-        <ChevronLeft className="w-4 h-4" /> {t('breadcrumb')}
+        <ChevronLeft className="w-4 h-4" aria-hidden /> {t('breadcrumb')}
       </Link>
 
       <div className="bg-surface-2 border border-danger/30 rounded-xl p-8 flex flex-col items-center gap-4 text-center">
-        <AlertTriangle className="w-10 h-10 text-danger" />
+        <AlertTriangle className="w-10 h-10 text-danger" aria-hidden />
         <div>
           <h2 className="text-lg font-semibold text-fg mb-1">{t('errorTitle')}</h2>
           <p className="text-sm text-fg-muted">

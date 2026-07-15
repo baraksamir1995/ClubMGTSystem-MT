@@ -45,12 +45,14 @@ export default function DeleteMemberButton({ memberId, memberName }: Props) {
 
   return (
     <button
+      type="button"
       onClick={handleDelete}
       disabled={loading}
       title={t('titleAttr')}
-      className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      aria-label={t('titleAttr')}
+      className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <Trash2 className="w-4 h-4" />
+      <Trash2 className="w-4 h-4" aria-hidden />
     </button>
   );
 }

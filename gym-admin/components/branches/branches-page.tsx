@@ -270,7 +270,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
           </div>
           <div className="w-full bg-surface-3 rounded-full h-1.5">
             <div
-              className={`h-1.5 rounded-full transition-all ${atLimit ? 'bg-red-500' : 'bg-brand'}`}
+              className={`h-1.5 rounded-full transition-all ${atLimit ? 'bg-danger' : 'bg-brand'}`}
               style={{ width: `${Math.min(100, (branches.length / maxBranches) * 100)}%` }}
             />
           </div>
@@ -284,9 +284,9 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
 
       {/* At-limit notice */}
       {atLimit && (
-        <div className="flex items-center gap-3 bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">
-          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <span className="text-amber-400 text-sm">
+        <div className="flex items-center gap-3 bg-warning-soft border border-warning/40 rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-warning flex-shrink-0" aria-hidden />
+          <span className="text-warning text-sm">
             {t('branches.limitReached', { max: maxBranches })}
           </span>
         </div>
@@ -405,7 +405,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                       <button
                         onClick={() => fileInputRefs.current[b.id]?.click()}
                         disabled={uploadingId === b.id}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-fg text-sm font-medium"
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-sm font-medium"
                         aria-label={b.image_url ? t('branches.changeImage') : t('branches.uploadImage')}
                       >
                         {uploadingId === b.id ? (
@@ -471,15 +471,15 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                           className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors"
                           aria-label={tc('cancel')}
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-4 h-4" aria-hidden />
                         </button>
                         <button
                           onClick={() => saveEdit(b.id)}
                           disabled={savingId === b.id}
-                          className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-lg text-success hover:bg-success-soft transition-colors disabled:opacity-40"
                           aria-label={tc('save')}
                         >
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4" aria-hidden />
                         </button>
                       </div>
                     </div>

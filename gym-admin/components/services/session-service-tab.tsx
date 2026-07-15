@@ -105,16 +105,16 @@ function PackageModal({
     }
   };
 
-  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+  const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
   const labelCls = 'block text-xs text-fg-muted mb-1.5';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <h2 className="text-base font-semibold text-fg">{existing ? t('packageModal.editTitle') : t('packageModal.addTitle')}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
+          <button onClick={onClose} aria-label={tc('cancel')} className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -302,7 +302,7 @@ export default function SessionServiceTab({
                     <p className="text-sm font-medium text-fg truncate">{trainer.name}</p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                        trainer.is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-400/10 text-fg-muted'
+                        trainer.is_active ? 'bg-success-soft text-success' : 'bg-surface-3 text-fg-muted'
                       }`}>
                         {trainer.is_active ? t('specialists.statusActive') : t('specialists.statusInactive')}
                       </span>
@@ -324,7 +324,7 @@ export default function SessionServiceTab({
                         {(trainer.branch_ids ?? []).map(bid => {
                           const branch = branches.find(b => b.id === bid);
                           return branch ? (
-                            <span key={bid} className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600/15 border border-blue-600/25 text-blue-300">
+                            <span key={bid} className="text-[10px] px-1.5 py-0.5 rounded-full bg-info-soft border border-info/40 text-info">
                               {branch.name}
                             </span>
                           ) : null;
@@ -402,11 +402,11 @@ export default function SessionServiceTab({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-line">
-                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPackage')}</th>
-                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colSessions')}</th>
-                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPrice')}</th>
-                  <th className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPerSession')}</th>
-                  <th className="px-4 py-3" />
+                  <th scope="col" className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPackage')}</th>
+                  <th scope="col" className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colSessions')}</th>
+                  <th scope="col" className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPrice')}</th>
+                  <th scope="col" className="text-start text-xs text-fg-muted font-medium px-4 py-3">{t('packages.colPerSession')}</th>
+                  <th scope="col" className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -421,7 +421,7 @@ export default function SessionServiceTab({
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-fg">{pkg.name}</p>
                           {isArchived && (
-                            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400">
+                            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-warning-soft text-warning">
                               {t('packages.archived')}
                             </span>
                           )}
@@ -438,7 +438,7 @@ export default function SessionServiceTab({
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           {can(permissions, 'plans', 'update') && !isArchived && (
-                            <button onClick={() => setPackageModal({ open: true, existing: pkg })}
+                            <button onClick={() => setPackageModal({ open: true, existing: pkg })} aria-label={tc('edit')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-fg hover:bg-surface-3 transition-colors">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
@@ -447,13 +447,15 @@ export default function SessionServiceTab({
                             isArchived ? (
                               <button onClick={() => reactivatePackage(pkg)} disabled={deletingId === pkg.id}
                                 title={t('packages.reactivateTitle')}
-                                className="p-1.5 rounded-lg text-fg-faint hover:text-emerald-400 hover:bg-surface-3 transition-colors disabled:opacity-50">
+                                aria-label={t('packages.reactivateTitle')}
+                                className="p-1.5 rounded-lg text-fg-faint hover:text-success hover:bg-surface-3 transition-colors disabled:opacity-50">
                                 <ArchiveRestore className="w-3.5 h-3.5" />
                               </button>
                             ) : (
                               <button onClick={() => archivePackage(pkg)} disabled={deletingId === pkg.id}
                                 title={t('packages.archiveTitle')}
-                                className="p-1.5 rounded-lg text-fg-faint hover:text-amber-400 hover:bg-surface-3 transition-colors disabled:opacity-50">
+                                aria-label={t('packages.archiveTitle')}
+                                className="p-1.5 rounded-lg text-fg-faint hover:text-warning hover:bg-surface-3 transition-colors disabled:opacity-50">
                                 <Archive className="w-3.5 h-3.5" />
                               </button>
                             )

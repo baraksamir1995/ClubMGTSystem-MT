@@ -17,7 +17,7 @@ const LEVEL_PRESETS = ['Beginner friendly', 'All levels', 'Intermediate', 'Advan
 const CATEGORY_PRESETS = ['Boxing', 'HIIT', 'Yoga', 'Strength', 'Cardio', 'Pilates', 'Cycling', 'CrossFit', 'Functional'];
 const FOCUS_PRESETS = ['Cardio conditioning', 'Core strength', 'Strength building', 'Flexibility', 'Fat loss', 'Muscle gain', 'Mobility', 'Mental resilience', 'Footwork & movement', 'Technique'];
 
-const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+const inputCls = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
 const labelCls = 'block text-xs font-medium text-fg-muted mb-1.5';
 
 export default function ProgramModal({ program, gymId, onClose, onSaved }: Props) {
@@ -145,7 +145,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/60 backdrop-blur-sm">
       <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
@@ -200,11 +200,11 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <button type="button"
                   onClick={() => { setImageUrl(''); setStoragePath(''); if (fileRef.current) fileRef.current.value = ''; }}
-                  className="absolute top-2 end-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-fg transition-colors">
+                  className="absolute top-2 end-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg text-white transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="absolute bottom-2 end-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-fg text-xs rounded-lg transition-colors">
+                  className="absolute bottom-2 end-2 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
                   <Upload className="w-3 h-3" />
                   {uploading ? t('programModal.uploading') : t('programModal.replaceBtn')}
                 </button>
@@ -226,7 +226,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
 
           {/* Title */}
           <div>
-            <label className={labelCls}>{t('programModal.fieldTitle')} <span className="text-red-400">*</span></label>
+            <label className={labelCls}>{t('programModal.fieldTitle')} <span className="text-danger">*</span></label>
             <input className={inputCls} value={title} onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Fight Camp" maxLength={120} required />
           </div>
@@ -235,7 +235,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={labelCls.replace('mb-1.5', '')}>{t('programModal.fieldDescription')}</label>
-              <span className={`text-xs ${description.length > 600 ? 'text-red-400' : 'text-fg-faint'}`}>
+              <span className={`text-xs ${description.length > 600 ? 'text-danger' : 'text-fg-faint'}`}>
                 {description.length}/600
               </span>
             </div>
@@ -287,7 +287,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               {LEVEL_PRESETS.map(l => (
                 <button key={l} type="button" onClick={() => setLevel(level === l ? '' : l)}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    level === l ? 'border-brand bg-brand/20 text-brand' : 'border-line text-fg-muted hover:border-gray-500'
+                    level === l ? 'border-brand bg-brand/20 text-brand' : 'border-line text-fg-muted hover:border-line-strong'
                   }`}>{l}</button>
               ))}
             </div>
@@ -302,7 +302,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
               {CATEGORY_PRESETS.map(c => (
                 <button key={c} type="button" onClick={() => setCategory(category === c ? '' : c)}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    category === c ? 'border-brand bg-brand/20 text-brand' : 'border-line text-fg-muted hover:border-gray-500'
+                    category === c ? 'border-brand bg-brand/20 text-brand' : 'border-line text-fg-muted hover:border-line-strong'
                   }`}>{c}</button>
               ))}
             </div>
@@ -353,7 +353,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
                 {focusAreas.map((area, i) => (
                   <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-3 rounded-lg text-xs text-fg">
                     {area}
-                    <button type="button" onClick={() => removeFocusArea(i)} className="text-fg-faint hover:text-red-400 transition-colors">
+                    <button type="button" onClick={() => removeFocusArea(i)} className="text-fg-faint hover:text-danger transition-colors">
                       <X className="w-3 h-3" />
                     </button>
                   </span>

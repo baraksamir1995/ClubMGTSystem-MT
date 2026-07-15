@@ -166,7 +166,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><UserCheck className="w-4 h-4 text-brand" /> {t('manualModal.title')}</span>
+        <span className="inline-flex items-center gap-2"><UserCheck className="w-4 h-4 text-brand" aria-hidden /> {t('manualModal.title')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">

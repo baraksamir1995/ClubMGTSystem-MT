@@ -90,7 +90,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
   useEffect(() => { if (activeTab === 'scheduled') loadPage('scheduled', scheduledPage); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [activeTab, scheduledPage]);
   useEffect(() => { if (activeTab === 'sent')      loadPage('sent',      sentPage);      /* eslint-disable-line react-hooks/exhaustive-deps */ }, [activeTab, sentPage]);
 
-  const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-faint focus:outline-none focus:border-brand';
+  const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand';
 
   const toggleStatus = (s: string) => setForm(p => ({
     ...p,
@@ -216,10 +216,10 @@ export default function NotificationsPage({ plans, permissions }: Props) {
       {activeTab === 'compose' && (
         <div className="space-y-4">
           {editingId && (
-            <div className="flex items-center justify-between bg-blue-400/10 border border-blue-400/20 rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between bg-info-soft border border-info/40 rounded-xl px-4 py-3">
               <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-400" />
-                <span className="text-sm text-blue-400">{t('communications.editingBanner')}</span>
+                <Pencil className="w-4 h-4 text-info" />
+                <span className="text-sm text-info">{t('communications.editingBanner')}</span>
               </div>
               <button onClick={cancelEdit} className="text-fg-muted hover:text-fg">
                 <X className="w-4 h-4" />
@@ -235,12 +235,12 @@ export default function NotificationsPage({ plans, permissions }: Props) {
                 <h2 className="text-sm font-semibold text-fg">{t('communications.messageSection')}</h2>
               </div>
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">{t('communications.titleLabel')} <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('communications.titleLabel')} <span className="text-danger">*</span></label>
                 <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                   placeholder={t('communications.titlePlaceholder')} className={inp} />
               </div>
               <div>
-                <label className="block text-xs text-fg-muted mb-1.5">{t('communications.messageLabel')} <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-fg-muted mb-1.5">{t('communications.messageLabel')} <span className="text-danger">*</span></label>
                 <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))}
                   placeholder={t('communications.messagePlaceholder')} rows={8}
                   className={inp + ' resize-none'} />
@@ -301,7 +301,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
                             <button key={p.id} onClick={() => togglePlan(p.id)}
                               className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
                                 form.filterPlanIds.includes(p.id)
-                                  ? 'bg-blue-600/20 border-blue-600/40 text-blue-300'
+                                  ? 'bg-info-soft border-info/40 text-info'
                                   : 'bg-surface border-line text-fg-muted hover:text-fg'
                               }`}>
                               {p.name}
@@ -335,7 +335,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
                 </div>
                 {form.sendMode === 'schedule' && (
                   <div>
-                    <label className="block text-xs text-fg-muted mb-1.5">{t('communications.dateTimeLabel')} <span className="text-red-400">*</span></label>
+                    <label className="block text-xs text-fg-muted mb-1.5">{t('communications.dateTimeLabel')} <span className="text-danger">*</span></label>
                     <input type="datetime-local" value={form.scheduledAt}
                       onChange={e => setForm(p => ({ ...p, scheduledAt: e.target.value }))}
                       className={inp + ' [color-scheme:dark]'} />
@@ -376,7 +376,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs bg-blue-400/10 text-blue-400 px-2 py-0.5 rounded-full">{t('communications.statusScheduled')}</span>
+                    <span className="text-xs bg-info-soft text-info px-2 py-0.5 rounded-full">{t('communications.statusScheduled')}</span>
                     <span className="text-xs text-fg-faint flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {n.scheduled_at ? fmtDt(n.scheduled_at, dl) : '—'}
@@ -429,7 +429,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
           ) : sentItems.map(n => (
             <div key={n.id} className="bg-surface-2 border border-line rounded-xl p-5">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="text-sm font-semibold text-fg">{n.title}</h3>

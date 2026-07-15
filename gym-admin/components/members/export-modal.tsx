@@ -126,6 +126,7 @@ export default function ExportModal({ members, onClose }: Props) {
             ] as const).map(({ value, icon: Icon, label, desc }) => (
               <button
                 key={value}
+                type="button"
                 onClick={() => setFormat(value)}
                 className={`flex items-center gap-3 p-3 rounded-xl border transition-colors text-start ${
                   format === value
@@ -133,7 +134,7 @@ export default function ExportModal({ members, onClose }: Props) {
                     : 'border-line hover:border-line-strong'
                 }`}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${format === value ? 'text-brand' : 'text-fg-faint'}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${format === value ? 'text-brand' : 'text-fg-faint'}`} aria-hidden />
                 <div>
                   <p className={`text-sm font-medium ${format === value ? 'text-fg' : 'text-fg-muted'}`}>{label}</p>
                   <p className="text-xs text-fg-faint">{desc}</p>
@@ -148,13 +149,14 @@ export default function ExportModal({ members, onClose }: Props) {
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-fg-muted uppercase tracking-wide">{t('selectMembersLabel')}</p>
             <button
+              type="button"
               onClick={toggleAll}
               className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dim transition-colors"
             >
               {allSelected ? (
-                <><CheckSquare className="w-3.5 h-3.5" /> {t('deselectAll')}</>
+                <><CheckSquare className="w-3.5 h-3.5" aria-hidden /> {t('deselectAll')}</>
               ) : (
-                <><Square className="w-3.5 h-3.5" /> {t('selectAllLabel')}</>
+                <><Square className="w-3.5 h-3.5" aria-hidden /> {t('selectAllLabel')}</>
               )}
             </button>
           </div>

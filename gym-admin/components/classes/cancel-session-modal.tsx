@@ -56,7 +56,7 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-danger" /> {t('cancelModal.title')}</span>
+        <span className="inline-flex items-center gap-2"><AlertTriangle aria-hidden className="w-4 h-4 text-danger" /> {t('cancelModal.title')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
@@ -74,7 +74,7 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
 
           {/* Booked members count */}
           <div className="mt-3 pt-3 border-t border-line flex items-center gap-2">
-            <Users className="w-3.5 h-3.5 text-fg-muted" />
+            <Users aria-hidden className="w-3.5 h-3.5 text-fg-muted" />
             {bookedCount === null
               ? <span className="text-xs text-fg-faint">{t('cancelModal.loadingBookings')}</span>
               : <span className="text-xs text-fg-muted">
@@ -96,18 +96,22 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
         {/* Notify toggle */}
         {(bookedCount ?? 0) > 0 && (
           <label className="flex items-center gap-3 cursor-pointer">
-            <div
+            <button
+              type="button"
+              role="switch"
+              aria-checked={notify}
+              aria-label={t('cancelModal.notifyMembers')}
               onClick={() => setNotify(n => !n)}
               className={`relative w-10 h-5 rounded-full transition-colors ${notify ? 'bg-brand' : 'bg-surface-4'}`}>
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${notify ? 'translate-x-5' : 'translate-x-0.5'}`} />
-            </div>
+            </button>
             <span className="text-sm text-fg-muted">{t('cancelModal.notifyMembers')}</span>
           </label>
         )}
 
         {/* Warning */}
         <div className="flex items-start gap-2 bg-danger-soft border border-danger/20 rounded-xl p-3">
-          <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+          <AlertTriangle aria-hidden className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
           <p className="text-xs text-danger">
             {t('cancelModal.warning')}
           </p>

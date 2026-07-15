@@ -66,7 +66,7 @@ export default function SpecialistQRModal({ gymId, trainerId, trainerName, train
   return (
     <Modal open onClose={onClose} size="sm">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><QrCode className="w-4 h-4 text-brand" /> {t('qr.modalTitle')}</span>
+        <span className="inline-flex items-center gap-2"><QrCode className="w-4 h-4 text-brand" aria-hidden /> {t('qr.modalTitle')}</span>
       </Modal.Header>
 
       <Modal.Body className="flex flex-col items-center gap-5">

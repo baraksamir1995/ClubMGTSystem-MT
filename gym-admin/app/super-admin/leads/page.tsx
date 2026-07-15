@@ -123,24 +123,24 @@ export default function LeadsPage() {
         <div>
           <h1 className="text-2xl font-bold text-fg">Landing Page Leads</h1>
           <p className="text-sm text-fg-muted mt-0.5">
-            {leads.length} total · <span className="text-amber-400">{uncontactedCount} new</span>
+            {leads.length} total · <span className="text-warning">{uncontactedCount} new</span>
           </p>
         </div>
         <div className="relative">
           <button onClick={() => setShowExport(v => !v)}
             disabled={leads.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-surface-2 border border-line hover:bg-surface-3 text-fg-muted text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            <Download className="w-4 h-4" /> Export
+            <Download className="w-4 h-4" aria-hidden /> Export
           </button>
           {showExport && (
             <div className="absolute right-0 top-full mt-1 z-20 bg-surface-2 border border-line rounded-xl shadow-xl overflow-hidden min-w-[180px]">
               <button onClick={() => { setShowExport(false); exportToExcel(); }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Excel (.xlsx)
+                <FileSpreadsheet className="w-4 h-4 text-success" aria-hidden /> Excel (.xlsx)
               </button>
               <button onClick={() => { setShowExport(false); exportToCsv(); }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors">
-                <Download className="w-4 h-4 text-blue-400" /> CSV
+                <Download className="w-4 h-4 text-info" aria-hidden /> CSV
               </button>
             </div>
           )}
@@ -150,16 +150,16 @@ export default function LeadsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" aria-hidden />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, phone, gym…"
-            className="w-full pl-9 pr-3 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand"
+            className="w-full pl-9 pr-3 py-2 bg-surface-2 border border-line-strong rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-fg-muted" />
+          <Filter className="w-4 h-4 text-fg-muted" aria-hidden />
           <select value={filterContacted} onChange={e => setFilterContacted(e.target.value as any)}
             className="bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:border-brand">
             <option value="">All</option>
@@ -175,7 +175,7 @@ export default function LeadsPage() {
         </div>
       ) : leads.length === 0 ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
-          <Inbox className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <Inbox className="w-10 h-10 text-fg-faint mx-auto mb-3" aria-hidden />
           <p className="text-sm text-fg-muted">No leads yet</p>
         </div>
       ) : (
@@ -184,29 +184,30 @@ export default function LeadsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line">
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3 w-8"></th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">NAME</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">GYM</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">BRANCHES</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PHONE</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">SUBMITTED</th>
-                  <th className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3 w-8"><span className="sr-only">Contacted</span></th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">NAME</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">GYM</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">BRANCHES</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">PHONE</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">SUBMITTED</th>
+                  <th scope="col" className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {leads.map(lead => (
                   <>
-                    <tr key={lead.id} className={`hover:bg-surface-3/20 transition-colors ${!lead.contacted ? 'bg-amber-400/[0.02]' : ''}`}>
+                    <tr key={lead.id} className={`hover:bg-surface-3/20 transition-colors ${!lead.contacted ? 'bg-warning-soft/30' : ''}`}>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleContacted(lead)} disabled={togglingId === lead.id}
                           title={lead.contacted ? 'Mark as new' : 'Mark as contacted'}
-                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${lead.contacted ? 'bg-emerald-400 border-emerald-400' : 'border-line hover:border-gray-400'}`}>
-                          {lead.contacted && <Check className="w-3 h-3 text-brand-ink" strokeWidth={3} />}
+                          aria-label={lead.contacted ? 'Mark as new' : 'Mark as contacted'}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${lead.contacted ? 'bg-success border-success/40' : 'border-line hover:border-line-strong'}`}>
+                          {lead.contacted && <Check className="w-3 h-3 text-on-status" strokeWidth={3} aria-hidden />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="text-fg font-medium">{lead.name}</p>
-                        {!lead.contacted && <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-400/20 text-amber-400">NEW</span>}
+                        {!lead.contacted && <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning-soft text-warning">NEW</span>}
                       </td>
                       <td className="px-5 py-3.5 text-fg-muted">{lead.gym_name}</td>
                       <td className="px-5 py-3.5 text-fg-muted">{lead.branches}</td>
@@ -215,13 +216,13 @@ export default function LeadsPage() {
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <a href={whatsappLink(lead.phone)} target="_blank" rel="noopener noreferrer"
-                            title="WhatsApp"
-                            className="p-1.5 text-fg-muted hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors">
-                            <MessageCircle className="w-3.5 h-3.5" />
+                            title="WhatsApp" aria-label="WhatsApp"
+                            className="p-1.5 text-fg-muted hover:text-success hover:bg-success-soft rounded-lg transition-colors">
+                            <MessageCircle className="w-3.5 h-3.5" aria-hidden />
                           </a>
-                          <a href={`tel:${fmtPhone(lead.phone)}`} title="Call"
+                          <a href={`tel:${fmtPhone(lead.phone)}`} title="Call" aria-label="Call"
                             className="p-1.5 text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors">
-                            <Phone className="w-3.5 h-3.5" />
+                            <Phone className="w-3.5 h-3.5" aria-hidden />
                           </a>
                           {lead.notes && (
                             <button onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
@@ -229,9 +230,9 @@ export default function LeadsPage() {
                               Notes
                             </button>
                           )}
-                          <button onClick={() => deleteLead(lead)} title="Delete"
-                            className="p-1.5 text-fg-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
+                          <button onClick={() => deleteLead(lead)} title="Delete" aria-label="Delete lead"
+                            className="p-1.5 text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden />
                           </button>
                         </div>
                       </td>

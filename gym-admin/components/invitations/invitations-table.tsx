@@ -11,11 +11,11 @@ interface Props {
 }
 
 const STATUS_KEYS: Record<string, { tKey: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending:     { tKey: 'status_pending',     color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20', icon: Clock },
-  accepted:    { tKey: 'status_accepted',    color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',       icon: CheckCircle },
-  active:      { tKey: 'status_active',      color: 'text-green-400 bg-green-400/10 border-green-400/20',    icon: Activity },
-  expired:     { tKey: 'status_expired',     color: 'text-fg-faint bg-gray-500/10 border-gray-500/20',       icon: AlertCircle },
-  invalidated: { tKey: 'status_invalidated', color: 'text-red-400 bg-red-400/10 border-red-400/20',          icon: Ban },
+  pending:     { tKey: 'status_pending',     color: 'text-warning bg-warning-soft border-warning/40', icon: Clock },
+  accepted:    { tKey: 'status_accepted',    color: 'text-info bg-info-soft border-info/40',       icon: CheckCircle },
+  active:      { tKey: 'status_active',      color: 'text-success bg-success-soft border-success/40',    icon: Activity },
+  expired:     { tKey: 'status_expired',     color: 'text-fg-faint bg-surface-3 border-line',       icon: AlertCircle },
+  invalidated: { tKey: 'status_invalidated', color: 'text-danger bg-danger-soft border-danger/40',          icon: Ban },
 };
 
 function StatusBadge({ status, label }: { status: string; label: string }) {
@@ -93,11 +93,11 @@ export default function InvitationsTable({ invitations: initial }: Props) {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
-          { key: 'pending',     tKey: 'status_pending',     color: 'text-yellow-400' },
-          { key: 'accepted',    tKey: 'status_accepted',    color: 'text-blue-400' },
-          { key: 'active',      tKey: 'status_active',      color: 'text-green-400' },
+          { key: 'pending',     tKey: 'status_pending',     color: 'text-warning' },
+          { key: 'accepted',    tKey: 'status_accepted',    color: 'text-info' },
+          { key: 'active',      tKey: 'status_active',      color: 'text-success' },
           { key: 'expired',     tKey: 'status_expired',     color: 'text-fg-muted' },
-          { key: 'invalidated', tKey: 'status_invalidated', color: 'text-red-400' },
+          { key: 'invalidated', tKey: 'status_invalidated', color: 'text-danger' },
         ].map(c => (
           <button
             key={c.key}
@@ -225,7 +225,7 @@ export default function InvitationsTable({ invitations: initial }: Props) {
                         <button
                           onClick={() => handleInvalidate(inv.id)}
                           disabled={invalidating === inv.id}
-                          className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-400 text-xs hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg border border-danger/40 text-danger text-xs hover:bg-danger-soft transition-colors disabled:opacity-50"
                         >
                           {invalidating === inv.id ? t('cancellingButton') : t('invalidateButton')}
                         </button>

@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { isRtl } from '@/i18n/config';
+import { ThemeScript } from '@/components/theme/theme-script';
 import './globals.css';
 
 // next/font/google fetches the font at build time, which fails inside
@@ -28,11 +29,16 @@ export default async function RootLayout({
   const dir = isRtl(locale) ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} className="bg-clby-bg">
-      {/* Brand background lives on <html> AND <body> so every page —
+    // suppressHydrationWarning: ThemeScript stamps `data-theme` on <html>
+    // before hydration, which the server render can't know about.
+    <html lang={locale} dir={dir} className="bg-surface" suppressHydrationWarning>
+      {/* Theme background lives on <html> AND <body> so every page —
           including ones that forget to set their own bg — defaults to
-          the near-black brand surface instead of the browser's white. */}
-      <body className="font-sans bg-clby-bg text-clby-fg">
+          the themed surface instead of the browser's white. */}
+      <body className="font-sans bg-surface text-fg">
+        {/* Must be the FIRST thing in body: blocks paint until the
+            resolved theme is applied, preventing a wrong-theme flash. */}
+        <ThemeScript />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Toaster position="top-right" />
           {children}

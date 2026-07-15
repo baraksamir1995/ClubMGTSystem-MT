@@ -189,7 +189,7 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
             <p className="text-xs text-fg-faint">{t('bookingsModal.total')}</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-blue-400">{booked}</p>
+            <p className="text-lg font-bold text-info">{booked}</p>
             <p className="text-xs text-fg-faint">{t('bookingsModal.booked')}</p>
           </div>
           <div className="text-center">
@@ -213,12 +213,12 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
             <button
               onClick={() => setShowAdd(s => !s)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showAdd ? 'bg-brand text-brand-ink' : 'bg-brand/15 hover:bg-brand/25 text-brand'}`}>
-              <UserPlus className="w-3.5 h-3.5" />
+              <UserPlus aria-hidden className="w-3.5 h-3.5" />
               {t('bookingsModal.addMember')}
             </button>
           )}
           <div title={t('bookingsModal.qrScanMobile')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-3 text-fg-muted text-xs cursor-default">
-            <QrCode className="w-3.5 h-3.5" />
+            <QrCode aria-hidden className="w-3.5 h-3.5" />
             {t('bookingsModal.qrScanMobile')}
           </div>
         </div>
@@ -291,7 +291,7 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
             {bookings.length === 0 && session.status === 'scheduled' && (
               <button onClick={() => setShowAdd(true)}
                 className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand hover:bg-brand-dim text-brand-ink text-xs font-medium transition-colors">
-                <UserPlus className="w-3.5 h-3.5" /> {t('bookingsModal.addFirstMember')}
+                <UserPlus aria-hidden className="w-3.5 h-3.5" /> {t('bookingsModal.addFirstMember')}
               </button>
             )}
           </div>
@@ -299,10 +299,10 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
-                <th className="text-start px-5 py-3">{t('bookingsModal.colMember')}</th>
-                <th className="text-start px-5 py-3">{t('bookingsModal.colBookedAt')}</th>
-                <th className="text-start px-5 py-3">{t('bookingsModal.colStatus')}</th>
-                <th className="text-end px-5 py-3">{t('bookingsModal.colActions')}</th>
+                <th scope="col" className="text-start px-5 py-3">{t('bookingsModal.colMember')}</th>
+                <th scope="col" className="text-start px-5 py-3">{t('bookingsModal.colBookedAt')}</th>
+                <th scope="col" className="text-start px-5 py-3">{t('bookingsModal.colStatus')}</th>
+                <th scope="col" className="text-end px-5 py-3">{t('bookingsModal.colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -353,7 +353,7 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
                             onClick={() => updateStatus(b, 'booked')}
                             disabled={isUpdating}
                             title={t('bookingsModal.titleResetBooking')}
-                            className="p-1.5 rounded-lg text-fg-faint hover:text-blue-400 hover:bg-blue-400/10 transition-colors disabled:opacity-40 text-xs font-mono">
+                            className="p-1.5 rounded-lg text-fg-faint hover:text-info hover:bg-info-soft transition-colors disabled:opacity-40 text-xs font-mono">
                             ↺
                           </button>
                         )}

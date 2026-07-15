@@ -103,7 +103,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
     <>
       <Modal open onClose={onClose} size="sm">
         <Modal.Header>
-          <span className="inline-flex items-center gap-2"><QrCode className="w-4 h-4 text-brand" /> {t('qrModal.title')}</span>
+          <span className="inline-flex items-center gap-2"><QrCode className="w-4 h-4 text-brand" aria-hidden /> {t('qrModal.title')}</span>
         </Modal.Header>
 
         <Modal.Body className="flex flex-col items-center gap-5">
@@ -163,7 +163,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
               disabled={tokenLoading || regenerating}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-warning/40 text-warning text-sm hover:bg-warning-soft transition-colors disabled:opacity-40"
             >
-              <RefreshCw className="w-3.5 h-3.5" /> {t('qrModal.regenerateQr')}
+              <RefreshCw className="w-3.5 h-3.5" aria-hidden /> {t('qrModal.regenerateQr')}
             </button>
           )}
         </Modal.Body>
@@ -171,11 +171,11 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
 
       {/* Confirmation dialog */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-overlay/70 backdrop-blur-sm">
           <div className="bg-surface-2 border border-warning/30 rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col gap-4">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-full bg-warning-soft flex items-center justify-center flex-shrink-0 mt-0.5">
-                <AlertTriangle className="w-4 h-4 text-warning" />
+                <AlertTriangle className="w-4 h-4 text-warning" aria-hidden />
               </div>
               <div>
                 <p className="text-sm font-semibold text-fg">{t('qrModal.regenerateTitle')}</p>
@@ -191,7 +191,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
               <button
                 onClick={handleRegenerate}
                 disabled={regenerating}
-                className="flex-1 py-2 rounded-lg bg-warning hover:bg-warning/90 text-brand-ink text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2 rounded-lg bg-warning hover:bg-warning/90 text-on-status text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {regenerating ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('qrModal.regenerating')}</> : t('qrModal.yesRegenerate')}
               </button>

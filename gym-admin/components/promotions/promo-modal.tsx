@@ -81,7 +81,7 @@ export default function PromoModal({ existing, onClose, onSaved }: Props) {
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <span className="inline-flex items-center gap-2"><Tag className="w-4 h-4 text-brand" /> {existing ? t('editPromoCode') : t('newPromoCode')}</span>
+        <span className="inline-flex items-center gap-2"><Tag className="w-4 h-4 text-brand" aria-hidden /> {existing ? t('editPromoCode') : t('newPromoCode')}</span>
       </Modal.Header>
 
       <Modal.Body className="space-y-4">

@@ -112,7 +112,7 @@ export default function PlansPage() {
 
   const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 }).format(n);
 
-  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line-strong rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
 
   return (
     <div className="space-y-5">
@@ -122,18 +122,18 @@ export default function PlansPage() {
           <p className="text-sm text-fg-muted mt-0.5">Manage subscription plans for gyms</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-          <Plus className="w-4 h-4" /> Add Plan
+          className="flex items-center gap-2 px-4 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors">
+          <Plus className="w-4 h-4" aria-hidden /> Add Plan
         </button>
       </div>
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">{editingId ? 'Edit Plan' : 'New Plan'}</h2>
-              <button onClick={() => { setShowForm(false); resetForm(); }} className="text-fg-muted hover:text-fg"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setShowForm(false); resetForm(); }} aria-label="Close" className="text-fg-muted hover:text-fg"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div>
@@ -158,8 +158,8 @@ export default function PlansPage() {
                 <button type="button" onClick={() => { setShowForm(false); resetForm(); }}
                   className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
                 <button type="submit" disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                  {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                  {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden /> : <Check className="w-3.5 h-3.5" aria-hidden />}
                   {editingId ? 'Save' : 'Create'}
                 </button>
               </div>
@@ -176,7 +176,7 @@ export default function PlansPage() {
 
       {!loading && plans.length === 0 && (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
-          <FileText className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <FileText className="w-10 h-10 text-fg-faint mx-auto mb-3" aria-hidden />
           <p className="text-sm text-fg-muted">No plans yet. Create your first plan.</p>
         </div>
       )}
@@ -186,11 +186,11 @@ export default function PlansPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line">
-                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PLAN</th>
-                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">MONTHLY</th>
-                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">ANNUAL</th>
-                <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">STATUS</th>
-                <th className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
+                <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">PLAN</th>
+                <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">MONTHLY</th>
+                <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">ANNUAL</th>
+                <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">STATUS</th>
+                <th scope="col" className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -204,17 +204,17 @@ export default function PlansPage() {
                   <td className="px-5 py-3.5 text-fg">{fmt(plan.price_annual)}</td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleActive(plan)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer ${plan.is_active ? 'bg-emerald-400/20 text-emerald-400' : 'bg-gray-400/20 text-fg-muted'}`}>
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer ${plan.is_active ? 'bg-success-soft text-success' : 'bg-surface-3 text-fg-muted'}`}>
                       {plan.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(plan)} className="p-1.5 text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors">
-                        <Pencil className="w-3.5 h-3.5" />
+                      <button onClick={() => openEdit(plan)} aria-label="Edit plan" className="p-1.5 text-fg-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors">
+                        <Pencil className="w-3.5 h-3.5" aria-hidden />
                       </button>
-                      <button onClick={() => deletePlan(plan)} className="p-1.5 text-fg-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
+                      <button onClick={() => deletePlan(plan)} aria-label="Delete plan" className="p-1.5 text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden />
                       </button>
                     </div>
                   </td>

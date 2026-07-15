@@ -92,7 +92,9 @@ export function SearchInput({
             // debounce useEffect would otherwise add 400ms of latency.
             onSearch?.('');
           }}
-          className="p-1 -mr-1 rounded text-fg-muted hover:text-fg transition-colors"
+          // Full-width 44px hit target inside the (min-h-11) input; the
+          // negative margin keeps the visual footprint compact.
+          className="min-w-11 self-stretch -my-1 inline-flex items-center justify-center rounded text-fg-muted hover:text-fg transition-colors"
           aria-label="Clear search"
         >
           <X className="w-3.5 h-3.5" />

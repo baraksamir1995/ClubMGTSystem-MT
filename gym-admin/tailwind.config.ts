@@ -1,6 +1,13 @@
 import type { Config } from 'tailwindcss';
 import colors from 'tailwindcss/colors';
 
+// Every color below resolves through the CSS variables declared in
+// app/globals.css, where the light and dark palettes live. Both
+// palettes are WCAG 2.2 AAA verified by scripts/contrast-audit.mjs —
+// change values there, re-run the audit, then mirror here only if a
+// token is added/removed.
+const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,104 +16,91 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      // CLBY brand system (from the brand guidelines): near-black
-      // background, neon green `#B8FF2E` as the primary accent ("entry"),
-      // orange `#FF6B2B` as the secondary accent ("energy"), and an
-      // off-white foreground. The remap pushes the existing
-      // `purple-*` classes scattered through the dashboard to the
-      // brand green automatically, so we don't have to touch the
-      // hundreds of legacy `bg-purple-600 / text-purple-400` sites.
       colors: {
-        // ── Design-system tokens (semantic). New components live in
-        // `components/ui/` and read these directly. The legacy
-        // `clby-*` / `purple-*` / `gray-*` blocks below are aliases
-        // kept for older components during the migration.
+        // ── Design-system tokens (semantic, theme-aware). Components
+        // must only use these — never raw palette classes or hex.
+        // Shape: `bg-{role}`, `text-{role}`, `border-{role}` — e.g.
+        // `bg-surface-2`, `text-fg-muted`, `border-line`,
+        // `bg-danger-soft text-danger`.
         //
-        // Naming convention: short, semantic, role-based — no hex /
-        // colour names. Use shape: `bg-{role}`, `text-{role}`,
-        // `border-{role}` — e.g. `bg-brand`, `bg-brand-ink`,
-        // `bg-surface-2`, `border-line`, `text-fg-muted`.
+        // `brand` is the brand green as TEXT/icon (dark green in light
+        // mode, neon in dark mode); `brand-fill` is the neon button
+        // fill (always paired with `text-brand-ink`, and with
+        // `border-brand-edge` so the fill has a ≥3:1 boundary in light
+        // mode).
         brand: {
-          DEFAULT: '#B8FF2E',   // primary accent (entry green)
-          ink:     '#0A0A0A',   // foreground that sits ON brand
-          dim:     '#A1E125',   // hover/active darken
+          DEFAULT: v('brand'),
+          fill:    v('brand-fill'),
+          dim:     v('brand-dim'),
+          ink:     v('brand-ink'),
+          edge:    v('brand-edge'),
         },
         accent: {
-          DEFAULT: '#FF6B2B',   // secondary accent (energy orange)
+          DEFAULT: v('accent'),
         },
         surface: {
-          DEFAULT: '#0A0A0A',   // page background
-          2:       '#161616',   // cards / modals
-          3:       '#1F1F1F',   // hover / pressed
-          4:       '#272727',   // tertiary
+          DEFAULT: v('surface'),
+          2:       v('surface-2'),
+          3:       v('surface-3'),
+          4:       v('surface-4'),
         },
         line: {
-          DEFAULT: 'rgba(255,255,255,0.08)',
-          strong:  'rgba(255,255,255,0.14)',
+          DEFAULT: v('line'),
+          strong:  v('line-strong'),
         },
         fg: {
-          DEFAULT: '#F5F5F2',
-          muted:   '#A3A39C',
-          faint:   '#5E5E58',
+          DEFAULT: v('fg'),
+          muted:   v('fg-muted'),
+          faint:   v('fg-faint'),
         },
-        success: {
-          DEFAULT: '#6FD08C',
-          soft:    'rgba(111,208,140,0.18)',
-        },
-        warning: {
-          DEFAULT: '#E8AC4F',
-          soft:    'rgba(232,172,79,0.18)',
-        },
-        danger: {
-          DEFAULT: '#E56A4A',
-          soft:    'rgba(229,106,74,0.18)',
-        },
+        success: { DEFAULT: v('success'), soft: v('success-soft') },
+        warning: { DEFAULT: v('warning'), soft: v('warning-soft') },
+        danger:  { DEFAULT: v('danger'),  soft: v('danger-soft') },
+        info:    { DEFAULT: v('info'),    soft: v('info-soft') },
+        // Text on SOLID status fills (`bg-danger text-on-status`).
+        'on-status': v('on-status'),
+        // Focus indicator — ≥3:1 against every surface in both themes.
+        focus: v('focus'),
+        // Modal/backdrop scrim — used with alpha (`bg-overlay/60`).
+        overlay: v('overlay'),
 
-        // ── Legacy aliases (kept until the migration sweep finishes).
-        // Direct brand tokens — used for components written before the
-        // semantic ramp existed (the "Powered by CLBY" footer, etc.).
+        // ── Legacy aliases. Kept so anything the token sweep missed
+        // still themes correctly instead of breaking in light mode.
+        // New code must not use these.
         clby: {
-          bg:       '#0A0A0A',
-          surface:  '#161616',
-          surface2: '#1F1F1F',   // a touch above surface for hover/active strata
-          border:   'rgba(255,255,255,0.08)',
-          fg:       '#F5F5F2',   // off-white text
-          green:    '#B8FF2E',   // primary accent — "entry"
-          greenDim: '#A1E125',   // hover/active step-down of the primary green
-          orange:   '#FF6B2B',   // secondary accent — "energy"
-          // `lime` kept as an alias of green for any older references —
-          // delete once nothing reads it.
-          lime:     '#B8FF2E',
+          bg:       v('surface'),
+          surface:  v('surface-2'),
+          surface2: v('surface-3'),
+          border:   v('line'),
+          fg:       v('fg'),
+          green:    v('brand'),
+          greenDim: v('brand-dim'),
+          orange:   v('accent'),
+          lime:     v('brand'),
         },
-        // Dark gray surface shades remapped to brand near-black + the
-        // brand surface ramp. The lighter gray shades (50–600) stay as
-        // Tailwind's defaults so `text-gray-400 / text-gray-500` still
-        // read as muted neutrals against the brand bg. Spreading
-        // `colors.gray` first keeps every untouched key intact.
         gray: {
           ...colors.gray,
-          600:  '#2D2D2D', // subtle divider above surfaces
-          700:  '#1F1F1F', // surface2 — hover/active strata
-          800:  '#161616', // surface — card / modal fill
-          900:  '#0A0A0A', // page bg
-          950:  '#050505',
+          400: v('fg-muted'),
+          500: v('fg-faint'),
+          600: v('surface-4'),
+          700: v('surface-3'),
+          800: v('surface-2'),
+          900: v('surface'),
+          950: v('surface'),
         },
-        // Legacy purple-* classes remapped to the brand green ramp so
-        // existing components inherit the new accent. 600 is the pure
-        // brand hex (#B8FF2E); 500 is a slight hover darken; the rest
-        // cascade down monotonically.
+        // Legacy purple-* (pre-rebrand accent) → brand tokens.
         purple: {
-          50:  '#F5FFD9',
-          100: '#E8FFB0',
-          200: '#D6FF7C',
-          300: '#C6FF4E',
-          400: '#B8FF2E', // text accents / focus rings — canonical brand green
-          500: '#A1E125', // hover state on filled buttons
-          600: '#B8FF2E', // CTA fill — pure brand neon
-          700: '#86BD1F',
-          800: '#5F8716',
-          900: '#3F5A0F',
-          950: '#243307',
+          50:  v('brand-dim'),
+          100: v('brand-dim'),
+          200: v('brand-dim'),
+          300: v('brand'),
+          400: v('brand'),
+          500: v('brand-dim'),
+          600: v('brand-fill'),
+          700: v('brand-dim'),
+          800: v('brand'),
+          900: v('brand'),
+          950: v('brand'),
         },
       },
       fontFamily: {

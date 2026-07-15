@@ -231,7 +231,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                           </div>
                           <div className="flex flex-col gap-1 flex-shrink-0 items-end">
                             {scanLocation(log) && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400 max-w-[180px] truncate">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-info-soft text-info max-w-[180px] truncate">
                                 {scanLocation(log)}
                               </span>
                             )}
@@ -258,9 +258,9 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                           {t('live.showing', { from: (livePage - 1) * LIVE_PAGE_SIZE + 1, to: Math.min(livePage * LIVE_PAGE_SIZE, liveTotal), total: liveTotal })}
                         </p>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => fetchLive(Math.max(1, livePage - 1))} disabled={livePage === 1 || liveLoading}
+                          <button onClick={() => fetchLive(Math.max(1, livePage - 1))} disabled={livePage === 1 || liveLoading} aria-label="Previous page"
                             className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <ChevronLeft className="w-4 h-4" />
+                            <ChevronLeft className="w-4 h-4" aria-hidden />
                           </button>
                           {Array.from({ length: Math.min(liveTotalPages, 5) }, (_, i) => {
                             const start = Math.max(1, Math.min(livePage - 2, liveTotalPages - 4));
@@ -271,9 +271,9 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                               {n}
                             </button>
                           ))}
-                          <button onClick={() => fetchLive(Math.min(liveTotalPages, livePage + 1))} disabled={livePage === liveTotalPages || liveLoading}
+                          <button onClick={() => fetchLive(Math.min(liveTotalPages, livePage + 1))} disabled={livePage === liveTotalPages || liveLoading} aria-label="Next page"
                             className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <ChevronRight className="w-4 h-4" />
+                            <ChevronRight className="w-4 h-4" aria-hidden />
                           </button>
                         </div>
                       </div>
@@ -343,7 +343,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
               <Input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder={t('logs.searchPlaceholder')}
                 className="ps-9" />
-              {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg z-10"><X className="w-3.5 h-3.5" /></button>}
+              {search && <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg z-10"><X className="w-3.5 h-3.5" aria-hidden /></button>}
             </div>
 
             <div className="text-xs text-fg-faint">{t('logs.recordCount', { count: logsTotal > 0 ? logsTotal : displayedLogs.length })}</div>
@@ -361,12 +361,12 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-line">
-                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colMember')}</th>
-                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colCheckin')}</th>
-                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colBranch')}</th>
-                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colEntryPoint')}</th>
-                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colSpecialist')}</th>
-                          <th className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colMethod')}</th>
+                          <th scope="col" className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colMember')}</th>
+                          <th scope="col" className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colCheckin')}</th>
+                          <th scope="col" className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colBranch')}</th>
+                          <th scope="col" className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colEntryPoint')}</th>
+                          <th scope="col" className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colSpecialist')}</th>
+                          <th scope="col" className="text-start text-xs text-fg-muted font-medium px-5 py-3">{t('logs.colMethod')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
@@ -387,7 +387,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                             </td>
                             <td className="px-5 py-3.5">
                               {log.access_point
-                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/10 text-blue-400">{log.access_point}</span>
+                                ? <span className="text-xs px-2 py-0.5 rounded-full bg-info-soft text-info">{log.access_point}</span>
                                 : <span className="text-fg-faint text-xs">—</span>}
                             </td>
                             <td className="px-5 py-3.5 text-fg-muted text-sm">
@@ -409,9 +409,9 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                         {t('logs.showing', { from: (logsPage - 1) * LOGS_PAGE_SIZE + 1, to: Math.min(logsPage * LOGS_PAGE_SIZE, logsTotal), total: logsTotal })}
                       </p>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => fetchLogs(Math.max(1, logsPage - 1))} disabled={logsPage === 1 || logsLoading}
+                        <button onClick={() => fetchLogs(Math.max(1, logsPage - 1))} disabled={logsPage === 1 || logsLoading} aria-label="Previous page"
                           className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                          <ChevronLeft className="w-4 h-4" />
+                          <ChevronLeft className="w-4 h-4" aria-hidden />
                         </button>
                         {Array.from({ length: Math.min(logsTotalPages, 5) }, (_, i) => {
                           const start = Math.max(1, Math.min(logsPage - 2, logsTotalPages - 4));
@@ -422,9 +422,9 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                             {n}
                           </button>
                         ))}
-                        <button onClick={() => fetchLogs(Math.min(logsTotalPages, logsPage + 1))} disabled={logsPage === logsTotalPages || logsLoading}
+                        <button onClick={() => fetchLogs(Math.min(logsTotalPages, logsPage + 1))} disabled={logsPage === logsTotalPages || logsLoading} aria-label="Next page"
                           className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                          <ChevronRight className="w-4 h-4" />
+                          <ChevronRight className="w-4 h-4" aria-hidden />
                         </button>
                       </div>
                     </div>
@@ -576,10 +576,10 @@ function LatestScanHero({ log, isLive, methods }: LatestScanHeroProps) {
         </div>
 
         <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 lg:border-s lg:border-line/60 lg:ps-8">
-          <HeroField icon={<MapPin className="w-3.5 h-3.5" />} label={t('hero.locationLabel')} value={where ?? log.branch_name ?? t('hero.gymEntrance')} sub={where && log.branch_name ? log.branch_name : null} />
-          <HeroField icon={<UserIcon className="w-3.5 h-3.5" />} label={t('hero.trainerLabel')} value={trainer ?? '—'} mute={!trainer} />
-          <HeroField icon={<Calendar className="w-3.5 h-3.5" />} label={t('hero.dateLabel')} value={fmtDate(log.check_in_at)} sub={dt.toLocaleDateString(dateLocale(locale), { weekday: 'long' })} />
-          <HeroField icon={<Clock className="w-3.5 h-3.5" />} label={t('hero.timeLabel')} value={fmtTime(log.check_in_at)} sub={relativeTime(dt, t)} />
+          <HeroField icon={<MapPin className="w-3.5 h-3.5" aria-hidden />} label={t('hero.locationLabel')} value={where ?? log.branch_name ?? t('hero.gymEntrance')} sub={where && log.branch_name ? log.branch_name : null} />
+          <HeroField icon={<UserIcon className="w-3.5 h-3.5" aria-hidden />} label={t('hero.trainerLabel')} value={trainer ?? '—'} mute={!trainer} />
+          <HeroField icon={<Calendar className="w-3.5 h-3.5" aria-hidden />} label={t('hero.dateLabel')} value={fmtDate(log.check_in_at)} sub={dt.toLocaleDateString(dateLocale(locale), { weekday: 'long' })} />
+          <HeroField icon={<Clock className="w-3.5 h-3.5" aria-hidden />} label={t('hero.timeLabel')} value={fmtTime(log.check_in_at)} sub={relativeTime(dt, t)} />
         </div>
       </div>
     </div>

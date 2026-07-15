@@ -118,25 +118,27 @@ export default function MemberDetailActions({
         )}
         {freezeEnabled && isFrozen && (
           <button
+            type="button"
             onClick={() => setFreezeModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-info-soft hover:bg-info/25 text-info border border-info/40 text-sm font-medium rounded-lg transition-colors"
           >
-            <Play className="w-4 h-4" />
+            <Play className="w-4 h-4" aria-hidden />
             {t('unfreeze')}
           </button>
         )}
         {freezeEnabled && !isFrozen && (
           <button
+            type="button"
             onClick={() => !quotaExhausted && setFreezeModal(true)}
             disabled={quotaExhausted}
             title={quotaExhausted ? (daysExhausted ? t('allFreezeDaysUsed') : t('maxFreezeCountReached')) : undefined}
             className={`flex items-center gap-2 px-4 py-2 border text-sm font-medium rounded-lg transition-colors ${
               quotaExhausted
-                ? 'bg-blue-600/5 text-blue-400/40 border-blue-500/15 cursor-not-allowed'
-                : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-500/30'
+                ? 'bg-info-soft/40 text-info/40 border-info/20 cursor-not-allowed'
+                : 'bg-info-soft hover:bg-info/25 text-info border-info/40'
             }`}
           >
-            <Snowflake className="w-4 h-4" />
+            <Snowflake className="w-4 h-4" aria-hidden />
             {t('freeze')}
           </button>
         )}
@@ -156,10 +158,11 @@ export default function MemberDetailActions({
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => setDetachConfirm(true)}
               className="flex items-center gap-2 px-4 py-2 bg-danger-soft hover:bg-danger/25 text-danger border border-danger/30 text-sm font-medium rounded-lg transition-colors"
             >
-              <Unlink className="w-4 h-4" />
+              <Unlink className="w-4 h-4" aria-hidden />
               {t('detachPlan')}
             </button>
           )

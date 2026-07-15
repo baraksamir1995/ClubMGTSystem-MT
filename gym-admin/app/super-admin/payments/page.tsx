@@ -134,11 +134,11 @@ export default function PaymentsPage() {
   const fmtDate = (iso: string) => { try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return '—'; } };
 
   const statusBadge = (s: string) => {
-    const cls = s === 'paid' ? 'bg-emerald-400/20 text-emerald-400' : s === 'overdue' ? 'bg-red-400/20 text-red-400' : 'bg-amber-400/20 text-amber-400';
+    const cls = s === 'paid' ? 'bg-success-soft text-success' : s === 'overdue' ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning';
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{s}</span>;
   };
 
-  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand transition-colors';
+  const inp = 'w-full px-3 py-2 bg-surface-3 border border-line-strong rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
 
   // Summary
   const totalCollected = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
@@ -152,8 +152,8 @@ export default function PaymentsPage() {
           <p className="text-sm text-fg-muted mt-0.5">Manage gym invoices and payments</p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
-          <Plus className="w-4 h-4" /> Create Invoice
+          className="flex items-center gap-2 px-4 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors">
+          <Plus className="w-4 h-4" aria-hidden /> Create Invoice
         </button>
       </div>
 
@@ -161,11 +161,11 @@ export default function PaymentsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1">Total Collected</p>
-          <p className="text-xl font-bold text-emerald-400">{fmt(totalCollected)}</p>
+          <p className="text-xl font-bold text-success">{fmt(totalCollected)}</p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1">Pending</p>
-          <p className="text-xl font-bold text-amber-400">{fmt(totalPending)}</p>
+          <p className="text-xl font-bold text-warning">{fmt(totalPending)}</p>
         </div>
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1">Total Invoices</p>
@@ -175,7 +175,7 @@ export default function PaymentsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Filter className="w-4 h-4 text-fg-muted" />
+        <Filter className="w-4 h-4 text-fg-muted" aria-hidden />
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="bg-surface-2 border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
           <option value="">All statuses</option>
@@ -196,11 +196,11 @@ export default function PaymentsPage() {
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4">
           <div className="bg-surface-2 border border-line rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line">
               <h2 className="text-lg font-semibold text-fg">Create Invoice</h2>
-              <button onClick={() => setShowCreate(false)} className="text-fg-muted hover:text-fg"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowCreate(false)} aria-label="Close" className="text-fg-muted hover:text-fg"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
               <div>
@@ -226,11 +226,11 @@ export default function PaymentsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-fg-muted mb-1">Period Start *</label>
-                  <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className={inp + ' [color-scheme:dark]'} required />
+                  <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className={inp} required />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-fg-muted mb-1">Period End *</label>
-                  <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className={inp + ' [color-scheme:dark]'} required />
+                  <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className={inp} required />
                 </div>
               </div>
               <div>
@@ -243,8 +243,8 @@ export default function PaymentsPage() {
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-fg-muted hover:text-fg transition-colors">Cancel</button>
                 <button type="submit" disabled={creating}
-                  className="flex items-center gap-2 px-5 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                  {creating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                  className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                  {creating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" aria-hidden /> : null}
                   Create Invoice
                 </button>
               </div>
@@ -260,7 +260,7 @@ export default function PaymentsPage() {
         </div>
       ) : invoices.length === 0 ? (
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
-          <CreditCard className="w-10 h-10 text-fg-faint mx-auto mb-3" />
+          <CreditCard className="w-10 h-10 text-fg-faint mx-auto mb-3" aria-hidden />
           <p className="text-sm text-fg-muted">No invoices yet</p>
         </div>
       ) : (
@@ -269,12 +269,12 @@ export default function PaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line">
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">GYM</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PLAN</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">PERIOD</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">AMOUNT</th>
-                  <th className="text-left text-xs text-fg-muted font-medium px-5 py-3">STATUS</th>
-                  <th className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">GYM</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">PLAN</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">PERIOD</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">AMOUNT</th>
+                  <th scope="col" className="text-left text-xs text-fg-muted font-medium px-5 py-3">STATUS</th>
+                  <th scope="col" className="text-right text-xs text-fg-muted font-medium px-5 py-3">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -290,14 +290,14 @@ export default function PaymentsPage() {
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {inv.status !== 'paid' && (
-                          <button onClick={() => markPaid(inv)} title="Mark as paid"
-                            className="p-1.5 text-fg-muted hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors">
-                            <Check className="w-3.5 h-3.5" />
+                          <button onClick={() => markPaid(inv)} title="Mark as paid" aria-label="Mark as paid"
+                            className="p-1.5 text-fg-muted hover:text-success hover:bg-success-soft rounded-lg transition-colors">
+                            <Check className="w-3.5 h-3.5" aria-hidden />
                           </button>
                         )}
-                        <button onClick={() => deleteInvoice(inv)} title="Delete"
-                          className="p-1.5 text-fg-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button onClick={() => deleteInvoice(inv)} title="Delete" aria-label="Delete invoice"
+                          className="p-1.5 text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden />
                         </button>
                       </div>
                     </td>

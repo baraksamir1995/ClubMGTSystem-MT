@@ -116,8 +116,8 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={t('trainersPage.searchPlaceholder')}
-              className="w-full ps-9 pe-8 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder-gray-500 focus:outline-none focus:border-brand" />
-            {search && <button onClick={() => setSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-3.5 h-3.5" /></button>}
+              className="w-full ps-9 pe-8 py-2 bg-surface-2 border border-line rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand" />
+            {search && <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute end-3 top-1/2 -translate-y-1/2 text-fg-faint hover:text-fg"><X className="w-3.5 h-3.5" aria-hidden /></button>}
           </div>
         </div>
 
@@ -159,16 +159,16 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         trainer.is_active
-                          ? 'bg-emerald-400/10 text-emerald-400'
+                          ? 'bg-success-soft text-success'
                           : 'bg-surface-4/30 text-fg-muted'
                       }`}>
                         {trainer.is_active ? t('specialists.statusActive') : t('specialists.statusInactive')}
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         trainer.trainer_type === 'nutritionist'
-                          ? 'bg-teal-400/10 text-teal-400'
+                          ? 'bg-success-soft text-success'
                           : trainer.trainer_type === 'physiotherapist'
-                          ? 'bg-blue-400/10 text-blue-400'
+                          ? 'bg-info-soft text-info'
                           : 'bg-brand/10 text-brand'
                       }`}>
                         {trainerTypeLabel(trainer.trainer_type)}
@@ -199,7 +199,7 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                     {(trainer.branch_ids ?? []).map(bid => {
                       const branch = branches.find(b => b.id === bid);
                       return branch ? (
-                        <span key={bid} className="text-xs px-2 py-0.5 rounded-full bg-blue-600/15 border border-blue-600/25 text-blue-300">
+                        <span key={bid} className="text-xs px-2 py-0.5 rounded-full bg-info-soft border border-info/40 text-info">
                           {branch.name}
                         </span>
                       ) : null;
@@ -237,8 +237,8 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                       disabled={togglingId === trainer.id}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         trainer.is_active
-                          ? 'border border-red-500/30 text-red-400 hover:bg-red-400/10'
-                          : 'border border-emerald-500/30 text-emerald-400 hover:bg-emerald-400/10'
+                          ? 'border border-danger/40 text-danger hover:bg-danger-soft'
+                          : 'border border-success/40 text-success hover:bg-success-soft'
                       }`}>
                       {trainer.is_active
                         ? <><UserX className="w-3.5 h-3.5" /> {t('trainersPage.deactivateBtn')}</>
@@ -252,7 +252,7 @@ export default function TrainersPage({ initialTrainers, branches = [], permissio
                     title={t('trainersPage.sessionQrTitle')}
                     aria-label={t('qr.ariaLabel')}
                     className="flex-shrink-0 flex items-center justify-center w-8 py-1.5 rounded-lg border border-line text-fg-muted hover:text-brand hover:border-brand/40 hover:bg-surface-3 transition-colors">
-                    <QrCode className="w-3.5 h-3.5" />
+                    <QrCode className="w-3.5 h-3.5" aria-hidden />
                   </button>
                 </div>
               </div>

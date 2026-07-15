@@ -218,6 +218,10 @@ class SessionController extends Controller
             )
             ->first();
 
+        if (! $session) {
+            return response()->json(['error' => 'Session not found'], 404);
+        }
+
         $bookedUserIds = DB::table('session_bookings')
             ->join('gym_members', 'session_bookings.gym_member_id', '=', 'gym_members.id')
             ->where('session_bookings.session_id', $id)

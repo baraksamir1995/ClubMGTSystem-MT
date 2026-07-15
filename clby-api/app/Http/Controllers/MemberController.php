@@ -182,13 +182,45 @@ class MemberController extends Controller
     }
 
     /**
+     * Lowercase the email before validation so it matches the DB's
+     * case-insensitive unique index (profiles_email_lower_unique).
+     */
+    private function normalizeEmail(Request $request): void
+    {
+        if ($request->filled('email')) {
+            $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        }
+    }
+
+    /**
+     * Case-insensitive email uniqueness, mirroring profiles_email_lower_unique —
+     * Rule::unique compares case-sensitively so it can't catch these.
+     */
+    private function uniqueEmailRule(?string $ignoreProfileId = null): \Closure
+    {
+        return function ($attribute, $value, $fail) use ($ignoreProfileId) {
+            $exists = DB::table('profiles')
+                ->whereRaw('lower(email) = ?', [mb_strtolower((string) $value)])
+                ->when($ignoreProfileId, fn ($q) => $q->where('id', '!=', $ignoreProfileId))
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if ($exists) {
+                $fail('A member with this email already exists.');
+            }
+        };
+    }
+
+    /**
      * Admin-created member (no auth.users, no password — just profile + gym_member).
      */
     public function store(Request $request): JsonResponse
     {
+        $this->normalizeEmail($request);
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'nullable|email',
+            'email' => ['nullable', 'email', $this->uniqueEmailRule()],
             'phone' => [
                 'nullable', 'string', 'max:20',
                 Rule::unique('profiles', 'phone')->where(fn ($q) => $q->whereNull('deleted_at')),
@@ -267,9 +299,11 @@ class MemberController extends Controller
 
         $member = GymMember::where('gym_id', $gymId)->findOrFail($id);
 
+        $this->normalizeEmail($request);
+
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
-            'email' => 'nullable|email',
+            'email' => ['nullable', 'email', $this->uniqueEmailRule($member->user_id)],
             'phone' => [
                 'nullable', 'string', 'max:20',
                 Rule::unique('profiles', 'phone')

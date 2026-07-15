@@ -28,6 +28,8 @@ php artisan event:cache
 # run as www-data and would then fail every append with EACCES — and
 # Monolog's fallback floods the container log. Re-own before handoff.
 echo "[entrypoint] Fixing storage ownership..."
+mkdir -p storage/logs
+touch storage/logs/laravel.log
 chown -R www-data:www-data storage bootstrap/cache
 
 echo "[entrypoint] Starting supervisord (php-fpm + nginx)..."

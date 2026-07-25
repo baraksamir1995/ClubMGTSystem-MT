@@ -24,6 +24,7 @@ export const namespaces = [
   'members',
   'plans',
   'payments',
+  'sales',
   'classes',
   'promotions',
   'services',

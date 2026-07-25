@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import {
   LayoutDashboard, Users, Banknote, Settings, ClipboardList,
   CalendarDays, Tag, ScanLine, LayoutTemplate, BarChart3,
-  ShieldCheck, Layers, Mail,
+  ShieldCheck, Layers, Mail, TrendingUp,
 } from 'lucide-react';
 
 // `labelKey` indexes into the `nav` message namespace; the visible label is
@@ -16,6 +16,7 @@ const ALL_NAV = [
   { href: '/dashboard/members',     labelKey: 'members',     icon: Users },
   { href: '/dashboard/plans',       labelKey: 'plans',       icon: ClipboardList },
   { href: '/dashboard/payments',    labelKey: 'payments',    icon: Banknote },
+  { href: '/dashboard/sales',       labelKey: 'sales',       icon: TrendingUp },
   { href: '/dashboard/classes',     labelKey: 'classes',     icon: CalendarDays },
   { href: '/dashboard/promotions',  labelKey: 'promotions',  icon: Tag },
   { href: '/dashboard/services',    labelKey: 'services',    icon: Layers },

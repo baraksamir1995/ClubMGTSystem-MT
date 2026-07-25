@@ -39,7 +39,7 @@ interface OverviewData {
 /* ─── Constants ─────────────────────────────────────────────────────── */
 // Must stay in sync with Permissions::ALLOWLIST in clby-api.
 const MODULE_KEYS = [
-  'overview', 'members', 'plans', 'payments', 'classes',
+  'overview', 'members', 'plans', 'payments', 'sales', 'classes',
   'promotions', 'attendance', 'invitations', 'content',
   'settings', 'staff',
 ] as const;

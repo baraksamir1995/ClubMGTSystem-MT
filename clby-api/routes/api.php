@@ -41,6 +41,15 @@ use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\TrainerController;
+use App\Http\Controllers\Sales\SalesActivityController;
+use App\Http\Controllers\Sales\SalesAppointmentController;
+use App\Http\Controllers\Sales\SalesIntakeController;
+use App\Http\Controllers\Sales\SalesLeadController;
+use App\Http\Controllers\Sales\SalesOfferController;
+use App\Http\Controllers\Sales\SalesReportController;
+use App\Http\Controllers\Sales\SalesSettingsController;
+use App\Http\Controllers\Sales\SalesSourceController;
+use App\Http\Controllers\Sales\SalesTaskController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -67,6 +76,8 @@ Route::get('/health', function () {
 Route::get('/gyms', [GymController::class, 'listPublic']);
 Route::get('/gyms/{id}', [GymController::class, 'showPublic']);
 Route::post('/leads', [LeadController::class, 'store']);
+// Gym sales-pipeline intake (website forms / ad platforms) — per-gym token auth.
+Route::post('/sales/intake', [SalesIntakeController::class, 'store'])->middleware('throttle:60,1');
 Route::post('/paymob/webhook', [PaymobController::class, 'webhook'])
     ->middleware('throttle:120,1')
     ->name('paymob.webhook');
@@ -267,6 +278,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::post('/sessions/{id}/checkin', [SessionController::class, 'checkin'])->middleware('permission:classes,edit');
     Route::post('/sessions/recurring/{id}/stop', [SessionController::class, 'stopRecurring'])->middleware('permission:classes,edit');
     Route::get('/sessions/logs', [SessionController::class, 'sessionLogs'])->middleware('permission:attendance,view');
+    Route::get('/sessions/members', [SessionController::class, 'sessionMembers'])->middleware('permission:members,view');
 
     // Booking management
     Route::get('/sessions/{sessionId}/bookings', [BookingController::class, 'index'])->middleware('permission:classes,view');
@@ -392,6 +404,41 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->middleware('permission:content,delete');
 
     // Invitation management (admin)
+    // ── Sales & Leads pipeline ──────────────────────────────────────
+    // Row-level scoping (rep vs manager vs admin) lives in SalesAccess;
+    // the permission middleware only gates module entry.
+    Route::get('/sales/leads', [SalesLeadController::class, 'index'])->middleware('permission:sales,view');
+    Route::post('/sales/leads', [SalesLeadController::class, 'store'])->middleware('permission:sales,create');
+    Route::get('/sales/leads/{id}', [SalesLeadController::class, 'show'])->middleware('permission:sales,view');
+    Route::patch('/sales/leads/{id}', [SalesLeadController::class, 'update'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/claim', [SalesLeadController::class, 'claim'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/assign', [SalesLeadController::class, 'assign'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/transition', [SalesLeadController::class, 'transition'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/lost', [SalesLeadController::class, 'markLost'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/reopen', [SalesLeadController::class, 'reopen'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/convert', [SalesLeadController::class, 'convert'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/activities', [SalesActivityController::class, 'store'])->middleware('permission:sales,create');
+    Route::post('/sales/leads/{id}/appointments', [SalesAppointmentController::class, 'store'])->middleware('permission:sales,create');
+    Route::post('/sales/leads/{id}/offers', [SalesOfferController::class, 'store'])->middleware('permission:sales,create');
+    Route::patch('/sales/leads/{id}/offers/{offerId}', [SalesOfferController::class, 'updateStatus'])->middleware('permission:sales,edit');
+    Route::post('/sales/leads/{id}/objections', [SalesOfferController::class, 'storeObjection'])->middleware('permission:sales,create');
+    Route::get('/sales/appointments', [SalesAppointmentController::class, 'index'])->middleware('permission:sales,view');
+    Route::patch('/sales/appointments/{id}/status', [SalesAppointmentController::class, 'updateStatus'])->middleware('permission:sales,edit');
+    Route::get('/sales/tasks', [SalesTaskController::class, 'index'])->middleware('permission:sales,view');
+    Route::patch('/sales/tasks/{id}', [SalesTaskController::class, 'complete'])->middleware('permission:sales,edit');
+    Route::get('/sales/sources', [SalesSourceController::class, 'index'])->middleware('permission:sales,view');
+    Route::post('/sales/sources', [SalesSourceController::class, 'store'])->middleware('permission:sales,create');
+    Route::patch('/sales/sources/{id}', [SalesSourceController::class, 'update'])->middleware('permission:sales,edit');
+    Route::get('/sales/settings', [SalesSettingsController::class, 'show'])->middleware('permission:sales,view');
+    Route::patch('/sales/settings', [SalesSettingsController::class, 'update'])->middleware('permission:sales,edit');
+    Route::post('/sales/settings/rotate-intake-token', [SalesSettingsController::class, 'rotateIntakeToken'])->middleware('permission:sales,edit');
+    Route::get('/sales/context', [SalesReportController::class, 'context'])->middleware('permission:sales,view');
+    Route::get('/sales/reports/funnel', [SalesReportController::class, 'funnel'])->middleware('permission:sales,view');
+    Route::get('/sales/reports/leaderboard', [SalesReportController::class, 'leaderboard'])->middleware('permission:sales,view');
+    Route::get('/sales/reports/sources', [SalesReportController::class, 'sources'])->middleware('permission:sales,view');
+    Route::get('/sales/team', [SalesSettingsController::class, 'team'])->middleware('permission:sales,view');
+    Route::patch('/sales/team/{staffId}', [SalesSettingsController::class, 'updateTeamMember'])->middleware('permission:sales,edit');
+
     Route::get('/invitations', [InvitationController::class, 'index'])->middleware('permission:invitations,view');
     Route::post('/invitations/redeem', [InvitationController::class, 'redeem'])->middleware('permission:attendance,create');
     Route::patch('/invitations/{id}/invalidate', [InvitationController::class, 'invalidate'])->middleware('permission:invitations,edit');

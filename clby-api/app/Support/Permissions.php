@@ -31,6 +31,7 @@ class Permissions
         'payments'    => ['view', 'create', 'edit', 'delete'],
         'plans'       => ['view', 'create', 'edit', 'delete'],
         'promotions'  => ['view', 'create', 'edit', 'delete'],
+        'sales'       => ['view', 'create', 'edit', 'delete'],
         'settings'    => ['view', 'create', 'edit', 'delete'],
         'staff'       => ['view', 'create', 'edit', 'delete'],
     ];

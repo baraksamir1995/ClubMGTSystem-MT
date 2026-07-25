@@ -409,6 +409,7 @@
 
     "logSession": "Session",
 
+    "pageOf": "Page {page} of {total}",
     "footerMembers": "{shown} of {total} members shown",
     "footerEntries": "{shown} of {total} entries shown",
     "filteredBy": "filtered by \"{query}\""

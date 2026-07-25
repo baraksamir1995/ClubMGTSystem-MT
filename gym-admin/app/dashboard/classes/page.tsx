@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import ClassesPage from '@/components/classes/classes-page';
 import type { SessionsMember } from '@/components/sessions/sessions-tracker';
 import type { GymBranch } from '@/app/dashboard/branches/page';
+import { mapSessionMemberRow, mapMeta, mapStats, EMPTY_META, EMPTY_STATS } from '@/lib/sessions-tracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +90,7 @@ export default async function ClassesPageRoute() {
     fetchApi('/settings', token),
     fetchApi('/branches', token),
     fetchApi('/studios', token),
-    fetchApi('/members?per_page=9999', token),
+    fetchApi('/sessions/members?per_page=10', token),
   ]);
 
   const rawClasses = classesData?.data ?? classesData ?? [];
@@ -137,40 +138,9 @@ export default async function ClassesPageRoute() {
     walk_in_allowed: s.walk_in_allowed ?? false,
   }));
 
-  const rawMembers = membersData?.data ?? membersData ?? [];
-  const hasSessionsPlan = (pt: string | undefined) => pt === 'sessions' || pt === 'duration_session';
-  const initialSessionsMembers: SessionsMember[] = rawMembers
-    .filter((m: any) => {
-      const memberships = m.memberships ?? [];
-      return memberships.some((ms: any) => hasSessionsPlan(ms.plan?.plan_type) && ms.sessions_total > 0);
-    })
-    .map((m: any) => {
-      const memberships = (m.memberships ?? []).filter((ms: any) => hasSessionsPlan(ms.plan?.plan_type) && ms.sessions_total > 0);
-      // Prefer active, then most recent
-      const ms = memberships.find((ms: any) => ms.status === 'active') ?? memberships[0];
-      const sessionCount: number = ms.sessions_total ?? ms.session_count ?? 0;
-      const sessionsUsed: number = ms.sessions_used ?? 0;
-      const sessionsRemaining = Math.max(0, sessionCount - sessionsUsed);
-      const pctUsed = sessionCount > 0
-        ? Math.round((sessionsUsed / sessionCount) * 100)
-        : 0;
-      return {
-        membershipId: ms.id ?? '',
-        memberId: m.id,
-        memberNumber: m.member_number ?? '',
-        fullName: m.user?.full_name ?? 'Unknown',
-        email: m.user?.email ?? null,
-        planId: ms.plan_id ?? '',
-        planName: ms.plan?.name ?? 'Sessions Plan',
-        sessionCount,
-        sessionsUsed,
-        sessionsRemaining,
-        pctUsed,
-        status: ms.status ?? m.status,
-        startDate: ms.start_date,
-        endDate: ms.end_date,
-      };
-    });
+  const initialSessionsMembers: SessionsMember[] = (membersData?.data ?? []).map(mapSessionMemberRow);
+  const initialSessionsMeta = membersData?.meta ? mapMeta(membersData.meta) : EMPTY_META;
+  const initialSessionsStats = membersData?.stats ? mapStats(membersData.stats) : EMPTY_STATS;
 
   // Class types from the classes data (distinct class_type values)
   const classTypeSet = new Set<string>(rawClasses.map((c: any) => c.class_type).filter(Boolean));
@@ -183,6 +153,8 @@ export default async function ClassesPageRoute() {
       initialClasses={classes}
       initialSessions={sessions}
       initialSessionsMembers={initialSessionsMembers}
+      initialSessionsMeta={initialSessionsMeta}
+      initialSessionsStats={initialSessionsStats}
       initialClassTypes={initialClassTypes}
       initialBranches={initialBranches}
       initialStudios={initialStudios}

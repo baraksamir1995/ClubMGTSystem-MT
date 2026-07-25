@@ -30,7 +30,7 @@ cd gym_mobile_flutter && flutter run --flavor clby --dart-define-from-file=flavo
 
 ## Production
 
-- Coolify auto-deploys `main` to `https://api.clbyapp.com` (clby-api), `https://app.clbyapp.com` (gym-admin), `https://superadmin.clbyapp.com` (gym-super-admin), `https://clbyapp.com` (clby-landing).
+- Coolify auto-deploys `main` to `https://api.clbyapp.com` (clby-api), `https://admin.clbyapp.com` (gym-admin), `https://superadmin.clbyapp.com` (gym-super-admin), `https://clbyapp.com` (clby-landing).
 - See `~/.claude/projects/-Users-rtg/memory/reference_clby_prod_server.md` for SSH + container details.
 - Postgres on prod is in a Coolify-managed container, db `clby_prod`, user `clby`.
 

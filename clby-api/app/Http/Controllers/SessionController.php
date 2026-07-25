@@ -463,8 +463,10 @@ class SessionController extends Controller
     public function sessionLogs(Request $request): JsonResponse
     {
         $gymId = $request->user()->gym_id;
+        $perPage = min(100, max(1, (int) $request->query('per_page', 10)));
+        $search = trim((string) $request->query('search', ''));
 
-        $logs = DB::table('attendance_logs as a')
+        $query = DB::table('attendance_logs as a')
             ->join('gym_members as gm', 'gm.id', '=', 'a.gym_member_id')
             ->join('profiles as u', 'u.id', '=', 'gm.user_id')
             ->leftJoin('member_memberships as mm', function ($join) {
@@ -494,11 +496,108 @@ class SessionController extends Controller
                 'c.color as class_color',
                 'cs.session_date',
                 'cs.start_time as session_time',
-            ])
-            ->orderByDesc('a.check_in_at')
-            ->limit((int) $request->query('limit', 200))
-            ->get();
+            ]);
 
-        return response()->json(['data' => $logs]);
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($w) use ($like) {
+                $w->where('u.full_name', 'ilike', $like)
+                    ->orWhere('gm.member_number', 'ilike', $like)
+                    ->orWhere('mp.name', 'ilike', $like)
+                    ->orWhere('c.name', 'ilike', $like);
+            });
+        }
+
+        $logs = $query->orderByDesc('a.check_in_at')->paginate($perPage);
+
+        return response()->json([
+            'data' => $logs->items(),
+            'meta' => [
+                'page' => $logs->currentPage(),
+                'per_page' => $perPage,
+                'total' => $logs->total(),
+                'last_page' => $logs->lastPage(),
+            ],
+        ]);
+    }
+
+    public function sessionMembers(Request $request): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+        $perPage = min(100, max(1, (int) $request->query('per_page', 10)));
+        $search = trim((string) $request->query('search', ''));
+        $dir = strtolower((string) $request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        // One row per member: prefer the active sessions-plan membership, then the newest.
+        $base = DB::table('member_memberships as mm')
+            ->join('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
+            ->join('gym_members as gm', 'gm.id', '=', 'mm.gym_member_id')
+            ->join('profiles as u', 'u.id', '=', 'gm.user_id')
+            ->where('gm.gym_id', $gymId)
+            ->whereIn('mp.plan_type', ['sessions', 'duration_session'])
+            ->where('mm.sessions_total', '>', 0)
+            ->select([
+                'mm.id as membership_id',
+                'gm.id as member_id',
+                'gm.member_number',
+                'u.full_name',
+                'u.email',
+                'mm.plan_id',
+                'mp.name as plan_name',
+                'mm.sessions_total',
+                'mm.sessions_used',
+                'mm.status',
+                'mm.start_date',
+                'mm.end_date',
+            ])
+            ->selectRaw("ROW_NUMBER() OVER (PARTITION BY gm.id ORDER BY (mm.status = 'active') DESC, mm.created_at DESC) AS rn");
+
+        $rows = DB::query()->fromSub($base, 't')->where('t.rn', 1);
+
+        // Stat cards span the whole gym, so aggregate before the search filter narrows rows.
+        $stats = (clone $rows)->selectRaw(
+            'COUNT(*) AS members,
+             COALESCE(SUM(t.sessions_total), 0) AS total_sessions,
+             COALESCE(SUM(t.sessions_used), 0) AS total_used,
+             COALESCE(SUM(GREATEST(t.sessions_total - t.sessions_used, 0)), 0) AS total_remaining'
+        )->first();
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $rows->where(function ($w) use ($like) {
+                $w->where('t.full_name', 'ilike', $like)
+                    ->orWhere('t.email', 'ilike', $like)
+                    ->orWhere('t.member_number', 'ilike', $like)
+                    ->orWhere('t.plan_name', 'ilike', $like);
+            });
+        }
+
+        $sorts = [
+            'name' => 't.full_name',
+            'pct_used' => 't.sessions_used::float / NULLIF(t.sessions_total, 0)',
+            'sessions_remaining' => 'GREATEST(t.sessions_total - t.sessions_used, 0)',
+            'end_date' => 't.end_date',
+        ];
+        $sortExpr = $sorts[(string) $request->query('sort', 'pct_used')] ?? $sorts['pct_used'];
+        // full_name is not unique, so it can't be the final tiebreaker —
+        // rows sharing a sort value AND a name could reorder between pages
+        // (skip/repeat). membership_id is unique per row and makes the
+        // ordering total, so pagination is stable.
+        $rows->orderByRaw("{$sortExpr} {$dir} NULLS LAST")
+            ->orderBy('t.full_name')
+            ->orderBy('t.membership_id');
+
+        $paginated = $rows->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginated->items(),
+            'meta' => [
+                'page' => $paginated->currentPage(),
+                'per_page' => $perPage,
+                'total' => $paginated->total(),
+                'last_page' => $paginated->lastPage(),
+            ],
+            'stats' => $stats,
+        ]);
     }
 }

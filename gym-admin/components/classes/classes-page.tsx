@@ -15,6 +15,7 @@ import SessionsTracker, { type SessionsMember } from '@/components/sessions/sess
 import ReviewsTab from './reviews-tab';
 import ClassTypesManager from './class-types-manager';
 import type { GymClass, ClassSession, GymBranch, GymStudio } from '@/app/dashboard/classes/page';
+import type { PageMeta, TrackerStats } from '@/lib/sessions-tracker';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Badge, Button, Tabs } from '@/components/ui';
 
@@ -24,6 +25,8 @@ interface Props {
   initialClasses: GymClass[];
   initialSessions: ClassSession[];
   initialSessionsMembers: SessionsMember[];
+  initialSessionsMeta: PageMeta;
+  initialSessionsStats: TrackerStats;
   initialClassTypes: { id: string; name: string }[];
   initialBranches: GymBranch[];
   initialStudios: GymStudio[];
@@ -40,7 +43,7 @@ const TYPE_COLORS: Record<string, string> = {
   swimming:'bg-info-soft text-info', general:'bg-surface-3 text-fg-muted',
 };
 
-export default function ClassesPageClient({ initialClasses, initialSessions, initialSessionsMembers, initialClassTypes, initialBranches, initialStudios, gymId, gym, permissions }: Props) {
+export default function ClassesPageClient({ initialClasses, initialSessions, initialSessionsMembers, initialSessionsMeta, initialSessionsStats, initialClassTypes, initialBranches, initialStudios, gymId, gym, permissions }: Props) {
   const refresh = useRefresh();
   const t = useTranslations('classes');
   const tc = useTranslations('common');
@@ -158,7 +161,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
               ['sessions',    CalendarDays,  t('tabs.sessions'),    sessions.filter(s => s.status === 'scheduled' && s.session_date >= monthStart && s.session_date < nextMonthStart).length],
               ['schedule',    CalendarRange, t('tabs.schedule'),    null],
               ['classes',     Dumbbell,      t('tabs.classes'),     classes.filter(c => c.is_active).length],
-              ['tracker',     Layers,        t('tabs.tracker'),     initialSessionsMembers.length],
+              ['tracker',     Layers,        t('tabs.tracker'),     initialSessionsStats.members],
               ['reviews',     Star,          t('tabs.reviews'),     null],
               ['class-types', Tag,           t('tabs.classTypes'),  null],
             ] as const).map(([tab, Icon, label, count]) => (
@@ -571,7 +574,11 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
 
         {/* ── Sessions Tracker Tab ── */}
         {activeTab === 'tracker' && (
-          <SessionsTracker initialMembers={initialSessionsMembers} />
+          <SessionsTracker
+            initialMembers={initialSessionsMembers}
+            initialMeta={initialSessionsMeta}
+            initialStats={initialSessionsStats}
+          />
         )}
 
         {/* ── Reviews Tab ── */}

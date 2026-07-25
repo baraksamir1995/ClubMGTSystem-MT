@@ -5,6 +5,7 @@ import { Layers } from 'lucide-react';
 import SessionsTracker, {
   type SessionsMember,
 } from '@/components/sessions/sessions-tracker';
+import { mapSessionMemberRow, mapMeta, mapStats, EMPTY_META, EMPTY_STATS } from '@/lib/sessions-tracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,43 +34,11 @@ export default async function SessionsPage() {
 
   const t = await getTranslations('classes');
 
-  // Fetch sessions members data from Laravel
-  // This would ideally be a dedicated endpoint; for now use members with sessions plans
-  const membersData = await fetchApi('/members?per_page=9999', token);
-  const rawMembers = membersData?.data ?? membersData ?? [];
-
-  const hasSessionsPlan = (pt: string | undefined) => pt === 'sessions' || pt === 'duration_session';
-  const members: SessionsMember[] = rawMembers
-    .filter((m: any) => {
-      const memberships = m.memberships ?? [];
-      return memberships.some((ms: any) => hasSessionsPlan(ms.plan?.plan_type) && ms.sessions_total > 0);
-    })
-    .map((m: any) => {
-      const memberships = (m.memberships ?? []).filter((ms: any) => hasSessionsPlan(ms.plan?.plan_type) && ms.sessions_total > 0);
-      const ms = memberships.find((ms: any) => ms.status === 'active') ?? memberships[0];
-      const sessionCount: number = ms.sessions_total ?? ms.session_count ?? 0;
-      const sessionsUsed: number = ms.sessions_used ?? 0;
-      const sessionsRemaining = Math.max(0, sessionCount - sessionsUsed);
-      const pctUsed = sessionCount > 0
-        ? Math.round((sessionsUsed / sessionCount) * 100)
-        : 0;
-      return {
-        membershipId: ms.id ?? '',
-        memberId: m.id,
-        memberNumber: m.member_number ?? '',
-        fullName: m.user?.full_name ?? 'Unknown',
-        email: m.user?.email ?? null,
-        planId: ms.plan_id ?? '',
-        planName: ms.plan?.name ?? 'Sessions Plan',
-        sessionCount,
-        sessionsUsed,
-        sessionsRemaining,
-        pctUsed,
-        status: ms.status ?? m.status,
-        startDate: ms.start_date,
-        endDate: ms.end_date,
-      };
-    });
+  // First page of session-plan members; the tracker paginates server-side from here.
+  const membersData = await fetchApi('/sessions/members?per_page=10', token);
+  const members: SessionsMember[] = (membersData?.data ?? []).map(mapSessionMemberRow);
+  const meta = membersData?.meta ? mapMeta(membersData.meta) : EMPTY_META;
+  const stats = membersData?.stats ? mapStats(membersData.stats) : EMPTY_STATS;
 
   return (
     <div className="space-y-6">
@@ -86,7 +55,7 @@ export default async function SessionsPage() {
         </div>
       </div>
 
-      <SessionsTracker initialMembers={members} />
+      <SessionsTracker initialMembers={members} initialMeta={meta} initialStats={stats} />
     </div>
   );
 }

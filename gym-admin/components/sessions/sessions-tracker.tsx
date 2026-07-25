@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import {
   Search, Plus, ExternalLink, AlertTriangle,
-  Clock, RefreshCw, History, Users,
+  Clock, RefreshCw, History, Users, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { fmt12, fmtTime12 } from '@/lib/time';
+import type { PageMeta, TrackerStats } from '@/lib/sessions-tracker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,14 +53,36 @@ interface SessionLog {
 
 interface Props {
   initialMembers: SessionsMember[];
+  initialMeta: PageMeta;
+  initialStats: TrackerStats;
 }
 
 type SortKey = 'name' | 'pctUsed' | 'sessionsRemaining' | 'endDate';
 type Tab = 'members' | 'history';
 
+const SORT_PARAM: Record<SortKey, string> = {
+  name: 'name',
+  pctUsed: 'pct_used',
+  sessionsRemaining: 'sessions_remaining',
+  endDate: 'end_date',
+};
+
+function pageWindow(current: number, last: number): (number | '…')[] {
+  if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
+  const wanted = [...new Set([1, current - 1, current, current + 1, last])]
+    .filter((p) => p >= 1 && p <= last)
+    .sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  wanted.forEach((p, i) => {
+    if (i > 0 && p - wanted[i - 1] > 1) out.push('…');
+    out.push(p);
+  });
+  return out;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function SessionsTracker({ initialMembers }: Props) {
+export default function SessionsTracker({ initialMembers, initialMeta, initialStats }: Props) {
   const t  = useTranslations('classes');
   const tc = useTranslations('common');
   const locale = useLocale();
@@ -67,7 +90,10 @@ export default function SessionsTracker({ initialMembers }: Props) {
 
   const [activeTab, setActiveTab]   = useState<Tab>('members');
   const [members, setMembers]       = useState<SessionsMember[]>(initialMembers);
+  const [membersMeta, setMembersMeta] = useState<PageMeta>(initialMeta);
+  const [stats, setStats]           = useState<TrackerStats>(initialStats);
   const [logs, setLogs]             = useState<SessionLog[]>([]);
+  const [logsMeta, setLogsMeta]     = useState<PageMeta>({ page: 1, perPage: 10, total: 0, lastPage: 1 });
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
 
@@ -79,28 +105,41 @@ export default function SessionsTracker({ initialMembers }: Props) {
   const [editValue, setEditValue]   = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── Data fetching ────────────────────────────────────────────────────────
+  // ── Server-side data fetching ────────────────────────────────────────────
 
-  async function refresh() {
+  async function loadMembers(opts: { page?: number; sort?: SortKey; dir?: 'asc' | 'desc'; query?: string } = {}) {
+    const page  = opts.page ?? membersMeta.page;
+    const sort  = opts.sort ?? sortKey;
+    const dir   = opts.dir ?? sortDir;
+    const query = opts.query ?? search;
     setRefreshing(true);
     try {
-      const res = await fetch('/api/sessions/members');
+      const params = new URLSearchParams({ page: String(page), per_page: '10', sort: SORT_PARAM[sort], dir });
+      if (query) params.set('search', query);
+      const res = await fetch(`/api/sessions/members?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setMembers(data.members ?? []);
+        if (data.meta) setMembersMeta(data.meta);
+        if (data.stats) setStats(data.stats);
       }
     } finally {
       setRefreshing(false);
     }
   }
 
-  async function loadHistory() {
+  async function loadLogs(opts: { page?: number; query?: string } = {}) {
+    const page  = opts.page ?? logsMeta.page;
+    const query = opts.query ?? search;
     setLogsLoading(true);
     try {
-      const res = await fetch('/api/sessions/logs');
+      const params = new URLSearchParams({ page: String(page), per_page: '10' });
+      if (query) params.set('search', query);
+      const res = await fetch(`/api/sessions/logs?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs ?? []);
+        if (data.meta) setLogsMeta(data.meta);
         setLogsLoaded(true);
       }
     } finally {
@@ -110,61 +149,28 @@ export default function SessionsTracker({ initialMembers }: Props) {
 
   function switchTab(tab: Tab) {
     setActiveTab(tab);
-    if (tab === 'history' && !logsLoaded) loadHistory();
+    if (tab === 'history' && !logsLoaded) loadLogs({ page: 1 });
   }
 
-  // ── Stats ────────────────────────────────────────────────────────────────
-
-  // Coerce each field to a safe number so a malformed row can't poison the reduce with NaN.
-  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-  const totalSessions  = members.reduce((s, m) => s + n(m.sessionCount),      0);
-  const totalUsed      = members.reduce((s, m) => s + n(m.sessionsUsed),      0);
-  const totalRemaining = members.reduce((s, m) => s + n(m.sessionsRemaining), 0);
-  const overallPct     = totalSessions > 0 ? Math.round((totalUsed / totalSessions) * 100) : 0;
-
-  // ── Members filter + sort ────────────────────────────────────────────────
-
-  const filteredMembers = useMemo(() => {
-    const q = search.toLowerCase();
-    let list = members.filter(
-      (m) =>
-        m.fullName.toLowerCase().includes(q) ||
-        (m.email ?? '').toLowerCase().includes(q) ||
-        m.memberNumber.toLowerCase().includes(q) ||
-        m.planName.toLowerCase().includes(q),
-    );
-    list = [...list].sort((a, b) => {
-      let av: any, bv: any;
-      if (sortKey === 'name')               { av = a.fullName;          bv = b.fullName; }
-      else if (sortKey === 'pctUsed')       { av = a.pctUsed;           bv = b.pctUsed; }
-      else if (sortKey === 'sessionsRemaining') { av = a.sessionsRemaining; bv = b.sessionsRemaining; }
-      else                                  { av = a.endDate ?? '';     bv = b.endDate ?? ''; }
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return list;
-  }, [members, search, sortKey, sortDir]);
-
-  // ── Logs filter ──────────────────────────────────────────────────────────
-
-  const filteredLogs = useMemo(() => {
-    if (!search) return logs;
-    const q = search.toLowerCase();
-    return logs.filter(
-      (l) =>
-        l.fullName.toLowerCase().includes(q) ||
-        l.memberNumber.toLowerCase().includes(q) ||
-        l.planName.toLowerCase().includes(q) ||
-        (l.className ?? '').toLowerCase().includes(q),
-    );
-  }, [logs, search]);
+  // Debounced server-side search for the active tab.
+  const searchMounted = useRef(false);
+  useEffect(() => {
+    if (!searchMounted.current) { searchMounted.current = true; return; }
+    const timer = setTimeout(() => {
+      if (activeTab === 'members') loadMembers({ page: 1, query: search });
+      else loadLogs({ page: 1, query: search });
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
   function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortKey(key); setSortDir('desc'); }
+    const nextDir: 'asc' | 'desc' = sortKey === key ? (sortDir === 'asc' ? 'desc' : 'asc') : 'desc';
+    setSortKey(key);
+    setSortDir(nextDir);
+    loadMembers({ page: 1, sort: key, dir: nextDir });
   }
 
   async function logSession(membershipId: string) {
@@ -189,7 +195,8 @@ export default function SessionsTracker({ initialMembers }: Props) {
           return { ...m, sessionCount, sessionsUsed, sessionsRemaining, pctUsed };
         }),
       );
-      if (logsLoaded) loadHistory();
+      setStats((s) => ({ ...s, totalUsed: s.totalUsed + 1, totalRemaining: Math.max(0, s.totalRemaining - 1) }));
+      if (logsLoaded) loadLogs({ page: logsMeta.page });
     } finally {
       setLoadingId(null);
     }
@@ -198,6 +205,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
   async function saveEdit(membershipId: string, sessionCount: number) {
     const val = parseInt(editValue, 10);
     if (isNaN(val) || val < 0 || val > sessionCount) return;
+    const prevUsed = members.find((m) => m.membershipId === membershipId)?.sessionsUsed ?? 0;
     setLoadingId(membershipId);
     try {
       const res = await fetch(`/api/memberships/${membershipId}`, {
@@ -221,6 +229,8 @@ export default function SessionsTracker({ initialMembers }: Props) {
             : m,
         ),
       );
+      const delta = (updated.sessionsUsed ?? val) - prevUsed;
+      setStats((s) => ({ ...s, totalUsed: s.totalUsed + delta, totalRemaining: Math.max(0, s.totalRemaining - delta) }));
     } finally {
       setLoadingId(null);
       setEditId(null);
@@ -254,6 +264,49 @@ export default function SessionsTracker({ initialMembers }: Props) {
   const sortArrow = (key: SortKey) =>
     sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
 
+  function paginationBar(meta: PageMeta, onPage: (p: number) => void, disabled: boolean) {
+    if (meta.lastPage <= 1) return null;
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t border-line">
+        <p className="text-xs text-fg-muted">{t('sessionsTracker.pageOf', { page: meta.page, total: meta.lastPage })}</p>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPage(Math.max(1, meta.page - 1))}
+            disabled={disabled || meta.page === 1}
+            aria-label={tc('previous')}
+            className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 rtl:rotate-180" aria-hidden />
+          </button>
+          {pageWindow(meta.page, meta.lastPage).map((p, i) =>
+            p === '…' ? (
+              <span key={`gap-${i}`} className="px-1 text-xs text-fg-faint">…</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPage(p)}
+                disabled={disabled}
+                className={`w-8 h-8 text-xs rounded-lg transition-colors ${
+                  p === meta.page ? 'bg-brand text-brand-ink font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-3'
+                }`}
+              >
+                {p}
+              </button>
+            ),
+          )}
+          <button
+            onClick={() => onPage(Math.min(meta.lastPage, meta.page + 1))}
+            disabled={disabled || meta.page === meta.lastPage}
+            aria-label={tc('next')}
+            className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" aria-hidden />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -261,10 +314,10 @@ export default function SessionsTracker({ initialMembers }: Props) {
       {/* ── Stats ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: t('sessionsTracker.statMembersOnPlan'),      value: members.length, sub: t('sessionsTracker.statMembersOnPlanSub') },
-          { label: t('sessionsTracker.statTotalIssued'),        value: totalSessions,  sub: t('sessionsTracker.statAcrossAllMembers') },
-          { label: t('sessionsTracker.statConsumed'),           value: totalUsed,      sub: t('sessionsTracker.statOverallPct', { pct: overallPct }) },
-          { label: t('sessionsTracker.statRemaining'),          value: totalRemaining, sub: t('sessionsTracker.statAcrossAllMembers') },
+          { label: t('sessionsTracker.statMembersOnPlan'),      value: stats.members,        sub: t('sessionsTracker.statMembersOnPlanSub') },
+          { label: t('sessionsTracker.statTotalIssued'),        value: stats.totalSessions,  sub: t('sessionsTracker.statAcrossAllMembers') },
+          { label: t('sessionsTracker.statConsumed'),           value: stats.totalUsed,      sub: t('sessionsTracker.statOverallPct', { pct: stats.totalSessions > 0 ? Math.round((stats.totalUsed / stats.totalSessions) * 100) : 0 }) },
+          { label: t('sessionsTracker.statRemaining'),          value: stats.totalRemaining, sub: t('sessionsTracker.statAcrossAllMembers') },
         ].map((stat) => (
           <div key={stat.label} className="bg-surface-2 rounded-xl p-4 border border-line">
             <p className="text-2xl font-bold text-fg">{stat.value}</p>
@@ -297,9 +350,9 @@ export default function SessionsTracker({ initialMembers }: Props) {
         >
           <History className="w-4 h-4" />
           {t('sessionsTracker.tabHistory')}
-          {logsLoaded && logs.length > 0 && (
+          {logsLoaded && logsMeta.total > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-xs bg-surface-3 text-fg-muted">
-              {logs.length}
+              {logsMeta.total}
             </span>
           )}
         </button>
@@ -323,7 +376,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
         </div>
         {activeTab === 'members' && (
           <button
-            onClick={refresh}
+            onClick={() => loadMembers()}
             disabled={refreshing}
             className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-line hover:bg-surface-3 rounded-lg text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50"
           >
@@ -333,7 +386,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
         )}
         {activeTab === 'history' && (
           <button
-            onClick={loadHistory}
+            onClick={() => loadLogs()}
             disabled={logsLoading}
             className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-line hover:bg-surface-3 rounded-lg text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50"
           >
@@ -376,14 +429,14 @@ export default function SessionsTracker({ initialMembers }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filteredMembers.length === 0 && (
+                {members.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-fg-faint">
                       {t('sessionsTracker.noMembersFound')}
                     </td>
                   </tr>
                 )}
-                {filteredMembers.map((m) => (
+                {members.map((m) => (
                   <tr key={m.membershipId} className="hover:bg-surface-3/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -484,6 +537,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
               </tbody>
             </table>
           </div>
+          {paginationBar(membersMeta, (p) => loadMembers({ page: p }), refreshing)}
         </div>
       )}
 
@@ -493,6 +547,7 @@ export default function SessionsTracker({ initialMembers }: Props) {
           {logsLoading ? (
             <div className="py-16 text-center text-fg-faint text-sm">{tc('loading')}</div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -507,14 +562,14 @@ export default function SessionsTracker({ initialMembers }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {filteredLogs.length === 0 && (
+                  {logs.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-fg-faint">
                         {logsLoaded ? t('sessionsTracker.noHistoryFound') : t('sessionsTracker.switchToLoadHistory')}
                       </td>
                     </tr>
                   )}
-                  {filteredLogs.map((l) => {
+                  {logs.map((l) => {
                     const src = sourceLabel(l.source);
                     const isReversed = !!l.reversedAt;
                     return (
@@ -610,14 +665,16 @@ export default function SessionsTracker({ initialMembers }: Props) {
                 </tbody>
               </table>
             </div>
+            {paginationBar(logsMeta, (p) => loadLogs({ page: p }), logsLoading)}
+            </>
           )}
         </div>
       )}
 
       <p className="text-xs text-fg-faint text-center">
         {activeTab === 'members'
-          ? t('sessionsTracker.footerMembers', { shown: filteredMembers.length, total: members.length })
-          : t('sessionsTracker.footerEntries', { shown: filteredLogs.length, total: logs.length })}
+          ? t('sessionsTracker.footerMembers', { shown: members.length, total: membersMeta.total })
+          : t('sessionsTracker.footerEntries', { shown: logs.length, total: logsMeta.total })}
         {search && ` · ${t('sessionsTracker.filteredBy', { query: search })}`}
       </p>
     </div>

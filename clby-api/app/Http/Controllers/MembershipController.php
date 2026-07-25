@@ -623,7 +623,8 @@ class MembershipController extends Controller
         }
 
         $validated = $request->validate([
-            'action' => 'sometimes|string|in:log',
+            'action' => 'sometimes|string|in:log,set',
+            'value' => 'required_if:action,set|integer|min:0',
             'status' => 'sometimes|string|in:active,expired,cancelled,frozen',
             'payment_status' => 'sometimes|string|in:paid,unpaid,pending,partial,refunded',
             'notes' => 'nullable|string',
@@ -677,8 +678,48 @@ class MembershipController extends Controller
             });
         }
 
+        // Action: set the absolute sessions-used count (admin inline edit).
+        // Recomputes sessions_remaining from the plan total; clamps to
+        // [0, total] for capped plans. Rejected for unlimited plans (no
+        // meaningful "used out of total").
+        if (($validated['action'] ?? null) === 'set') {
+            return DB::transaction(function () use ($id, $gymId, $validated) {
+                $membership = DB::table('member_memberships')
+                    ->where('id', $id)
+                    ->where('gym_id', $gymId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $membership) {
+                    return response()->json(['error' => 'Membership not found'], 404);
+                }
+                if ($membership->sessions_total === null) {
+                    return response()->json(['error' => 'Cannot set a used count on an unlimited plan'], 422);
+                }
+
+                $total = (int) $membership->sessions_total;
+                $newUsed = min((int) $validated['value'], $total);
+                $newRemaining = max(0, $total - $newUsed);
+
+                DB::table('member_memberships')
+                    ->where('id', $id)
+                    ->update([
+                        'sessions_used' => $newUsed,
+                        'sessions_remaining' => $newRemaining,
+                        'updated_at' => now(),
+                    ]);
+
+                return response()->json([
+                    'sessionCount' => $total,
+                    'sessionsUsed' => $newUsed,
+                    'sessionsRemaining' => $newRemaining,
+                    'unlimited' => false,
+                ]);
+            });
+        }
+
         // Plain field update.
-        $update = array_diff_key($validated, ['action' => true]);
+        $update = array_diff_key($validated, ['action' => true, 'value' => true]);
         if (!empty($update)) {
             DB::table('member_memberships')
                 ->where('id', $id)

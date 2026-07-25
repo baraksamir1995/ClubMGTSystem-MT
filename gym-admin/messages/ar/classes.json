@@ -409,6 +409,7 @@
 
     "logSession": "جلسة",
 
+    "pageOf": "صفحة {page} من {total}",
     "footerMembers": "عرض {shown} من {total} عضو",
     "footerEntries": "عرض {shown} من {total} سجل",
     "filteredBy": "مصفّى بـ \"{query}\""

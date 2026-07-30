@@ -80,7 +80,21 @@ class PaymentController extends Controller
             return $row;
         }, $results);
 
-        return response()->json(['data' => $results]);
+        // Gym-wide summary computed in SQL so the tiles stay correct even
+        // when the row list is truncated by the limit above.
+        $summary = (array) DB::table('payments')
+            ->where('gym_id', $gymId)
+            ->selectRaw("
+                count(*) filter (where status = 'paid')    as paid_count,
+                count(*) filter (where status = 'pending') as pending_count,
+                count(*) filter (where status = 'overdue') as overdue_count,
+                coalesce(sum(amount - coalesce(refunded_amount, 0))
+                    filter (where status in ('paid', 'refunded', 'partial_refund')), 0) as total_revenue
+            ")
+            ->first();
+        $summary['total_revenue'] = (float) $summary['total_revenue'];
+
+        return response()->json(['data' => $results, 'summary' => $summary]);
     }
 
     public function show(Request $request, string $id): JsonResponse

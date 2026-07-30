@@ -20,6 +20,13 @@ const PAGE_SIZE = 10;
 const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
+export interface PaymentsSummary {
+  paid_count: number;
+  pending_count: number;
+  overdue_count: number;
+  total_revenue: number;
+}
+
 interface Props {
   payments: Payment[];
   memberOptions: MemberOption[];
@@ -29,9 +36,10 @@ interface Props {
   gym: GymInfo;
   permissions: Permission[] | null;
   promoCodes: PromoCode[];
+  serverSummary?: PaymentsSummary | null;
 }
 
-export default function PaymentsTable({ payments: initial, memberOptions, serviceOptions, trainerOptions, branches: branchOptions, gym, permissions, promoCodes }: Props) {
+export default function PaymentsTable({ payments: initial, memberOptions, serviceOptions, trainerOptions, branches: branchOptions, gym, permissions, promoCodes, serverSummary }: Props) {
   const router = useRouter();
   const t  = useTranslations('payments');
   const tc = useTranslations('common');
@@ -111,12 +119,18 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     return baseFiltered.filter(p => p.status === statusFilter);
   }, [baseFiltered, statusFilter]);
 
-  const totalPaid    = baseFiltered.filter(p => p.status === 'paid').length;
-  const totalPending = baseFiltered.filter(p => p.status === 'pending').length;
-  const totalOverdue = baseFiltered.filter(p => p.status === 'overdue').length;
-  // Revenue = everything collected (paid / refunded / partial_refund) minus what was actually refunded back.
+  // Summary tiles: authoritative server-side aggregates for the unfiltered
+  // view (the row list may be truncated); client-side math only when the
+  // user narrows the data with search/filters.
+  const useServerSummary = !!serverSummary && !search.trim() && !hasActiveFilters;
   const collected = baseFiltered.filter(p => p.status === 'paid' || p.status === 'refunded' || p.status === 'partial_refund');
-  const totalRevenue = collected.reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
+  const totalPaid    = useServerSummary ? Number(serverSummary.paid_count)    : baseFiltered.filter(p => p.status === 'paid').length;
+  const totalPending = useServerSummary ? Number(serverSummary.pending_count) : baseFiltered.filter(p => p.status === 'pending').length;
+  const totalOverdue = useServerSummary ? Number(serverSummary.overdue_count) : baseFiltered.filter(p => p.status === 'overdue').length;
+  // Revenue = everything collected (paid / refunded / partial_refund) minus what was actually refunded back.
+  const totalRevenue = useServerSummary
+    ? Number(serverSummary.total_revenue)
+    : collected.reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

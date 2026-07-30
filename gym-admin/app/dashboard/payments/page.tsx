@@ -268,5 +268,5 @@ export default async function PaymentsPage() {
     is_active: c.is_active,
   }));
 
-  return <PaymentsTable payments={payments} memberOptions={memberOptions} serviceOptions={serviceOptions} trainerOptions={trainerOptions} branches={branches} gym={gym} permissions={permissions} promoCodes={promoCodes} />;
+  return <PaymentsTable payments={payments} memberOptions={memberOptions} serviceOptions={serviceOptions} trainerOptions={trainerOptions} branches={branches} gym={gym} permissions={permissions} promoCodes={promoCodes} serverSummary={paymentsData?.summary ?? null} />;
 }

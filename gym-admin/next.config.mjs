@@ -97,8 +97,20 @@ const nextConfig = {
 // is set, so source maps are never uploaded regardless. Errors still report at
 // runtime; they just won't be symbolicated to original source until you add a
 // SENTRY_AUTH_TOKEN + enable uploads in a CI step that has internet.
-export default withSentryConfig(withNextIntl(nextConfig), {
-  silent: true,
-  telemetry: false,
-  sourcemaps: { disable: true },
-});
+//
+// ONE rule, shared with instrumentation.ts and sentry.*.config.ts: Sentry is
+// wired up ONLY when NODE_ENV === 'production'. Dev/test skip the wrapper
+// entirely — reporting is disabled there anyway, but the wrapper still
+// injects the SDK into every bundle and hooks the webpack pipeline, which
+// slows on-demand route compiles. Keeping every gate keyed on the same
+// predicate means NODE_ENV=test can't produce a build shape that matches
+// neither mode (wrapper applied but configs refusing to load).
+const sentryEnabled = process.env.NODE_ENV === 'production';
+
+export default sentryEnabled
+  ? withSentryConfig(withNextIntl(nextConfig), {
+      silent: true,
+      telemetry: false,
+      sourcemaps: { disable: true },
+    })
+  : withNextIntl(nextConfig);

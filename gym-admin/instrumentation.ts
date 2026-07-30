@@ -1,4 +1,9 @@
 export async function register() {
+  // Same production-only gate as next.config.mjs (sentryEnabled) and the
+  // `enabled:` flag in sentry.*.config.ts — Sentry is wired up ONLY when
+  // NODE_ENV === 'production'. Skipping the import keeps the SDK out of the
+  // dev/test compile graph. Keep all three gates keyed on this predicate.
+  if (process.env.NODE_ENV !== 'production') return;
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('./sentry.server.config');
   }

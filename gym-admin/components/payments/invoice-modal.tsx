@@ -7,6 +7,11 @@
  * white in BOTH app themes, so theme-aware tokens would go near-white on it in
  * dark mode. All literals here are chosen to meet WCAG AAA (≥7:1) against the
  * white paper / their tint backgrounds; keep that property when editing.
+ *
+ * Use `neutral-*` (never `gray-*`) for the fixed grays: tailwind.config.ts
+ * remaps gray-400..950 onto the theme's CSS variables, so gray-* classes here
+ * would silently follow the app theme and break on the white paper. neutral-*
+ * is the stock, remap-free palette — the whole file must stay on it.
  */
 
 import { useState, useRef } from 'react';
@@ -124,12 +129,12 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
       <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[92vh]">
 
         {/* Modal toolbar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
               isReceipt ? 'bg-emerald-100 text-emerald-900' : 'bg-accent/10 text-orange-900'
             }`}>{docType}</span>
-            <span className="text-sm font-mono text-gray-700">{docNumber}</span>
+            <span className="text-sm font-mono text-neutral-700">{docNumber}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleSendEmail} disabled={sending || !payment.email}
@@ -139,19 +144,19 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
               {sending ? t('invoice.sending') : t('invoice.sendEmail')}
             </button>
             <button onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-medium transition-colors">
               <Printer className="w-3.5 h-3.5" aria-hidden />
               {t('invoice.print')}
             </button>
-            <button onClick={onClose} aria-label="Close" className="min-w-11 min-h-11 -my-2 inline-flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+            <button onClick={onClose} aria-label="Close" className="min-w-11 min-h-11 -my-2 inline-flex items-center justify-center rounded-lg text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
               <X className="w-4 h-4" aria-hidden />
             </button>
           </div>
         </div>
 
         {/* Invoice content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          <div ref={invoiceRef} className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 max-w-lg mx-auto">
+        <div className="flex-1 overflow-y-auto p-6 bg-neutral-50">
+          <div ref={invoiceRef} className="bg-white rounded-xl p-8 shadow-sm border border-neutral-100 max-w-lg mx-auto">
 
             {/* Header */}
             <div className="flex items-start justify-between mb-8">
@@ -160,13 +165,13 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
                   // eslint-disable-next-line @next/next/no-img-element -- printed verbatim; next/image unsuitable for print window
                   <img src={gym.logo_url} alt={gym.name} className="w-12 h-12 rounded-xl object-cover mb-2" />
                 )}
-                <p className="gym-name text-lg font-bold text-gray-900">{gym.name}</p>
+                <p className="gym-name text-lg font-bold text-neutral-900">{gym.name}</p>
               </div>
               <div className="text-end">
                 <p className={`text-2xl font-black tracking-widest ${isReceipt ? 'text-emerald-800' : 'text-orange-900'}`}>
                   {docType}
                 </p>
-                <p className="text-sm font-mono text-gray-600 mt-1">{docNumber}</p>
+                <p className="text-sm font-mono text-neutral-600 mt-1">{docNumber}</p>
                 {isReceipt && (
                   <span className="inline-block mt-2 px-3 py-1 bg-emerald-100 text-emerald-900 text-xs font-bold rounded-full tracking-wide">
                     ✓ {t('invoice.paidStamp')}
@@ -175,24 +180,24 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
               </div>
             </div>
 
-            <hr className="border-gray-100 mb-6" />
+            <hr className="border-neutral-100 mb-6" />
 
             {/* Bill to + dates */}
             <div className="grid grid-cols-2 gap-6 mb-6">
               <div>
-                <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">{t('invoice.billTo')}</p>
-                <p className="font-semibold text-gray-900">{payment.full_name}</p>
-                {payment.email && <p className="text-sm text-gray-700 mt-0.5">{payment.email}</p>}
-                <p className="text-xs text-gray-600 mt-0.5 font-mono">{payment.member_number}</p>
+                <p className="text-xs text-neutral-600 uppercase tracking-wider mb-2">{t('invoice.billTo')}</p>
+                <p className="font-semibold text-neutral-900">{payment.full_name}</p>
+                {payment.email && <p className="text-sm text-neutral-700 mt-0.5">{payment.email}</p>}
+                <p className="text-xs text-neutral-600 mt-0.5 font-mono">{payment.member_number}</p>
               </div>
               <div className="text-end">
                 <div className="mb-3">
-                  <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">{t('invoice.issueDate')}</p>
-                  <p className="text-sm font-medium text-gray-700">{issueDate}</p>
+                  <p className="text-xs text-neutral-600 uppercase tracking-wider mb-1">{t('invoice.issueDate')}</p>
+                  <p className="text-sm font-medium text-neutral-700">{issueDate}</p>
                 </div>
                 {paidDate && (
                   <div>
-                    <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">{t('invoice.paidDate')}</p>
+                    <p className="text-xs text-neutral-600 uppercase tracking-wider mb-1">{t('invoice.paidDate')}</p>
                     <p className="text-sm font-medium text-emerald-800">{paidDate}</p>
                   </div>
                 )}
@@ -206,43 +211,43 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
               return (
                 <table className="w-full text-sm mb-6">
                   <thead>
-                    <tr className="border-b border-gray-100">
-                      <th scope="col" className="text-start pb-2 text-xs text-gray-600 uppercase tracking-wider font-medium">{t('invoice.description')}</th>
-                      <th scope="col" className="text-start pb-2 text-xs text-gray-600 uppercase tracking-wider font-medium">{t('invoice.method')}</th>
-                      <th scope="col" className="text-end pb-2 text-xs text-gray-600 uppercase tracking-wider font-medium">{t('invoice.amount')}</th>
+                    <tr className="border-b border-neutral-100">
+                      <th scope="col" className="text-start pb-2 text-xs text-neutral-600 uppercase tracking-wider font-medium">{t('invoice.description')}</th>
+                      <th scope="col" className="text-start pb-2 text-xs text-neutral-600 uppercase tracking-wider font-medium">{t('invoice.method')}</th>
+                      <th scope="col" className="text-end pb-2 text-xs text-neutral-600 uppercase tracking-wider font-medium">{t('invoice.amount')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className={hasDiscount ? '' : 'border-b border-gray-50'}>
+                    <tr className={hasDiscount ? '' : 'border-b border-neutral-50'}>
                       <td className="py-3">
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-neutral-900">
                           {payment.service_name ?? t('invoice.payment')}
                         </p>
                         {payment.service_type && (
-                          <p className="text-xs text-gray-600 mt-0.5 capitalize">
+                          <p className="text-xs text-neutral-600 mt-0.5 capitalize">
                             {payment.service_type.replace(/_/g, ' ')}
                           </p>
                         )}
                         {payment.specialist_name && (
-                          <p className="text-xs text-gray-600 mt-0.5">
+                          <p className="text-xs text-neutral-600 mt-0.5">
                             {t('invoice.specialist', { name: payment.specialist_name })}
                           </p>
                         )}
-                        <p className="text-xs text-gray-600 mt-0.5">
+                        <p className="text-xs text-neutral-600 mt-0.5">
                           {t('invoice.source', { source: payment.source === 'mobile_app' ? t('invoice.mobileApp') : t('invoice.admin') })}
                         </p>
                       </td>
-                      <td className="py-3 text-gray-700">{methodLabel[payment.payment_method] ?? payment.payment_method}</td>
-                      <td className="py-3 text-end font-semibold text-gray-900">
+                      <td className="py-3 text-neutral-700">{methodLabel[payment.payment_method] ?? payment.payment_method}</td>
+                      <td className="py-3 text-end font-semibold text-neutral-900">
                         {hasDiscount
-                          ? <span className="line-through text-gray-600">{fmt(originalAmt, payment.currency)}</span>
+                          ? <span className="line-through text-neutral-600">{fmt(originalAmt, payment.currency)}</span>
                           : fmt(payment.amount, payment.currency)
                         }
                       </td>
                     </tr>
                     {hasDiscount && (
                       <>
-                        <tr className="border-b border-gray-50">
+                        <tr className="border-b border-neutral-50">
                           <td className="py-2 text-emerald-800 text-xs font-medium" colSpan={2}>
                             🏷 {t('invoice.offerDiscount')}
                           </td>
@@ -250,11 +255,11 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
                             − {fmt(payment.discount_amount!, payment.currency)}
                           </td>
                         </tr>
-                        <tr className="border-b border-gray-50">
-                          <td className="py-2 font-semibold text-gray-900" colSpan={2}>
+                        <tr className="border-b border-neutral-50">
+                          <td className="py-2 font-semibold text-neutral-900" colSpan={2}>
                             {t('invoice.offerPrice')}
                           </td>
-                          <td className="py-2 text-end font-bold text-gray-900">
+                          <td className="py-2 text-end font-bold text-neutral-900">
                             {fmt(payment.amount, payment.currency)}
                           </td>
                         </tr>
@@ -266,7 +271,7 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
             })()}
 
             {/* Total */}
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-neutral-200 pt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
@@ -279,23 +284,23 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
                   </span>
                 </div>
                 <div className="text-end">
-                  <p className="text-xs text-gray-600 uppercase tracking-wider">{t('invoice.totalPaid')}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-0.5">{fmt(payment.amount, payment.currency)}</p>
+                  <p className="text-xs text-neutral-600 uppercase tracking-wider">{t('invoice.totalPaid')}</p>
+                  <p className="text-2xl font-bold text-neutral-900 mt-0.5">{fmt(payment.amount, payment.currency)}</p>
                 </div>
               </div>
             </div>
 
             {/* Notes */}
             {payment.notes && (
-              <div className="mt-5 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">{t('invoice.notes')}</p>
-                <p className="text-sm text-gray-600">{payment.notes}</p>
+              <div className="mt-5 pt-4 border-t border-neutral-100">
+                <p className="text-xs text-neutral-600 uppercase tracking-wider mb-1">{t('invoice.notes')}</p>
+                <p className="text-sm text-neutral-600">{payment.notes}</p>
               </div>
             )}
 
             {/* Footer */}
-            <div className="mt-8 pt-4 border-t border-gray-100 text-center">
-              <p className="text-xs text-gray-600">{t('invoice.thankYou', { gym: gym.name })}</p>
+            <div className="mt-8 pt-4 border-t border-neutral-100 text-center">
+              <p className="text-xs text-neutral-600">{t('invoice.thankYou', { gym: gym.name })}</p>
             </div>
           </div>
         </div>

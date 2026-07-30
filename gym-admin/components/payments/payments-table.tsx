@@ -114,8 +114,9 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   const totalPaid    = baseFiltered.filter(p => p.status === 'paid').length;
   const totalPending = baseFiltered.filter(p => p.status === 'pending').length;
   const totalOverdue = baseFiltered.filter(p => p.status === 'overdue').length;
-  const totalRefunded = baseFiltered.filter(p => p.status === 'refunded' || p.status === 'partial_refund').reduce((s, p) => s + Number(p.amount), 0);
-  const totalRevenue = baseFiltered.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount), 0) - totalRefunded;
+  // Revenue = everything collected (paid / refunded / partial_refund) minus what was actually refunded back.
+  const collected = baseFiltered.filter(p => p.status === 'paid' || p.status === 'refunded' || p.status === 'partial_refund');
+  const totalRevenue = collected.reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

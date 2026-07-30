@@ -162,7 +162,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
     <>
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
@@ -193,7 +193,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
         {/* ── LIVE FEED ── */}
         {activeTab === 'live' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
                 <span className="text-sm text-fg-muted">{t('live.statusLine')}</span>
@@ -307,7 +307,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                   <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="[color-scheme:dark]" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-fg-faint mb-1">{t('logs.member')}</label>
                   <Select value={filterMember} onChange={e => setFilterMember(e.target.value)}>

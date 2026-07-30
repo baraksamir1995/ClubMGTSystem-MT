@@ -171,7 +171,7 @@ export default function ScheduleTab({
       {loadingSettings ? (
         <div className="h-16 bg-surface-2 border border-line rounded-xl animate-pulse" />
       ) : (
-        <div className={`flex items-center justify-between px-5 py-4 rounded-xl border ${
+        <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-4 rounded-xl border ${
           isPublished
             ? hasUnpublishedChanges
               ? 'bg-warning-soft border-warning/40'
@@ -255,7 +255,7 @@ export default function ScheduleTab({
 
       {/* ── Branch tabs (multi-branch only) ── */}
       {branches.length > 1 && (
-        <div className="flex items-center gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit">
+        <div className="flex items-center gap-1 bg-surface-2 border border-line rounded-xl p-1 w-fit max-w-full overflow-x-auto">
           {branches.map(b => (
             <button
               key={b.id}
@@ -308,7 +308,8 @@ export default function ScheduleTab({
       </div>
 
       {/* ── 7-day grid ── */}
-      <div className="grid grid-cols-7 gap-3">
+      <div className="overflow-x-auto">
+      <div className="grid grid-cols-7 gap-3 min-w-[840px]">
         {weekDates.map((date, idx) => {
           const dateStr    = toDateStr(date);
           const isToday    = dateStr === todayStr;
@@ -385,6 +386,7 @@ export default function ScheduleTab({
             </div>
           );
         })}
+      </div>
       </div>
 
       {showCopyMonth && (

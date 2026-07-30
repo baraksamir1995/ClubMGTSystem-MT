@@ -133,7 +133,7 @@ export default function MemberModal({ member, onClose }: Props) {
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label={t('gender')}>
                   <Select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
                     <option value="">{t('genderSelect')}</option>

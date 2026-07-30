@@ -305,7 +305,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                 <input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                   placeholder={t('profile.gymNamePlaceholder')} className={inp} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-fg-muted mb-1.5">{tc('email')}</label>
                   <input type="email" value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}

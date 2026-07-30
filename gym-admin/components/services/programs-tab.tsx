@@ -127,7 +127,7 @@ export default function ProgramsTab({ initialPrograms, permissions, gymId }: Pro
     <>
       <div className="space-y-5">
         {/* Toolbar */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-fg-muted">
             {programs.length === 1
               ? t('programsPage.programCountSingle', { count: programs.length })
@@ -235,7 +235,7 @@ export default function ProgramsTab({ initialPrograms, permissions, gymId }: Pro
               {/* Status */}
               <div>
                 <label className="block text-xs font-medium text-fg-muted mb-1.5">{t('programModal.fieldStatus')}</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {(['draft', 'published'] as const).map(s => (
                     <button key={s} type="button" onClick={() => setForm(f => ({ ...f, status: s }))}
                       className={`px-3 py-2.5 rounded-lg border text-start transition-colors ${

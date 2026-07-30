@@ -164,7 +164,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     <>
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
@@ -185,7 +185,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-surface-2 border border-line rounded-xl p-4">
             <p className="text-xs text-fg-muted mb-1">{t('summary.totalRevenue')}</p>
             <p className="text-xl font-bold text-success">{fmt(totalRevenue)}</p>

@@ -129,7 +129,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
     <>
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{t('pageTitle')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('pageSubtitle')}</p>
@@ -179,7 +179,7 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
         {activeTab === 'sessions' && (
           <>
             {/* Summary */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
                 { label: t('sessions.thisMonth'), value: sessions.filter(s => s.session_date >= monthStart && s.session_date < nextMonthStart && s.status === 'scheduled').length, color: 'text-brand', filter: 'upcoming' },
                 { label: t('sessions.past'),      value: sessions.filter(s => s.session_date < today).length,                              color: 'text-fg-muted',   filter: 'past' },

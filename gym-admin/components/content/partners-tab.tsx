@@ -131,7 +131,7 @@ export default function PartnersTab({ initialPartners, permissions, gymId }: Pro
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-fg-muted">{countLabel}</p>
         {can(permissions, 'content', 'create') && (
           <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('partners.addPartner')}</Button>

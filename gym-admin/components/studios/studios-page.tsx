@@ -113,7 +113,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
       <div className="space-y-5">
         {/* Header */}
         {!hideHeader && (
-          <div className="flex items-start justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-fg">{t('studios.pageTitle')}</h1>
               <p className="text-sm text-fg-muted mt-0.5">{t('studios.pageSubtitle')}</p>

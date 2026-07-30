@@ -58,7 +58,7 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
       </Modal.Header>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 px-5 py-4 border-b border-line flex-shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-5 py-4 border-b border-line flex-shrink-0">
           {/* Usage */}
           <div className="bg-surface-3/40 rounded-xl p-3">
             <p className="text-xs text-fg-muted mb-1">{t('redemptionsTitle')}</p>
@@ -106,7 +106,7 @@ export default function PromoRedemptionsModal({ promo, onClose }: Props) {
         </div>
 
         {/* Redemptions list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-5 h-5 animate-spin text-fg-muted" />

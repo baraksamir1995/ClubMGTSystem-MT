@@ -186,7 +186,7 @@ export default function ReviewsTab({ gymId, classes }: Props) {
   return (
     <div className="space-y-5">
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1 flex items-center gap-1.5">
             <TrendingUp aria-hidden className="w-3.5 h-3.5" /> {t('reviews.avgSessionRating')}

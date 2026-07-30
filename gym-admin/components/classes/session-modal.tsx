@@ -342,7 +342,7 @@ export default function SessionModal({ classes, branches, studios, existing, def
         {/* Session Type — required */}
         <div>
           <label className="block text-xs text-fg-muted mb-1.5">{t('sessionModal.labelSessionType')} <span className="text-danger">*</span></label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {SESSION_TYPES.map(({ value, label, icon: Icon, desc }) => (
               <button key={value} type="button"
                 onClick={() => setSessionType(value)}

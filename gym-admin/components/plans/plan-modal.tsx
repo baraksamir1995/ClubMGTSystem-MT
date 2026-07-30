@@ -242,7 +242,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
           {/* ── Plan Type ── */}
           <div>
             <label className={labelCls}>{t('modal.planTypeRequired')}</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {PLAN_TYPES.map(pt => (
                 <button key={pt.value} type="button" onClick={() => setPlanType(pt.value)}
                   className={`p-3 rounded-xl border text-start transition-colors ${planType === pt.value ? 'border-brand bg-brand/10' : 'border-line hover:border-line-strong'}`}>
@@ -274,7 +274,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
               <label className={labelCls}>
                 {planType === 'sessions' ? t('modal.validFor') : t('modal.membershipDuration')}
               </label>
-              <div className="grid grid-cols-5 gap-2 mb-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-2">
                 {DURATION_PRESETS.map(p => (
                   <button key={p.label} type="button"
                     onClick={() => { setDurationPreset(p.days ?? 'custom'); if (p.days !== null) setCustomDays(''); }}
@@ -343,7 +343,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
           {branches.length > 1 && (
             <div className={sectionCls}>
               <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4">{t('modal.branchAccess')}</p>
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                 {[
                   { value: 'all_branches',      label: t('modal.allBranchesOpt'),   hint: t('modal.allBranchesHint') },
                   { value: 'specific_branches', label: t('modal.specificBranches'), hint: t('modal.specificBranchesHint') },
@@ -403,7 +403,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
                 </button>
               </div>
               {freezeEnabled && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelCls}>{t('modal.maxFreezeDaysTotal')}</label>
                     <div className="flex items-center gap-2">

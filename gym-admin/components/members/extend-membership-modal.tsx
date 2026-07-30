@@ -86,7 +86,7 @@ export default function ExtendMembershipModal({ membershipId, memberName, curren
 
         <div>
           <p className="text-xs text-fg-muted mb-2">{t('quickSelect')}</p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {PRESETS.map(p => (
               <button key={p.days} type="button"
                 onClick={() => { setPreset(p.days); setDays(''); }}

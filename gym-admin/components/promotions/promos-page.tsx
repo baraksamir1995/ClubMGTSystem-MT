@@ -109,7 +109,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
     <>
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{t('pageTitle')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('pageSubtitle')}</p>
@@ -164,6 +164,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
           </div>
         ) : (
           <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line">
@@ -258,6 +259,7 @@ export default function PromosPage({ initialPromos, plans, permissions }: Props)
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
         </>}

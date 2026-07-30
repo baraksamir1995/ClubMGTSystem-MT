@@ -296,6 +296,7 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
             )}
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wide">
@@ -371,6 +372,7 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </Modal>

@@ -403,7 +403,7 @@ export default function BannersTab({ initialBanners, permissions }: Props) {
                   <div className="flex-1 p-4 min-w-0">
                     {isEditing ? (
                       <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
                             value={ef.caption}
                             onChange={e => setEditForm(f => ({ ...f, caption: e.target.value }))}

@@ -130,7 +130,7 @@ export default function PlanPricingTab({ plans }: Props) {
               const pct        = planPrice > 0 ? Math.round((discount / planPrice) * 100) : 0;
 
               return (
-                <div key={promo.id} className={`bg-surface-2 border rounded-xl p-5 flex items-center gap-4 ${status === 'expired' ? 'border-line opacity-60' : status === 'active' ? 'border-success/40' : 'border-line'}`}>
+                <div key={promo.id} className={`bg-surface-2 border rounded-xl p-5 flex flex-wrap items-center gap-4 ${status === 'expired' ? 'border-line opacity-60' : status === 'active' ? 'border-success/40' : 'border-line'}`}>
                   {/* Plan info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

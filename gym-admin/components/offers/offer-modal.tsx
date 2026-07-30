@@ -220,7 +220,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           {/* Status */}
           <div>
             <label className={labelCls}>{t('labelStatus')}</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {STATUS_OPTIONS.map(s => (
                 <button
                   key={s.value}
@@ -289,7 +289,7 @@ export default function OfferModal({ offer, gymId, onClose, onSaved }: Props) {
           </div>
 
           {/* Pricing */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>{t('labelOfferPrice')}</label>
               <div className="relative">

@@ -140,6 +140,7 @@ export default function InvitationsTable({ invitations: initial }: Props) {
         </div>
       ) : (
         <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line">
@@ -236,6 +237,7 @@ export default function InvitationsTable({ invitations: initial }: Props) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

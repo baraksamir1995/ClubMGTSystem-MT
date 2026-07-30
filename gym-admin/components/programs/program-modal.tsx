@@ -169,7 +169,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           {/* Status */}
           <div>
             <label className={labelCls}>{t('programModal.fieldStatus')}</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {([
                 { value: 'draft',     label: t('programModal.statusDraft'),     hint: t('programModal.draftHint') },
                 { value: 'published', label: t('programModal.statusPublished'), hint: t('programModal.publishedHint') },
@@ -262,7 +262,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           </div>
 
           {/* Duration · Sessions · Min/class */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>{t('programModal.fieldDuration')}</label>
               <input className={inputCls} type="number" min={1} max={52} value={durationWeeks}
@@ -311,7 +311,7 @@ export default function ProgramModal({ program, gymId, onClose, onSaved }: Props
           </div>
 
           {/* Trainer + Schedule */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>{t('programModal.fieldLeadTrainer')}</label>
               <select

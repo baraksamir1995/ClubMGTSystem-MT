@@ -8,5 +8,8 @@
  "themeToggle": "Toggle dark theme",
  "themeDarkEnabled": "Dark theme enabled",
  "themeLightEnabled": "Light theme enabled",
- "accountMenu": "Account menu"
+ "accountMenu": "Account menu",
+ "openNav": "Open navigation menu",
+ "closeNav": "Close navigation menu",
+ "navDrawer": "Navigation"
 }

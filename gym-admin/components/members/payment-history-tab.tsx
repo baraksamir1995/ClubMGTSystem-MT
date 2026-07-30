@@ -105,7 +105,7 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
   return (
     <div className="space-y-5">
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-faint mb-1">{t('totalPaid')}</p>
           <p className="text-xl font-bold text-success">{fmt(totalPaid, filtered[0]?.currency ?? 'EGP')}</p>
@@ -131,7 +131,7 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
 
       {/* Filters + Download */}
       <div className="bg-surface-2 border border-line rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
           <Filter className="w-4 h-4 text-fg-muted" />
           <span className="text-sm font-medium text-fg">{t('filterPeriod')}</span>
           {(fromDate || toDate) && (

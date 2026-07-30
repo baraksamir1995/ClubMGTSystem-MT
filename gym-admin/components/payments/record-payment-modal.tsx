@@ -466,7 +466,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
             {/* Payment Method */}
             <div>
               <label className={labelCls}>{t('recordModal.paymentMethod')}</label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {METHODS.map(m => (
                   <button key={m} type="button"
                     onClick={() => { setMethod(m); if (m === 'payment_link') setStatus('pending'); }}

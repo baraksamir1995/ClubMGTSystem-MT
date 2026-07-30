@@ -129,7 +129,7 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
       <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[92vh]">
 
         {/* Modal toolbar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-200 flex-shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-neutral-200 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
               isReceipt ? 'bg-emerald-100 text-emerald-900' : 'bg-accent/10 text-orange-900'

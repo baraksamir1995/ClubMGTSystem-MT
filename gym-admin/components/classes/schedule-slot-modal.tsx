@@ -125,7 +125,7 @@ export default function ScheduleSlotModal({ classes, existing, defaultDay, onClo
         {/* Session Type */}
         <div>
           <label className={lbl}>{t('scheduleSlot.labelSessionType')} <span className="text-fg-faint">{t('scheduleSlot.sessionTypeOptional')}</span></label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {SESSION_TYPES.map(({ value, label, icon: Icon, desc }) => (
               <button key={value} type="button"
                 onClick={() => setSessionType(value)}

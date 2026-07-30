@@ -189,7 +189,7 @@ export default function ExportModal({ members, onClose }: Props) {
         </div>
       </Modal.Body>
 
-      <Modal.Footer className="items-center justify-between">
+      <Modal.Footer className="flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-fg-muted">
           <span className="text-fg font-medium">{selected.size}</span>{' '}
           {selected.size === 1 ? t('selectedCount', { count: selected.size }) : t('selectedCountPlural', { count: selected.size })}

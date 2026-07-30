@@ -409,7 +409,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       {/* ── STAFF ACCOUNTS TAB ──────────────────────────────── */}
       {activeTab === 'accounts' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-fg-muted">
               {t('accounts.staffCount_other', { count: staff.length })}
             </p>
@@ -438,6 +438,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             </div>
           ) : (
             <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-xs text-fg-muted uppercase tracking-wider">
@@ -517,6 +518,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
@@ -577,7 +579,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               </div>
             ) : (
               <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-line flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="font-semibold text-fg">{selectedRole.name}</h2>
                     {selectedRole.description && <p className="text-xs text-fg-muted mt-0.5">{selectedRole.description}</p>}
@@ -847,7 +849,7 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
               </button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-fg-muted mb-1.5 block">{t('roleModal.labelRoleName')}</label>
                   <input type="text" value={rf.name} onChange={e => setRf(p => ({ ...p, name: e.target.value }))}

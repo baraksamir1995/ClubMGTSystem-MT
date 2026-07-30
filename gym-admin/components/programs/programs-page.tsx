@@ -88,7 +88,7 @@ export default function ProgramsPage({
       <div className="space-y-5">
 
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{t('programsPage.title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('programsPage.subtitle')}</p>
@@ -104,7 +104,7 @@ export default function ProgramsPage({
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {([
             { labelKey: 'programsPage.statTotal',     value: counts.total,     color: 'text-fg',          filter: 'all' as StatusFilter },
             { labelKey: 'programsPage.statPublished',  value: counts.published, color: 'text-success', filter: 'published' as StatusFilter },

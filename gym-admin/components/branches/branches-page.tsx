@@ -206,7 +206,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
 
       {/* Header */}
       {!hideHeader && (
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-fg">{t('branches.title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('branches.subtitle')}</p>
@@ -296,7 +296,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
       {showCreate && (
         <div className="bg-surface-2 border border-brand/50 rounded-xl p-4 space-y-3">
           <p className="text-sm font-medium text-fg">{t('branches.newBranch')}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs text-fg-muted">{tc('name')} *</label>
               <input

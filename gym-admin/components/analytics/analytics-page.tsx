@@ -183,7 +183,7 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
           <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>

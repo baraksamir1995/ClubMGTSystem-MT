@@ -8,5 +8,8 @@
  "themeToggle": "تبديل الوضع الداكن",
  "themeDarkEnabled": "تم تفعيل الوضع الداكن",
  "themeLightEnabled": "تم تفعيل الوضع الفاتح",
- "accountMenu": "قائمة الحساب"
+ "accountMenu": "قائمة الحساب",
+ "openNav": "فتح قائمة التنقل",
+ "closeNav": "إغلاق قائمة التنقل",
+ "navDrawer": "التنقل"
 }

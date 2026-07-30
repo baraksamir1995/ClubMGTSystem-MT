@@ -9,12 +9,16 @@ import '../utils/error_utils.dart';
 class AuthProvider extends ChangeNotifier {
   final ApiService _service;
 
+  /// Invoked whenever a coach profile loads, with the coach's gym_id —
+  /// BrandingProvider hooks this to (re)fetch the gym's dashboard branding.
+  final void Function(String? gymId)? onGymResolved;
+
   String? _userId;
   CoachProfile? _profile;
   bool _isLoading = false;
   String? _error;
 
-  AuthProvider(this._service) {
+  AuthProvider(this._service, {this.onGymResolved}) {
     _init();
   }
 
@@ -50,6 +54,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _profile = await _service.getProfile();
+      if (_profile?.gymId != null) onGymResolved?.call(_profile!.gymId);
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         // Token expired/revoked server-side. ApiService already cleared

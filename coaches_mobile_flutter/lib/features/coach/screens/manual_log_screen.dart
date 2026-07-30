@@ -86,7 +86,7 @@ class _ManualLogScreenState extends State<ManualLogScreen> {
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.bg,
               border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
             ),
@@ -125,7 +125,10 @@ class _ManualLogScreenState extends State<ManualLogScreen> {
                           behavior: SnackBarBehavior.floating,
                           content: Text(
                             'Already logged in the last 30 minutes — try again in ${e.minutesLeft} min.',
-                            style: AppText.body(size: 13, color: AppColors.limeText),
+                            // Ink must pair with the WARN fill it sits on —
+                            // limeText derives from the gym's primary accent
+                            // and goes illegible on light-primary brands.
+                            style: AppText.body(size: 13, color: AppColors.white),
                           ),
                         ));
                       } on ApiException catch (e) {
@@ -247,12 +250,12 @@ class _SuccessView extends StatelessWidget {
                       child: Container(
                         width: 80,
                         height: 80,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.lime,
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
-                        child: const Icon(
+                        child: Icon(
                           Icons.check_rounded,
                           size: 40,
                           color: AppColors.limeText,

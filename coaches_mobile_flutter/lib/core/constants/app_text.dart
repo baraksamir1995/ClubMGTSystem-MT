@@ -28,7 +28,7 @@ class AppText {
   static TextStyle disp({
     double size = 22,
     double letterSpacing = 1.2,
-    Color color = const Color(0xFFF4F4F0),
+    Color color = const Color(0xFF1F1A14),
     FontWeight weight = FontWeight.w400,
     double? height,
   }) =>
@@ -45,7 +45,7 @@ class AppText {
   static TextStyle body({
     double size = 14,
     double letterSpacing = -0.2,
-    Color color = const Color(0xFFF4F4F0),
+    Color color = const Color(0xFF1F1A14),
     FontWeight weight = FontWeight.w400,
     double? height,
   }) =>
@@ -62,7 +62,7 @@ class AppText {
   static TextStyle mono({
     double size = 11,
     double letterSpacing = 1.5,
-    Color color = const Color(0xFFA3A39C),
+    Color color = const Color(0xFF6B6860),
     FontWeight weight = FontWeight.w400,
     double? height,
   }) =>

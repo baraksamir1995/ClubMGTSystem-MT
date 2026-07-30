@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text.dart';
-import '../../../widgets/clby_app_bar.dart';
+import '../../../widgets/coach_greeting_header.dart';
 import '../coach_app_state.dart';
 
 /// Coach QR / Scan — the home tab, now wired to `/api/coach/*`.
@@ -29,7 +29,7 @@ class _QrScreenState extends State<QrScreen> {
 
     return Column(
       children: [
-        const ClbyAppBar(title: 'Coach QR'),
+        const CoachGreetingHeader(),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.lime,
@@ -128,7 +128,7 @@ class _QrCard extends StatelessWidget {
       // A real, scannable QR. No decorative overlay — brackets over the
       // finder patterns would break scanning, which was the bug.
       child: data == null
-          ? const SizedBox(
+          ? SizedBox(
               width: 220,
               height: 220,
               child: Center(

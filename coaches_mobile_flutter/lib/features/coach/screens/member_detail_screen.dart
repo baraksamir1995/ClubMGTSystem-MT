@@ -301,7 +301,7 @@ class _PackageCard extends StatelessWidget {
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.only(top: 14),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
             ),
             child: Row(
@@ -376,12 +376,12 @@ class _MetaCell extends StatelessWidget {
   final String label;
   final String value;
   final bool rightAlign;
-  final Color valueColor;
+  final Color? valueColor;
   const _MetaCell({
     required this.label,
     required this.value,
     this.rightAlign = false,
-    this.valueColor = AppColors.text,
+    this.valueColor,
   });
   @override
   Widget build(BuildContext context) {
@@ -395,7 +395,7 @@ class _MetaCell extends StatelessWidget {
             style: AppText.body(
               size: 13,
               weight: FontWeight.w500,
-              color: valueColor,
+              color: valueColor ?? AppColors.text,
             )),
       ],
     );
@@ -425,7 +425,7 @@ class _AttendanceHeader extends StatelessWidget {
             ),
           ),
           if (loading)
-            const SizedBox(
+            SizedBox(
               width: 12,
               height: 12,
               child: CircularProgressIndicator(
@@ -619,7 +619,7 @@ class _SessionRowState extends State<_SessionRow> {
         border: Border(
           bottom: widget.isLast
               ? BorderSide.none
-              : const BorderSide(color: AppColors.border, width: 0.5),
+              : BorderSide(color: AppColors.border, width: 0.5),
         ),
       ),
       child: Column(

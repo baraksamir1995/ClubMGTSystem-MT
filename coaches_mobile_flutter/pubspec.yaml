@@ -27,6 +27,9 @@ dependencies:
   # Utils
   intl: ^0.20.2
 
+  # Images (disk-cached gym logo — same convention as gym_mobile_flutter)
+  cached_network_image: ^3.4.1
+
   # Fonts (Bebas Neue / Geist / Geist Mono per CLBY Coach design)
   google_fonts: ^6.2.1
   firebase_core: ^4.9.0

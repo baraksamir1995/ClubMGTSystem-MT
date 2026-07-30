@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text.dart';
+import 'frosted_header_shell.dart';
 
 /// Sticky frosted app bar. Port of `AppBar` in coach-tokens.jsx:
 /// 60px top padding (the dynamic-island/status-bar overlay), `bg/0.85`
@@ -21,19 +21,9 @@ class ClbyAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(18, 60, 18, 14),
-          decoration: BoxDecoration(
-            color: AppColors.bg.withValues(alpha: 0.85),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.border, width: 0.5),
-            ),
-          ),
-          child: Row(
-            children: [
+    return FrostedHeaderShell(
+      child: Row(
+        children: [
               if (onBack != null) ...[
                 // -6px nudge left (the design pulls the chip flush with the
                 // edge). Container.margin can't be negative in Flutter, so
@@ -52,7 +42,7 @@ class ClbyAppBar extends StatelessWidget {
                         border: Border.all(color: AppColors.border),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 16,
                         color: AppColors.text,
@@ -73,10 +63,8 @@ class ClbyAppBar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              ?trailing,
-            ],
-          ),
-        ),
+          ?trailing,
+        ],
       ),
     );
   }

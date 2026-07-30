@@ -204,12 +204,12 @@ class _ScanningBodyState extends State<_ScanningBody>
                 Container(
                   width: 80,
                   height: 80,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.surface,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.qr_code_scanner_rounded,
                     size: 40,
                     color: AppColors.lime,
@@ -457,12 +457,12 @@ class _SuccessBody extends StatelessWidget {
                 child: Container(
                   width: 72,
                   height: 72,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.lime,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_rounded,
                     size: 36,
                     color: AppColors.limeText,

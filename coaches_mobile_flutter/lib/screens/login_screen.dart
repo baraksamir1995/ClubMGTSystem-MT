@@ -86,23 +86,23 @@ class _LoginScreenState extends State<LoginScreen> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Ambient lime glow (top-right). The design uses a radial gradient;
-          // we approximate with a soft lime disc + blur via a low-opacity fill.
+          // Ambient primary glow (top-right). The design uses a radial
+          // gradient; we approximate with a soft disc fading at the edge.
           Positioned(
             top: -120,
             right: -120,
             child: _AmbientGlow(
               size: 320,
-              color: AppColors.lime.withValues(alpha: 0.18),
+              color: AppColors.primary.withValues(alpha: 0.14),
             ),
           ),
-          // Violet glow (top-left).
+          // Secondary glow (top-left).
           Positioned(
             top: -200,
             left: -100,
             child: _AmbientGlow(
               size: 260,
-              color: const Color(0xFF6B4DA8).withValues(alpha: 0.12),
+              color: AppColors.secondary.withValues(alpha: 0.10),
             ),
           ),
           SafeArea(
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 26),
-                  const ClbyWordmark(size: 56, subLabel: 'COACH PORTAL'),
+                  const GymBrandHeader(size: 40, subLabel: 'COACH PORTAL'),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: 280,

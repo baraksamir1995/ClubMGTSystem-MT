@@ -1,31 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text.dart';
+import '../providers/branding_provider.dart';
+import '../utils/env.dart';
+import 'gym_logo_tile.dart';
 
-/// CLBY wordmark + optional "COACH PORTAL" sub-label. Ported from the
-/// design's login wordmark block (Bebas Neue, letter-spacing 6).
-class ClbyWordmark extends StatelessWidget {
-  /// The display size of the main "CLBY" wordmark.
+/// Gym-branded header for pre-login surfaces: the gym's logo + name from
+/// the dashboard settings (via [BrandingProvider]'s cache/sync), with the
+/// mono "COACH PORTAL" sub-label. Until a gym's branding has been cached
+/// (first-ever launch, pre-login) it falls back to the flavor's brand name
+/// from [Env] — never a hardcoded brand, which would show the wrong name on
+/// a white-label build's first launch.
+class GymBrandHeader extends StatelessWidget {
+  /// Wordmark/name display size.
   final double size;
-
-  /// When non-null, the small Geist-mono lime sub-label rendered below.
   final String? subLabel;
+  final CrossAxisAlignment alignment;
 
-  const ClbyWordmark({super.key, this.size = 56, this.subLabel = 'COACH PORTAL'});
+  const GymBrandHeader({
+    super.key,
+    this.size = 40,
+    this.subLabel = 'COACH PORTAL',
+    this.alignment = CrossAxisAlignment.start,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final branding = context.select<BrandingProvider, GymBranding?>(
+      (b) => b.branding,
+    );
+    final name = (branding != null && branding.name.trim().isNotEmpty)
+        ? branding.name
+        : Env.brandName;
+    final logoSize = size + 16;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: alignment,
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (branding?.logoUrl != null) ...[
+          GymLogoTile(size: logoSize, branding: branding),
+          const SizedBox(height: 14),
+        ],
         Text(
-          'CLBY',
+          name,
           style: AppText.disp(
             size: size,
-            letterSpacing: 6,
+            letterSpacing: 1.5,
             color: AppColors.text,
-            height: 1.0,
+            height: 1.05,
           ),
         ),
         if (subLabel != null && subLabel!.isNotEmpty) ...[
@@ -35,7 +58,7 @@ class ClbyWordmark extends StatelessWidget {
             style: AppText.mono(
               size: 11,
               letterSpacing: 2.5,
-              color: AppColors.lime,
+              color: AppColors.primary,
             ),
           ),
         ],

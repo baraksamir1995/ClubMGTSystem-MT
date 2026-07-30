@@ -55,6 +55,33 @@ class ApiService {
         }));
   }
 
+  /// GET for PUBLIC endpoints: no Authorization header, and a 401/4xx can
+  /// never touch the stored session. A pre-login branding fetch that 401s
+  /// (auth posture change, proxy misconfig) must not log the coach out —
+  /// `_parse` clears the token on 401, which is only correct for calls made
+  /// AS the coach.
+  Future<dynamic> _getPublic(String path) async {
+    final uri = Uri.parse('$_baseUrl$path');
+    return _withRetry(() => _runWithTimeout(() async {
+          final response = await _http.get(uri, headers: const {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          });
+          if (response.body.isEmpty) return <String, dynamic>{};
+          final body = jsonDecode(response.body);
+          if (response.statusCode >= 400) {
+            throw ApiException(
+              statusCode: response.statusCode,
+              message: (body is Map
+                      ? (body['error'] ?? body['message'])?.toString()
+                      : null) ??
+                  'Unknown error',
+            );
+          }
+          return body;
+        }));
+  }
+
   Future<dynamic> _post(String path, [Map<String, dynamic>? body]) async {
     final uri = Uri.parse('$_baseUrl$path');
     return _runWithTimeout(() async {
@@ -186,6 +213,14 @@ class ApiService {
     final data = await _get('/api/me');
     if (data == null) return null;
     return CoachProfile.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// `GET /api/gyms/{id}` — public gym card (name, logo, branding_config).
+  /// No auth required; used to brand the pre-login surfaces. Routed through
+  /// [_getPublic] so it sends no token and can never clear the session.
+  Future<Map<String, dynamic>> getGymPublic(String gymId) async {
+    final data = await _getPublic('/api/gyms/$gymId');
+    return data as Map<String, dynamic>;
   }
 
   // ── Coach app ──────────────────────────────────────────────────────────────

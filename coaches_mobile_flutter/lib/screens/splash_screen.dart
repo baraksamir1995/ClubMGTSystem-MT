@@ -34,21 +34,25 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: AppColors.bg,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ClbyWordmark(size: 48, subLabel: 'COACH PORTAL'),
-            SizedBox(height: 28),
+            const GymBrandHeader(
+              size: 36,
+              subLabel: 'COACH PORTAL',
+              alignment: CrossAxisAlignment.center,
+            ),
+            const SizedBox(height: 28),
             SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(AppColors.lime),
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
           ],

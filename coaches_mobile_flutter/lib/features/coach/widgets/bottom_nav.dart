@@ -34,7 +34,7 @@ class CoachBottomNav extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
           decoration: BoxDecoration(
             color: AppColors.bg.withValues(alpha: 0.85),
-            border: const Border(
+            border: Border(
               top: BorderSide(color: AppColors.border, width: 0.5),
             ),
           ),

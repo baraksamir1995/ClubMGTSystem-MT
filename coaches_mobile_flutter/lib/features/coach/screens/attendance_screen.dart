@@ -98,7 +98,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 60, 18, 14),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.bg,
         border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
       ),
@@ -166,7 +166,7 @@ class _SegBtn extends StatelessWidget {
             color: active ? AppColors.surface2 : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             border: active
-                ? const Border(bottom: BorderSide(color: AppColors.borderStrong, width: 1))
+                ? Border(bottom: BorderSide(color: AppColors.borderStrong, width: 1))
                 : null,
           ),
           alignment: Alignment.center,
@@ -319,7 +319,7 @@ class _TodayRow extends StatelessWidget {
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : const BorderSide(color: AppColors.border, width: 0.5),
+                : BorderSide(color: AppColors.border, width: 0.5),
           ),
         ),
         child: Row(
@@ -562,8 +562,8 @@ class _PerAssignmentHistory extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 if (loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
                     child: Center(
                       child: SizedBox(
                         width: 18,
@@ -640,7 +640,7 @@ class _HistoryRow extends StatelessWidget {
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : const BorderSide(color: AppColors.border, width: 0.5),
+              : BorderSide(color: AppColors.border, width: 0.5),
         ),
       ),
       child: Row(

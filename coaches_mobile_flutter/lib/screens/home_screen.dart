@@ -104,7 +104,7 @@ class _ShellLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 24,
         height: 24,

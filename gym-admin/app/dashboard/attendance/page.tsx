@@ -68,7 +68,7 @@ export default async function AttendanceRoute() {
   const [attendanceData, branchesData, membersData, sessionsData] = await Promise.all([
     fetchApi('/attendance?limit=20', token),
     fetchApi('/branches', token),
-    fetchApi('/members?limit=500&status=active', token),
+    fetchApi('/members?per_page=1000&status=active', token),
     fetchApi('/sessions?date=' + new Date().toISOString().slice(0, 10), token),
   ]);
 

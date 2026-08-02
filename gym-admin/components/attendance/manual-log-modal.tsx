@@ -106,7 +106,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
     if (!search.trim()) return members.slice(0, 20);
     const q = search.toLowerCase();
     return members.filter(m =>
-      m.member_number?.toLowerCase().includes(q) ||
+      String(m.member_number ?? '').toLowerCase().includes(q) ||
       m.full_name?.toLowerCase().includes(q)
     ).slice(0, 20);
   }, [members, search]);

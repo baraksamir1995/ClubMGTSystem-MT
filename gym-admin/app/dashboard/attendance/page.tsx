@@ -78,7 +78,7 @@ export default async function AttendanceRoute() {
   const logs: AttendanceLog[] = rawLogs.map((l: any) => ({
     id:              l.id,
     gym_member_id:   l.gym_member_id,
-    member_number:   l.member_number ?? '',
+    member_number:   String(l.member_number ?? ''),
     full_name:       l.full_name ?? null,
     photo_url:       l.photo_url ?? null,
     check_in_at:     l.check_in_at,
@@ -98,7 +98,7 @@ export default async function AttendanceRoute() {
     const activeMembership = (m.memberships ?? []).find((ms: any) => ms.status === 'active');
     return {
       id:            m.id,
-      member_number: m.member_number ?? '',
+      member_number: String(m.member_number ?? ''),
       full_name:     m.user?.full_name ?? m.full_name ?? m.profile?.full_name ?? null,
       plan_type:     activeMembership?.plan?.plan_type ?? null,
     };

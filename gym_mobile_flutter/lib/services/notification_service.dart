@@ -6,12 +6,11 @@ import '../utils/logger.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
-import '../firebase_options.dart';
 
 /// Must be top-level — called by FCM when the app is in the background/terminated.
 @pragma('vm:entry-point')
 Future<void> _onBackgroundMessage(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp();
   // FCM automatically shows a system notification for messages with a
   // notification payload when the app is in the background — nothing extra needed.
 }
@@ -27,7 +26,14 @@ class NotificationService {
   // ── Firebase / FCM ──────────────────────────────────────────────────────────
 
   Future<void> initFirebase() async {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    // No explicit options: each flavor bundles its own native Firebase config
+    // (iOS GoogleService-Info.plist via the copy build phase, Android
+    // src/<flavor>/google-services.json), and the native layer has already
+    // initialized the default app from it. Passing DefaultFirebaseOptions
+    // (generated for the CLBY project) here made every white-label flavor
+    // crash at launch with [core/duplicate-app] — options clashed with the
+    // flavor's native default app.
+    await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(_onBackgroundMessage);
 
     await FirebaseMessaging.instance.requestPermission(

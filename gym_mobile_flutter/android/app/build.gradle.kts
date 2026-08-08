@@ -123,7 +123,7 @@ android {
             dimension = "brand"
             applicationId = "com.clbyapp.alfag"
             resValue("string", "app_name", "AlfaG")
-            versionCode = 1
+            versionCode = 2
             versionName = "1.0.0"
             signingConfig = signingConfigs.getByName("releaseAlfag")
         }

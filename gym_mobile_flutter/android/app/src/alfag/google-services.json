@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "24761117636",
+    "project_id": "alfag-clby",
+    "storage_bucket": "alfag-clby.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:24761117636:android:1961b3c8be3fafed525291",
+        "android_client_info": {
+          "package_name": "com.clbyapp.alfag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDt5JJg17Moq6gHU0FiUgK-UK8VxO3eVrg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

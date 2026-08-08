@@ -31,6 +31,12 @@ if (theBarnKeystorePropertiesFile.exists()) {
     theBarnKeystoreProperties.load(FileInputStream(theBarnKeystorePropertiesFile))
 }
 
+val alfagKeystoreProperties = Properties()
+val alfagKeystorePropertiesFile = rootProject.file("alfag-key.properties")
+if (alfagKeystorePropertiesFile.exists()) {
+    alfagKeystoreProperties.load(FileInputStream(alfagKeystorePropertiesFile))
+}
+
 android {
     namespace = "com.clubmgt.gym_mobile_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -73,6 +79,12 @@ android {
             storeFile = theBarnKeystoreProperties.getProperty("storeFile")?.let { f -> file(f) }
             storePassword = theBarnKeystoreProperties.getProperty("storePassword")
         }
+        create("releaseAlfag") {
+            keyAlias = alfagKeystoreProperties.getProperty("keyAlias")
+            keyPassword = alfagKeystoreProperties.getProperty("keyPassword")
+            storeFile = alfagKeystoreProperties.getProperty("storeFile")?.let { f -> file(f) }
+            storePassword = alfagKeystoreProperties.getProperty("storePassword")
+        }
     }
     // Per-brand white-label dimension. Each flavor owns its applicationId,
     // user-visible app name, signing keystore, version, and (via
@@ -106,6 +118,14 @@ android {
             versionCode = 1
             versionName = "1.0.0"
             signingConfig = signingConfigs.getByName("releaseTheBarn")
+        }
+        create("alfag") {
+            dimension = "brand"
+            applicationId = "com.clbyapp.alfag"
+            resValue("string", "app_name", "AlfaG")
+            versionCode = 1
+            versionName = "1.0.0"
+            signingConfig = signingConfigs.getByName("releaseAlfag")
         }
     }
     buildTypes {

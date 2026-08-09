@@ -67,6 +67,13 @@ const nextConfig = {
       ],
     },
   },
+  // Webpack's persistent disk cache is useless inside a throwaway Docker
+  // build layer, and serializing it is exactly the IO+memory spike the
+  // 2GB box dies on (deploys abort right after "Serializing big strings").
+  webpack: (config) => {
+    if (process.env.CI) config.cache = false;
+    return config;
+  },
   images: {
     remotePatterns: [],
   },

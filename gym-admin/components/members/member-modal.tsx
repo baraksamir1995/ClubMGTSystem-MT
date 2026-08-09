@@ -56,6 +56,10 @@ export default function MemberModal({ member, onClose }: Props) {
       toast.error(t('toast.nameRequired'));
       return;
     }
+    if (!form.email.trim()) {
+      toast.error(t('toast.emailRequired'));
+      return;
+    }
 
     setLoading(true);
 
@@ -68,7 +72,7 @@ export default function MemberModal({ member, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           full_name: form.full_name.trim(),
-          email: form.email.trim() || null,
+          email: form.email.trim(),
           phone: form.phone.trim() || null,
           gender: form.gender || null,
           date_of_birth: form.date_of_birth || null,
@@ -121,6 +125,7 @@ export default function MemberModal({ member, onClose }: Props) {
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
                   placeholder={t('emailPlaceholder')}
+                  required
                 />
               </Field>
 

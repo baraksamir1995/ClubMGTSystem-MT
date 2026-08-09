@@ -62,6 +62,7 @@
     "addMemberSubmit": "Add Member",
     "toast": {
       "nameRequired": "Full name is required",
+      "emailRequired": "Email is required",
       "updated": "Member updated",
       "added": "Member added"
     }

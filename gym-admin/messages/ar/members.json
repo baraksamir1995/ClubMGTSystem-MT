@@ -62,6 +62,7 @@
     "addMemberSubmit": "إضافة عضو",
     "toast": {
       "nameRequired": "الاسم الكامل مطلوب",
+      "emailRequired": "البريد الإلكتروني مطلوب",
       "updated": "تم تحديث العضو",
       "added": "تمت إضافة العضو"
     }

@@ -37,7 +37,7 @@ function stubFetch(backendResponse: { ok: boolean; status?: number; json: () => 
   });
   vi.stubGlobal('fetch', fetchMock);
   const backendCall = () =>
-    fetchMock.mock.calls.find(([u]: [string]) => !u.endsWith('/api/super-admin/me')) as [string, RequestInit];
+    fetchMock.mock.calls.find((call) => !String(call[0]).endsWith('/api/super-admin/me')) as [string, RequestInit];
   return { fetchMock, backendCall };
 }
 

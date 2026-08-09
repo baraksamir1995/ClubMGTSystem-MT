@@ -220,7 +220,7 @@ class MemberController extends Controller
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => ['nullable', 'email', $this->uniqueEmailRule()],
+            'email' => ['required', 'email', $this->uniqueEmailRule()],
             'phone' => [
                 'nullable', 'string', 'max:20',
                 Rule::unique('profiles', 'phone')->where(fn ($q) => $q->whereNull('deleted_at')),
@@ -244,7 +244,7 @@ class MemberController extends Controller
             // Create auth.users stub for FK compatibility
             DB::table('auth.users')->insertOrIgnore([
                 'id' => $profileId,
-                'email' => $validated['email'] ?? "{$profileId}@placeholder.local",
+                'email' => $validated['email'],
                 'encrypted_password' => Hash::make(Str::random(32)),
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -253,7 +253,7 @@ class MemberController extends Controller
             // Create profile
             DB::table('profiles')->insert([
                 'id' => $profileId,
-                'email' => $validated['email'] ?? null,
+                'email' => $validated['email'],
                 'full_name' => $validated['full_name'],
                 'phone' => $validated['phone'] ?? null,
                 'gender' => $validated['gender'] ?? null,
@@ -303,7 +303,7 @@ class MemberController extends Controller
 
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
-            'email' => ['nullable', 'email', $this->uniqueEmailRule($member->user_id)],
+            'email' => ['sometimes', 'required', 'email', $this->uniqueEmailRule($member->user_id)],
             'phone' => [
                 'nullable', 'string', 'max:20',
                 Rule::unique('profiles', 'phone')

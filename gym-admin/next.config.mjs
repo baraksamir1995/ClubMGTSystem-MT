@@ -51,6 +51,12 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true }, // TODO: no .eslintrc yet; enabling needs config + violation pass first
   experimental: {
     instrumentationHook: true, // Next 14: load instrumentation.ts (Sentry server/edge init)
+    // Coolify builds run ON the 2GB prod box. Parallel webpack workers +
+    // tsc make dockerd/health checks starve and the deploy's exec pipe
+    // breaks (silent exit-255 deploys). One worker keeps the box alive;
+    // the build is slower but finishes. Scoped to CI so local `next build`
+    // stays parallel.
+    ...(process.env.CI || process.env.COOLIFY_FQDN ? { cpus: 1, workerThreads: false } : {}),
     optimizePackageImports: ['recharts', 'lucide-react'],
     outputFileTracingExcludes: {
       '*': [

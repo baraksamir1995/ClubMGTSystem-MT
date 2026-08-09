@@ -13,6 +13,10 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 # Cap Node heap to fit within 2GB RAM + 2GB swap on tiny EC2 instances
 ENV NODE_OPTIONS="--max-old-space-size=1536"
+# CI=1 makes next.config.mjs serialize the build (cpus:1, no worker
+# threads) — image builds happen on the prod box, which dies under
+# parallel workers. See next.config.mjs.
+ENV CI=1
 RUN npm run build
 
 # ───── Stage 3: runtime ─────

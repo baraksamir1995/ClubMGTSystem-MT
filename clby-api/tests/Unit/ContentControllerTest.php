@@ -50,12 +50,13 @@ class ContentControllerTest extends TestCase
         $reflection = new \ReflectionClass(ContentController::class);
         $prop = $reflection->getConstant('TABLES');
 
-        $this->assertEquals('gym_announcements', $prop['announcements']);
-        $this->assertEquals('gym_banners', $prop['banners']);
-        $this->assertEquals('gym_faqs', $prop['faqs']);
-        $this->assertEquals('gym_onboarding_slides', $prop['onboarding']);
-        $this->assertEquals('gym_partners', $prop['partners']);
-        $this->assertEquals('gym_photos', $prop['photos']);
-        $this->assertEquals('gym_popups', $prop['popups']);
+        $this->assertEquals(
+            [
+                'banners' => 'gym_banners',
+                'partners' => 'gym_partners',
+                'popups' => 'gym_popups',
+            ],
+            $prop,
+        );
     }
 }

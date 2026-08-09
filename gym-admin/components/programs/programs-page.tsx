@@ -8,6 +8,7 @@ import { useRefresh } from '@/lib/use-refresh';
 import ProgramModal from './program-modal';
 import type { GymProgram } from '@/app/dashboard/services/page';
 import { can, type Permission } from '@/lib/get-permissions';
+import { extractServerMessage } from '@/lib/api-error';
 
 type StatusFilter = 'all' | 'draft' | 'published';
 
@@ -72,7 +73,11 @@ export default function ProgramsPage({
     setDeletingId(id);
     try {
       const res = await fetch(`/api/programs/${id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('programsPage.failedDeleteToast')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('programsPage.failedDeleteToast'));
+        return;
+      }
       setPrograms(prev => prev.filter(p => p.id !== id));
       toast.success(t('programsPage.deletedToast'));
       refresh();
@@ -93,7 +98,7 @@ export default function ProgramsPage({
             <h1 className="text-2xl font-bold text-fg">{t('programsPage.title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('programsPage.subtitle')}</p>
           </div>
-          {can(permissions, 'programs', 'create') && (
+          {can(permissions, 'classes', 'create') && (
             <button
               onClick={openCreate}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
@@ -157,7 +162,7 @@ export default function ProgramsPage({
               <p className="text-fg-muted text-sm">
                 {programs.length === 0 ? t('programsPage.emptyNone') : t('programsPage.emptyNoMatch')}
               </p>
-              {programs.length === 0 && can(permissions, 'programs', 'create') && (
+              {programs.length === 0 && can(permissions, 'classes', 'create') && (
                 <button
                   onClick={openCreate}
                   className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
@@ -249,7 +254,7 @@ export default function ProgramsPage({
                       {/* Actions */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          {can(permissions, 'programs', 'edit') && (
+                          {can(permissions, 'classes', 'edit') && (
                             <button
                               onClick={() => openEdit(program)}
                               title={t('programsPage.editTitle')}
@@ -258,7 +263,7 @@ export default function ProgramsPage({
                               <Pencil className="w-4 h-4" />
                             </button>
                           )}
-                          {can(permissions, 'programs', 'delete') && (
+                          {can(permissions, 'classes', 'delete') && (
                             <button
                               onClick={() => handleDelete(program.id)}
                               disabled={deletingId === program.id}

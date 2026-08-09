@@ -9,6 +9,7 @@ import OfferModal from './offer-modal';
 import type { GymOffer } from '@/app/dashboard/content/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Badge, type BadgeProps, Button } from '@/components/ui';
+import { extractServerMessage } from '@/lib/api-error';
 
 type SortKey = 'status' | 'expires_at' | 'created_at';
 type SortDir = 'asc' | 'desc';
@@ -114,7 +115,11 @@ export default function OffersPage({
     setDeletingId(id);
     try {
       const res = await fetch(`/api/offers/${id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('failedToDeleteOffer')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('failedToDeleteOffer'));
+        return;
+      }
       setOffers(prev => prev.filter(o => o.id !== id));
       toast.success(t('offerDeleted'));
       refresh();
@@ -144,7 +149,7 @@ export default function OffersPage({
             <h1 className="text-2xl font-bold text-fg">{t('offersPageTitle')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('offersPageSubtitle')}</p>
           </div>
-          {can(permissions, 'offers', 'create') && (
+          {can(permissions, 'promotions', 'create') && (
             <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('newOffer')}</Button>
           )}
         </div>
@@ -213,7 +218,7 @@ export default function OffersPage({
                   ? t('noOffersYet')
                   : t('noOffersMatchFilters')}
               </p>
-              {offers.length === 0 && can(permissions, 'offers', 'create') && (
+              {offers.length === 0 && can(permissions, 'promotions', 'create') && (
                 <Button variant="primary" className="mt-4" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>{t('createYourFirstOffer')}</Button>
               )}
             </div>
@@ -307,7 +312,7 @@ export default function OffersPage({
                       {/* Actions */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          {can(permissions, 'offers', 'edit') && (
+                          {can(permissions, 'promotions', 'edit') && (
                             <button
                               onClick={() => openEdit(offer)}
                               title={t('titleEditOffer')}
@@ -316,7 +321,7 @@ export default function OffersPage({
                               <Pencil className="w-4 h-4" />
                             </button>
                           )}
-                          {can(permissions, 'offers', 'delete') && (
+                          {can(permissions, 'promotions', 'delete') && (
                             <button
                               onClick={() => handleDelete(offer.id)}
                               disabled={deletingId === offer.id}

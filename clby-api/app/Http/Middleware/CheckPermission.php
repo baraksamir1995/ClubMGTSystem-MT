@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
  * Enforces module-level permissions from staff_role_permissions.
  *
  * Usage in routes:  ->middleware('permission:members,create')
+ * Multi-module:     ->middleware('permission:classes|attendance,edit')
+ *   (pipe-separated — any one of the listed modules grants access; used
+ *   for endpoints that legitimately serve more than one dashboard tab,
+ *   e.g. marking a class booking "attended" is a classes-screen action
+ *   AND a front-desk attendance action)
  *
  * Access is granted per module (tab): any staff_role_permissions row for
  * the module unlocks every action in it. The action segment is kept in
@@ -56,7 +61,7 @@ class CheckPermission
             ->where('staff_members.gym_id', $user->gym_id)
             ->where('staff_members.status', 'active')
             ->whereNull('staff_members.deleted_at')
-            ->where('staff_role_permissions.module', $module)
+            ->whereIn('staff_role_permissions.module', explode('|', $module))
             ->exists();
 
         if (! $hasPermission) {

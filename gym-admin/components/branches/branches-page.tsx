@@ -211,7 +211,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
             <h1 className="text-2xl font-bold text-fg">{t('branches.title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('branches.subtitle')}</p>
           </div>
-          {activeTab === 'branches' && can(permissions, 'branches', 'create') && !atLimit && (
+          {activeTab === 'branches' && can(permissions, 'settings', 'create') && !atLimit && (
             <button
               onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
@@ -221,7 +221,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
           )}
         </div>
       )}
-      {hideHeader && activeTab === 'branches' && can(permissions, 'branches', 'create') && !atLimit && (
+      {hideHeader && activeTab === 'branches' && can(permissions, 'settings', 'create') && !atLimit && (
         <div className="flex justify-end">
           <button
             onClick={() => setShowCreate(true)}
@@ -356,7 +356,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
         <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
           <GitBranch className="w-10 h-10 text-fg-faint mx-auto mb-3" />
           <p className="text-fg-muted text-sm">{t('branches.noBranches')}</p>
-          {can(permissions, 'branches', 'create') && (
+          {can(permissions, 'settings', 'create') && (
             <button
               onClick={() => setShowCreate(true)}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors"
@@ -389,7 +389,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                   )}
 
                   {/* Upload overlay */}
-                  {can(permissions, 'branches', 'edit') && (
+                  {can(permissions, 'settings', 'edit') && (
                     <>
                       <input
                         ref={el => { fileInputRefs.current[b.id] = el; }}
@@ -512,7 +512,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
 
                       {/* Actions */}
                       <div className="flex items-center gap-1 pt-1 border-t border-line">
-                        {can(permissions, 'branches', 'edit') && (
+                        {can(permissions, 'settings', 'edit') && (
                           <>
                             <button
                               onClick={() => toggleActive(b)}
@@ -534,7 +534,7 @@ export default function BranchesPage({ initialBranches, initialStudios, maxBranc
                             </button>
                           </>
                         )}
-                        {can(permissions, 'branches', 'delete') && (
+                        {can(permissions, 'settings', 'delete') && (
                           <button
                             onClick={() => handleDelete(b)}
                             disabled={deletingId === b.id}

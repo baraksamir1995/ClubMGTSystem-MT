@@ -71,6 +71,19 @@ const ALL_NAV = [
   { href: '/dashboard/analytics',    module: 'members' },
   { href: '/dashboard/staff',        module: 'staff' },
   { href: '/dashboard/settings',     module: 'settings' },
+  // ── Guard-only entries (not sidebar items — NavLinks renders its own
+  // list). Sub-pages reached from within a module's screens; without an
+  // entry here the route guard redirects staff away even when their role
+  // grants the owning module. Keep AFTER the sidebar pages so
+  // allowedHrefs[0] (the fallback redirect target) stays a real nav page.
+  { href: '/dashboard/trainers',     module: 'classes' },
+  { href: '/dashboard/sessions',     module: 'attendance' },
+  { href: '/dashboard/class-types',  module: 'classes' },
+  { href: '/dashboard/programs',     module: 'classes' },
+  { href: '/dashboard/branches',     module: 'settings' },
+  { href: '/dashboard/studios',      module: 'settings' },
+  { href: '/dashboard/notifications', module: 'content' },
+  { href: '/dashboard/offers',       module: 'promotions' },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -137,8 +150,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const pathname = headersList.get('x-pathname') ?? '';
 
     if (pathname) {
+      // '/dashboard' must match exactly — prefix-matching it would let an
+      // `overview` grant unlock every sub-page and defeat the guard.
       const isAllowed = allowedHrefs.some(href =>
-        pathname === href || pathname.startsWith(href + '/')
+        pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
       );
       if (!isAllowed) {
         redirect(allowedHrefs[0]);

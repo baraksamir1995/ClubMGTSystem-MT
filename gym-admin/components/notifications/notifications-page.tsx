@@ -344,7 +344,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
               </div>
 
               {/* Send button */}
-              {can(permissions, 'notifications', 'create') && (
+              {can(permissions, 'content', 'create') && (
                 <Button variant="primary" fullWidth onClick={send} isLoading={sending}
                   leftIcon={form.sendMode === 'now' ? <Send className="w-4 h-4" /> : <Clock className="w-4 h-4" />}>
                   {form.sendMode === 'now' ? t('communications.sendNotification') : t('communications.scheduleNotification')}
@@ -367,7 +367,7 @@ export default function NotificationsPage({ plans, permissions }: Props) {
             <div className="col-span-full bg-surface-2 border border-line rounded-xl p-12 text-center">
               <Clock className="w-10 h-10 text-fg-faint mx-auto mb-3" />
               <p className="text-sm text-fg-muted">{t('communications.noScheduled')}</p>
-              {can(permissions, 'notifications', 'create') && (
+              {can(permissions, 'content', 'create') && (
                 <Button variant="primary" className="mt-4" onClick={() => setActiveTab('compose')} leftIcon={<Plus className="w-4 h-4" />}>{t('communications.composeNew')}</Button>
               )}
             </div>
@@ -387,13 +387,13 @@ export default function NotificationsPage({ plans, permissions }: Props) {
                   <RecipientBadge n={n} plans={plans} allLabel={t('communications.allActiveRecipient')} filteredLabel={t('communications.filteredRecipient', { parts: '{parts}' })} />
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {can(permissions, 'notifications', 'edit') && (
+                  {can(permissions, 'content', 'edit') && (
                     <button onClick={() => openEdit(n)}
                       className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-3 transition-colors" title={tc('edit')}>
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   )}
-                  {can(permissions, 'notifications', 'delete') && (
+                  {can(permissions, 'content', 'delete') && (
                     <button onClick={() => cancelNotification(n.id)} disabled={cancellingId === n.id}
                       className="p-1.5 rounded-lg text-fg-muted hover:text-danger hover:bg-danger-soft transition-colors" title={tc('cancel')}>
                       {cancellingId === n.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}

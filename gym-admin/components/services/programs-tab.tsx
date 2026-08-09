@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, Loader2, ImageIcon, Upload, X, Layers } from 'luc
 import toast from 'react-hot-toast';
 import { can, type Permission } from '@/lib/get-permissions';
 import type { GymProgram } from '@/app/dashboard/services/page';
+import { extractServerMessage } from '@/lib/api-error';
 
 interface Props {
   initialPrograms: GymProgram[];
@@ -116,7 +117,11 @@ export default function ProgramsTab({ initialPrograms, permissions, gymId }: Pro
     setDeletingId(p.id);
     try {
       const res = await fetch(`/api/programs/${p.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('programsPage.failedDeleteToast')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('programsPage.failedDeleteToast'));
+        return;
+      }
       setPrograms(prev => prev.filter(x => x.id !== p.id));
       toast.success(t('programsPage.deletedToast'));
     } catch { toast.error(tc('networkError')); }
@@ -133,7 +138,7 @@ export default function ProgramsTab({ initialPrograms, permissions, gymId }: Pro
               ? t('programsPage.programCountSingle', { count: programs.length })
               : t('programsPage.programCountPlural', { count: programs.length })}
           </p>
-          {can(permissions, 'services', 'create') && (
+          {can(permissions, 'classes', 'create') && (
             <button onClick={openCreate}
               className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
               <Plus className="w-4 h-4" /> {t('programsPage.addBtn')}
@@ -146,7 +151,7 @@ export default function ProgramsTab({ initialPrograms, permissions, gymId }: Pro
           <div className="bg-surface-2 border border-line rounded-xl p-12 text-center">
             <Layers className="w-10 h-10 text-fg-faint mx-auto mb-3" />
             <p className="text-sm text-fg-muted">{t('programsPage.emptyNone')}</p>
-            {can(permissions, 'services', 'create') && (
+            {can(permissions, 'classes', 'create') && (
               <button onClick={openCreate}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-dim text-brand-ink text-sm font-medium rounded-lg transition-colors">
                 <Plus className="w-4 h-4" /> {t('programsPage.createFirstBtn')}
@@ -197,13 +202,13 @@ export default function ProgramsTab({ initialPrograms, permissions, gymId }: Pro
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
-                          {can(permissions, 'services', 'edit') && (
+                          {can(permissions, 'classes', 'edit') && (
                             <button onClick={() => openEdit(p)} title={tc('edit')} aria-label={tc('edit')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-brand hover:bg-brand/10 transition-colors">
                               <Pencil className="w-4 h-4" />
                             </button>
                           )}
-                          {can(permissions, 'services', 'delete') && (
+                          {can(permissions, 'classes', 'delete') && (
                             <button onClick={() => deleteProgram(p)} disabled={deletingId === p.id} title={tc('delete')} aria-label={tc('delete')}
                               className="p-1.5 rounded-lg text-fg-faint hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-40">
                               {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}

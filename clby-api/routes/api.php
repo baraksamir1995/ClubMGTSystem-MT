@@ -275,15 +275,15 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::post('/sessions/copy-to-next-month', [SessionController::class, 'copyToNextMonth'])->middleware('permission:classes,create');
     Route::put('/sessions/{id}', [SessionController::class, 'update'])->middleware('permission:classes,edit');
     Route::post('/sessions/{id}/cancel', [SessionController::class, 'cancel'])->middleware('permission:classes,edit');
-    Route::post('/sessions/{id}/checkin', [SessionController::class, 'checkin'])->middleware('permission:classes,edit');
+    Route::post('/sessions/{id}/checkin', [SessionController::class, 'checkin'])->middleware('permission:classes|attendance,edit');
     Route::post('/sessions/recurring/{id}/stop', [SessionController::class, 'stopRecurring'])->middleware('permission:classes,edit');
     Route::get('/sessions/logs', [SessionController::class, 'sessionLogs'])->middleware('permission:attendance,view');
-    Route::get('/sessions/members', [SessionController::class, 'sessionMembers'])->middleware('permission:members,view');
+    Route::get('/sessions/members', [SessionController::class, 'sessionMembers'])->middleware('permission:members|attendance,view');
 
     // Booking management
-    Route::get('/sessions/{sessionId}/bookings', [BookingController::class, 'index'])->middleware('permission:classes,view');
-    Route::get('/sessions/{sessionId}/bookings/detail', [BookingController::class, 'detail'])->middleware('permission:classes,view');
-    Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus'])->middleware('permission:classes,edit');
+    Route::get('/sessions/{sessionId}/bookings', [BookingController::class, 'index'])->middleware('permission:classes|attendance,view');
+    Route::get('/sessions/{sessionId}/bookings/detail', [BookingController::class, 'detail'])->middleware('permission:classes|attendance,view');
+    Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus'])->middleware('permission:classes|attendance,edit');
 
     // Payment management
     Route::post('/payments', [PaymentController::class, 'store'])->middleware('permission:payments,create');
@@ -361,7 +361,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Branch management
     Route::post('/branches', [BranchController::class, 'store'])->middleware('permission:settings,create');
-    Route::get('/branches/{id}/qr-token', [BranchController::class, 'getQrToken'])->middleware('permission:settings,view');
+    Route::get('/branches/{id}/qr-token', [BranchController::class, 'getQrToken'])->middleware('permission:settings|attendance,view');
     Route::post('/branches/{id}/upload-image', [BranchController::class, 'uploadImage'])->middleware('permission:settings,edit');
     Route::patch('/branches/{id}', [BranchController::class, 'update'])->middleware('permission:settings,edit');
     Route::delete('/branches/{id}', [BranchController::class, 'destroy'])->middleware('permission:settings,delete');

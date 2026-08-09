@@ -17,9 +17,14 @@ describe('can', () => {
     expect(can(perms, 'members', 'view')).toBe(true);
   });
 
-  it('returns false when permission missing', () => {
+  it('grants every action once the module is held (module-level access)', () => {
     const perms = [{ module: 'members', action: 'view' }];
-    expect(can(perms, 'members', 'edit')).toBe(false);
+    expect(can(perms, 'members', 'edit')).toBe(true);
+  });
+
+  it('returns false when module missing', () => {
+    const perms = [{ module: 'members', action: 'view' }];
+    expect(can(perms, 'classes', 'view')).toBe(false);
   });
 
   it('returns false on empty permissions array', () => {
@@ -112,7 +117,7 @@ describe('getMe / getStaffPermissions', () => {
     ]);
   });
 
-  it('returns null when staff member has no matching record (treated as unrestricted edge case)', async () => {
+  it('fails closed ([]) when staff member has no matching record', async () => {
     const token = 'token-ghost-' + Math.random();
     vi.stubGlobal(
       'fetch',
@@ -128,7 +133,7 @@ describe('getMe / getStaffPermissions', () => {
     );
 
     const result = await getStaffPermissions(token);
-    expect(result).toBeNull();
+    expect(result).toEqual([]);
   });
 });
 

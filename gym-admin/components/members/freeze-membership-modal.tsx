@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Snowflake, Play, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button, Modal } from '@/components/ui';
+import { isDisplayableMessage, networkErrorMessage } from '@/lib/api-error';
 
 interface ActiveMembership {
   id: string;
@@ -27,6 +28,7 @@ interface Props {
 export default function FreezeMembershipModal({ membership, memberName, onClose }: Props) {
   const t = useTranslations('members.freeze');
   const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
   const router = useRouter();
   const isFrozen = membership.freeze_status === 'frozen';
   const [days, setDays] = useState(1);
@@ -64,7 +66,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
       onClose();
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      setError(isDisplayableMessage(e?.message) ? e.message : networkErrorMessage(tErr));
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ export default function FreezeMembershipModal({ membership, memberName, onClose 
       onClose();
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      setError(isDisplayableMessage(e?.message) ? e.message : networkErrorMessage(tErr));
     } finally {
       setLoading(false);
     }

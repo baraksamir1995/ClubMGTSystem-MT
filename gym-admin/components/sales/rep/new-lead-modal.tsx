@@ -4,7 +4,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle } from 'lucide-react';
 import { Modal, Button, Field, Input, Select, Textarea } from '@/components/ui';
-import { salesApi, SalesApiError, fmtDate, labelize, STAGE_LABELS } from './lib';
+import { salesApi, SalesApiError, errMsg, fmtDate, labelize, STAGE_LABELS } from './lib';
 
 interface Props {
   context: any;                       // SalesContext — branches
@@ -62,7 +62,7 @@ export default function NewLeadModal({ context, sources, onClose, onCreated, onV
       if (e instanceof SalesApiError && e.status === 409 && (e.payload as any)?.existing_lead) {
         setDuplicate((e.payload as any).existing_lead);
       } else {
-        setError(e instanceof SalesApiError ? e.message : 'Network error');
+        setError(errMsg(e));
       }
     } finally {
       setSaving(false);

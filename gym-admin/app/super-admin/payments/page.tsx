@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, CreditCard, Check, Trash2, RefreshCw, X, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiErrorMessage, networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
 
 interface Invoice {
   id: string;
@@ -48,9 +49,10 @@ export default function PaymentsPage() {
       if (filterGym) params.set('gym_id', filterGym);
       const qs = params.toString();
       const res = await fetch(`/api/super-admin/invoices${qs ? `?${qs}` : ''}`);
+      if (!res.ok) { toast.error(`Couldn't load payments — ${await responseErrorMessage(res)}`); return; }
       const json = await res.json();
-      if (res.ok) setInvoices(json.data ?? []);
-    } catch { toast.error('Failed to load payments'); }
+      setInvoices(json.data ?? []);
+    } catch { toast.error(networkErrorMessage()); }
     finally { setLoading(false); }
   }, [filterStatus, filterGym]);
 
@@ -89,38 +91,35 @@ export default function PaymentsPage() {
           status,
         }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        const msg = json.errors ? Object.values(json.errors).flat().join(', ') : (json.error ?? 'Failed');
-        toast.error(msg); return;
+        toast.error(`Couldn't create invoice — ${apiErrorMessage(json, res.status)}`); return;
       }
       toast.success('Invoice created');
       setShowCreate(false);
       setGymId(''); setPlanId(''); setAmount(''); setPeriodStart(''); setPeriodEnd(''); setStatus('pending');
       fetchInvoices();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(networkErrorMessage()); }
     finally { setCreating(false); }
   };
 
   const markPaid = async (inv: Invoice) => {
     try {
       const res = await fetch(`/api/super-admin/invoices/${inv.id}`, { method: 'POST' });
-      if (res.ok) {
-        setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'paid', paid_at: new Date().toISOString() } : i));
-        toast.success('Marked as paid');
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't mark invoice as paid — ${await responseErrorMessage(res)}`); return; }
+      setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'paid', paid_at: new Date().toISOString() } : i));
+      toast.success('Marked as paid');
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   const deleteInvoice = async (inv: Invoice) => {
     if (!confirm('Delete this invoice?')) return;
     try {
       const res = await fetch(`/api/super-admin/invoices/${inv.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setInvoices(prev => prev.filter(i => i.id !== inv.id));
-        toast.success('Invoice deleted');
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't delete invoice — ${await responseErrorMessage(res)}`); return; }
+      setInvoices(prev => prev.filter(i => i.id !== inv.id));
+      toast.success('Invoice deleted');
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   // Auto-fill amount when plan is selected

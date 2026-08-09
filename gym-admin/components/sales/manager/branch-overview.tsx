@@ -11,7 +11,7 @@ import { Badge, Button, EmptyState } from '@/components/ui';
 import type {
   SalesContext, TeamMember, Lead, Appointment, AppointmentStatus, SalesTask,
 } from '@/lib/sales-types';
-import { ageFrom, Card, dayEndIso, dayStartIso, fmtTime, memberName, salesGet, salesPatch } from './lib';
+import { ageFrom, Card, dayEndIso, errMsg, dayStartIso, fmtTime, memberName, salesGet, salesPatch } from './lib';
 
 interface Props {
   context: SalesContext;
@@ -81,7 +81,7 @@ export default function BranchOverview({ team }: Props) {
       setNoShows(noShowRes.data ?? []);
       setTasks(taskRes.data ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load overview');
+      setError(errMsg(e));
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export default function BranchOverview({ team }: Props) {
       toast.success(status === 'showed' ? 'Marked as showed' : 'Marked as no-show');
     } catch (e) {
       setAppointments(prev);
-      toast.error(e instanceof Error ? e.message : 'Failed to update appointment');
+      toast.error(errMsg(e));
     } finally {
       setUpdatingAppt(null);
     }

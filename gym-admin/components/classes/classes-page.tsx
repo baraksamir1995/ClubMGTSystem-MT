@@ -18,6 +18,7 @@ import type { GymClass, ClassSession, GymBranch, GymStudio } from '@/app/dashboa
 import type { PageMeta, TrackerStats } from '@/lib/sessions-tracker';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Badge, Button, Tabs } from '@/components/ui';
+import { extractServerMessage } from '@/lib/api-error';
 
 const PAGE_SIZE = 10;
 
@@ -438,7 +439,11 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
               if (!window.confirm(t('schedule.stopRecurringConfirm'))) return;
               try {
                 const res = await fetch(`/api/sessions/recurring/${templateId}/stop`, { method: 'POST' });
-                if (!res.ok) { toast.error(t('schedule.failedToStopRecurring')); return; }
+                if (!res.ok) {
+                  const json = await res.json().catch(() => null);
+                  toast.error(extractServerMessage(json) ?? t('schedule.failedToStopRecurring'));
+                  return;
+                }
                 setSessions(prev => prev.map(s =>
                   s.recurring_template_id === templateId && s.session_date > today
                     ? { ...s, status: 'cancelled' }

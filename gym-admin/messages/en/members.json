@@ -475,7 +475,7 @@
     "toast": {
       "deactivated": "Member deactivated",
       "reactivated": "Member reactivated",
-      "failed": "Failed"
+      "failed": "Couldn't update the member's status. Please try again."
     }
   },
 

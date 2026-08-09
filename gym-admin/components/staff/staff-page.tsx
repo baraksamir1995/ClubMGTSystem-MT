@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { can, type Permission } from '@/lib/get-permissions';
+import { apiErrorMessage, extractServerMessage } from '@/lib/api-error';
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
 // Access is module-level: a role either has a tab or it doesn't.
@@ -75,6 +76,7 @@ interface PageProps {
 export default function StaffPage({ permissions, initialStaff, initialRoles, initialOverview }: PageProps) {
   const t = useTranslations('staff');
   const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
 
   const [activeTab, setActiveTab] = useState<'overview' | 'accounts' | 'roles' | 'activity'>('overview');
 
@@ -115,15 +117,17 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
     setOverviewLoad(true);
     const res = await fetch('/api/staff/overview');
     if (res.ok) setOverview(await res.json());
+    else toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
     setOverviewLoad(false);
-  }, []);
+  }, [tErr]);
 
   const fetchStaff = useCallback(async () => {
     setStaffLoad(true);
     const res = await fetch('/api/staff');
     if (res.ok) setStaff(await res.json());
+    else toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
     setStaffLoad(false);
-  }, []);
+  }, [tErr]);
 
   const fetchRoles = useCallback(async () => {
     setRolesLoad(true);
@@ -135,9 +139,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
         if (!prev) return data[0] ?? null;
         return data.find((r: StaffRole) => r.id === prev.id) ?? data[0] ?? null;
       });
+    } else {
+      toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
     }
     setRolesLoad(false);
-  }, []);
+  }, [tErr]);
 
   const fetchLogs = useCallback(async (page = 1) => {
     setLogsLoad(true);
@@ -155,9 +161,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       setLogPage(data.pagination.page);
       setLogPages(data.pagination.pages);
       setLogTotal(data.pagination.total);
+    } else {
+      toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
     }
     setLogsLoad(false);
-  }, [logFilter]);
+  }, [logFilter, tErr]);
 
   // Only fetch activity logs lazily when the tab is opened
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,7 +221,11 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     });
-    if (!res.ok) { toast.error(t('toasts.statusFailed')); return; }
+    if (!res.ok) {
+      const json = await res.json().catch(() => null);
+      toast.error(extractServerMessage(json) ?? t('toasts.statusFailed'));
+      return;
+    }
     toast.success(newStatus === 'active' ? t('toasts.accountReactivated') : t('toasts.accountDeactivated'));
     setConfirmDeactivate(null);
     fetchStaff();

@@ -8,7 +8,7 @@ import {
 } from '@/components/ui';
 import type { SalesContext, TeamMember } from '@/lib/sales-types';
 import {
-  asPercent, Card, fmtMinutes, fmtPercent, isoDay, salesGet, stageLabel,
+  asPercent, Card, errMsg, fmtMinutes, fmtPercent, isoDay, salesGet, stageLabel,
   type FunnelReport, type LeaderboardRow, type SourceReportRow,
 } from './lib';
 
@@ -50,7 +50,7 @@ export default function Reports({ context }: Props) {
       const res = await salesGet<FunnelReport>(`reports/funnel?${params.toString()}`);
       setFunnel(res.data ?? null);
     } catch (e) {
-      setFunnelError(e instanceof Error ? e.message : 'Failed to load funnel');
+      setFunnelError(errMsg(e));
     } finally {
       setFunnelLoading(false);
     }
@@ -70,7 +70,7 @@ export default function Reports({ context }: Props) {
       const res = await salesGet<LeaderboardRow[]>(`reports/leaderboard?month=${month}`);
       setLeaders(res.data ?? []);
     } catch (e) {
-      setLeadersError(e instanceof Error ? e.message : 'Failed to load leaderboard');
+      setLeadersError(errMsg(e));
     } finally {
       setLeadersLoading(false);
     }
@@ -90,7 +90,7 @@ export default function Reports({ context }: Props) {
       const res = await salesGet<SourceReportRow[]>(`reports/sources?from=${from}&to=${to}`);
       setSources(res.data ?? []);
     } catch (e) {
-      setSourcesError(e instanceof Error ? e.message : 'Failed to load source report');
+      setSourcesError(errMsg(e));
     } finally {
       setSourcesLoading(false);
     }

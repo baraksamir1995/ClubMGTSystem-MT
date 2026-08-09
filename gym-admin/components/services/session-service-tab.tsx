@@ -9,6 +9,7 @@ import TrainerModal, { type TrainerProfile } from '@/components/trainers/trainer
 import SpecialistQRModal from '@/components/trainers/specialist-qr-modal';
 import { can, type Permission } from '@/lib/get-permissions';
 import type { GymBranch } from '@/app/dashboard/branches/page';
+import { extractServerMessage } from '@/lib/api-error';
 
 export interface SessionPackage {
   id: string;
@@ -221,7 +222,11 @@ export default function SessionServiceTab({
     setDeletingId(pkg.id);
     try {
       const res = await fetch(`/api/service-packages/${pkg.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('packages.failedArchiveToast')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('packages.failedArchiveToast'));
+        return;
+      }
       setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, is_active: false } : p));
       toast.success(t('packages.archivedToast'));
     } catch { toast.error(tc('networkError')); }
@@ -236,7 +241,11 @@ export default function SessionServiceTab({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: true }),
       });
-      if (!res.ok) { toast.error(t('packages.failedReactivateToast')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('packages.failedReactivateToast'));
+        return;
+      }
       setPackages(prev => prev.map(p => p.id === pkg.id ? { ...p, is_active: true } : p));
       toast.success(t('packages.reactivatedToast'));
     } catch { toast.error(tc('networkError')); }

@@ -8,7 +8,7 @@ import {
   type DataTableColumn,
 } from '@/components/ui';
 import type { Lead, LeadScore, SalesContext, TeamMember } from '@/lib/sales-types';
-import { ageFrom, branchName, memberName, salesGet, salesPost, stageLabel } from './lib';
+import { ageFrom, branchName, errMsg, memberName, salesGet, salesPost, stageLabel } from './lib';
 
 const PAGE_SIZE = 25;
 
@@ -80,7 +80,7 @@ export default function AssignmentQueue({ context, team }: Props) {
       setOffset(newOffset);
       setSelected(new Set());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load unassigned leads');
+      setError(errMsg(e));
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export default function AssignmentQueue({ context, team }: Props) {
       setTotal((t) => Math.max(0, t - 1));
       setSelected((s) => { const n = new Set(s); n.delete(id); return n; });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to assign lead');
+      toast.error(errMsg(e));
     } finally {
       setAssigningIds((s) => { const n = new Set(s); n.delete(id); return n; });
     }
@@ -115,7 +115,7 @@ export default function AssignmentQueue({ context, team }: Props) {
     const ok = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.length - ok;
     if (ok > 0) toast.success(`Assigned ${ok} lead${ok === 1 ? '' : 's'} to ${memberName(team, bulkRep)}`);
-    if (failed > 0) toast.error(`${failed} assignment${failed === 1 ? '' : 's'} failed`);
+    if (failed > 0) toast.error(`${failed} of ${results.length} assignments failed — please retry the remaining leads.`);
     setBulkBusy(false);
     setBulkRep('');
     loadUnassigned(offset);
@@ -223,7 +223,7 @@ export default function AssignmentQueue({ context, team }: Props) {
       setRepLeads(res.data ?? []);
       setRepSelected(new Set());
     } catch (e) {
-      setRepError(e instanceof Error ? e.message : 'Failed to load leads');
+      setRepError(errMsg(e));
     } finally {
       setRepLoading(false);
     }
@@ -241,7 +241,7 @@ export default function AssignmentQueue({ context, team }: Props) {
     const ok = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.length - ok;
     if (ok > 0) toast.success(`Moved ${ok} lead${ok === 1 ? '' : 's'} to ${memberName(team, toRep)}`);
-    if (failed > 0) toast.error(`${failed} move${failed === 1 ? '' : 's'} failed`);
+    if (failed > 0) toast.error(`${failed} of ${results.length} moves failed — please retry the remaining leads.`);
     setReassignBusy(false);
     loadRepLeads(fromRep);
   };

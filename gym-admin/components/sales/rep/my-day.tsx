@@ -9,7 +9,7 @@ import {
 import { Button, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import {
-  salesApi, SalesApiError, labelize, fmtTime, fmtDateTime,
+  salesApi, errMsg, labelize, fmtTime, fmtDateTime,
   type SalesContext, type TeamMember,
 } from './lib';
 import { ScoreChip, ContactLinks, FlagBadges } from './chips';
@@ -67,7 +67,7 @@ export default function MyDay({ context, team }: Props) {
       setTasks((prev) => prev.filter((t) => t.id !== id));
       toast.success('Task done');
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setBusyId(null);
     }
@@ -80,7 +80,7 @@ export default function MyDay({ context, team }: Props) {
       toast.success('Lead claimed — it’s yours');
       load();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
       load(); // someone else may have claimed it
     } finally {
       setBusyId(null);
@@ -94,7 +94,7 @@ export default function MyDay({ context, team }: Props) {
       toast.success(status === 'showed' ? 'Marked as showed' : 'Marked as no-show');
       load();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setBusyId(null);
     }

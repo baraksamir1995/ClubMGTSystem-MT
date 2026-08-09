@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Plus, Pencil, Eye, Download, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import MemberModal from './member-modal';
 import ToggleStatusButton from './toggle-status-button';
@@ -21,6 +22,7 @@ import {
   Pagination,
   SearchInput,
 } from '@/components/ui';
+import { apiErrorMessage } from '@/lib/api-error';
 
 const PAGE_SIZE = 20;
 
@@ -67,6 +69,7 @@ const statusVariant: Record<string, BadgeProps['variant']> = {
 export default function MembersTable({ members: initialMembers, initialPagination, permissions }: Props) {
   const t = useTranslations('members.list');
   const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
 
   const SORT_OPTIONS = [
     { value: 'newest', label: t('sort.newest') },
@@ -124,10 +127,12 @@ export default function MembersTable({ members: initialMembers, initialPaginatio
         setPage(data.pagination.page);
         setTotalPages(data.pagination.pages);
         setTotal(data.pagination.total);
+      } else {
+        toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
       }
     } catch { /* silent */ }
     setLoading(false);
-  }, [debouncedSearch, statusFilter, sort]);
+  }, [debouncedSearch, statusFilter, sort, tErr]);
 
   // Re-fetch when filters change (reset to page 1)
   // Skip the first render — server already provided initialMembers

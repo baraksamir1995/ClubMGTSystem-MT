@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { ClassSession } from '@/app/dashboard/classes/page';
 import { fmt12 } from '@/lib/time';
 import { Button, Modal, Textarea } from '@/components/ui';
+import { apiErrorMessage, networkErrorMessage } from '@/lib/api-error';
 
 interface Props {
   session: ClassSession;
@@ -17,7 +18,7 @@ interface Props {
 
 export default function CancelSessionModal({ session, gym, onClose, onCancelled }: Props) {
   const t = useTranslations('classes');
-  const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
   const [reason, setReason]             = useState('');
   const [notify, setNotify]             = useState(true);
   const [bookedCount, setBookedCount]   = useState<number | null>(null);
@@ -42,12 +43,12 @@ export default function CancelSessionModal({ session, gym, onClose, onCancelled 
       });
       const text = await res.text();
       let data: any = {};
-      try { data = JSON.parse(text); } catch { toast.error(`Server error: ${text.slice(0, 120)}`); return; }
-      if (!res.ok) { toast.error(data.error ?? tc('somethingWrong')); return; }
+      try { data = JSON.parse(text); } catch { toast.error(apiErrorMessage(null, res.status, tErr)); return; }
+      if (!res.ok) { toast.error(apiErrorMessage(data, res.status, tErr)); return; }
       toast.success(notify && (bookedCount ?? 0) > 0 ? t('cancelModal.cancelSuccessNotified') : t('cancelModal.cancelSuccess'));
       onCancelled(session.id);
       onClose();
-    } catch (e: any) { toast.error(e?.message ?? tc('networkError')); }
+    } catch { toast.error(networkErrorMessage(tErr)); }
     finally { setLoading(false); }
   };
 

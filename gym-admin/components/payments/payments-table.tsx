@@ -14,6 +14,7 @@ import type { Payment, MemberOption, GymInfo, ServiceOption, TrainerOption, Prom
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Badge, type BadgeProps, Button } from '@/components/ui';
+import { extractServerMessage } from '@/lib/api-error';
 
 const PAGE_SIZE = 10;
 
@@ -143,7 +144,11 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) { toast.error(t('toast.updateFailed')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('toast.updateFailed'));
+        return;
+      }
       setPayments(prev => prev.map(p => p.id === payment.id ? { ...p, status: newStatus, paid_at: newStatus === 'paid' ? new Date().toISOString() : null } : p));
       toast.success(t('toast.markedAs', { status: newStatus }));
     } catch {

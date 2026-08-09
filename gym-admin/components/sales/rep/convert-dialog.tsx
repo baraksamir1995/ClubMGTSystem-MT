@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Modal, Button, Field, Select, Input } from '@/components/ui';
-import { salesApi, SalesApiError, PAYMENT_METHODS, labelize, fmtDate, localDateStr } from './lib';
+import { salesApi, errMsg, PAYMENT_METHODS, labelize, fmtDate, localDateStr } from './lib';
 
 interface OfferOption {
   id: string;
@@ -61,7 +61,7 @@ export default function ConvertDialog({ leadId, leadName, offers, onClose, onCon
       toast.success('Lead converted — welcome aboard!');
       onConverted();
     } catch (e) {
-      setError(e instanceof SalesApiError ? e.message : 'Network error');
+      setError(errMsg(e));
     } finally {
       setSaving(false);
     }

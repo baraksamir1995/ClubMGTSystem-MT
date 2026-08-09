@@ -166,6 +166,6 @@
     "accountReactivated": "Account reactivated",
     "accountDeactivated": "Account deactivated",
     "statusFailed": "Failed to update status",
-    "genericError": "Error"
+    "genericError": "Couldn't complete the request. Please try again."
   }
 }

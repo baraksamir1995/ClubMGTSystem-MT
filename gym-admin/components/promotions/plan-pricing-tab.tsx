@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import PlanPromoModal from './plan-promo-modal';
 import type { Plan } from '@/app/dashboard/plans/page';
 import { Button } from '@/components/ui';
+import { extractServerMessage } from '@/lib/api-error';
 
 export interface PlanPromotion {
   id: string;
@@ -47,7 +48,11 @@ export default function PlanPricingTab({ plans }: Props) {
     setDeletingId(promo.id);
     try {
       const res = await fetch(`/api/promos/plan-pricing/${promo.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('failedToDelete')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('failedToDelete'));
+        return;
+      }
       setPromotions(prev => prev.filter(p => p.id !== promo.id));
       toast.success(t('promotionRemoved'));
     } catch { toast.error(tc('networkError')); }

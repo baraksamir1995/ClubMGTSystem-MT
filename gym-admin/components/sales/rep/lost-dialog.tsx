@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Modal, Button, Field, Select, Textarea, Input } from '@/components/ui';
-import { salesApi, SalesApiError, LOST_REASONS, labelize } from './lib';
+import { salesApi, errMsg, LOST_REASONS, labelize } from './lib';
 
 interface Props {
   leadId: string;
@@ -40,7 +40,7 @@ export default function LostDialog({ leadId, leadName, onClose, onLost }: Props)
       toast.success('Lead marked as lost');
       onLost();
     } catch (e) {
-      setError(e instanceof SalesApiError ? e.message : 'Network error');
+      setError(errMsg(e));
     } finally {
       setSaving(false);
     }

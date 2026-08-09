@@ -75,5 +75,18 @@
   "deletedSuccess": "Deleted successfully",
 
   "showingResults": "Showing {from}–{to} of {total}",
-  "perPage": "per page"
+  "perPage": "per page",
+
+  "errors": {
+    "badRequest": "The request could not be processed. Please check your input and try again.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "noPermission": "You do not have permission to perform this action.",
+    "notFound": "The requested item could not be found. It may have been deleted.",
+    "conflict": "This conflicts with an existing record. Please refresh and try again.",
+    "validation": "Some fields are invalid. Please review your input and try again.",
+    "tooManyRequests": "Too many requests. Please wait a moment and try again.",
+    "serverError": "Something went wrong on our end. Please try again in a moment.",
+    "network": "Could not reach the server. Please check your connection and try again.",
+    "unknown": "Something went wrong. Please try again."
+  }
 }

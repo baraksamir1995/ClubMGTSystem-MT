@@ -3,6 +3,8 @@
 // Types are owned by @/lib/sales-types (built in parallel with the shell).
 // Everything here funnels through this one re-export so a rename lands in
 // a single file.
+import { apiErrorMessage, networkErrorMessage } from '@/lib/api-error';
+
 export type {
   SalesContext,
   TeamMember,
@@ -68,14 +70,14 @@ export async function salesApi<T = unknown>(
 }
 
 function extractErrorMessage(json: any, status: number): string {
-  if (json?.error && typeof json.error === 'string' && json.error !== 'duplicate') return json.error;
   if (json?.error === 'duplicate') return 'A lead with this phone or email already exists.';
-  if (typeof json?.message === 'string' && json.message) return json.message;
-  if (json?.errors && typeof json.errors === 'object') {
-    const first = Object.values(json.errors)[0];
-    if (Array.isArray(first) && typeof first[0] === 'string') return first[0];
-  }
-  return `Request failed (${status})`;
+  return apiErrorMessage(json, status);
+}
+
+/** User-facing message for a caught error: safe API message or a friendly network fallback. */
+export function errMsg(e: unknown): string {
+  if (e instanceof SalesApiError) return e.message;
+  return networkErrorMessage();
 }
 
 /* ── Pipeline vocabulary ────────────────────────────────────────── */

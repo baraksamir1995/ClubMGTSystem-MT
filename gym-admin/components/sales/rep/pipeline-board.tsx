@@ -6,7 +6,7 @@ import { Loader2, MoreVertical, UserX } from 'lucide-react';
 import { FilterDropdown, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import {
-  salesApi, SalesApiError, ALL_STAGES, STAGE_LABELS,
+  salesApi, errMsg, ALL_STAGES, STAGE_LABELS,
   daysSince, teamMemberName,
   type SalesContext, type TeamMember,
 } from './lib';
@@ -46,7 +46,7 @@ export default function PipelineBoard({ context, team, scope }: Props) {
       const res = await salesApi<{ data: any[] }>(`leads?${p.toString()}`);
       setLeads(res.data ?? []);
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Failed to load pipeline');
+      toast.error(errMsg(e));
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function PipelineBoard({ context, team, scope }: Props) {
       load();
     } catch (e) {
       setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, stage: prevStage } : l)));
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     }
   };
 
@@ -88,7 +88,7 @@ export default function PipelineBoard({ context, team, scope }: Props) {
       toast.success('Lead reassigned');
       load();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     }
   };
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Inbox, Search, Check, Trash2, RefreshCw, MessageCircle, Phone, Filter, Download, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
 import * as XLSX from 'xlsx';
 
 interface Lead {
@@ -35,9 +36,10 @@ export default function LeadsPage() {
       if (filterContacted) params.set('contacted', filterContacted);
       const qs = params.toString();
       const res = await fetch(`/api/super-admin/leads${qs ? `?${qs}` : ''}`);
+      if (!res.ok) { toast.error(`Couldn't load leads — ${await responseErrorMessage(res)}`); return; }
       const json = await res.json();
-      if (res.ok) setLeads(json.data ?? []);
-    } catch { toast.error('Failed to load leads'); }
+      setLeads(json.data ?? []);
+    } catch { toast.error(networkErrorMessage()); }
     finally { setLoading(false); }
   }, [search, filterContacted]);
 
@@ -47,10 +49,9 @@ export default function LeadsPage() {
     setTogglingId(lead.id);
     try {
       const res = await fetch(`/api/super-admin/leads/${lead.id}`, { method: 'POST' });
-      if (res.ok) {
-        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, contacted: !l.contacted } : l));
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't update lead — ${await responseErrorMessage(res)}`); return; }
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, contacted: !l.contacted } : l));
+    } catch { toast.error(networkErrorMessage()); }
     finally { setTogglingId(null); }
   };
 
@@ -58,11 +59,10 @@ export default function LeadsPage() {
     if (!confirm(`Delete lead from ${lead.name}?`)) return;
     try {
       const res = await fetch(`/api/super-admin/leads/${lead.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setLeads(prev => prev.filter(l => l.id !== lead.id));
-        toast.success('Lead deleted');
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't delete lead — ${await responseErrorMessage(res)}`); return; }
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+      toast.success('Lead deleted');
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   const fmtDate = (iso: string) => {

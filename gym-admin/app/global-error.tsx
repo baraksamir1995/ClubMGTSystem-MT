@@ -29,7 +29,21 @@ export default function GlobalError({
       >
         <div style={{ textAlign: 'center' }}>
           <h2>Something went wrong</h2>
-          <p>Please refresh the page or try again.</p>
+          <p>An unexpected error occurred while loading the dashboard. Refreshing usually fixes it.</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: 12,
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: '1px solid #ccc',
+              background: '#f5f5f5',
+              cursor: 'pointer',
+              font: 'inherit',
+            }}
+          >
+            Refresh page
+          </button>
         </div>
       </body>
     </html>

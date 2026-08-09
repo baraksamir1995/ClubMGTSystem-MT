@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Phone, MessageCircle, Mail, MessageSquare, StickyNote, AlertTriangle } from 'lucide-react';
 import { Button, Field, Select, Textarea, EmptyState } from '@/components/ui';
 import {
-  salesApi, SalesApiError, ACTIVITY_TYPES, ACTIVITY_OUTCOMES,
+  salesApi, errMsg, ACTIVITY_TYPES, ACTIVITY_OUTCOMES,
   labelize, fmtDateTime, teamMemberName,
 } from './lib';
 
@@ -58,7 +58,7 @@ export default function DetailActivities({ lead, team, readOnly, onLogged, onPro
       if (res?.prompt_lost) setPromptLost(true);
       onLogged();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setSaving(false);
     }

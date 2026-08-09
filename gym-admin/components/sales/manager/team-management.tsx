@@ -9,7 +9,7 @@ import {
   type DataTableColumn,
 } from '@/components/ui';
 import type { SalesContext, TeamMember } from '@/lib/sales-types';
-import { branchName, salesGet, salesPatch } from './lib';
+import { branchName, errMsg, salesGet, salesPatch } from './lib';
 
 interface Props {
   context: SalesContext;
@@ -80,7 +80,7 @@ export default function TeamManagement({ context, team: initialTeam }: Props) {
       setEdit(null);
       refetch();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to update team member');
+      toast.error(errMsg(e));
     } finally {
       setSaving(false);
     }

@@ -7,8 +7,10 @@ import {
   Clock, RefreshCw, History, Users, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { fmt12, fmtTime12 } from '@/lib/time';
 import type { PageMeta, TrackerStats } from '@/lib/sessions-tracker';
+import { apiErrorMessage } from '@/lib/api-error';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +87,7 @@ function pageWindow(current: number, last: number): (number | '…')[] {
 export default function SessionsTracker({ initialMembers, initialMeta, initialStats }: Props) {
   const t  = useTranslations('classes');
   const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
   const locale = useLocale();
   const dateLocale = locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US';
 
@@ -122,6 +125,8 @@ export default function SessionsTracker({ initialMembers, initialMeta, initialSt
         setMembers(data.members ?? []);
         if (data.meta) setMembersMeta(data.meta);
         if (data.stats) setStats(data.stats);
+      } else {
+        toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
       }
     } finally {
       setRefreshing(false);
@@ -141,6 +146,8 @@ export default function SessionsTracker({ initialMembers, initialMeta, initialSt
         setLogs(data.logs ?? []);
         if (data.meta) setLogsMeta(data.meta);
         setLogsLoaded(true);
+      } else {
+        toast.error(apiErrorMessage(await res.json().catch(() => null), res.status, tErr));
       }
     } finally {
       setLogsLoading(false);

@@ -11,6 +11,7 @@ import ExtendMembershipModal from './extend-membership-modal';
 import AddSessionsModal from './add-sessions-modal';
 import FreezeMembershipModal from './freeze-membership-modal';
 import { Button } from '@/components/ui';
+import { isDisplayableMessage, networkErrorMessage } from '@/lib/api-error';
 
 interface Plan {
   id: string;
@@ -65,6 +66,7 @@ export default function MemberDetailActions({
 }: Props) {
   const t = useTranslations('members.actions');
   const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
   const router = useRouter();
   const [planModal, setplanModal]         = useState(false);
   const [transferModal, setTransferModal] = useState(false);
@@ -96,7 +98,7 @@ export default function MemberDetailActions({
       toast.success(t('toast.planDetached'));
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message ?? tc('somethingWrong'));
+      toast.error(isDisplayableMessage(err?.message) ? err.message : networkErrorMessage(tErr));
       setDetachConfirm(false);
     } finally {
       setDetaching(false);

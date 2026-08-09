@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiErrorMessage, networkErrorMessage } from '@/lib/api-error';
 import ThemeToggle from '@/components/theme/theme-toggle';
 
 export default function ChangePasswordPage() {
@@ -25,14 +26,14 @@ export default function ChangePasswordPage() {
         body: JSON.stringify({ password, password_confirmation: password }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.message ?? data.error ?? 'Failed to update password');
+        const data = await res.json().catch(() => null);
+        toast.error(apiErrorMessage(data, res.status));
         return;
       }
 
       toast.success('Password updated! Redirecting…');
       setTimeout(() => { window.location.href = '/dashboard'; }, 800);
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(networkErrorMessage()); }
     finally { setLoading(false); }
   };
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Gift, Repeat2 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { dateLocale } from '@/lib/date-locale';
+import { apiErrorMessage, networkErrorMessage } from '@/lib/api-error';
 
 interface TransferRow {
   id: string;
@@ -29,6 +30,7 @@ interface Props {
 export default function SessionTransfersList({ gymMemberId }: Props) {
   const t = useTranslations('members.sessionTransfers');
   const tc = useTranslations('common');
+  const tErr = useTranslations('common.errors');
   const [sent, setSent] = useState<TransferRow[]>([]);
   const [received, setReceived] = useState<TransferRow[]>([]);
   const [grants, setGrants] = useState<GrantRow[]>([]);
@@ -44,7 +46,9 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
           fetch(`/api/members/${gymMemberId}/session-grants`),
         ]);
         if (!transfersRes.ok || !grantsRes.ok) {
-          if (!cancelled) setError('Failed to load history');
+          const bad = !transfersRes.ok ? transfersRes : grantsRes;
+          const json = await bad.json().catch(() => null);
+          if (!cancelled) setError(apiErrorMessage(json, bad.status, tErr));
           return;
         }
         const [transfersJson, grantsJson] = await Promise.all([
@@ -56,7 +60,7 @@ export default function SessionTransfersList({ gymMemberId }: Props) {
         setReceived(transfersJson.data?.received ?? []);
         setGrants(grantsJson.data ?? []);
       } catch {
-        if (!cancelled) setError('Failed to load history');
+        if (!cancelled) setError(networkErrorMessage(tErr));
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -6,6 +6,7 @@ import { Dumbbell, Salad, HeartPulse, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import { Button, Modal, Select, Textarea } from '@/components/ui';
+import { isDisplayableMessage, networkErrorMessage } from '@/lib/api-error';
 
 const SERVICE_TYPE_KEYS = ['personal_trainer', 'nutritionist', 'physiotherapist'] as const;
 type ServiceTypeKey = typeof SERVICE_TYPE_KEYS[number];
@@ -53,6 +54,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
   const tp = useTranslations('members.payments');
   const tc = useTranslations('common');
   const ts = useTranslations('members.servicePackages');
+  const tErr = useTranslations('common.errors');
   const router = useRouter();
   const [serviceType, setServiceType] = useState<ServiceTypeKey>('personal_trainer');
   const [packages, setPackages]       = useState<Pkg[]>([]);
@@ -104,7 +106,7 @@ export default function AssignServiceModal({ memberId, memberName, onClose }: Pr
       onClose();
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      setError(isDisplayableMessage(e?.message) ? e.message : networkErrorMessage(tErr));
     } finally {
       setLoading(false);
     }

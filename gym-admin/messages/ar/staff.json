@@ -166,6 +166,6 @@
     "accountReactivated": "تم إعادة تفعيل الحساب",
     "accountDeactivated": "تم تعطيل الحساب",
     "statusFailed": "فشل تحديث الحالة",
-    "genericError": "حدث خطأ"
+    "genericError": "تعذّر إتمام الطلب. يرجى المحاولة مرة أخرى."
   }
 }

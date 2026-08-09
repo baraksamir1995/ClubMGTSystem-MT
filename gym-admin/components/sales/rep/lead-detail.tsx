@@ -10,7 +10,7 @@ import {
 import { Button, Tabs, Badge, Field, Input, Select, Textarea } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import {
-  salesApi, SalesApiError, ACTIVE_STAGES, STAGE_LABELS, nextStage,
+  salesApi, errMsg, ACTIVE_STAGES, STAGE_LABELS, nextStage,
   FITNESS_GOALS, INTEREST_LEVELS, LOCATION_FITS, JOIN_TIMEFRAMES, JOIN_TIMEFRAME_LABELS,
   labelize, fmtDate, fmtDateTime, teamMemberName,
   type SalesContext, type TeamMember,
@@ -48,7 +48,7 @@ export default function LeadDetail({ leadId, context, team, onClose, onChanged }
       const res = await salesApi<{ data: any }>(`leads/${leadId}`);
       setLead(res.data);
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Failed to load lead');
+      toast.error(errMsg(e));
       onClose();
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ export default function LeadDetail({ leadId, context, team, onClose, onChanged }
       toast.success(label);
       changed();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setActing(false);
     }
@@ -369,7 +369,7 @@ function QualificationForm({ lead, readOnly, onChanged }: { lead: any; readOnly:
       toast.success('Lead updated');
       onChanged();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setSaving(false);
     }

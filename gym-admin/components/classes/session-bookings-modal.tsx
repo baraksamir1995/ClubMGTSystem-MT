@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { ClassSession } from '@/app/dashboard/classes/page';
 import { fmt12, fmtTime12 } from '@/lib/time';
 import { Avatar, Badge, type BadgeProps, Input, Modal } from '@/components/ui';
+import { extractServerMessage } from '@/lib/api-error';
 
 interface Booking {
   id: string;
@@ -120,7 +121,11 @@ export default function SessionBookingsModal({ session, onClose, onBookingCountC
     setUpdatingId(booking.id);
     try {
       const res = await fetch(`/api/sessions/${session.id}/bookings/${booking.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('bookingsModal.failedToRemove')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('bookingsModal.failedToRemove'));
+        return;
+      }
       const updated = bookings.filter(b => b.id !== booking.id);
       setBookings(updated);
       onBookingCountChange(session.id, updated.length);

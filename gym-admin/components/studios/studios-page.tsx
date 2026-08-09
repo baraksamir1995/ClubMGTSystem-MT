@@ -9,6 +9,7 @@ import type { GymStudio } from '@/app/dashboard/classes/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import StudioQRModal from './studio-qr-modal';
+import { extractServerMessage } from '@/lib/api-error';
 
 interface Props {
   initialStudios: GymStudio[];
@@ -89,7 +90,11 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
     if (!window.confirm(t('studios.deleteConfirm', { name: studio.name }))) return;
     try {
       const res = await fetch(`/api/studios/${studio.id}`, { method: 'DELETE' });
-      if (!res.ok) { toast.error(t('studios.failedToDelete')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('studios.failedToDelete'));
+        return;
+      }
       setStudios(prev => prev.filter(s => s.id !== studio.id));
       toast.success(t('studios.studioDeleted'));
       refresh();

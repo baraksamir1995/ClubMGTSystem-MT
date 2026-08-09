@@ -10,6 +10,7 @@ import DeactivatePlanModal from './deactivate-plan-modal';
 import type { Plan, PageMeta, PlanStatusFilter, PlanTypeFilter } from '@/app/dashboard/plans/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Badge, Button } from '@/components/ui';
+import { extractServerMessage } from '@/lib/api-error';
 
 interface Filters {
   search: string;
@@ -90,7 +91,11 @@ export default function PlansTable({ plans: initialPlans, branches, permissions,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: newActive }),
       });
-      if (!res.ok) { toast.error(t('deactivateModal.toastFailed')); return; }
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(extractServerMessage(json) ?? t('deactivateModal.toastFailed'));
+        return;
+      }
       setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: newActive } : p));
       toast.success(newActive ? t('deactivateModal.toastActivated') : t('deactivateModal.toastDeactivated'));
       setDeactivatingPlan(null);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Pencil, Trash2, FileText, RefreshCw, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiErrorMessage, networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
 
 interface Plan {
   id: string;
@@ -31,9 +32,10 @@ export default function PlansPage() {
     setLoading(true);
     try {
       const res = await fetch('/api/super-admin/plans');
+      if (!res.ok) { toast.error(`Couldn't load plans — ${await responseErrorMessage(res)}`); return; }
       const json = await res.json();
-      if (res.ok) setPlans(json.data ?? []);
-    } catch { toast.error('Failed to load plans'); }
+      setPlans(json.data ?? []);
+    } catch { toast.error(networkErrorMessage()); }
     finally { setLoading(false); }
   }, []);
 
@@ -76,13 +78,13 @@ export default function PlansPage() {
         ? await fetch(`/api/super-admin/plans/${editingId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         : await fetch('/api/super-admin/plans', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
-      const json = await res.json();
-      if (!res.ok) { toast.error(json.error ?? 'Failed'); return; }
+      const json = await res.json().catch(() => null);
+      if (!res.ok) { toast.error(`Couldn't ${editingId ? 'update' : 'create'} plan — ${apiErrorMessage(json, res.status)}`); return; }
       toast.success(editingId ? 'Plan updated' : 'Plan created');
       setShowForm(false);
       resetForm();
       fetchPlans();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(networkErrorMessage()); }
     finally { setSaving(false); }
   };
 
@@ -90,11 +92,11 @@ export default function PlansPage() {
     if (!confirm(`Delete "${plan.name}"?`)) return;
     try {
       const res = await fetch(`/api/super-admin/plans/${plan.id}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (!res.ok) { toast.error(json.error ?? 'Failed'); return; }
+      const json = await res.json().catch(() => null);
+      if (!res.ok) { toast.error(`Couldn't delete plan — ${apiErrorMessage(json, res.status)}`); return; }
       setPlans(prev => prev.filter(p => p.id !== plan.id));
       toast.success('Plan deleted');
-    } catch { toast.error('Failed'); }
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   const toggleActive = async (plan: Plan) => {
@@ -104,10 +106,9 @@ export default function PlansPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !plan.is_active }),
       });
-      if (res.ok) {
-        setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: !p.is_active } : p));
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't update plan status — ${await responseErrorMessage(res)}`); return; }
+      setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: !p.is_active } : p));
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 }).format(n);

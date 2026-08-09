@@ -4,7 +4,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { CalendarDays, Check, X, Ban } from 'lucide-react';
 import { Button, Field, Select, Input, EmptyState, Badge } from '@/components/ui';
-import { salesApi, SalesApiError, APPOINTMENT_TYPES, labelize, fmtDateTime } from './lib';
+import { salesApi, errMsg, APPOINTMENT_TYPES, labelize, fmtDateTime } from './lib';
 
 interface Props {
   lead: any;        // SalesLeadDetail
@@ -49,7 +49,7 @@ export default function DetailAppointments({ lead, context, readOnly, onChanged 
       toast.success('Appointment booked');
       onChanged();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setSaving(false);
     }
@@ -62,7 +62,7 @@ export default function DetailAppointments({ lead, context, readOnly, onChanged 
       toast.success(status === 'showed' ? 'Marked as showed' : status === 'no_show' ? 'Marked as no-show' : 'Cancelled');
       onChanged();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setMarkingId(null);
     }

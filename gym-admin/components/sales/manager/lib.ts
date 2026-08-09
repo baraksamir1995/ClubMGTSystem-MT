@@ -5,6 +5,7 @@
 
 import type { FC, ReactNode } from 'react';
 import { Card as UICard } from '@/components/ui';
+import { apiErrorMessage, isDisplayableMessage, networkErrorMessage } from '@/lib/api-error';
 import {
   STAGE_LABELS,
   type LeadStage,
@@ -44,19 +45,18 @@ export async function salesFetch<T = unknown>(
     },
   });
   if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      if (body?.message) message = body.message;
-      else if (body?.error) message = body.error;
-    } catch {
-      /* non-JSON error body */
-    }
-    const err = new Error(message) as Error & { status?: number };
+    const body = await res.json().catch(() => null);
+    const err = new Error(apiErrorMessage(body, res.status)) as Error & { status?: number };
     err.status = res.status;
     throw err;
   }
   return res.json();
+}
+
+/** User-facing message for a caught error: safe API message or a friendly network fallback. */
+export function errMsg(e: unknown): string {
+  if (e instanceof Error && isDisplayableMessage(e.message)) return e.message;
+  return networkErrorMessage();
 }
 
 export const salesGet = <T,>(path: string) => salesFetch<T>(path);

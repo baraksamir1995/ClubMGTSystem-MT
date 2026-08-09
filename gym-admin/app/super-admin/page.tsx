@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Building2, Users, GitBranch, ToggleLeft, ToggleRight, Trash2, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiErrorMessage, networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
 
 interface GymRow {
   id: string;
@@ -41,9 +42,10 @@ export default function SuperAdminPage() {
     setLoading(true);
     try {
       const res = await fetch('/api/super-admin/gyms');
+      if (!res.ok) { toast.error(`Couldn't load gyms — ${await responseErrorMessage(res)}`); return; }
       const json = await res.json();
-      if (res.ok) setGyms(json.data ?? []);
-    } catch { toast.error('Failed to load gyms'); }
+      setGyms(json.data ?? []);
+    } catch { toast.error(networkErrorMessage()); }
     finally { setLoading(false); }
   }, []);
 
@@ -73,19 +75,16 @@ export default function SuperAdminPage() {
           max_branches: parseInt(maxBranches) || 10,
         }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        const msg = json.errors
-          ? Object.values(json.errors).flat().join(', ')
-          : (json.error ?? 'Failed to create gym');
-        toast.error(msg);
+        toast.error(`Couldn't create gym — ${apiErrorMessage(json, res.status)}`);
         return;
       }
       toast.success(`Gym "${name}" created`);
       setShowCreate(false);
       resetForm();
       fetchGyms();
-    } catch { toast.error('Network error'); }
+    } catch { toast.error(networkErrorMessage()); }
     finally { setCreating(false); }
   };
 
@@ -99,12 +98,11 @@ export default function SuperAdminPage() {
     setTogglingId(gym.id);
     try {
       const res = await fetch(`/api/super-admin/gyms/${gym.id}`, { method: 'POST' });
-      if (res.ok) {
-        const json = await res.json();
-        setGyms(prev => prev.map(g => g.id === gym.id ? { ...g, is_active: json.data?.is_active ?? !g.is_active } : g));
-        toast.success(`${gym.name} ${json.data?.is_active ? 'activated' : 'deactivated'}`);
-      }
-    } catch { toast.error('Failed'); }
+      const json = await res.json().catch(() => null);
+      if (!res.ok) { toast.error(`Couldn't update gym status — ${apiErrorMessage(json, res.status)}`); return; }
+      setGyms(prev => prev.map(g => g.id === gym.id ? { ...g, is_active: json.data?.is_active ?? !g.is_active } : g));
+      toast.success(`${gym.name} ${json.data?.is_active ? 'activated' : 'deactivated'}`);
+    } catch { toast.error(networkErrorMessage()); }
     finally { setTogglingId(null); }
   };
 
@@ -112,11 +110,10 @@ export default function SuperAdminPage() {
     if (!confirm(`Delete "${gym.name}" and ALL its data? This cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/super-admin/gyms/${gym.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setGyms(prev => prev.filter(g => g.id !== gym.id));
-        toast.success(`"${gym.name}" deleted`);
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't delete gym — ${await responseErrorMessage(res)}`); return; }
+      setGyms(prev => prev.filter(g => g.id !== gym.id));
+      toast.success(`"${gym.name}" deleted`);
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   const updateMaxBranches = async (gym: GymRow, value: number) => {
@@ -126,10 +123,9 @@ export default function SuperAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max_branches: value }),
       });
-      if (res.ok) {
-        setGyms(prev => prev.map(g => g.id === gym.id ? { ...g, max_branches: value } : g));
-      }
-    } catch { toast.error('Failed'); }
+      if (!res.ok) { toast.error(`Couldn't update branch limit — ${await responseErrorMessage(res)}`); return; }
+      setGyms(prev => prev.map(g => g.id === gym.id ? { ...g, max_branches: value } : g));
+    } catch { toast.error(networkErrorMessage()); }
   };
 
   const fmtDate = (iso: string) => {

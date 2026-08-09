@@ -10,7 +10,7 @@ import {
   Button, EmptyState, Field, Input, Modal, Select,
 } from '@/components/ui';
 import type { LeadScore, LeadSource, SalesContext, SalesSettings } from '@/lib/sales-types';
-import { Card, salesGet, salesPatch, salesPost } from './lib';
+import { Card, errMsg, salesGet, salesPatch, salesPost } from './lib';
 
 interface Props {
   context: SalesContext;
@@ -77,7 +77,7 @@ export default function SettingsPanel({ context }: Props) {
       });
       setSources(sourcesRes.data ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load settings');
+      setError(errMsg(e));
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function SettingsPanel({ context }: Props) {
       setSettings((prev) => ({ ...(prev ?? {}), ...(res.data ?? body) }) as SalesSettings);
       toast.success('Sales settings saved');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to save settings');
+      toast.error(errMsg(e));
     } finally {
       setSavingSla(false);
     }
@@ -119,7 +119,7 @@ export default function SettingsPanel({ context }: Props) {
       toast.success(next ? `${src.name} activated` : `${src.name} deactivated`);
     } catch (e) {
       setSources((prev) => prev.map((s) => (s.id === src.id ? { ...s, is_active: !next } : s)));
-      toast.error(e instanceof Error ? e.message : 'Failed to update source');
+      toast.error(errMsg(e));
     } finally {
       setBusySourceId(null);
     }
@@ -134,7 +134,7 @@ export default function SettingsPanel({ context }: Props) {
       toast.success(`${src.name} default score updated`);
     } catch (e) {
       setSources((prev) => prev.map((s) => (s.id === src.id ? { ...s, default_score: prevScore } : s)));
-      toast.error(e instanceof Error ? e.message : 'Failed to update source');
+      toast.error(errMsg(e));
     } finally {
       setBusySourceId(null);
     }
@@ -154,7 +154,7 @@ export default function SettingsPanel({ context }: Props) {
       setNewSourceScore('warm');
       toast.success('Source added');
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to add source');
+      toast.error(errMsg(e));
     } finally {
       setAddingSource(false);
     }
@@ -180,7 +180,7 @@ export default function SettingsPanel({ context }: Props) {
       toast.success('Intake token rotated — update your integrations');
       setRotateOpen(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to rotate token');
+      toast.error(errMsg(e));
     } finally {
       setRotating(false);
     }

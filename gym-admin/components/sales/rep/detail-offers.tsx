@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Tag, ShieldAlert } from 'lucide-react';
 import { Button, Field, Select, Input, Textarea, EmptyState, Badge } from '@/components/ui';
 import {
-  salesApi, SalesApiError, DISCOUNT_TYPES, OBJECTION_REASONS,
+  salesApi, errMsg, DISCOUNT_TYPES, OBJECTION_REASONS,
   labelize, fmtDate, fmtDateTime,
 } from './lib';
 
@@ -96,7 +96,7 @@ export default function DetailOffers({ lead, readOnly, onChanged }: Props) {
       toast.success('Offer created');
       onChanged();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setSavingOffer(false);
     }
@@ -114,7 +114,7 @@ export default function DetailOffers({ lead, readOnly, onChanged }: Props) {
       toast.success('Objection logged');
       onChanged();
     } catch (e) {
-      toast.error(e instanceof SalesApiError ? e.message : 'Network error');
+      toast.error(errMsg(e));
     } finally {
       setSavingObj(false);
     }

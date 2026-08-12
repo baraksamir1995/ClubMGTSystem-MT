@@ -28,8 +28,11 @@ export interface Payment {
   service_name: string | null;
   specialist_name: string | null;
   branch_name: string | null;
+  branch_id: string | null;
   original_amount: number | null;
   discount_amount: number | null;
+  promo_code_id: string | null;
+  plan_id: string | null;
   paymob_transaction_id: string | null;
   refunded_amount: number;
   member_number: string;
@@ -49,6 +52,8 @@ export interface ServiceOption {
   trainer_type: string | null;
   allowed_branch_ids: string[] | null;
   plan_promotion_id: string | null;
+  /** True when the option is a membership_plans row — recording its payment also assigns the plan. */
+  is_plan: boolean;
 }
 
 export interface PromoCode {
@@ -147,8 +152,11 @@ export default async function PaymentsPage() {
       service_name: p.service_name ?? null,
       specialist_name: p.specialist_name ?? null,
       branch_name: p.branch_name ?? null,
+      branch_id: p.branch_id ?? null,
       original_amount: p.original_amount ?? null,
       discount_amount: p.discount_amount ?? null,
+      promo_code_id: p.promo_code_id ?? null,
+      plan_id: p.plan_id ?? null,
       paymob_transaction_id: p.paymob_transaction_id ?? null,
       refunded_amount: p.refunded_amount ?? 0,
       member_number: String(member?.member_number ?? p.member_number ?? '---'),
@@ -216,6 +224,7 @@ export default async function PaymentsPage() {
         creates_assignment: false, trainer_type: null,
         allowed_branch_ids: p.access_scope === 'specific_branches' ? (p.allowed_branch_ids ?? null) : null,
         plan_promotion_id: promo?.id ?? null,
+        is_plan: true,
       };
     }),
     ...rawPlans.filter((p: any) => p.plan_type === 'sessions' && p.is_active).map((p: any): ServiceOption => {
@@ -231,26 +240,27 @@ export default async function PaymentsPage() {
         creates_assignment: false, trainer_type: null,
         allowed_branch_ids: p.access_scope === 'specific_branches' ? (p.allowed_branch_ids ?? null) : null,
         plan_promotion_id: promo?.id ?? null,
+        is_plan: true,
       };
     }),
     ...rawPrograms.filter((p: any) => p.status === 'published').map((p: any): ServiceOption => ({
       id: p.id, type: 'program', name: p.title,
       price: p.price, original_price: null, currency: 'EGP', subtitle: t('subtitles.programme'),
       creates_assignment: false, trainer_type: null,
-      allowed_branch_ids: null, plan_promotion_id: null,
+      allowed_branch_ids: null, plan_promotion_id: null, is_plan: false,
     })),
     ...rawOffers.filter((o: any) => o.status === 'active').map((o: any): ServiceOption => ({
       id: o.id, type: 'offer', name: o.title,
       price: o.offer_price, original_price: null, currency: 'EGP', subtitle: t('subtitles.offer'),
       creates_assignment: false, trainer_type: null,
-      allowed_branch_ids: null, plan_promotion_id: null,
+      allowed_branch_ids: null, plan_promotion_id: null, is_plan: false,
     })),
     ...rawSvcPackages.filter((p: any) => p.is_active).map((p: any): ServiceOption => ({
       id: p.id, type: 'session_package', name: p.name,
       price: p.price, original_price: null, currency: p.currency ?? 'EGP',
       subtitle: `${trainerTypeLabel(p.trainer_type)}${p.session_count ? ` \u00b7 ${t('subtitles.sessions', { count: p.session_count })}` : ''}`,
       creates_assignment: true, trainer_type: p.trainer_type ?? null,
-      allowed_branch_ids: null, plan_promotion_id: null,
+      allowed_branch_ids: null, plan_promotion_id: null, is_plan: false,
     })),
   ];
 

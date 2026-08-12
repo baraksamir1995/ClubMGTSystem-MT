@@ -90,6 +90,10 @@
 
   "recordModal": {
     "title": "Create Payment",
+    "confirmTitle": "Confirm Payment",
+    "updatePayment": "Update Payment",
+    "paymentUpdated": "Payment updated",
+    "failedToUpdate": "Failed to update payment",
     "member": "Member",
     "memberSearchPlaceholder": "Search by name, email, or member #…",
     "noMembersFound": "No members found",

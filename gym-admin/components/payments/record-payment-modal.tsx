@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { X, DollarSign, Search, Link2, Copy, Check, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import type { MemberOption, ServiceOption, TrainerOption, PromoCode } from '@/app/dashboard/payments/page';
+import type { MemberOption, ServiceOption, TrainerOption, PromoCode, Payment } from '@/app/dashboard/payments/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Button, Modal } from '@/components/ui';
 
@@ -15,6 +15,8 @@ interface Props {
   trainerOptions: TrainerOption[];
   branches: GymBranch[];
   promoCodes: PromoCode[];
+  /** When set, the modal confirms/updates this existing payment (same row) instead of creating a new one. */
+  existingPayment?: Payment | null;
   onClose: () => void;
 }
 
@@ -24,9 +26,26 @@ const CURRENCIES = ['EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED'];
 const fmt = (amount: number, currency = 'EGP') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
 
-export default function RecordPaymentModal({ memberOptions, serviceOptions, trainerOptions, branches, promoCodes, onClose }: Props) {
+export default function RecordPaymentModal({ memberOptions, serviceOptions, trainerOptions, branches, promoCodes, existingPayment, onClose }: Props) {
   const router = useRouter();
   const t  = useTranslations('payments');
+
+  const isEdit = !!existingPayment;
+  // The plan behind the payment in edit mode — lets confirm mode surface
+  // the plan's active promotion and pricing just like create mode.
+  const editService = existingPayment?.plan_id
+    ? serviceOptions.find(s => s.is_plan && s.id === existingPayment.plan_id) ?? null
+    : null;
+  // Base price the promo/discount math works from in edit mode.
+  const editBasePrice = existingPayment
+    ? Number(existingPayment.original_amount ?? existingPayment.amount)
+    : null;
+  // Amount the payment reverts to when no promo code is selected: the base
+  // price if its discount came from a promo code, otherwise its current
+  // amount (a plan-promotion discount must survive promo-code toggling).
+  const editNoPromoAmount = existingPayment
+    ? (existingPayment.promo_code_id ? editBasePrice : Number(existingPayment.amount))
+    : null;
 
   const TRAINER_TYPE_LABELS: Record<string, string> = {
     personal_trainer: t('trainerTypes.personal_trainer'),
@@ -58,25 +77,54 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
   };
 
   const [search, setSearch]           = useState('');
-  const [selectedMember, setSelectedMember] = useState<MemberOption | null>(null);
+  const [selectedMember, setSelectedMember] = useState<MemberOption | null>(() => {
+    if (!existingPayment) return null;
+    return memberOptions.find(m => m.id === existingPayment.gym_member_id) ?? {
+      id: existingPayment.gym_member_id,
+      member_number: existingPayment.member_number,
+      full_name: existingPayment.full_name,
+      email: existingPayment.email,
+      active_membership_id: existingPayment.membership_id,
+      plan_name: null,
+      plan_price: null,
+      currency: existingPayment.currency,
+    };
+  });
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
   const [selectedTrainer, setSelectedTrainer] = useState<TrainerOption | null>(null);
   const [isOther, setIsOther]         = useState(false);
   const [otherName, setOtherName]     = useState('');
-  const [amount, setAmount]           = useState('');
-  const [currency, setCurrency]       = useState('EGP');
-  const [method, setMethod]           = useState<string>('cash');
+  const [amount, setAmount]           = useState(existingPayment ? String(existingPayment.amount) : '');
+  const [currency, setCurrency]       = useState(existingPayment?.currency ?? 'EGP');
+  const [method, setMethod]           = useState<string>(
+    existingPayment && METHODS.includes(existingPayment.payment_method) && existingPayment.payment_method !== 'payment_link'
+      ? existingPayment.payment_method
+      : 'cash'
+  );
   const [status, setStatus]           = useState<string>('paid');
-  const [notes, setNotes]             = useState('');
+  const [notes, setNotes]             = useState(existingPayment?.notes ?? '');
   const [phone, setPhone]             = useState('');
-  const [branchId, setBranchId]       = useState(branches.length === 1 ? branches[0].id : '');
+  const [branchId, setBranchId]       = useState(() => {
+    if (existingPayment) return existingPayment.branch_id ?? '';
+    return branches.length === 1 ? branches[0].id : '';
+  });
   const [loading, setLoading]         = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied]           = useState(false);
-  const [selectedPromoId, setSelectedPromoId] = useState<string>('');
-  const [useOriginalPrice, setUseOriginalPrice] = useState(false);
+  const [selectedPromoId, setSelectedPromoId] = useState<string>(existingPayment?.promo_code_id ?? '');
+  // In edit mode, reflect whether the payment already carries the plan's
+  // promotion price so the toggle starts in the matching state.
+  const [useOriginalPrice, setUseOriginalPrice] = useState(() => {
+    if (existingPayment && editService?.original_price != null) {
+      return Number(existingPayment.amount) >= editService.original_price;
+    }
+    return false;
+  });
 
   const isPaymentLink = method === 'payment_link';
+  const availableMethods = isEdit ? METHODS.filter(m => m !== 'payment_link') : METHODS;
+  // The service whose pricing drives the discount section, in either mode.
+  const discountService = isEdit ? editService : selectedService;
 
   // Group services by type for the select dropdown
   const grouped = useMemo(() => {
@@ -165,9 +213,68 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
 
     setLoading(true);
     try {
+      const amt = parseFloat(amount);
+
+      // Discount breakdown: base price is the plan's promotion pricing when
+      // one is active, else the payment's original amount in edit mode, or
+      // the selected service's price in create mode.
+      let originalAmount = amt;
+      let planPromotionId: string | null = null;
+      if (isEdit) {
+        if (discountService?.original_price != null && !useOriginalPrice) {
+          originalAmount = discountService.original_price;
+          planPromotionId = discountService.plan_promotion_id;
+        } else if (editBasePrice != null) {
+          originalAmount = editBasePrice;
+        }
+      } else if (selectedService) {
+        if (selectedService.original_price != null && !useOriginalPrice) {
+          originalAmount = selectedService.original_price;
+          planPromotionId = selectedService.plan_promotion_id;
+        } else if (selectedService.price != null) {
+          originalAmount = selectedService.price;
+        }
+      }
+      // Amount above the base is a surcharge, not a new list price — keep
+      // the recorded original and floor the discount at zero.
+      const discountAmount = Math.max(0, originalAmount - amt);
+
+      if (isEdit && existingPayment) {
+        // ── Confirm/update the SAME payment row ───────────────────────────
+        const res = await fetch(`/api/payments/${existingPayment.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status,
+            payment_method:  method,
+            amount:          amt,
+            currency,
+            notes:           notes.trim() || null,
+            promo_code_id:   selectedPromoId || null,
+            original_amount: originalAmount,
+            discount_amount: discountAmount,
+            branch_id:       branchId || null,
+            // Applying the plan's promotion stamps its id; a newly-chosen
+            // promo code replaces any plan-promotion discount; otherwise
+            // omit the key so the stored plan_promotion_id is preserved.
+            ...(planPromotionId
+              ? { plan_promotion_id: planPromotionId }
+              : selectedPromoId && selectedPromoId !== existingPayment.promo_code_id
+                ? { plan_promotion_id: null }
+                : {}),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { toast.error(data.error ?? t('recordModal.failedToUpdate')); return; }
+        toast.success(t('recordModal.paymentUpdated'));
+        onClose();
+        router.refresh();
+        return;
+      }
+
       const commonPayload = {
         gym_member_id:   selectedMember.id,
-        amount:          parseFloat(amount),
+        amount:          amt,
         currency,
         notes:           notes.trim() || null,
         service_type:    isOther ? 'other' : (selectedService?.type ?? (selectedMember.active_membership_id && selectedMember.plan_name ? 'membership' : null)),
@@ -176,8 +283,13 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
         specialist_name: selectedTrainer?.name ?? null,
         branch_id:       branchId || null,
         promo_code_id:   selectedPromoId || null,
+        original_amount: originalAmount,
+        discount_amount: discountAmount,
+        plan_promotion_id:  planPromotionId,
         service_package_id: selectedService?.creates_assignment ? selectedService.id : null,
         trainer_id:         selectedService?.creates_assignment ? (selectedTrainer?.id ?? null) : null,
+        // Membership plans get assigned to the member's account by the API.
+        plan_id:            !isOther && selectedService?.is_plan ? selectedService.id : null,
       };
 
       if (isPaymentLink) {
@@ -226,7 +338,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
           <span className="w-8 h-8 rounded-lg bg-success-soft flex items-center justify-center">
             <DollarSign className="w-4 h-4 text-success" aria-hidden />
           </span>
-          {t('recordModal.title')}
+          {isEdit ? t('recordModal.confirmTitle') : t('recordModal.title')}
         </span>
       </Modal.Header>
 
@@ -248,9 +360,11 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                       <p className="text-xs text-brand mt-0.5">{selectedMember.plan_name} · {fmt(selectedMember.plan_price ?? 0, selectedMember.currency ?? 'EGP')}</p>
                     )}
                   </div>
-                  <button type="button" onClick={() => setSelectedMember(null)} aria-label="Clear selected member" className="text-fg-faint hover:text-fg transition-colors">
-                    <X className="w-4 h-4" aria-hidden />
-                  </button>
+                  {!isEdit && (
+                    <button type="button" onClick={() => setSelectedMember(null)} aria-label="Clear selected member" className="text-fg-faint hover:text-fg transition-colors">
+                      <X className="w-4 h-4" aria-hidden />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -284,7 +398,23 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
               )}
             </div>
 
-            {/* Service selector */}
+            {/* Service — read-only in confirm mode (the payment already carries it) */}
+            {isEdit ? (
+              existingPayment?.service_name ? (
+                <div>
+                  <label className={labelCls}>{t('recordModal.serviceItem')}</label>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-info-soft border border-info/40 rounded-lg">
+                    {existingPayment.service_type && (
+                      <span className="text-xs font-medium text-info">{TYPE_LABELS[existingPayment.service_type] ?? existingPayment.service_type}</span>
+                    )}
+                    <span className="text-xs text-fg-muted flex-1 truncate">{existingPayment.service_name}</span>
+                    {editBasePrice != null && (
+                      <span className="text-xs font-semibold text-fg flex-shrink-0">{editBasePrice} {existingPayment.currency}</span>
+                    )}
+                  </div>
+                </div>
+              ) : null
+            ) : (
             <div>
               <label className={labelCls}>{t('recordModal.serviceItem')} <span className="text-fg-faint">({t('recordModal.serviceOptional')})</span></label>
               <select
@@ -356,19 +486,22 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                 </div>
               )}
             </div>
+            )}
 
             {/* Discount / Promo */}
-            {selectedService && (selectedService.original_price != null || promoCodes.length > 0) && (
+            {(discountService
+                ? (discountService.original_price != null || promoCodes.length > 0)
+                : (isEdit && editBasePrice != null && promoCodes.length > 0)) && (
               <div className="space-y-3">
                 {/* Plan has active promotion — toggle original vs discounted */}
-                {selectedService.original_price != null && (
+                {discountService?.original_price != null && (
                   <div className="p-3 bg-success-soft border border-success/40 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-success">{t('recordModal.activePromotion')}</p>
                         <p className="text-xs text-fg-muted mt-0.5">
-                          {t('recordModal.discounted')} {selectedService.price} {selectedService.currency}
-                          <span className="line-through ms-2 text-fg-faint">{selectedService.original_price}</span>
+                          {t('recordModal.discounted')} {discountService.price} {discountService.currency}
+                          <span className="line-through ms-2 text-fg-faint">{discountService.original_price}</span>
                         </p>
                       </div>
                       <button
@@ -376,7 +509,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                         onClick={() => {
                           const useOriginal = !useOriginalPrice;
                           setUseOriginalPrice(useOriginal);
-                          setAmount(String(useOriginal ? selectedService.original_price : selectedService.price));
+                          setAmount(String(useOriginal ? discountService.original_price : discountService.price));
                         }}
                         className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                           useOriginalPrice
@@ -391,7 +524,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                 )}
 
                 {/* Promo code selector */}
-                {promoCodes.length > 0 && !selectedService.plan_promotion_id && (
+                {promoCodes.length > 0 && !discountService?.plan_promotion_id && (
                   <div>
                     <label className={labelCls}>{t('recordModal.promoCode')}</label>
                     <select
@@ -399,17 +532,21 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                       onChange={e => {
                         const promoId = e.target.value;
                         setSelectedPromoId(promoId);
-                        if (promoId && selectedService.price != null) {
+                        const basePrice = isEdit ? editBasePrice : (selectedService?.price ?? null);
+                        if (basePrice == null) return;
+                        if (promoId) {
                           const code = promoCodes.find(c => c.id === promoId);
                           if (code) {
-                            const originalPrice = selectedService.price;
                             const discount = code.discount_type === 'percentage'
-                              ? originalPrice * (code.discount_value / 100)
-                              : Math.min(code.discount_value, originalPrice);
-                            setAmount(String(Math.max(0, originalPrice - discount)));
+                              ? basePrice * (code.discount_value / 100)
+                              : Math.min(code.discount_value, basePrice);
+                            setAmount(String(Math.max(0, basePrice - discount)));
                           }
-                        } else if (selectedService.price != null) {
-                          setAmount(String(selectedService.price));
+                        } else {
+                          // Clearing the promo restores the no-promo amount —
+                          // in edit mode that keeps a plan-promotion discount
+                          // intact instead of jumping to the pre-discount base.
+                          setAmount(String(isEdit ? (editNoPromoAmount ?? basePrice) : basePrice));
                         }
                       }}
                       className={inputCls}
@@ -466,8 +603,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
             {/* Payment Method */}
             <div>
               <label className={labelCls}>{t('recordModal.paymentMethod')}</label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {METHODS.map(m => (
+              <div className={`grid grid-cols-2 gap-2 ${availableMethods.length === 5 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
+                {availableMethods.map(m => (
                   <button key={m} type="button"
                     onClick={() => { setMethod(m); if (m === 'payment_link') setStatus('pending'); }}
                     className={`py-2 rounded-lg border text-xs font-medium transition-colors ${
@@ -568,7 +705,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
         <Modal.Footer>
           <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>{t('recordModal.cancel')}</Button>
           <Button type="submit" form="record-payment-form" variant="primary" fullWidth disabled={!selectedMember} isLoading={loading}>
-            {isPaymentLink ? t('recordModal.generateLink') : t('createPayment')}
+            {isEdit ? t('recordModal.updatePayment') : isPaymentLink ? t('recordModal.generateLink') : t('createPayment')}
           </Button>
         </Modal.Footer>
       )}

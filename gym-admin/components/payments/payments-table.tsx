@@ -62,6 +62,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
 
   const [payments, setPayments] = useState<Payment[]>(initial);
   const [modalOpen, setModalOpen]           = useState(false);
+  const [confirmPayment, setConfirmPayment] = useState<Payment | null>(null);
   const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
   const [refundPayment, setRefundPayment]   = useState<Payment | null>(null);
   const [reminderOpen, setReminderOpen]     = useState(false);
@@ -78,6 +79,10 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   const [updatingId, setUpdatingId]         = useState<string | null>(null);
 
   useEffect(() => { setPage(1); }, [search, statusFilter, fromDate, toDate, specialistFilter, methodFilter, serviceFilter, branchFilter]);
+
+  // Keep local rows in sync after router.refresh() re-fetches the server data
+  // (e.g. after confirming a payment or recording a new one).
+  useEffect(() => { setPayments(initial); }, [initial]);
 
   // Derive unique filter options from data
   const specialists = useMemo(() => [...new Set(payments.map(p => p.specialist_name).filter(Boolean))] as string[], [payments]);
@@ -431,10 +436,11 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                   <RotateCcw className="w-4 h-4" aria-hidden />
                                 </button>
                               )}
-                              {/* Quick status change */}
+                              {/* Mark as paid — opens the confirm-payment modal pre-filled
+                                  from this payment; submitting updates the SAME row. */}
                               {payment.status !== 'paid' && payment.status !== 'refunded' && payment.status !== 'partial_refund' && can(permissions, 'payments', 'edit') && (
                                 <button
-                                  onClick={() => updateStatus(payment, 'paid')}
+                                  onClick={() => setConfirmPayment(payment)}
                                   disabled={updatingId === payment.id}
                                   title={t('tooltips.markAsPaid')}
                                   aria-label={t('tooltips.markAsPaid')}
@@ -508,6 +514,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
       </div>
 
       {modalOpen && <RecordPaymentModal memberOptions={memberOptions} serviceOptions={serviceOptions} trainerOptions={trainerOptions} branches={branchOptions} promoCodes={promoCodes} onClose={() => setModalOpen(false)} />}
+      {confirmPayment && <RecordPaymentModal memberOptions={memberOptions} serviceOptions={serviceOptions} trainerOptions={trainerOptions} branches={branchOptions} promoCodes={promoCodes} existingPayment={confirmPayment} onClose={() => setConfirmPayment(null)} />}
       {invoicePayment && (
         <InvoiceModal payment={invoicePayment} gym={gym} onClose={() => setInvoicePayment(null)} />
       )}

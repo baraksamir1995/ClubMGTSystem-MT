@@ -90,6 +90,10 @@
 
   "recordModal": {
     "title": "إنشاء دفعة",
+    "confirmTitle": "تأكيد الدفعة",
+    "updatePayment": "تحديث الدفعة",
+    "paymentUpdated": "تم تحديث الدفعة",
+    "failedToUpdate": "فشل تحديث الدفعة",
     "member": "العضو",
     "memberSearchPlaceholder": "البحث بالاسم أو البريد أو رقم العضوية…",
     "noMembersFound": "لا يوجد أعضاء",

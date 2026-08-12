@@ -117,7 +117,15 @@ export default function AssignPlanModal({ memberId, plans, currentPlanId, onClos
 
     setLoading(true);
     try {
-      const body: Record<string, any> = { plan_id: selectedPlanId, start_date: startDate };
+      const body: Record<string, any> = {
+        plan_id: selectedPlanId,
+        start_date: startDate,
+        // Send the computed pricing so the membership + pending payment
+        // carry the discounted amount (the API stores these verbatim).
+        amount: finalPrice,
+        original_amount: originalPrice,
+        discount_amount: discountAmount,
+      };
       if (discountMode === 'promo_code' && selectedPromoId) body.promo_code_id = selectedPromoId;
       if (discountMode === 'plan_promo' && planPromo)       body.plan_promotion_id = planPromo.id;
 

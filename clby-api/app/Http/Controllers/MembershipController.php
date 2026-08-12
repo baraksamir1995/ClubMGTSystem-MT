@@ -385,60 +385,26 @@ class MembershipController extends Controller
             return response()->json(['error' => 'Member not in this gym'], 404);
         }
 
-        $startDate = $validated['start_date'] ?? now()->toDateString();
-        // Calculate end date from duration_days (time-based) or session_expiry_days (session-based)
-        $expiryDays = $plan->duration_days ?? $plan->session_expiry_days ?? null;
-        $endDate = $expiryDays
-            ? date('Y-m-d', strtotime($startDate . " + {$expiryDays} days"))
-            : null;
-
         $amount = $validated['amount'] ?? $plan->price ?? 0;
         $originalAmount = $validated['original_amount'] ?? $amount;
         $discountAmount = $validated['discount_amount'] ?? 0;
-        $finalPrice = $amount;
 
-        return DB::transaction(function () use ($validated, $gymId, $plan, $startDate, $endDate, $amount, $originalAmount, $discountAmount, $finalPrice) {
-            // Deactivate any existing active SUBSCRIPTION memberships for
-            // this member. Transferred buckets are independent entitlements
-            // and must survive a new subscription assignment.
-            DB::table('member_memberships')
-                ->where('gym_member_id', $validated['gym_member_id'])
-                ->where('status', 'active')
-                ->where('source_type', 'subscription')
-                ->update(['status' => 'expired', 'updated_at' => now()]);
-
-            $membershipId = \Illuminate\Support\Str::uuid()->toString();
-
-            DB::table('member_memberships')->insert([
-                'id' => $membershipId,
-                'gym_member_id' => $validated['gym_member_id'],
-                'plan_id' => $validated['plan_id'],
-                'gym_id' => $gymId,
-                'status' => 'active',
-                'payment_status' => 'pending',
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'sessions_total' => $plan->session_count,
-                'sessions_used' => 0,
-                'sessions_remaining' => $plan->session_count,
-                'max_visits' => $plan->max_visits,
-                'visits_used' => 0,
-                'original_price' => $originalAmount,
-                'discount_amount' => $discountAmount,
-                'final_price' => $finalPrice,
-                'promo_code_id' => $validated['promo_code_id'] ?? null,
-                'plan_promotion_id' => $validated['plan_promotion_id'] ?? null,
-                'branch_id' => $validated['branch_id'] ?? null,
-                'invitations_remaining' => $plan->invitations_enabled ? ($plan->invitations_per_cycle ?? 0) : 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // Activate the gym member if inactive
-            DB::table('gym_members')
-                ->where('id', $validated['gym_member_id'])
-                ->where('status', '!=', 'active')
-                ->update(['status' => 'active', 'updated_at' => now()]);
+        return DB::transaction(function () use ($validated, $gymId, $plan, $amount, $originalAmount, $discountAmount) {
+            $membershipId = app(\App\Services\MembershipAssignmentService::class)->createSubscription(
+                $plan,
+                $validated['gym_member_id'],
+                $gymId,
+                [
+                    'start_date' => $validated['start_date'] ?? null,
+                    'payment_status' => 'pending',
+                    'amount' => $amount,
+                    'original_amount' => $originalAmount,
+                    'discount_amount' => $discountAmount,
+                    'promo_code_id' => $validated['promo_code_id'] ?? null,
+                    'plan_promotion_id' => $validated['plan_promotion_id'] ?? null,
+                    'branch_id' => $validated['branch_id'] ?? null,
+                ]
+            );
 
             // Always create payment record (pending until paid)
             {

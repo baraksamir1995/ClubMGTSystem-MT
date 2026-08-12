@@ -49,6 +49,12 @@ const nextConfig = {
   poweredByHeader: false,
 
   eslint: { ignoreDuringBuilds: true }, // TODO: no .eslintrc yet; enabling needs config + violation pass first
+  // "Checking validity of types" spawns a fresh ~1.5GB tsc process right
+  // after webpack — on the 2GB Coolify box that thrashes swap until
+  // dockerd's exec pipe times out (silent exit-255 at that exact line).
+  // Types are checked locally (`npx tsc --noEmit`) before pushing; skip
+  // only in CI builds so local `next build` still verifies.
+  typescript: { ignoreBuildErrors: !!process.env.CI },
   experimental: {
     instrumentationHook: true, // Next 14: load instrumentation.ts (Sentry server/edge init)
     // Coolify builds run ON the 2GB prod box. Parallel webpack workers +

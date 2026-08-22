@@ -1,7 +1,7 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Flutter/Generated.xcconfig"
 
-APP_DISPLAY_NAME = AlfaG
+APP_DISPLAY_NAME = AlphaG
 PRODUCT_BUNDLE_IDENTIFIER = com.clbyapp.alfag
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon-alfag
 DEVELOPMENT_TEAM = 6XC3376V5Z

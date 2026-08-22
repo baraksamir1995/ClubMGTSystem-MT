@@ -31,6 +31,7 @@ import 'features/billing/billing_screen.dart';
 import 'screens/guest_invitations_screen.dart';
 import 'screens/offer_detail_screen.dart';
 import 'features/billing/invoice_details_screen.dart';
+import 'features/terms/contract_terms_screen.dart';
 import 'screens/explore_memberships_screen.dart';
 import 'screens/explore_offers_screen.dart';
 import 'screens/explore_trainers_screen.dart';
@@ -428,6 +429,31 @@ GoRouter buildRouter(BuildContext context) {
           transitionDuration: const Duration(milliseconds: 300),
         ),
       ),
+      // Contract Terms & Conditions — shared by the Profile entry point
+      // and the invoice entry point. `?invoiceId=` switches it to the
+      // invoice's own gym + pinned version.
+      GoRoute(
+        path: '/contract-terms',
+        name: 'contract-terms',
+        pageBuilder: (context, state) {
+          final invoiceId = state.uri.queryParameters['invoiceId'];
+          return CustomTransitionPage(
+            child: ContractTermsScreen(
+              source: invoiceId != null
+                  ? ContractTermsSource.invoice
+                  : ContractTermsSource.profile,
+              invoiceId: invoiceId,
+            ),
+            transitionsBuilder: (context, animation, _, child) => SlideTransition(
+              position: Tween(begin: const Offset(1, 0), end: Offset.zero)
+                  .animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic)),
+              child: child,
+            ),
+            transitionDuration: const Duration(milliseconds: 300),
+          );
+        },
+      ),
+
       // Billing — invoice list
       GoRoute(
         path: '/billing',

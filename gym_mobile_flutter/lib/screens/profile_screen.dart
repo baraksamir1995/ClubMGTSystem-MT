@@ -59,7 +59,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadData() async {
-    final gymId = context.read<AuthProvider>().profile?.gymId;
+    final auth = context.read<AuthProvider>();
+    // Pick up profile edits made elsewhere (e.g. an admin uploading the
+    // member's photo from the dashboard) on open and on pull-to-refresh.
+    await auth.refreshProfileQuietly();
+    if (!mounted) return;
+    final gymId = auth.profile?.gymId;
     if (gymId == null) return;
     final mp = context.read<MemberProvider>();
     await mp.ensureMemberLoaded(gymId);
@@ -262,6 +267,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: _whiteCard(
                       child: Column(
                         children: [
+                          // Gym-specific contract terms (in-app screen).
+                          // Distinct from the app-wide Terms of Service
+                          // link below it, which opens an external URL.
+                          _row(
+                            iconBox: const Icon(Icons.article_outlined, size: 16, color: _kInk),
+                            label: context.l10n.profileDocumentLabel,
+                            value: context.l10n.contractTermsProfileValue,
+                            onTap: () => context.push('/contract-terms'),
+                          ),
                           _row(
                             iconBox: const Icon(Icons.description_outlined, size: 16, color: _kInk),
                             label: context.l10n.profileDocumentLabel,

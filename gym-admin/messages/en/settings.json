@@ -1,14 +1,13 @@
 {
   "title": "Settings",
   "subtitle": "Manage your gym profile, operations, and integrations",
-
   "sections": {
     "gymProfile": "Gym Profile",
     "appBranding": "App Branding",
     "mobileApp": "Mobile App & Payments",
-    "branchesOps": "Branches & Operations"
+    "branchesOps": "Branches & Operations",
+    "contractTerms": "Contract Terms"
   },
-
   "profile": {
     "logoUsage": "Used in the member app and splash screen",
     "uploadLogo": "Upload Logo",
@@ -28,7 +27,6 @@
     "savedProfile": "Profile saved",
     "gymNameRequired": "Gym name is required"
   },
-
   "branding": {
     "subtitle": "Customize the colors members see in the mobile app. Changes take effect next time a member opens the app.",
     "primaryColor": "Primary Color",
@@ -43,7 +41,6 @@
     "saveColors": "Save Colors",
     "savedColors": "App colors saved — members will see the changes next time they open the app"
   },
-
   "app": {
     "mobilePayments": "Mobile Payments",
     "mobilePaymentsDesc": "Allow members to pay for memberships, programmes, and packages directly in the app. When disabled, all payment buttons are hidden from the member app.",
@@ -51,7 +48,6 @@
     "sessionTransfersDesc": "Allow members to transfer sessions to another member from their profile. When disabled, the \"Share sessions\" entry point is hidden in the member app.",
     "saveAppSettings": "Save",
     "savedAppSettings": "App settings saved",
-
     "paymentGateway": "Payment Gateway",
     "gatewayConfigured": "Payment gateway configured",
     "gatewayNotConfigured": "Payment gateway not configured",
@@ -77,7 +73,6 @@
     "paymentConfigRequired": "Secret key, public key, and card integration ID are required",
     "paymentConfigSaved": "Payment gateway configured successfully"
   },
-
   "hours": {
     "title": "Operating Hours",
     "closed": "Closed",
@@ -94,7 +89,6 @@
       "sunday": "Sunday"
     }
   },
-
   "capacity": {
     "title": "Gym Capacity",
     "enableTracking": "Enable Capacity Tracking",
@@ -111,7 +105,6 @@
     "veryBusy": "Very busy",
     "activeOf": "{active} active members out of {max} capacity"
   },
-
   "branches": {
     "title": "Branches & Studios",
     "subtitle": "Manage your gym locations and studio spaces",
@@ -146,11 +139,25 @@
     "tabBranches": "Branches",
     "tabStudios": "Studios"
   },
-
   "failedSave": "Failed to save",
   "failedCreate": "Failed to create",
   "failedDelete": "Failed to delete",
   "failedUpdate": "Failed to update",
   "failedUpload": "Upload failed",
-  "networkError": "Network error"
+  "networkError": "Network error",
+  "contractTerms": {
+    "sectionTitle": "Contract Terms & Conditions",
+    "description": "These terms are shown to your members in the mobile app, from their Profile and on each invoice. They apply to this gym only.",
+    "label": "Terms content",
+    "placeholder": "Enter your gym's contract terms and conditions.\n\nUse blank lines to separate paragraphs and start a line with - for a bullet point.",
+    "formattingHint": "Plain text. Blank lines separate paragraphs, lines starting with \"-\" become bullets, and **text** renders bold in the app.",
+    "save": "Publish Terms",
+    "saved": "Terms published",
+    "empty": "No terms configured yet. Members will see an empty state until you publish.",
+    "currentVersion": "Version {version}",
+    "lastUpdated": "Last updated {date}",
+    "required": "Terms content cannot be empty",
+    "versionNote": "Publishing creates a new version. Invoices already issued keep the version they were issued under.",
+    "charCount": "{count} characters"
+  }
 }

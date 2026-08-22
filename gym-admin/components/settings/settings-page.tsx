@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Clock, Upload, Loader2, Check, Dumbbell, Smartphone, GitBranch, Users, ChevronDown, CreditCard, ShieldCheck, Eye, EyeOff, Palette } from 'lucide-react';
+import { Building2, Clock, Upload, Loader2, Check, Dumbbell, Smartphone, GitBranch, Users, ChevronDown, CreditCard, ShieldCheck, Eye, EyeOff, Palette, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import type { GymSettings, OperatingHours, DayHours } from '@/lib/settings-types';
@@ -23,7 +23,7 @@ interface Props {
   gymId: string;
 }
 
-const ALL_SECTIONS = ['profile', 'branding', 'app', 'operations'] as const;
+const ALL_SECTIONS = ['profile', 'branding', 'app', 'contractTerms', 'operations'] as const;
 type SectionKey = typeof ALL_SECTIONS[number];
 
 export default function SettingsPage({ gym, permissions, initialBranches, initialStudios, maxBranches, pricePerBranch, gymId }: Props) {
@@ -31,7 +31,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const tc = useTranslations('common');
 
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
-    profile: false, branding: false, app: false, operations: false,
+    profile: false, branding: false, app: false, contractTerms: false, operations: false,
   });
 
   const toggle = (key: SectionKey) => setOpen(prev => ({ ...prev, [key]: !prev[key] }));
@@ -76,6 +76,14 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const [savingPayment, setSavingPayment] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
   const [paymentLoaded, setPaymentLoaded] = useState(false);
+
+  // Contract Terms & Conditions. Loaded lazily when the section is first
+  // expanded, same as the payment config above.
+  const [terms, setTerms] = useState('');
+  const [termsMeta, setTermsMeta] = useState<{ terms_version: number; updated_at: string | null } | null>(null);
+  const [termsLoaded, setTermsLoaded] = useState(false);
+  const [termsLoading, setTermsLoading] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
 
   const inp = 'w-full bg-surface border border-line rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-focus focus:ring-2 focus:ring-focus';
 
@@ -225,6 +233,48 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   useEffect(() => {
     loadPaymentStatus();
   }, []);
+
+  const loadContractTerms = async () => {
+    setTermsLoading(true);
+    try {
+      const res = await fetch('/api/contract-terms');
+      if (!res.ok) { setTermsLoaded(true); return; }
+      const data = await res.json();
+      // null = this gym has never published terms → empty state.
+      if (data && data.contract_terms_conditions) {
+        setTerms(data.contract_terms_conditions);
+        setTermsMeta({ terms_version: data.terms_version, updated_at: data.updated_at ?? null });
+      }
+      setTermsLoaded(true);
+    } catch {
+      setTermsLoaded(true);
+    } finally {
+      setTermsLoading(false);
+    }
+  };
+
+  const saveContractTerms = async () => {
+    if (!terms.trim()) { toast.error(t('contractTerms.required')); return; }
+    setSavingTerms(true);
+    try {
+      const res = await fetch('/api/contract-terms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_terms_conditions: terms }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? t('failedSave')); return; }
+      setTermsMeta({ terms_version: data.terms_version, updated_at: data.updated_at ?? null });
+      toast.success(t('contractTerms.saved'));
+    } catch { toast.error(t('networkError')); }
+    finally { setSavingTerms(false); }
+  };
+
+  // Lazy-load the terms the first time the section is expanded.
+  useEffect(() => {
+    if (open.contractTerms && !termsLoaded && !termsLoading) loadContractTerms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open.contractTerms]);
 
   useEffect(() => {
     if (!capacityEnabled) { setLiveCapacity(null); return; }
@@ -593,6 +643,72 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
                   className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
                   {savingPayment ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><CreditCard className="w-4 h-4" /> {t('app.savePaymentConfig')}</>}
                 </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION: CONTRACT TERMS & CONDITIONS
+         ══════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
+        <SectionHeader sectionKey="contractTerms" icon={<FileText className="w-4 h-4 text-brand" />} title={t('sections.contractTerms')} />
+        {open.contractTerms && (
+          <div className="space-y-4 mt-5">
+            <p className="text-xs text-fg-muted leading-relaxed">{t('contractTerms.description')}</p>
+
+            {termsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-fg-muted py-6">
+                <Loader2 className="w-4 h-4 animate-spin" /> {tc('loading')}
+              </div>
+            ) : (
+              <>
+                {/* Version / last-updated, or the empty state when nothing is published yet. */}
+                {termsMeta ? (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="px-2 py-0.5 rounded-full bg-brand-fill text-brand-ink border border-brand-edge font-medium">
+                      {t('contractTerms.currentVersion', { version: termsMeta.terms_version })}
+                    </span>
+                    {termsMeta.updated_at && (
+                      <span className="text-fg-faint">
+                        {t('contractTerms.lastUpdated', { date: new Date(termsMeta.updated_at).toLocaleString() })}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-fg-faint bg-surface border border-line rounded-lg px-3 py-2">
+                    {t('contractTerms.empty')}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-fg-muted mb-1.5">{t('contractTerms.label')}</label>
+                  <textarea
+                    value={terms}
+                    onChange={e => setTerms(e.target.value)}
+                    placeholder={t('contractTerms.placeholder')}
+                    rows={16}
+                    disabled={!can(permissions, 'settings', 'edit')}
+                    className={inp + ' font-mono text-xs leading-relaxed resize-y disabled:opacity-60'}
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5">
+                    <p className="text-xs text-fg-faint">{t('contractTerms.formattingHint')}</p>
+                    <p className="text-xs text-fg-faint tabular-nums">
+                      {t('contractTerms.charCount', { count: terms.length })}
+                    </p>
+                  </div>
+                </div>
+
+                {can(permissions, 'settings', 'edit') && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-fg-faint">{t('contractTerms.versionNote')}</p>
+                    <button onClick={saveContractTerms} disabled={savingTerms || !terms.trim()}
+                      className="flex items-center gap-2 px-5 py-2 bg-brand-fill hover:bg-brand-dim text-brand-ink border border-brand-edge text-sm font-medium rounded-lg transition-colors disabled:opacity-40">
+                      {savingTerms ? <><Loader2 className="w-4 h-4 animate-spin" /> {tc('saving')}</> : <><Check className="w-4 h-4" /> {t('contractTerms.save')}</>}
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>

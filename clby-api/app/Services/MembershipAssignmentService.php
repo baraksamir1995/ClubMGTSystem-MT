@@ -37,6 +37,28 @@ class MembershipAssignmentService
         $originalAmount = $options['original_amount'] ?? $amount;
         $discountAmount = $options['discount_amount'] ?? 0;
 
+        // Serialize concurrent assignments for this member. The displace-
+        // then-insert pair below is read-modify-write: two racing calls (a
+        // double-clicked "Assign Plan", or admin + Paymob webhook landing
+        // together) would each displace, each insert, and leave two active
+        // subscription rows. The partial unique index cannot catch that —
+        // its predicate requires payment_status='paid' and these rows are
+        // inserted 'pending'. Taking a row lock on the member's existing
+        // subscription rows first makes the second caller wait for the
+        // first to commit, so it displaces the row the first just wrote.
+        //
+        // Lock the PARENT gym_members row, not the membership rows: a
+        // SELECT ... FOR UPDATE over an empty result set locks nothing
+        // (Postgres has no gap locks), so a member with no prior
+        // subscription — the very first assignment — was left unserialized
+        // and two racing calls could both insert an active row.
+        // The member row always exists, so it is a reliable mutex, and it
+        // still only blocks concurrent writes for this same member.
+        DB::table('gym_members')
+            ->where('id', $gymMemberId)
+            ->lockForUpdate()
+            ->first();
+
         // Deactivate any existing active SUBSCRIPTION memberships for
         // this member. Transferred buckets are independent entitlements
         // and must survive a new subscription assignment.

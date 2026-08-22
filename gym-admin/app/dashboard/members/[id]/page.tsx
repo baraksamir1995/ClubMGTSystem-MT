@@ -7,7 +7,8 @@ import VerifyEmailButton from '@/components/members/verify-email-button';
 import MemberDetailActions from '@/components/members/member-detail-actions';
 import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
-import { Avatar, Badge, type BadgeProps } from '@/components/ui';
+import MemberPhoto from '@/components/members/member-photo';
+import { Badge, type BadgeProps } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -172,7 +173,12 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
       {/* Header */}
       <div className="bg-surface-2 border border-line rounded-xl p-6">
         <div className="flex items-center gap-4">
-          <Avatar name={displayName} src={profile?.photo_url} size={56} />
+          <MemberPhoto
+            memberId={member.id}
+            memberName={displayName}
+            photoUrl={profile?.photo_url ?? null}
+            size={56}
+          />
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-fg">{displayName}</h1>
             <div className="flex items-center gap-3 mt-1 flex-wrap">

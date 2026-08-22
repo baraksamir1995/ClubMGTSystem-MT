@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ResolvesMemberScope;
 use App\Models\GymMember;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 use \App\Traits\LogsActivity;
 
@@ -463,6 +465,132 @@ class MemberController extends Controller
                 ],
             ], 201);
         });
+    }
+
+    /**
+     * Upload (or replace) a member's profile photo — admin action.
+     *
+     * Writes straight to profiles.photo_url so the mobile app, admin
+     * tables, and every other photo_url consumer pick it up with no
+     * extra plumbing. The previous file is deleted from storage once
+     * the new URL is committed.
+     */
+    public function uploadPhoto(Request $request, string $id, StorageService $storage): JsonResponse
+    {
+        // A file larger than PHP's post_max_size/upload_max_filesize never
+        // reaches the validator intact — PHP drops it and the generic
+        // "file failed to upload" surfaces instead of a size message. Catch
+        // that first so the admin is told the real reason.
+        if ($request->hasFile('file') && ! $request->file('file')->isValid()) {
+            $error = $request->file('file')->getError();
+            if (in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+                throw ValidationException::withMessages([
+                    'file' => ['The image is too large. Maximum size is 5MB.'],
+                ]);
+            }
+        }
+
+        $request->validate([
+            'file' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:5120', // 5MB
+        ]);
+
+        $gymId = $request->user()->gym_id;
+
+        if (! $gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        $member = GymMember::where('gym_id', $gymId)
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (! $member || ! $member->user_id) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        $previous = DB::table('profiles')->where('id', $member->user_id)->value('photo_url');
+
+        $result = $storage->upload($request->file('file'), 'avatars', $gymId);
+
+        DB::table('profiles')
+            ->where('id', $member->user_id)
+            ->update(['photo_url' => $result['url'], 'updated_at' => now()]);
+
+        $this->deleteStoredPhoto($storage, $previous);
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * Remove a member's profile photo — admin action. Clears
+     * profiles.photo_url so consumers fall back to the initials avatar.
+     */
+    public function deletePhoto(Request $request, string $id, StorageService $storage): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        if (! $gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        $member = GymMember::where('gym_id', $gymId)
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (! $member || ! $member->user_id) {
+            return response()->json(['error' => 'Member not found'], 404);
+        }
+
+        $previous = DB::table('profiles')->where('id', $member->user_id)->value('photo_url');
+
+        DB::table('profiles')
+            ->where('id', $member->user_id)
+            ->update(['photo_url' => null, 'updated_at' => now()]);
+
+        $this->deleteStoredPhoto($storage, $previous);
+
+        return response()->json(['message' => 'Photo removed']);
+    }
+
+    /**
+     * Best-effort delete of a previously stored avatar. Old rows may hold
+     * a full URL (that is what we persist) or a bare storage path, and
+     * Supabase-era rows point at a host we no longer own — so this only
+     * removes files that live under this gym's own storage prefix and
+     * never fails the request.
+     */
+    private function deleteStoredPhoto(StorageService $storage, ?string $urlOrPath): void
+    {
+        if (! $urlOrPath) {
+            return;
+        }
+
+        $path = $urlOrPath;
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            $parsed = parse_url($path, PHP_URL_PATH);
+            if (! $parsed) {
+                return;
+            }
+            $path = ltrim($parsed, '/');
+            // Local disk URLs are served under /storage/<path>.
+            if (str_starts_with($path, 'storage/')) {
+                $path = substr($path, strlen('storage/'));
+            }
+        }
+
+        // Only touch files we wrote for this gym (`<gym_id>/avatars/...`).
+        if (! preg_match('#^[0-9a-fA-F-]{36}/avatars/#', $path)) {
+            return;
+        }
+
+        try {
+            $storage->delete($path);
+        } catch (\Throwable) {
+            // Orphaned file is harmless; the profile update already landed.
+        }
     }
 
     /**

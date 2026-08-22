@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ResolvesMemberScope;
+use App\Mail\InvoiceMail;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 use \App\Traits\LogsActivity;
 
@@ -49,10 +51,20 @@ class PaymentController extends Controller
         // direct query. Otherwise (admin viewing all gym payments) use the
         // PG function which has additional aggregation.
         if ($memberId) {
-            $results = DB::table('payments')
-                ->where('gym_id', $gymId)
-                ->where('gym_member_id', $memberId)
-                ->orderBy('created_at', 'desc')
+            // period_start / period_end = the membership (or service-package)
+            // period the payment covers, so invoices can show it. NULL for
+            // product / ad-hoc payments that have no applicable period.
+            $results = DB::table('payments as p')
+                ->leftJoin('member_memberships as mm', 'mm.id', '=', 'p.membership_id')
+                ->leftJoin('member_service_assignments as msa', 'msa.id', '=', 'p.service_assignment_id')
+                ->where('p.gym_id', $gymId)
+                ->where('p.gym_member_id', $memberId)
+                ->orderBy('p.created_at', 'desc')
+                ->select([
+                    'p.*',
+                    DB::raw('COALESCE(mm.start_date::timestamptz, msa.assigned_at) as period_start'),
+                    DB::raw('COALESCE(mm.end_date::timestamptz,   msa.expires_at)  as period_end'),
+                ])
                 ->get()
                 ->map(fn ($r) => (array) $r)
                 ->toArray();
@@ -82,17 +94,26 @@ class PaymentController extends Controller
 
         // Gym-wide summary computed in SQL so the tiles stay correct even
         // when the row list is truncated by the limit above.
+        //
+        // daily_revenue covers only what was collected *today* in the gym's
+        // own timezone, keyed off the payment date (paid_at) rather than the
+        // record's created_at, so it rolls over on its own at local midnight.
+        $gymTz = DB::table('gyms')->where('id', $gymId)->value('timezone') ?: 'UTC';
+
         $summary = (array) DB::table('payments')
             ->where('gym_id', $gymId)
             ->selectRaw("
                 count(*) filter (where status = 'paid')    as paid_count,
                 count(*) filter (where status = 'pending') as pending_count,
                 count(*) filter (where status = 'overdue') as overdue_count,
-                coalesce(sum(amount - coalesce(refunded_amount, 0))
-                    filter (where status in ('paid', 'refunded', 'partial_refund')), 0) as total_revenue
-            ")
+                coalesce(sum(amount - coalesce(refunded_amount, 0)) filter (
+                    where status in ('paid', 'refunded', 'partial_refund')
+                      and (coalesce(paid_at, created_at) at time zone ?)::date
+                          = (now() at time zone ?)::date
+                ), 0) as daily_revenue
+            ", [$gymTz, $gymTz])
             ->first();
-        $summary['total_revenue'] = (float) $summary['total_revenue'];
+        $summary['daily_revenue'] = (float) $summary['daily_revenue'];
 
         return response()->json(['data' => $results, 'summary' => $summary]);
     }
@@ -126,19 +147,44 @@ class PaymentController extends Controller
                 ->first();
         }
 
-        // Include plan info
+        // Include plan info + the membership period the payment covers.
         $plan = null;
+        $periodStart = null;
+        $periodEnd = null;
         if ($payment->membership_id) {
             $plan = DB::table('member_memberships')
                 ->join('membership_plans', 'membership_plans.id', '=', 'member_memberships.plan_id')
                 ->where('member_memberships.id', $payment->membership_id)
-                ->select('membership_plans.name as plan_name', 'membership_plans.plan_type')
+                ->select(
+                    'membership_plans.name as plan_name',
+                    'membership_plans.plan_type',
+                    'member_memberships.start_date',
+                    'member_memberships.end_date',
+                )
                 ->first();
+            if ($plan) {
+                $periodStart = $plan->start_date;
+                $periodEnd = $plan->end_date;
+            }
+        } elseif ($payment->service_assignment_id) {
+            // Service-package payments carry the package validity window
+            // instead of a membership period.
+            $assignment = DB::table('member_service_assignments')
+                ->where('id', $payment->service_assignment_id)
+                ->select('assigned_at', 'expires_at')
+                ->first();
+            if ($assignment) {
+                $periodStart = $assignment->assigned_at;
+                $periodEnd = $assignment->expires_at;
+            }
         }
 
         $data = $payment->toArray();
         $data['member'] = $member ? (array) $member : null;
         $data['plan'] = $plan ? (array) $plan : null;
+        // Null for product / ad-hoc payments with no applicable period.
+        $data['period_start'] = $periodStart;
+        $data['period_end'] = $periodEnd;
 
         return response()->json($data);
     }
@@ -395,13 +441,31 @@ class PaymentController extends Controller
                     return;
                 }
 
-                // Memberships created as pending (e.g. Paymob intentions)
-                // activate once the payment is confirmed. A newly-activating
-                // subscription displaces other active subscriptions — same
-                // rule as the Paymob webhook and MembershipController::assign
-                // — which also avoids colliding with the partial unique index
+                // Memberships awaiting settlement activate once the payment
+                // is confirmed. A newly-activating subscription displaces
+                // other active subscriptions — same rule as the Paymob
+                // webhook and MembershipController::assign — which also
+                // avoids colliding with the partial unique index
                 // idx_one_active_subscription_per_member.
-                if ($membership->status === 'pending' && $membership->source_type === 'subscription') {
+                //
+                // Keyed on payment_status, NOT status. Paymob intentions land
+                // as status='pending', but MembershipAssignmentService (the
+                // admin assign/renew path) inserts status='active' with
+                // payment_status='pending'. Gating on status==='pending'
+                // therefore skipped displacement for every admin-assigned
+                // membership, and the payment_status flip below would then
+                // violate the unique index with an unhandled 23505.
+                // Only displace when THIS membership is actually going to end up
+                // active. `status` may already be expired/cancelled (a payment
+                // settled against a membership that was since ended): the
+                // promotion below only lifts status='pending', so displacing
+                // here would expire the member's live subscription and leave
+                // this one expired too — no active subscription at all.
+                $willBecomeActive = in_array($membership->status, ['pending', 'active'], true);
+
+                if ($membership->payment_status === 'pending'
+                    && $membership->source_type === 'subscription'
+                    && $willBecomeActive) {
                     DB::table('member_memberships')
                         ->where('gym_member_id', $membership->gym_member_id)
                         ->where('id', '!=', $membership->id)
@@ -467,6 +531,115 @@ class PaymentController extends Controller
         DB::select('SELECT delete_payment(?, ?)', [$id, $gymId]);
 
         return response()->json(['message' => 'Payment deleted successfully']);
+    }
+
+    /**
+     * Email the invoice / receipt for a payment to the member.
+     *
+     * The client posts docType/docNumber purely as display hints; every
+     * figure that matters (amount, dates, recipient) is re-resolved here
+     * from the DB, so a tampered request can't mail a member someone
+     * else's data or a fabricated total.
+     */
+    public function sendInvoice(Request $request, string $id): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+
+        if (! $gymId) {
+            return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        $payment = Payment::where('id', $id)->where('gym_id', $gymId)->first();
+        if (! $payment) {
+            return response()->json(['error' => 'Payment not found'], 404);
+        }
+
+        // Recipient comes from the member record, never from the request.
+        $member = null;
+        if ($payment->gym_member_id) {
+            $member = DB::table('gym_members')
+                ->join('profiles', 'profiles.id', '=', 'gym_members.user_id')
+                ->where('gym_members.id', $payment->gym_member_id)
+                ->select('gym_members.member_number', 'profiles.full_name', 'profiles.email')
+                ->first();
+        }
+
+        if (! $member || ! $member->email) {
+            return response()->json(['error' => 'This member has no email address on file.'], 422);
+        }
+
+        // Same period resolution as show(): membership window, else the
+        // service-package validity, else null for product / ad-hoc payments.
+        $periodStart = null;
+        $periodEnd = null;
+        if ($payment->membership_id) {
+            $membership = DB::table('member_memberships')
+                ->where('id', $payment->membership_id)
+                ->select('start_date', 'end_date')
+                ->first();
+            if ($membership) {
+                $periodStart = $membership->start_date;
+                $periodEnd = $membership->end_date;
+            }
+        } elseif ($payment->service_assignment_id) {
+            $assignment = DB::table('member_service_assignments')
+                ->where('id', $payment->service_assignment_id)
+                ->select('assigned_at', 'expires_at')
+                ->first();
+            if ($assignment) {
+                $periodStart = $assignment->assigned_at;
+                $periodEnd = $assignment->expires_at;
+            }
+        }
+
+        $gym = DB::table('gyms')
+            ->where('id', $gymId)
+            ->select('name', 'logo_url', 'email', 'phone')
+            ->first();
+
+        $isReceipt = $payment->status === 'paid';
+        $docType   = $isReceipt ? 'RECEIPT' : 'INVOICE';
+        $docNumber = ($isReceipt ? 'RCP-' : 'INV-') . strtoupper(substr($payment->id, 0, 8));
+
+        $data = $payment->toArray();
+        $data['period_start']  = $periodStart;
+        $data['period_end']    = $periodEnd;
+        $data['full_name']     = $member->full_name;
+        $data['email']         = $member->email;
+        $data['member_number'] = $member->member_number;
+
+        try {
+            Mail::to($member->email)->send(new InvoiceMail(
+                payment: $data,
+                gym: (array) $gym,
+                docType: $docType,
+                docNumber: $docNumber,
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['error' => 'Could not send the email. Please try again.'], 502);
+        }
+
+        DB::table('payments')->where('id', $payment->id)->update([
+            'receipt_email_sent_at' => now(),
+        ]);
+
+        $this->logActivity(
+            $gymId,
+            $request->user()->id,
+            'send',
+            'payments',
+            "{$request->user()->full_name} emailed {$docType} {$docNumber} to {$member->email}",
+            'payments',
+            $payment->id,
+            ['recipient' => $member->email],
+        );
+
+        return response()->json([
+            'message'   => 'Sent',
+            'recipient' => $member->email,
+        ]);
     }
 
     public function stampTransaction(Request $request, string $id): JsonResponse

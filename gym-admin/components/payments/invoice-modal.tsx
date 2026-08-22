@@ -46,8 +46,15 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
   const isReceipt   = payment.status === 'paid';
   const docType     = isReceipt ? t('invoice.receipt') : t('invoice.invoice');
   const docNumber   = `${isReceipt ? 'RCP' : 'INV'}-${payment.id.slice(0, 8).toUpperCase()}`;
-  const issueDate   = new Date(payment.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  const paidDate    = payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : null;
+  const fmtDate     = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const issueDate   = fmtDate(payment.created_at);
+  const paidDate    = payment.paid_at ? fmtDate(payment.paid_at) : null;
+  // Membership/package period the payment covers. Comes from the backend
+  // (payments → member_memberships / member_service_assignments); null for
+  // product & ad-hoc payments, which then show no period block at all.
+  const startDate   = payment.period_start ? fmtDate(payment.period_start) : null;
+  const endDate     = payment.period_end   ? fmtDate(payment.period_end)   : null;
+  const hasPeriod   = startDate !== null || endDate !== null;
 
   const handlePrint = () => {
     const content = invoiceRef.current?.innerHTML;
@@ -196,10 +203,23 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
                   <p className="text-sm font-medium text-neutral-700">{issueDate}</p>
                 </div>
                 {paidDate && (
-                  <div>
+                  <div className="mb-3">
                     <p className="text-xs text-neutral-600 uppercase tracking-wider mb-1">{t('invoice.paidDate')}</p>
                     <p className="text-sm font-medium text-emerald-800">{paidDate}</p>
                   </div>
+                )}
+                {/* Membership period covered — omitted when not applicable. */}
+                {hasPeriod && (
+                  <>
+                    <div className="mb-3">
+                      <p className="text-xs text-neutral-600 uppercase tracking-wider mb-1">{t('invoice.startDate')}</p>
+                      <p className="text-sm font-medium text-neutral-700">{startDate ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-600 uppercase tracking-wider mb-1">{t('invoice.endDate')}</p>
+                      <p className="text-sm font-medium text-neutral-700">{endDate ?? '—'}</p>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

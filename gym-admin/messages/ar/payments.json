@@ -7,7 +7,7 @@
   "sendReminders": "إرسال تذكيرات",
 
   "summary": {
-    "totalRevenue": "إجمالي الإيرادات",
+    "dailyRevenue": "إيرادات اليوم",
     "paid": "مدفوع",
     "pending": "قيد الانتظار",
     "overdue": "متأخر"
@@ -187,6 +187,8 @@
     "billTo": "فاتورة إلى",
     "issueDate": "تاريخ الإصدار",
     "paidDate": "تاريخ الدفع",
+    "startDate": "تاريخ البداية",
+    "endDate": "تاريخ النهاية",
     "description": "الوصف",
     "method": "طريقة الدفع",
     "amount": "المبلغ",

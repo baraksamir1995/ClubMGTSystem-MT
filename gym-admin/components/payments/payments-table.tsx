@@ -25,7 +25,7 @@ export interface PaymentsSummary {
   paid_count: number;
   pending_count: number;
   overdue_count: number;
-  total_revenue: number;
+  daily_revenue: number;
 }
 
 interface Props {
@@ -133,10 +133,22 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   const totalPaid    = useServerSummary ? Number(serverSummary.paid_count)    : baseFiltered.filter(p => p.status === 'paid').length;
   const totalPending = useServerSummary ? Number(serverSummary.pending_count) : baseFiltered.filter(p => p.status === 'pending').length;
   const totalOverdue = useServerSummary ? Number(serverSummary.overdue_count) : baseFiltered.filter(p => p.status === 'overdue').length;
-  // Revenue = everything collected (paid / refunded / partial_refund) minus what was actually refunded back.
-  const totalRevenue = useServerSummary
-    ? Number(serverSummary.total_revenue)
-    : collected.reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
+  // Daily revenue = today's collected payments (paid / refunded / partial_refund)
+  // minus what was actually refunded back. Keyed off the payment date (paid_at),
+  // falling back to created_at when a row predates that column being populated.
+  const isToday = (p: Payment) => {
+    const raw = p.paid_at ?? p.created_at;
+    if (!raw) return false;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear()
+      && d.getMonth() === now.getMonth()
+      && d.getDate() === now.getDate();
+  };
+  const dailyRevenue = useServerSummary
+    ? Number(serverSummary.daily_revenue)
+    : collected.filter(isToday).reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -197,8 +209,8 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         {/* Summary cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-surface-2 border border-line rounded-xl p-4">
-            <p className="text-xs text-fg-muted mb-1">{t('summary.totalRevenue')}</p>
-            <p className="text-xl font-bold text-success">{fmt(totalRevenue)}</p>
+            <p className="text-xs text-fg-muted mb-1">{t('summary.dailyRevenue')}</p>
+            <p className="text-xl font-bold text-success">{fmt(dailyRevenue)}</p>
           </div>
           {[
             { label: t('summary.paid'),    value: totalPaid,    color: 'text-success', filter: 'paid' },

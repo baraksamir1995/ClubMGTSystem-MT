@@ -1,5 +1,6 @@
 import 'package:clby/l10n/l10n.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -77,16 +78,29 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
           _buildHeaderCard(invoice, theme),
           const SizedBox(height: 16),
 
-          // Billing period
-          if (details.billingPeriod != null) ...[
+          // Billing period — membership/package start + end, straight from
+          // the backend. Hidden entirely when the payment has no applicable
+          // period (product / ad-hoc payments).
+          if (invoice.hasPeriod) ...[
             _buildSection(
               theme,
               title: context.l10n.invoiceBillingPeriod,
-              child: _buildInfoRow(
-                theme,
-                label: context.l10n.invoicePeriod,
-                value: details.billingPeriod!,
-                icon: Icons.date_range_outlined,
+              child: Column(
+                children: [
+                  _buildInfoRow(
+                    theme,
+                    label: context.l10n.invoiceStartDate,
+                    value: _formatDate(invoice.periodStart),
+                    icon: Icons.event_available_outlined,
+                  ),
+                  const Divider(height: 20),
+                  _buildInfoRow(
+                    theme,
+                    label: context.l10n.invoiceEndDate,
+                    value: _formatDate(invoice.periodEnd),
+                    icon: Icons.event_busy_outlined,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -155,6 +169,13 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+
+          // Contract Terms & Conditions — opens the same shared screen the
+          // Profile uses, but scoped to THIS invoice so the backend
+          // resolves the issuing gym's terms (and the version the invoice
+          // was issued under) rather than the signed-in user's gym.
+          _buildTermsRow(theme),
 
           // Notes
           if (details.notes != null && details.notes!.isNotEmpty) ...[
@@ -183,6 +204,12 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
       ),
     );
   }
+
+  /// Same format as every other date on the invoice. One end of a period can
+  /// legitimately be null (e.g. an open-ended membership) — show a dash rather
+  /// than hiding the row, so the pair always reads as a period.
+  String _formatDate(DateTime? date) =>
+      date == null ? '—' : DateFormat('MMM d, yyyy').format(date);
 
   // ─── Header card ───────────────────────────────────────────────────────────
 
@@ -246,6 +273,43 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
   }
 
   // ─── Section wrapper ───────────────────────────────────────────────────────
+
+  Widget _buildTermsRow(ThemeData theme) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/contract-terms?invoiceId=${widget.invoiceId}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.article_outlined,
+                    size: 18, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.l10n.contractTermsInvoiceRow,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  size: 20, color: theme.colorScheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildSection(ThemeData theme,
       {required String title, required Widget child}) {

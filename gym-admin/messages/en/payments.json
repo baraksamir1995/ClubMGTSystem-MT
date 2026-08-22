@@ -7,7 +7,7 @@
   "sendReminders": "Send Reminders",
 
   "summary": {
-    "totalRevenue": "Total Revenue",
+    "dailyRevenue": "Daily Revenue",
     "paid": "Paid",
     "pending": "Pending",
     "overdue": "Overdue"
@@ -187,6 +187,8 @@
     "billTo": "Bill To",
     "issueDate": "Issue Date",
     "paidDate": "Paid Date",
+    "startDate": "Start Date",
+    "endDate": "End Date",
     "description": "Description",
     "method": "Method",
     "amount": "Amount",

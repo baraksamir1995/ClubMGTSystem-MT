@@ -28,6 +28,12 @@ class InvoiceModel {
   final double? originalAmount;
   final double? discountAmount;
 
+  /// Start/end of the membership (or service package) period this invoice
+  /// covers. Both come straight from the backend — never computed here.
+  /// Null for product / ad-hoc payments with no applicable period.
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
+
   const InvoiceModel({
     required this.id,
     required this.invoiceNumber,
@@ -43,9 +49,14 @@ class InvoiceModel {
     this.specialistName,
     this.originalAmount,
     this.discountAmount,
+    this.periodStart,
+    this.periodEnd,
   });
 
   bool get hasDiscount => discountAmount != null && discountAmount! > 0;
+
+  /// True when the backend gave us at least one end of the period.
+  bool get hasPeriod => periodStart != null || periodEnd != null;
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
     final id = json['id'] as String;
@@ -55,6 +66,12 @@ class InvoiceModel {
         : createdAt.add(const Duration(days: 30));
     double _toDouble(dynamic v) => v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
     double? _toDoubleNullable(dynamic v) => v == null ? null : _toDouble(v);
+    DateTime? _toDateNullable(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString();
+      if (s.isEmpty) return null;
+      return DateTime.tryParse(s);
+    }
 
     final rawDiscount = _toDouble(json['discount_amount']);
 
@@ -75,6 +92,8 @@ class InvoiceModel {
       specialistName: json['specialist_name'] as String?,
       originalAmount: _toDoubleNullable(json['original_amount']),
       discountAmount: rawDiscount > 0 ? rawDiscount : null,
+      periodStart: _toDateNullable(json['period_start']),
+      periodEnd: _toDateNullable(json['period_end']),
     );
   }
 

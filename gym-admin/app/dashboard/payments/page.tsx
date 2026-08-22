@@ -35,6 +35,10 @@ export interface Payment {
   plan_id: string | null;
   paymob_transaction_id: string | null;
   refunded_amount: number;
+  /** Membership (or service-package) period the payment covers. Null when
+   *  the payment has no applicable period, e.g. a product purchase. */
+  period_start: string | null;
+  period_end: string | null;
   member_number: string;
   full_name: string;
   email: string;

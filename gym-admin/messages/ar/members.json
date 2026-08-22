@@ -120,7 +120,18 @@
     "page": "صفحة {page} من {total}",
     "errorTitle": "تعذّر تحميل العضو",
     "errorDesc": "حدث خطأ أثناء تحميل الصفحة. جرّب التحديث أو العودة إلى قائمة الأعضاء.",
-    "backToMembers": "العودة إلى الأعضاء"
+    "backToMembers": "العودة إلى الأعضاء",
+    "photoChange": "تغيير الصورة",
+    "photoUpload": "رفع صورة",
+    "photoRemove": "إزالة الصورة",
+    "photoHint": "JPG أو PNG أو GIF أو WebP · بحد أقصى 5 ميجابايت",
+    "photoUpdated": "تم تحديث الصورة",
+    "photoRemoved": "تمت إزالة الصورة",
+    "photoUploadFailed": "فشل رفع الصورة",
+    "photoRemoveFailed": "تعذر إزالة الصورة",
+    "photoInvalidType": "نوع الملف غير مدعوم. استخدم JPG أو PNG أو GIF أو WebP.",
+    "photoTooLarge": "حجم الصورة كبير جدًا. الحد الأقصى 5 ميجابايت.",
+    "photoRemoveConfirm": "إزالة صورة هذا العضو؟"
   },
 
   "tabs": {
@@ -365,7 +376,9 @@
       "daysLeft": "الأيام المتبقية",
       "sessionsLeft": "الجلسات المتبقية",
       "lastCheckIn": "آخر حضور",
-      "view": "عرض"
+      "view": "عرض",
+      "membershipKind": "النوع",
+      "price": "السعر"
     },
     "planType": {
       "all": "جميع أنواع الخطط",
@@ -377,7 +390,10 @@
       "all": "جميع الحالات",
       "active": "نشط",
       "expiringSoon": "ينتهي قريباً",
-      "expired": "منتهٍ"
+      "expired": "منتهٍ",
+      "frozen": "مجمّد",
+      "pending": "بانتظار الدفع",
+      "cancelled": "ملغي"
     },
     "sourceFilter": {
       "subscription": "الاشتراكات فقط",
@@ -387,12 +403,17 @@
     "displayStatus": {
       "active": "نشط",
       "expiringSoon": "ينتهي قريباً",
-      "expired": "منتهٍ"
+      "expired": "منتهٍ",
+      "frozen": "مجمّد",
+      "pending": "بانتظار الدفع",
+      "cancelled": "ملغي"
     },
     "toast": {
       "nothingToExport": "لا يوجد شيء للتصدير",
       "exported": "تم تصدير {count} صف",
-      "exportedPlural": "تم تصدير {count} صفوف"
+      "exportedPlural": "تم تصدير {count} صفوف",
+      "exporting": "جاري تجهيز الملف…",
+      "exportFailed": "فشل التصدير"
     },
     "csvHeaders": {
       "memberName": "اسم العضو",
@@ -404,8 +425,38 @@
       "status": "الحالة",
       "daysRemaining": "الأيام المتبقية",
       "sessionsRemaining": "الجلسات المتبقية",
-      "lastCheckIn": "آخر حضور"
-    }
+      "lastCheckIn": "آخر حضور",
+      "membershipKind": "نوع الاشتراك",
+      "price": "السعر",
+      "frozenUntil": "مجمّد حتى"
+    },
+    "kind": {
+      "new": "جديد",
+      "renew": "تجديد"
+    },
+    "kindFilter": {
+      "all": "جديد وتجديد",
+      "new": "الجديد فقط",
+      "renew": "التجديدات فقط"
+    },
+    "kindHint": {
+      "new": "أول اشتراك للعضو في هذه الصالة",
+      "renew": "العضو لديه اشتراك سابق في هذه الصالة",
+      "notApplicable": "جلسات محوَّلة — ليست اشتراكاً مشترى"
+    },
+    "selectAllRows": "تحديد كل الصفوف",
+    "selectRow": "تحديد {name}",
+    "sessionsTooltip": "متبقي {remaining} حصة، تم استخدام {used} (من {total})",
+    "frozenLabel": "مجمّد",
+    "pendingLabel": "بانتظار الدفع",
+    "cancelledLabel": "ملغي",
+    "expiringRevenueLabel": "إيرادات معرضة للخطر",
+    "pendingRevenueLabel": "غير محصّل",
+    "newRenewLabel": "جديد / تجديد",
+    "newRenewHint": "{new} جديد، {renew} تجديد في هذا العرض",
+    "freezeOverdue": "انتهى التجميد",
+    "freezeOverdueHint": "مجمّد حتى {date} — تجاوز الموعد ويحتاج إلغاء التجميد",
+    "frozenUntil": "مجمّد حتى {date}"
   },
 
   "exportModal": {

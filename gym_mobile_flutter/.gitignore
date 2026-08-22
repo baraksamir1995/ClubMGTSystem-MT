@@ -37,6 +37,10 @@ flavors/*.local.json
 .pub/
 /build/
 /coverage/
+# Per-platform build output (regenerable; ios/build alone is ~224MB).
+/ios/build/
+/android/build/
+/android/app/build/
 
 # Symbolication related
 app.*.symbols

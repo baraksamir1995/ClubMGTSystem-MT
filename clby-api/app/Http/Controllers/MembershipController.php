@@ -22,8 +22,10 @@ class MembershipController extends Controller
      *
      * Filters (all optional):
      *   search          — member name or member_number
-     *   status          — active | expired | expiring_soon (derived)
+     *   status          — active | expiring_soon | expired | frozen
+     *                     | pending | cancelled (all derived)
      *   plan_type       — sessions | duration | duration_session
+     *   membership_kind — new | renew (derived from membership history)
      *   start_from / start_to — start_date range (yyyy-mm-dd)
      *   end_from / end_to     — end_date range (yyyy-mm-dd)
      *   expiring_days   — threshold for "expiring soon" (default 7)
@@ -33,9 +35,10 @@ class MembershipController extends Controller
     {
         $validated = $request->validate([
             'search' => 'nullable|string|max:120',
-            'status' => 'nullable|string|in:all,active,expired,expiring_soon',
+            'status' => 'nullable|string|in:all,active,expired,expiring_soon,frozen,pending,cancelled',
             'plan_type' => 'nullable|string|max:30',
             'source_type' => 'nullable|string|in:all,subscription,transfer',
+            'membership_kind' => 'nullable|string|in:all,new,renew',
             'start_from' => 'nullable|date',
             'start_to' => 'nullable|date',
             'end_from' => 'nullable|date',
@@ -47,7 +50,16 @@ class MembershipController extends Controller
 
         $gymId = $request->user()->gym_id;
         if (! $gymId) {
-            return response()->json(['data' => [], 'pagination' => ['page' => 1, 'pages' => 1, 'total' => 0, 'limit' => 0], 'summary' => ['active' => 0, 'expiring_soon' => 0, 'expired' => 0]]);
+            return response()->json([
+                'data' => [],
+                'pagination' => ['page' => 1, 'pages' => 1, 'total' => 0, 'limit' => 0],
+                'summary' => [
+                    'active' => 0, 'expiring_soon' => 0, 'expired' => 0,
+                    'frozen' => 0, 'pending' => 0, 'cancelled' => 0,
+                    'new' => 0, 'renew' => 0,
+                    'expiring_revenue' => 0, 'pending_revenue' => 0,
+                ],
+            ]);
         }
 
         $threshold = $validated['expiring_days'] ?? 7;
@@ -63,8 +75,18 @@ class MembershipController extends Controller
         //   • unlimited sessions (sessions_total IS NULL) → expired on end_date
         // The end_date column is independent — it can be stored alongside
         // any plan but only drives the rule for time-bound plan types.
+        // Order matters. Cancelled and pending are checked before anything
+        // else because they describe how the row was *issued*, not how it is
+        // being consumed — a cancelled membership isn't "expiring soon" no
+        // matter what its end_date says. Frozen then overrides the
+        // consumption branches: a freeze suspends the entitlement outright
+        // (AttendanceController blocks check-in on it), so a frozen row is
+        // neither active nor counting down.
         $displayStatusSql = "CASE
-            WHEN mm.status <> 'active' OR mm.payment_status <> 'paid' THEN 'expired'
+            WHEN mm.status = 'cancelled' THEN 'cancelled'
+            WHEN mm.status <> 'active' AND mm.status <> 'pending' THEN 'expired'
+            WHEN mm.payment_status <> 'paid' THEN 'pending'
+            WHEN mm.freeze_status = 'frozen' THEN 'frozen'
             WHEN COALESCE(mp.plan_type, 'duration') = 'sessions'
               AND mm.sessions_total IS NOT NULL THEN
               -- Finite session bucket (including 0). NULL means unlimited
@@ -79,42 +101,99 @@ class MembershipController extends Controller
             ELSE 'active'
           END";
 
-        $base = DB::table('member_memberships as mm')
-            ->join('gym_members as gm', 'gm.id', '=', 'mm.gym_member_id')
-            ->join('profiles as p', 'p.id', '=', 'gm.user_id')
-            ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
-            ->where('mm.gym_id', $gymId)
-            ->whereNull('gm.deleted_at');
+        // New vs Renew — derived from the member's own membership history,
+        // never stored. A row is a renewal when the same gym_member already
+        // had an *earlier issued subscription* in this gym.
+        //
+        // What counts as prior history (the "unrelated/invalid" carve-outs):
+        //   • source_type must be 'subscription' — a 'transfer' row is a
+        //     session hand-off from another member, not a purchased
+        //     membership, so it never makes the next signup a renewal.
+        //   • payment_status must be 'paid' — a row still sitting at
+        //     'pending'/'unpaid' was never issued (checkout abandoned,
+        //     invoice never settled), so it isn't history either.
+        //   • expired / cancelled / frozen all DO count: the AC is explicit
+        //     that how the previous membership ended is irrelevant.
+        //
+        // A 'transfer' row isn't a purchased membership at all, so New/Renew
+        // doesn't apply — those rows report NULL and the UI renders "—".
+        //
+        // The (start_date, created_at, id) tuple is a total order, so even a
+        // bulk import landing identical timestamps still yields exactly one
+        // 'new' per member rather than marking every tied row 'new'.
+        //
+        // Correlated EXISTS rather than a window function on purpose: the
+        // classification must reflect the member's whole history, not just
+        // the rows surviving this request's filters + pagination.
+        $membershipKindSql = "CASE
+            WHEN mm.source_type <> 'subscription' THEN NULL
+            WHEN EXISTS (
+              SELECT 1 FROM member_memberships prev
+              WHERE prev.gym_member_id = mm.gym_member_id
+                AND prev.gym_id = mm.gym_id
+                AND prev.id <> mm.id
+                AND prev.source_type = 'subscription'
+                AND prev.payment_status = 'paid'
+                AND (prev.start_date, prev.created_at, prev.id)
+                    < (mm.start_date, mm.created_at, mm.id)
+            ) THEN 'renew'
+            ELSE 'new' END";
 
-        if ($search = trim($validated['search'] ?? '')) {
-            $like = "%{$search}%";
-            $base->where(function ($q) use ($like) {
-                $q->where('p.full_name', 'ilike', $like)
-                  ->orWhere('gm.member_number', 'ilike', $like)
-                  ->orWhere('p.email', 'ilike', $like);
-            });
-        }
+        // Single definition of the filtered row set, used by all three passes
+        // (count, page, summary). Previously the summary re-declared the same
+        // joins and re-applied search/plan_type/source_type/date filters by
+        // copy-paste, so any new filter had to be added in two places or the
+        // tiles would silently disagree with the table.
+        //
+        // $includeDerived is the one intentional difference: the summary
+        // omits the status and membership_kind filters so the tiles keep
+        // reporting the whole picture (filtering to "New" must not report
+        // renew=0). Everything else is shared.
+        $buildQuery = function (bool $includeDerived) use ($validated, $gymId, $displayStatusSql, $membershipKindSql, $threshold) {
+            $q = DB::table('member_memberships as mm')
+                ->join('gym_members as gm', 'gm.id', '=', 'mm.gym_member_id')
+                ->join('profiles as p', 'p.id', '=', 'gm.user_id')
+                ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
+                ->where('mm.gym_id', $gymId)
+                ->whereNull('gm.deleted_at');
 
-        if (($pt = $validated['plan_type'] ?? null) && $pt !== 'all') {
-            $base->where('mp.plan_type', $pt);
-        }
+            if ($search = trim($validated['search'] ?? '')) {
+                $like = "%{$search}%";
+                $q->where(function ($w) use ($like) {
+                    $w->where('p.full_name', 'ilike', $like)
+                      ->orWhere('gm.member_number', 'ilike', $like)
+                      ->orWhere('p.email', 'ilike', $like);
+                });
+            }
 
-        if (($src = $validated['source_type'] ?? null) && $src !== 'all') {
-            $base->where('mm.source_type', $src);
-        }
+            if (($pt = $validated['plan_type'] ?? null) && $pt !== 'all') {
+                $q->where('mp.plan_type', $pt);
+            }
 
-        if ($validated['start_from'] ?? null) $base->where('mm.start_date', '>=', $validated['start_from']);
-        if ($validated['start_to']   ?? null) $base->where('mm.start_date', '<=', $validated['start_to'] . ' 23:59:59');
-        if ($validated['end_from']   ?? null) $base->where('mm.end_date',   '>=', $validated['end_from']);
-        if ($validated['end_to']     ?? null) $base->where('mm.end_date',   '<=', $validated['end_to']   . ' 23:59:59');
+            if (($src = $validated['source_type'] ?? null) && $src !== 'all') {
+                $q->where('mm.source_type', $src);
+            }
 
-        // Apply derived-status filter via a HAVING-equivalent: wrap in a CTE
-        // would be ideal, but the simpler approach is to filter on the raw
-        // conditions inline.
-        $statusFilter = $validated['status'] ?? 'all';
-        if ($statusFilter !== 'all') {
-            $base->whereRaw("$displayStatusSql = ?", [$threshold, $statusFilter]);
-        }
+            if ($validated['start_from'] ?? null) $q->where('mm.start_date', '>=', $validated['start_from']);
+            if ($validated['start_to']   ?? null) $q->where('mm.start_date', '<=', $validated['start_to'] . ' 23:59:59');
+            if ($validated['end_from']   ?? null) $q->where('mm.end_date',   '>=', $validated['end_from']);
+            if ($validated['end_to']     ?? null) $q->where('mm.end_date',   '<=', $validated['end_to']   . ' 23:59:59');
+
+            if ($includeDerived) {
+                if (($kind = $validated['membership_kind'] ?? null) && $kind !== 'all') {
+                    $q->whereRaw("$membershipKindSql = ?", [$kind]);
+                }
+
+                $statusFilter = $validated['status'] ?? 'all';
+                if ($statusFilter !== 'all') {
+                    $q->whereRaw("$displayStatusSql = ?", [$threshold, $statusFilter]);
+                }
+            }
+
+            return $q;
+        };
+
+        $base = $buildQuery(true);
 
         $countQuery = (clone $base);
         $total = $countQuery->count();
@@ -153,9 +232,23 @@ class MembershipController extends Controller
                 'mm.sessions_total',
                 'mm.sessions_used',
                 'mm.sessions_remaining',
-                DB::raw("EXTRACT(DAY FROM (mm.end_date - NOW()))::int as days_remaining"),
+                // Calendar-day difference, not whole 24h periods. EXTRACT(DAY
+                // FROM interval) truncates the fractional remainder, so an
+                // end_date 34 calendar days out reported 33 — and disagreed
+                // with the expiring_soon branch above, which compares
+                // timestamps directly. Casting both sides to date makes the
+                // number match what the status badge implies.
+                DB::raw("(mm.end_date::date - CURRENT_DATE) as days_remaining"),
                 DB::raw("$displayStatusSql as display_status"),
+                DB::raw("$membershipKindSql as membership_kind"),
                 DB::raw('last_attend.check_in_at as last_check_in_at'),
+                'mm.final_price',
+                'mm.frozen_until',
+                // There is no scheduled auto-unfreeze: a membership stays
+                // frozen past frozen_until until a human unfreezes it. Flag
+                // those so the tab surfaces the backlog rather than hiding
+                // it inside the Frozen count.
+                DB::raw("(mm.freeze_status = 'frozen' AND mm.frozen_until IS NOT NULL AND mm.frozen_until < NOW()) as freeze_overdue"),
             ])
             ->addBinding($threshold, 'select')        // for the display_status CASE
             ->orderByRaw("CASE
@@ -168,42 +261,30 @@ class MembershipController extends Controller
             ->limit($limit)
             ->get();
 
-        // Summary counts across the whole filtered set (ignoring pagination
-        // and the status filter so the cards reflect the full picture).
-        $summaryBase = DB::table('member_memberships as mm')
-            ->join('gym_members as gm', 'gm.id', '=', 'mm.gym_member_id')
-            ->join('profiles as p', 'p.id', '=', 'gm.user_id')
-            ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
-            ->where('mm.gym_id', $gymId)
-            ->whereNull('gm.deleted_at');
-        if ($search = trim($validated['search'] ?? '')) {
-            $like = "%{$search}%";
-            $summaryBase->where(function ($q) use ($like) {
-                $q->where('p.full_name', 'ilike', $like)
-                  ->orWhere('gm.member_number', 'ilike', $like)
-                  ->orWhere('p.email', 'ilike', $like);
-            });
-        }
-        if (($pt = $validated['plan_type'] ?? null) && $pt !== 'all') {
-            $summaryBase->where('mp.plan_type', $pt);
-        }
-        if (($src = $validated['source_type'] ?? null) && $src !== 'all') {
-            $summaryBase->where('mm.source_type', $src);
-        }
-        if ($validated['start_from'] ?? null) $summaryBase->where('mm.start_date', '>=', $validated['start_from']);
-        if ($validated['start_to']   ?? null) $summaryBase->where('mm.start_date', '<=', $validated['start_to'] . ' 23:59:59');
-        if ($validated['end_from']   ?? null) $summaryBase->where('mm.end_date',   '>=', $validated['end_from']);
-        if ($validated['end_to']     ?? null) $summaryBase->where('mm.end_date',   '<=', $validated['end_to']   . ' 23:59:59');
-
-        $summary = $summaryBase
+        // Summary counts across the whole filtered set, ignoring pagination
+        // and the derived status/membership_kind filters so the tiles reflect
+        // the full picture — otherwise filtering to New would report renew=0.
+        // expiring_revenue answers the question the volume tiles cannot:
+        // "what money is at risk in the next N days". pending_revenue is
+        // uncollected cash — memberships issued but never settled.
+        $summary = $buildQuery(false)
             ->select([
                 DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'active') as active"),
                 DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'expiring_soon') as expiring_soon"),
                 DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'expired') as expired"),
+                DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'frozen') as frozen"),
+                DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'pending') as pending"),
+                DB::raw("COUNT(*) FILTER (WHERE $displayStatusSql = 'cancelled') as cancelled"),
+                DB::raw("COUNT(*) FILTER (WHERE $membershipKindSql = 'new') as new_count"),
+                DB::raw("COUNT(*) FILTER (WHERE $membershipKindSql = 'renew') as renew_count"),
+                DB::raw("COALESCE(SUM(mm.final_price) FILTER (WHERE $displayStatusSql = 'expiring_soon'), 0) as expiring_revenue"),
+                DB::raw("COALESCE(SUM(mm.final_price) FILTER (WHERE $displayStatusSql = 'pending'), 0) as pending_revenue"),
             ])
-            ->addBinding($threshold, 'select')
-            ->addBinding($threshold, 'select')
-            ->addBinding($threshold, 'select')
+            // One binding per $displayStatusSql interpolation above, in
+            // source order: active, expiring_soon, expired, frozen, pending,
+            // cancelled, expiring_revenue, pending_revenue. ($membershipKindSql
+            // takes none.) Miscounting these silently shifts every binding.
+            ->addBinding(array_fill(0, 8, $threshold), 'select')
             ->first();
 
         return response()->json([
@@ -218,6 +299,13 @@ class MembershipController extends Controller
                 'active' => (int) ($summary->active ?? 0),
                 'expiring_soon' => (int) ($summary->expiring_soon ?? 0),
                 'expired' => (int) ($summary->expired ?? 0),
+                'frozen' => (int) ($summary->frozen ?? 0),
+                'pending' => (int) ($summary->pending ?? 0),
+                'cancelled' => (int) ($summary->cancelled ?? 0),
+                'new' => (int) ($summary->new_count ?? 0),
+                'renew' => (int) ($summary->renew_count ?? 0),
+                'expiring_revenue' => (float) ($summary->expiring_revenue ?? 0),
+                'pending_revenue' => (float) ($summary->pending_revenue ?? 0),
             ],
         ]);
     }

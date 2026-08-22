@@ -7,6 +7,7 @@ import { resolveGymId, laravelApi } from '@/lib/api-gym-id';
 // this allow-list is dropped so request URLs stay tidy.
 const FORWARD = [
   'page', 'limit', 'search', 'status', 'plan_type', 'source_type',
+  'membership_kind',
   'start_from', 'start_to', 'end_from', 'end_to', 'expiring_days',
 ];
 

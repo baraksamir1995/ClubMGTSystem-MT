@@ -120,7 +120,18 @@
     "page": "Page {page} of {total}",
     "errorTitle": "Could not load member",
     "errorDesc": "Something went wrong rendering this page. Try refreshing, or go back to the member list.",
-    "backToMembers": "Back to Members"
+    "backToMembers": "Back to Members",
+    "photoChange": "Change photo",
+    "photoUpload": "Upload photo",
+    "photoRemove": "Remove photo",
+    "photoHint": "JPG, PNG, GIF or WebP · max 5MB",
+    "photoUpdated": "Photo updated",
+    "photoRemoved": "Photo removed",
+    "photoUploadFailed": "Photo upload failed",
+    "photoRemoveFailed": "Could not remove photo",
+    "photoInvalidType": "Unsupported file type. Use JPG, PNG, GIF or WebP.",
+    "photoTooLarge": "Image is too large. Maximum size is 5MB.",
+    "photoRemoveConfirm": "Remove this member's photo?"
   },
 
   "tabs": {
@@ -365,7 +376,9 @@
       "daysLeft": "Days left",
       "sessionsLeft": "Sessions left",
       "lastCheckIn": "Last check-in",
-      "view": "View"
+      "view": "View",
+      "membershipKind": "Type",
+      "price": "Price"
     },
     "planType": {
       "all": "All plan types",
@@ -377,7 +390,10 @@
       "all": "All statuses",
       "active": "Active",
       "expiringSoon": "Expiring soon",
-      "expired": "Expired"
+      "expired": "Expired",
+      "frozen": "Frozen",
+      "pending": "Awaiting payment",
+      "cancelled": "Cancelled"
     },
     "sourceFilter": {
       "subscription": "Subscriptions only",
@@ -387,12 +403,17 @@
     "displayStatus": {
       "active": "Active",
       "expiringSoon": "Expiring soon",
-      "expired": "Expired"
+      "expired": "Expired",
+      "frozen": "Frozen",
+      "pending": "Awaiting payment",
+      "cancelled": "Cancelled"
     },
     "toast": {
       "nothingToExport": "Nothing to export",
       "exported": "Exported {count} row",
-      "exportedPlural": "Exported {count} rows"
+      "exportedPlural": "Exported {count} rows",
+      "exporting": "Preparing export…",
+      "exportFailed": "Export failed"
     },
     "csvHeaders": {
       "memberName": "Member Name",
@@ -404,8 +425,38 @@
       "status": "Status",
       "daysRemaining": "Days Remaining",
       "sessionsRemaining": "Sessions Remaining",
-      "lastCheckIn": "Last Check-in"
-    }
+      "lastCheckIn": "Last Check-in",
+      "membershipKind": "Membership Type",
+      "price": "Price",
+      "frozenUntil": "Frozen Until"
+    },
+    "kind": {
+      "new": "New",
+      "renew": "Renew"
+    },
+    "kindFilter": {
+      "all": "New & Renew",
+      "new": "New only",
+      "renew": "Renewals only"
+    },
+    "kindHint": {
+      "new": "The member's first membership at this gym",
+      "renew": "The member had an earlier membership at this gym",
+      "notApplicable": "Transferred sessions — not a purchased membership"
+    },
+    "selectAllRows": "Select all rows",
+    "selectRow": "Select {name}",
+    "sessionsTooltip": "{remaining} sessions left, {used} used (out of {total})",
+    "frozenLabel": "Frozen",
+    "pendingLabel": "Awaiting payment",
+    "cancelledLabel": "Cancelled",
+    "expiringRevenueLabel": "Revenue at risk",
+    "pendingRevenueLabel": "Uncollected",
+    "newRenewLabel": "New / Renew",
+    "newRenewHint": "{new} new, {renew} renewals in this view",
+    "freezeOverdue": "Freeze lapsed",
+    "freezeOverdueHint": "Frozen until {date} — past due, needs unfreezing",
+    "frozenUntil": "Frozen until {date}"
   },
 
   "exportModal": {

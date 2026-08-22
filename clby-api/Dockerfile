@@ -36,6 +36,14 @@ RUN mkdir -p storage/framework/{sessions,views,cache/data} \
 # Suppress PHP version in response headers
 RUN echo "expose_php = Off" > /usr/local/etc/php/conf.d/security.ini
 
+# Upload limits. The php:*-fpm default upload_max_filesize is 2M, which is
+# below the 5M our image-upload endpoints validate against — PHP would
+# truncate the request before Laravel could report a clear "too large"
+# error. Keep these >= the largest `max:` rule in the app, and <= nginx's
+# client_max_body_size (25m in docker/nginx/default.conf).
+RUN printf 'upload_max_filesize = 10M\npost_max_size = 12M\n' \
+    > /usr/local/etc/php/conf.d/uploads.ini
+
 # PHP-FPM pool tuning. Each worker holds one persistent PDO connection
 # (see config/database.php). Keep worker count below the Postgres
 # max_connections cap (default 100) by a healthy margin.

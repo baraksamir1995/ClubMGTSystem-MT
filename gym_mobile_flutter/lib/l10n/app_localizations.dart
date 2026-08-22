@@ -5161,6 +5161,18 @@ abstract class AppLocalizations {
   /// **'Period'**
   String get invoicePeriod;
 
+  /// No description provided for @invoiceStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Date'**
+  String get invoiceStartDate;
+
+  /// No description provided for @invoiceEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End Date'**
+  String get invoiceEndDate;
+
   /// No description provided for @invoiceItems.
   ///
   /// In en, this message translates to:
@@ -6006,6 +6018,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rate'**
   String get sessionCardRate;
+
+  /// No description provided for @contractTermsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contract Terms & Conditions'**
+  String get contractTermsTitle;
+
+  /// No description provided for @contractTermsProfileValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Contract Terms'**
+  String get contractTermsProfileValue;
+
+  /// No description provided for @contractTermsInvoiceRow.
+  ///
+  /// In en, this message translates to:
+  /// **'View contract terms'**
+  String get contractTermsInvoiceRow;
+
+  /// No description provided for @contractTermsVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String contractTermsVersion(String version);
+
+  /// No description provided for @contractTermsLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String contractTermsLastUpdated(String date);
+
+  /// No description provided for @contractTermsAsOfPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'As of this invoice'**
+  String get contractTermsAsOfPurchase;
+
+  /// No description provided for @contractTermsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No terms available'**
+  String get contractTermsEmptyTitle;
+
+  /// No description provided for @contractTermsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your gym hasn\'t published contract terms and conditions yet.'**
+  String get contractTermsEmptyBody;
+
+  /// No description provided for @contractTermsErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load terms'**
+  String get contractTermsErrorTitle;
+
+  /// No description provided for @contractTermsErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get contractTermsErrorBody;
 }
 
 class _AppLocalizationsDelegate

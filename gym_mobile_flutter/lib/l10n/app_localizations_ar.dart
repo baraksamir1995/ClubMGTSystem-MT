@@ -2958,6 +2958,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get invoicePeriod => 'الفترة';
 
   @override
+  String get invoiceStartDate => 'تاريخ البداية';
+
+  @override
+  String get invoiceEndDate => 'تاريخ النهاية';
+
+  @override
   String get invoiceItems => 'البنود';
 
   @override
@@ -3445,4 +3451,39 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sessionCardRate => 'قيّم';
+
+  @override
+  String get contractTermsTitle => 'شروط وأحكام العقد';
+
+  @override
+  String get contractTermsProfileValue => 'شروط العقد';
+
+  @override
+  String get contractTermsInvoiceRow => 'عرض شروط العقد';
+
+  @override
+  String contractTermsVersion(String version) {
+    return 'الإصدار $version';
+  }
+
+  @override
+  String contractTermsLastUpdated(String date) {
+    return 'آخر تحديث $date';
+  }
+
+  @override
+  String get contractTermsAsOfPurchase => 'حسب هذه الفاتورة';
+
+  @override
+  String get contractTermsEmptyTitle => 'لا توجد شروط متاحة';
+
+  @override
+  String get contractTermsEmptyBody =>
+      'لم تقم صالتك بنشر شروط وأحكام العقد بعد.';
+
+  @override
+  String get contractTermsErrorTitle => 'تعذر تحميل الشروط';
+
+  @override
+  String get contractTermsErrorBody => 'تحقق من اتصالك وحاول مرة أخرى.';
 }

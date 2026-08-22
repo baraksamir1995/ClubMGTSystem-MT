@@ -221,6 +221,23 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     await _loadProfileAndGym();
   }
 
+  /// Re-read just the profile from the server, without the loading flag or
+  /// the gym/FCM work `_loadProfileAndGym` does. Used by pull-to-refresh so
+  /// changes made elsewhere — e.g. an admin setting the member's photo from
+  /// the dashboard — show up without restarting the app.
+  Future<void> refreshProfileQuietly() async {
+    if (_userId == null || _isGuest) return;
+    try {
+      final fresh = await _service.getMemberProfile();
+      if (fresh != null) {
+        _profile = fresh;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Best-effort — keep showing the cached profile on failure.
+    }
+  }
+
   Future<String?> updateProfile(
       String fullName, String phone, DateTime? dateOfBirth) async {
     try {

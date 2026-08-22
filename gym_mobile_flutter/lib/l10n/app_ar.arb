@@ -843,6 +843,8 @@
   "invoiceDetailsTitle": "تفاصيل الفاتورة",
   "invoiceBillingPeriod": "فترة الفوترة",
   "invoicePeriod": "الفترة",
+  "invoiceStartDate": "تاريخ البداية",
+  "invoiceEndDate": "تاريخ النهاية",
   "invoiceItems": "البنود",
   "invoicePaymentInfo": "بيانات الدفع",
   "invoiceStatus": "الحالة",
@@ -983,5 +985,29 @@
   "sessionCardOngoing": "جارية",
   "sessionCardOpen": "متاحة",
   "sessionCardRated": "تم التقييم",
-  "sessionCardRate": "قيّم"
+  "sessionCardRate": "قيّم",
+  "contractTermsTitle": "شروط وأحكام العقد",
+  "contractTermsProfileValue": "شروط العقد",
+  "contractTermsInvoiceRow": "عرض شروط العقد",
+  "contractTermsVersion": "الإصدار {version}",
+  "@contractTermsVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "contractTermsLastUpdated": "آخر تحديث {date}",
+  "@contractTermsLastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "contractTermsAsOfPurchase": "حسب هذه الفاتورة",
+  "contractTermsEmptyTitle": "لا توجد شروط متاحة",
+  "contractTermsEmptyBody": "لم تقم صالتك بنشر شروط وأحكام العقد بعد.",
+  "contractTermsErrorTitle": "تعذر تحميل الشروط",
+  "contractTermsErrorBody": "تحقق من اتصالك وحاول مرة أخرى."
 }

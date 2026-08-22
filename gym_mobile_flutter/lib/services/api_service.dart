@@ -20,6 +20,7 @@ import '../models/trainer_profile_model.dart';
 import '../models/invitation_model.dart';
 import '../models/service_assignment_model.dart';
 import '../utils/env.dart';
+import '../features/terms/models/contract_terms_model.dart';
 
 const _storage = FlutterSecureStorage();
 const _tokenKey = 'auth_token';
@@ -1315,6 +1316,47 @@ class ApiService {
     } catch (e) {
       appLog('getCurrentOffers error: $e');
       return [];
+    }
+  }
+
+  // ── Contract Terms & Conditions ────────────────────────────────────
+  // Both endpoints are gym-scoped server-side: /api/contract-terms uses
+  // the authenticated user's gym, and the invoice variant uses the gym
+  // that issued that invoice. The app never sends a gym_id.
+
+  /// Terms for the signed-in user's gym (Profile entry point).
+  Future<ContractTermsResult> getContractTerms() async {
+    try {
+      final data = await _get('/api/contract-terms');
+      final body = data is Map<String, dynamic> ? data['data'] : null;
+      if (body is Map<String, dynamic>) {
+        return ContractTermsResult(terms: ContractTerms.fromJson(body));
+      }
+      // 200 with data:null → gym has no terms configured.
+      return const ContractTermsResult();
+    } catch (e) {
+      appLog('getContractTerms error: $e');
+      return const ContractTermsResult(failed: true);
+    }
+  }
+
+  /// Terms applicable to a specific invoice, resolved from the invoice's
+  /// own gym and its pinned version where one exists.
+  Future<ContractTermsResult> getContractTermsForInvoice(String invoiceId) async {
+    try {
+      final data = await _get('/api/payments/$invoiceId/contract-terms');
+      final body = data is Map<String, dynamic> ? data['data'] : null;
+      final pinned = data is Map<String, dynamic> && data['is_pinned_version'] == true;
+      if (body is Map<String, dynamic>) {
+        return ContractTermsResult(
+          terms: ContractTerms.fromJson(body),
+          isPinnedVersion: pinned,
+        );
+      }
+      return const ContractTermsResult();
+    } catch (e) {
+      appLog('getContractTermsForInvoice error: $e');
+      return const ContractTermsResult(failed: true);
     }
   }
 

@@ -2949,6 +2949,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invoicePeriod => 'Period';
 
   @override
+  String get invoiceStartDate => 'Start Date';
+
+  @override
+  String get invoiceEndDate => 'End Date';
+
+  @override
   String get invoiceItems => 'Items';
 
   @override
@@ -3436,4 +3442,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionCardRate => 'Rate';
+
+  @override
+  String get contractTermsTitle => 'Contract Terms & Conditions';
+
+  @override
+  String get contractTermsProfileValue => 'Contract Terms';
+
+  @override
+  String get contractTermsInvoiceRow => 'View contract terms';
+
+  @override
+  String contractTermsVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String contractTermsLastUpdated(String date) {
+    return 'Updated $date';
+  }
+
+  @override
+  String get contractTermsAsOfPurchase => 'As of this invoice';
+
+  @override
+  String get contractTermsEmptyTitle => 'No terms available';
+
+  @override
+  String get contractTermsEmptyBody =>
+      'Your gym hasn\'t published contract terms and conditions yet.';
+
+  @override
+  String get contractTermsErrorTitle => 'Couldn\'t load terms';
+
+  @override
+  String get contractTermsErrorBody => 'Check your connection and try again.';
 }

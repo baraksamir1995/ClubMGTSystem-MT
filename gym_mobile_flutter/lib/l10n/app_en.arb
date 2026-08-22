@@ -1576,6 +1576,8 @@
   "invoiceDetailsTitle": "Invoice Details",
   "invoiceBillingPeriod": "Billing Period",
   "invoicePeriod": "Period",
+  "invoiceStartDate": "Start Date",
+  "invoiceEndDate": "End Date",
   "invoiceItems": "Items",
   "invoicePaymentInfo": "Payment Info",
   "invoiceStatus": "Status",
@@ -1894,5 +1896,29 @@
   "sessionCardOngoing": "Ongoing",
   "sessionCardOpen": "Open",
   "sessionCardRated": "Rated",
-  "sessionCardRate": "Rate"
+  "sessionCardRate": "Rate",
+  "contractTermsTitle": "Contract Terms & Conditions",
+  "contractTermsProfileValue": "Contract Terms",
+  "contractTermsInvoiceRow": "View contract terms",
+  "contractTermsVersion": "Version {version}",
+  "@contractTermsVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "contractTermsLastUpdated": "Updated {date}",
+  "@contractTermsLastUpdated": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "contractTermsAsOfPurchase": "As of this invoice",
+  "contractTermsEmptyTitle": "No terms available",
+  "contractTermsEmptyBody": "Your gym hasn't published contract terms and conditions yet.",
+  "contractTermsErrorTitle": "Couldn't load terms",
+  "contractTermsErrorBody": "Check your connection and try again."
 }

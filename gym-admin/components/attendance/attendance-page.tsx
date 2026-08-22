@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Radio, ClipboardList, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Radio, ClipboardList, HeartPulse, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations, useLocale } from 'next-intl';
 import { dateLocale } from '@/lib/date-locale';
 import { useRefresh } from '@/lib/use-refresh';
 import ManualLogModal from './manual-log-modal';
 import GymQRModal from './gym-qr-modal';
+import ServicesAttendanceTab from './services-attendance-tab';
 import type { AttendanceLog, MemberOption, SessionOption } from '@/app/dashboard/attendance/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { can, type Permission } from '@/lib/get-permissions';
@@ -26,6 +28,10 @@ interface Props {
 
 import { fmtTime12 as fmtTime, fmtDateGym as fmtDate, fmtDateTimeGym as fmtDateTime } from '@/lib/time';
 
+/** Tab ids, doubling as the allowed `?view=` values. */
+const TAB_IDS = ['live', 'logs', 'services'] as const;
+type TabId = typeof TAB_IDS[number];
+
 export default function AttendancePage({ initialLogs, members, accessPoints: initialAccessPoints, sessionEntryPoints, sessionOptions, gymId, branches, permissions }: Props) {
   const t = useTranslations('attendance');
   const tc = useTranslations('common');
@@ -39,7 +45,31 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
   };
 
   const refresh = useRefresh();
-  const [activeTab,     setActiveTab]     = useState<'live' | 'logs'>('live');
+  // The active tab lives in `?view=` so a refresh (or a shared link, or the
+  // back button) keeps you on the tab you were looking at instead of
+  // silently dropping you back on Live Feed.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const viewParam = searchParams.get('view');
+  const initialTab: TabId = TAB_IDS.includes(viewParam as TabId) ? (viewParam as TabId) : 'live';
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  // Keep state in step when the URL changes underneath us (back/forward).
+  useEffect(() => {
+    const fromUrl: TabId = TAB_IDS.includes(viewParam as TabId) ? (viewParam as TabId) : 'live';
+    setActiveTab((cur) => (cur === fromUrl ? cur : fromUrl));
+  }, [viewParam]);
+
+  const selectTab = useCallback((next: TabId) => {
+    setActiveTab(next);
+    const qs = new URLSearchParams(Array.from(searchParams.entries()));
+    // 'live' is the default — keep the URL clean rather than ?view=live.
+    if (next === 'live') qs.delete('view');
+    else qs.set('view', next);
+    const suffix = qs.toString();
+    router.replace(suffix ? `/dashboard/attendance?${suffix}` : '/dashboard/attendance',
+      { scroll: false });
+  }, [router, searchParams]);
   const [logs,          setLogs]          = useState<AttendanceLog[]>(initialLogs);
   const [showManual,    setShowManual]    = useState(false);
   const [showQR,        setShowQR]        = useState(false);
@@ -180,13 +210,14 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'live' | 'logs')}>
+        <Tabs value={activeTab} onValueChange={(v) => selectTab(v as TabId)}>
           <Tabs.List>
             <Tabs.Trigger value="live" icon={Radio}>
               {t('tabs.liveFeed')}
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             </Tabs.Trigger>
             <Tabs.Trigger value="logs" icon={ClipboardList}>{t('tabs.logsAccess')}</Tabs.Trigger>
+            <Tabs.Trigger value="services" icon={HeartPulse}>{t('tabs.servicesAttendance')}</Tabs.Trigger>
           </Tabs.List>
         </Tabs>
 
@@ -433,6 +464,11 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
               )}
             </div>
           </div>
+        )}
+
+        {/* ── SERVICES ATTENDANCE ── */}
+        {activeTab === 'services' && (
+          <ServicesAttendanceTab canEdit={can(permissions, 'attendance', 'create')} />
         )}
 
       </div>

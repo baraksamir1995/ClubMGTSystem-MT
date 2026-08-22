@@ -14,6 +14,7 @@ use App\Http\Controllers\ClassTypeController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\ContractTermsController;
 use App\Http\Controllers\GymController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SessionTransferController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\SpecialistScanController;
+use App\Http\Controllers\ServiceAttendanceController;
 use App\Http\Controllers\ServiceLogController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StudioController;
@@ -124,6 +126,15 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\LogActivityMiddleware::c
 });
 
 Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 'verified_member', \App\Http\Middleware\LogActivityMiddleware::class])->group(function () {
+
+    // Contract Terms & Conditions — read paths.
+    // Reachable by ordinary members (mobile Profile + Invoice entry
+    // points) as well as admins. Both are gym-scoped server-side:
+    // /contract-terms uses the caller's own gym, and the invoice
+    // variant uses the gym that issued the invoice, with ownership
+    // enforced inside the controller.
+    Route::get('/contract-terms', [ContractTermsController::class, 'show']);
+    Route::get('/payments/{id}/contract-terms', [ContractTermsController::class, 'forInvoice']);
     // Bucket-aware membership summary (unified card + per-bucket detail)
     Route::get('/me/membership-summary', [MembershipController::class, 'mySummary']);
 
@@ -240,6 +251,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::delete('/members/{id}', [MemberController::class, 'destroy'])->middleware('permission:members,delete');
     Route::post('/members/register', [MemberController::class, 'register'])->middleware('permission:members,create');
     Route::post('/members/{id}/verify-email', [MemberController::class, 'verifyEmail'])->middleware('permission:members,edit');
+    Route::post('/members/{id}/photo', [MemberController::class, 'uploadPhoto'])->middleware('permission:members,edit');
+    Route::delete('/members/{id}/photo', [MemberController::class, 'deletePhoto'])->middleware('permission:members,edit');
 
     // Aggregated memberships list — powers the Memberships sub-tab.
     Route::get('/memberships', [MembershipController::class, 'index'])->middleware('permission:members,view');
@@ -290,6 +303,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::put('/payments/{id}', [PaymentController::class, 'update'])->middleware('permission:payments,edit');
     Route::delete('/payments/{id}', [PaymentController::class, 'destroy'])->middleware('permission:payments,delete');
     Route::post('/payments/{id}/stamp-txn', [PaymentController::class, 'stampTransaction'])->middleware('permission:payments,edit');
+    Route::post('/payments/{id}/send-invoice', [PaymentController::class, 'sendInvoice'])->middleware('permission:payments,view');
 
     // Payment Config (settings-level, requires settings permission)
     Route::get('/payment-config/credentials', [PaymentConfigController::class, 'credentials'])->middleware('permission:settings,view');
@@ -330,6 +344,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::patch('/settings', [GymController::class, 'update'])->middleware('permission:settings,edit');
     Route::post('/settings/logo', [GymController::class, 'uploadLogo'])->middleware('permission:settings,edit');
 
+    // Contract Terms & Conditions writes (admin). Reads live in the
+    // member-facing group above so the mobile app can reach them.
+    Route::put('/contract-terms', [ContractTermsController::class, 'update'])->middleware('permission:settings,edit');
+    Route::get('/contract-terms/history', [ContractTermsController::class, 'history'])->middleware('permission:settings,view');
+
     // Staff management
     // GET /staff and GET /staff/roles are needed for permission resolution (no permission guard)
     Route::get('/staff', [StaffController::class, 'index']);
@@ -348,6 +367,19 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // gym, used by the Services → Services Log tab. Read-only.
     Route::get('/service-logs',        [ServiceLogController::class, 'index'])->middleware('permission:attendance,view');
     Route::get('/service-logs/export', [ServiceLogController::class, 'export'])->middleware('permission:attendance,view');
+
+    // Services Attendance — admin-recorded attendance for session-based
+    // services (PT / nutrition / physio / any future session package).
+    // An 'attended' record deducts one session and writes the paired
+    // service_session_logs row, so it surfaces in Services → Service Logs
+    // in the existing format. See ServiceAttendanceController.
+    Route::get('/service-attendance',                    [ServiceAttendanceController::class, 'index'])->middleware('permission:attendance,view');
+    Route::get('/service-attendance/assignments',        [ServiceAttendanceController::class, 'assignments'])->middleware('permission:attendance,view');
+    Route::get('/service-attendance/service-types',      [ServiceAttendanceController::class, 'serviceTypes'])->middleware('permission:attendance,view');
+    Route::get('/service-attendance/members',            [ServiceAttendanceController::class, 'members'])->middleware('permission:attendance,view');
+    Route::get('/service-attendance/specialists',        [ServiceAttendanceController::class, 'specialists'])->middleware('permission:attendance,view');
+    Route::post('/service-attendance',                   [ServiceAttendanceController::class, 'store'])->middleware('permission:attendance,create');
+    Route::post('/service-attendance/{id}/reverse',      [ServiceAttendanceController::class, 'reverse'])->middleware('permission:attendance,edit');
 
     // Trainer / Specialist management. The same endpoints handle the
     // simple trainer_profile case and the coach-app login case —

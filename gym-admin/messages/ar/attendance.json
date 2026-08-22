@@ -1,15 +1,13 @@
 {
   "title": "الحضور والدخول",
   "subtitle": "تسجيلات الحضور المباشرة والسجلات",
-
   "gymQrCode": "رمز QR للصالة",
   "manualCheckin": "تسجيل حضور يدوي",
-
   "tabs": {
     "liveFeed": "البث المباشر",
-    "logsAccess": "السجلات والدخول"
+    "logsAccess": "السجلات والدخول",
+    "servicesAttendance": "حضور الخدمات"
   },
-
   "live": {
     "statusLine": "يُحدَّث عند تسجيل الحضور · يُحدَّث كل 60 ثانية",
     "lastRefresh": "· آخر تحديث: {time}",
@@ -19,7 +17,6 @@
     "earlierOnPage": "{count} سابقة في هذه الصفحة",
     "showing": "عرض {from}–{to} من {total}"
   },
-
   "hero": {
     "latest": "الأحدث",
     "locationLabel": "الموقع",
@@ -28,7 +25,6 @@
     "timeLabel": "الوقت",
     "gymEntrance": "المدخل"
   },
-
   "relativeTime": {
     "justNow": "الآن",
     "minAgo": "منذ {min} دقيقة",
@@ -36,13 +32,11 @@
     "dayAgo": "منذ يوم واحد",
     "daysAgo": "منذ {day} أيام"
   },
-
   "planLabel": {
     "sessions": "خطة جلسات",
     "duration": "خطة مدة زمنية",
     "durationSession": "مدة زمنية + جلسات"
   },
-
   "methods": {
     "manual": "يدوي",
     "qr": "رمز QR",
@@ -50,7 +44,6 @@
     "card": "بطاقة",
     "pin": "رقم سري"
   },
-
   "logs": {
     "filters": "الفلاتر",
     "clearAll": "مسح الكل",
@@ -74,7 +67,6 @@
     "colMethod": "الطريقة",
     "showing": "عرض {from}–{to} من {total}"
   },
-
   "qrModal": {
     "title": "رمز QR لتسجيل الحضور في الصالة",
     "branchLabel": "الفرع",
@@ -92,7 +84,6 @@
     "regenerateFailed": "فشل في إعادة الإنشاء",
     "networkError": "خطأ في الشبكة"
   },
-
   "manualModal": {
     "title": "تسجيل حضور يدوي",
     "memberLabel": "العضو",
@@ -117,5 +108,66 @@
     "failedToLog": "فشل تسجيل الحضور",
     "networkError": "خطأ في الشبكة",
     "failedToLoadLogs": "فشل تحميل السجلات"
+  },
+  "servicesAttendance": {
+    "record": "تسجيل حضور",
+    "recordTitle": "تسجيل حضور خدمة",
+    "recordSubtitle": "تسجيل الجلسة كحاضر يخصم جلسة واحدة وينشئ سجل الخدمة المقابل.",
+    "refresh": "تحديث",
+    "searchPlaceholder": "ابحث بالعضو أو الحزمة…",
+    "dateFilters": "فلاتر التاريخ",
+    "dateFrom": "من تاريخ",
+    "dateTo": "إلى تاريخ",
+    "noteLabel": "ملاحظة",
+    "pickPackage": "اختر حزمة…",
+    "pickSpecialist": "اختر متخصصاً…",
+    "zeroBalance": "لا توجد جلسات متبقية في هذه الحزمة.",
+    "willDeduct": "{remaining} جلسة متبقية → {after} بعد هذا التسجيل.",
+    "empty": "لا يوجد حضور خدمات مسجل بعد.",
+    "emptyFiltered": "لا يوجد حضور خدمات يطابق هذه الفلاتر.",
+    "reversed": "تم التراجع",
+    "reversedHint": "تم التراجع عن هذا الحضور — أُعيدت الجلسة وحُذف سجل الخدمة المقابل.",
+    "reverseAction": "التراجع عن الحضور",
+    "confirmReverse": "هل تريد التراجع عن هذا الحضور؟ ستُعاد الجلسة وسيُحذف سجل الخدمة المقابل.",
+    "viewMember": "عرض العضو",
+    "svcPT": "تدريب شخصي",
+    "svcPhysio": "علاج طبيعي",
+    "svcNutrition": "تغذية",
+    "col": {
+      "member": "العضو",
+      "service": "الخدمة",
+      "package": "الحزمة",
+      "date": "التاريخ والوقت",
+      "status": "الحالة",
+      "sessionsRemaining": "الجلسات المتبقية"
+    },
+    "status": {
+      "attended": "حاضر",
+      "absent": "غائب",
+      "cancelled": "ملغي"
+    },
+    "statusFilter": {
+      "all": "جميع الحالات"
+    },
+    "serviceFilter": {
+      "all": "جميع الخدمات"
+    },
+    "toast": {
+      "recorded": "تم تسجيل الحضور",
+      "alreadyRecorded": "تم تسجيل هذه الجلسة بالفعل",
+      "reversed": "تم التراجع عن الحضور وإعادة الجلسة"
+    },
+    "stepMember": "ابحث عن العضو",
+    "stepPackage": "حزمة الخدمة",
+    "stepSpecialist": "المتخصص",
+    "stepWhen": "التاريخ والوقت",
+    "noMembersWithPackages": "لا يوجد أعضاء لديهم جلسات خدمات متاحة.",
+    "noPackages": "لا توجد لهذا العضو حزمة بجلسات متبقية.",
+    "noSpecialists": "لا يوجد متخصص مُعد لهذه الخدمة.",
+    "nPackages": "{count} حزمة",
+    "pickMember": "اختر عضواً…",
+    "pickMemberFirst": "اختر عضواً أولاً",
+    "pickPackageFirst": "اختر حزمة أولاً",
+    "deductSession": "خصم جلسة"
   }
 }

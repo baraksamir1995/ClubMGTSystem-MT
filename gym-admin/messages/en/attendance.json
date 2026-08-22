@@ -1,15 +1,13 @@
 {
   "title": "Attendance & Access",
   "subtitle": "Live check-ins and logs",
-
   "gymQrCode": "Gym QR Code",
   "manualCheckin": "Manual Check-in",
-
   "tabs": {
     "liveFeed": "Live Feed",
-    "logsAccess": "Logs & Access"
+    "logsAccess": "Logs & Access",
+    "servicesAttendance": "Services Attendance"
   },
-
   "live": {
     "statusLine": "Updates on check-in · refreshes every 60s",
     "lastRefresh": "· Last: {time}",
@@ -19,7 +17,6 @@
     "earlierOnPage": "{count} earlier on this page",
     "showing": "Showing {from}–{to} of {total}"
   },
-
   "hero": {
     "latest": "Latest",
     "locationLabel": "Location",
@@ -28,7 +25,6 @@
     "timeLabel": "Time",
     "gymEntrance": "Gym entrance"
   },
-
   "relativeTime": {
     "justNow": "just now",
     "minAgo": "{min} min ago",
@@ -36,13 +32,11 @@
     "dayAgo": "{day} day ago",
     "daysAgo": "{day} days ago"
   },
-
   "planLabel": {
     "sessions": "Sessions plan",
     "duration": "Duration plan",
     "durationSession": "Duration + sessions"
   },
-
   "methods": {
     "manual": "Manual",
     "qr": "QR Code",
@@ -50,7 +44,6 @@
     "card": "Card",
     "pin": "PIN"
   },
-
   "logs": {
     "filters": "Filters",
     "clearAll": "Clear all",
@@ -74,7 +67,6 @@
     "colMethod": "METHOD",
     "showing": "Showing {from}–{to} of {total}"
   },
-
   "qrModal": {
     "title": "Gym Check-in QR Code",
     "branchLabel": "Branch",
@@ -92,7 +84,6 @@
     "regenerateFailed": "Failed to regenerate",
     "networkError": "Network error"
   },
-
   "manualModal": {
     "title": "Manual Check-in",
     "memberLabel": "Member",
@@ -117,5 +108,66 @@
     "failedToLog": "Failed to log",
     "networkError": "Network error",
     "failedToLoadLogs": "Failed to load logs"
+  },
+  "servicesAttendance": {
+    "record": "Record attendance",
+    "recordTitle": "Record service attendance",
+    "recordSubtitle": "Marking a session as attended deducts one session and creates the matching Service Log entry.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search member or package…",
+    "dateFilters": "Date filters",
+    "dateFrom": "Date from",
+    "dateTo": "Date to",
+    "noteLabel": "Note",
+    "pickPackage": "Select a package…",
+    "pickSpecialist": "Select a specialist…",
+    "zeroBalance": "This package has no sessions remaining.",
+    "willDeduct": "{remaining} sessions remaining → {after} after this record.",
+    "empty": "No service attendance recorded yet.",
+    "emptyFiltered": "No service attendance matches these filters.",
+    "reversed": "Reversed",
+    "reversedHint": "This attendance was reversed — the session was restored and its Service Log removed.",
+    "reverseAction": "Reverse attendance",
+    "confirmReverse": "Reverse this attendance? The session will be restored and the matching Service Log entry removed.",
+    "viewMember": "View member",
+    "svcPT": "Personal Training",
+    "svcPhysio": "Physiotherapy",
+    "svcNutrition": "Nutrition",
+    "col": {
+      "member": "Member",
+      "service": "Service",
+      "package": "Package",
+      "date": "Date & time",
+      "status": "Status",
+      "sessionsRemaining": "Sessions left"
+    },
+    "status": {
+      "attended": "Attended",
+      "absent": "Absent",
+      "cancelled": "Cancelled"
+    },
+    "statusFilter": {
+      "all": "All statuses"
+    },
+    "serviceFilter": {
+      "all": "All services"
+    },
+    "toast": {
+      "recorded": "Attendance recorded",
+      "alreadyRecorded": "This session was already recorded",
+      "reversed": "Attendance reversed and session restored"
+    },
+    "stepMember": "Find member",
+    "stepPackage": "Service package",
+    "stepSpecialist": "Specialist",
+    "stepWhen": "Date & time",
+    "noMembersWithPackages": "No members with available service sessions.",
+    "noPackages": "This member has no package with sessions remaining.",
+    "noSpecialists": "No specialist configured for this service.",
+    "nPackages": "{count} package(s)",
+    "pickMember": "Select a member…",
+    "pickMemberFirst": "Select a member first",
+    "pickPackageFirst": "Select a package first",
+    "deductSession": "Deduct session"
   }
 }

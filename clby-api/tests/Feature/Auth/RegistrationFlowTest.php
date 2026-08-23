@@ -83,6 +83,12 @@ class RegistrationFlowTest extends TestCase
             $t->unique(['gym_id', 'member_number']);
         });
 
+        Schema::create('password_reset_tokens', function ($t) {
+            $t->string('email')->primary();
+            $t->string('token');
+            $t->timestampTz('created_at')->nullable();
+        });
+
         Schema::create('email_verification_tokens', function ($t) {
             $t->uuid('user_id')->primary();
             $t->string('token');
@@ -348,5 +354,106 @@ class RegistrationFlowTest extends TestCase
             'email' => 'another@example.test',
             'phone' => '01000000001',
         ]))->assertStatus(422)->assertJsonValidationErrors('phone');
+    }
+
+    // ── password reset ──────────────────────────────────────────────────────
+
+    public function test_forgot_password_sends_one_email_then_throttles(): void
+    {
+        $this->postJson('/api/auth/register', $this->payload())->assertStatus(201);
+
+        $this->postJson('/api/auth/forgot-password', ['email' => 'newmember@example.test'])
+            ->assertStatus(200);
+
+        $first = DB::table('password_reset_tokens')
+            ->where('email', 'newmember@example.test')->first();
+        $this->assertNotNull($first, 'first request must issue a token');
+
+        // Repeat requests inside the cooldown are silent no-ops: same generic
+        // message, and crucially the token is NOT rotated (so the link already
+        // in the user's inbox keeps working).
+        //
+        // 200 or 429 are both acceptable here — `throttle:auth` may cut in
+        // first since these all come from one test client IP. Either way the
+        // point being asserted is that no new token was issued.
+        for ($i = 0; $i < 5; $i++) {
+            $status = $this->postJson('/api/auth/forgot-password', [
+                'email' => 'newmember@example.test',
+            ])->getStatusCode();
+            $this->assertContains($status, [200, 429]);
+        }
+
+        $after = DB::table('password_reset_tokens')
+            ->where('email', 'newmember@example.test')->first();
+        $this->assertSame($first->token, $after->token, 'token must not rotate during cooldown');
+        $this->assertSame($first->created_at, $after->created_at);
+    }
+
+    public function test_forgot_password_issues_a_new_token_after_the_cooldown(): void
+    {
+        $this->postJson('/api/auth/register', $this->payload())->assertStatus(201);
+        $this->postJson('/api/auth/forgot-password', ['email' => 'newmember@example.test'])
+            ->assertStatus(200);
+
+        $first = DB::table('password_reset_tokens')
+            ->where('email', 'newmember@example.test')->first();
+
+        // Age the token past the cooldown.
+        DB::table('password_reset_tokens')
+            ->where('email', 'newmember@example.test')
+            ->update(['created_at' => now()->subMinutes(10)]);
+
+        $this->postJson('/api/auth/forgot-password', ['email' => 'newmember@example.test'])
+            ->assertStatus(200);
+
+        $second = DB::table('password_reset_tokens')
+            ->where('email', 'newmember@example.test')->first();
+        $this->assertNotSame($first->token, $second->token, 'a new token is expected after the cooldown');
+    }
+
+    public function test_forgot_password_does_not_reveal_whether_the_email_exists(): void
+    {
+        $this->postJson('/api/auth/forgot-password', ['email' => 'nobody@example.test'])
+            ->assertStatus(200)
+            ->assertJson(['message' => 'If that email exists, a reset link has been sent.']);
+
+        $this->assertSame(0, DB::table('password_reset_tokens')->count());
+    }
+
+    public function test_forgot_password_purges_stale_tokens(): void
+    {
+        DB::table('password_reset_tokens')->insert([
+            'email' => 'ancient@example.test',
+            'token' => hash('sha256', 'old'),
+            'created_at' => now()->subDays(105),
+        ]);
+
+        $this->postJson('/api/auth/register', $this->payload())->assertStatus(201);
+        $this->postJson('/api/auth/forgot-password', ['email' => 'newmember@example.test'])
+            ->assertStatus(200);
+
+        $this->assertSame(
+            0,
+            DB::table('password_reset_tokens')->where('email', 'ancient@example.test')->count(),
+            'tokens older than a day should be cleaned up',
+        );
+    }
+
+    public function test_reset_rejects_a_token_older_than_an_hour(): void
+    {
+        $this->postJson('/api/auth/register', $this->payload())->assertStatus(201);
+
+        $raw = Str::random(64);
+        DB::table('password_reset_tokens')->insert([
+            'email' => 'newmember@example.test',
+            'token' => hash('sha256', $raw),
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $this->postJson('/api/auth/reset-password', [
+            'token' => $raw,
+            'password' => 'brandnew12345',
+            'password_confirmation' => 'brandnew12345',
+        ])->assertStatus(422);
     }
 }

@@ -18,6 +18,14 @@ use Illuminate\Validation\Rules\Password;
 class AuthController extends Controller
 {
     /**
+     * Minimum gap between password-reset emails to the same address.
+     * Bounds inbox spam from the unauthenticated forgot-password endpoint
+     * while staying well inside the token's 1-hour validity, so a user who
+     * lost the first mail can retry without a long wait.
+     */
+    private const RESET_EMAIL_COOLDOWN_SECONDS = 300;
+
+    /**
      * Lowercase + trim the incoming email so auth lookups are
      * case-insensitive regardless of how the user typed it.
      */
@@ -445,15 +453,62 @@ class AuthController extends Controller
 
         $user = User::whereRaw('LOWER(email) = ?', [$validated['email']])->first();
 
+        // Audit trail. The endpoint is unauthenticated and was being used to
+        // spam a real user's inbox (2026-08-23), and nothing else in the stack
+        // records these: Traefik has no access log, the FPM log shows only
+        // "POST /index.php", and this action writes no audit row. Log enough
+        // to tell an ordinary retry apart from someone targeting an address.
+        Log::warning('password reset requested', [
+            'email'      => $validated['email'],
+            'exists'     => $user !== null,
+            'ip'         => $request->ip(),
+            'forwarded'  => $request->header('X-Forwarded-For'),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         if (! $user) {
             // Don't reveal if email exists
             return response()->json(['message' => 'If that email exists, a reset link has been sent.']);
         }
 
+        // Per-address cooldown. The endpoint is unauthenticated, so without
+        // this anyone who knows an address can spam that inbox with reset
+        // mail — observed in production on 2026-08-23: six mails in ~16
+        // minutes from repeated form submissions. `throttle:auth` is keyed on
+        // the CALLER's IP, so it does nothing about a distributed or
+        // retry-looping client hammering one victim's address.
+        //
+        // A fresh request inside the window is a silent no-op: the existing
+        // token stays valid and the same generic message is returned, so this
+        // leaks nothing about whether the address exists or was recently used.
+        $existing = DB::table('password_reset_tokens')
+            ->where('email', $user->email)
+            ->where('created_at', '>', now()->subSeconds(self::RESET_EMAIL_COOLDOWN_SECONDS))
+            ->first();
+
+        if ($existing) {
+            Log::warning('password reset suppressed by cooldown', [
+                'email' => $user->email,
+                'ip'    => $request->ip(),
+            ]);
+            return response()->json(['message' => 'If that email exists, a reset link has been sent.']);
+        }
+
+        // Opportunistic cleanup: rows outlive their usefulness because
+        // resetPassword only deletes the one it consumes, so an unused token
+        // lingers indefinitely (prod had one from 105 days earlier). They are
+        // already unusable — resetPassword rejects anything over an hour old —
+        // but there is no reason to keep the hashes around.
+        DB::table('password_reset_tokens')
+            ->where('created_at', '<', now()->subDay())
+            ->delete();
+
         $token = Str::random(64);
         $tokenHash = hash('sha256', $token);
 
-        // Table schema: email (PK), token, created_at — no user_id, no expires_at
+        // Table schema: email (PK), token, created_at — no user_id, no
+        // expires_at column; resetPassword enforces the 1-hour lifetime by
+        // comparing created_at instead.
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $user->email],
             [

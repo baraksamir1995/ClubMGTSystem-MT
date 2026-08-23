@@ -42,7 +42,11 @@ flutter build ipa --release --flavor clby --dart-define-from-file=flavors/clby.j
 # Then upload build/ios/ipa/CLBY.ipa via Transporter.app
 ```
 
-Bundle ID `com.clbyapp.clby` (matches Firebase). Apple closed `1.0.0` train — every release must bump CFBundleShortVersionString. Current pubspec: `1.0.5+16`. Next IPA: `1.0.5+16` (not yet built).
+Bundle ID `com.clbyapp.clby` (matches Firebase). Apple closed `1.0.0` train — every release must bump CFBundleShortVersionString. Current pubspec: `1.0.5+17`. **`1.0.5+16` was already uploaded to App Store Connect** (rejected a re-upload on 2026-08-23 with "bundle version must be higher than the previously uploaded version: '16'"), so always bump the build number before building — check ASC rather than trusting this note. `1.0.5` itself is not yet released, so the version string can stay until it ships.
+
+Only clby reads its version from `pubspec.yaml`. The white-label flavors pin their own: alfag and shift via `ios/*.xcconfig` `FLUTTER_BUILD_NAME`/`NUMBER` plus the Android productFlavor's `versionCode`/`versionName`. Bumping pubspec therefore affects clby alone.
+
+⚠️ `flutter build ipa` names its output from the shared Xcode scheme, so EVERY flavor writes `build/ios/ipa/CLBY.ipa` — an alfag build silently overwrites a clby one. Rename each IPA immediately after building.
 
 ## Architecture conventions
 

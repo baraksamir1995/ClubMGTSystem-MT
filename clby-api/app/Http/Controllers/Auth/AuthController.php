@@ -34,11 +34,18 @@ class AuthController extends Controller
     {
         $this->normalizeEmail($request);
 
-        // `gym_id` is accepted but stored as `pending_gym_id` — the profile
-        // stays unaffiliated (gym_id = NULL) until the user verifies their
-        // email, at which point the gym_members row is created. This keeps
-        // profiles.gym_id trustworthy (only set by verified flows) while
-        // still honouring the gym the user selected during signup.
+        // `gym_id` is applied immediately: the gym_members row is created at
+        // registration, before email verification, so the member shows up in
+        // the admin dashboard right away and staff can verify them manually
+        // (POST /members/{id}/verify-email) when the confirmation email never
+        // lands. `pending_gym_id` is still written alongside so the column
+        // keeps its meaning for rows created before this change and for the
+        // verification path's back-compat branch.
+        //
+        // Doing this does NOT grant an unverified user access to gym data —
+        // two independent gates still apply:
+        //   • login() rejects unverified members with 403 email_not_verified
+        //   • the ~246 tenant routes carry `verified_member` middleware
         // Validation ensures the gym exists and is active so an attacker
         // can't enumerate arbitrary gym UUIDs silently.
         $validated = $request->validate([
@@ -86,7 +93,9 @@ class AuthController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                return User::forceCreate([
+                $selectedGymId = $validated['gym_id'] ?? null;
+
+                $user = User::forceCreate([
                     'id' => $userId,
                     'email' => $validated['email'],
                     'password' => $validated['password'],
@@ -94,10 +103,23 @@ class AuthController extends Controller
                     'phone' => $validated['phone'] ?? null,
                     'date_of_birth' => $validated['date_of_birth'] ?? null,
                     'gender' => $validated['gender'] ?? null,
-                    'gym_id' => null,
-                    'pending_gym_id' => $validated['gym_id'] ?? null,
+                    'gym_id' => $selectedGymId,
+                    // Kept in sync so the verification path is a no-op rather
+                    // than a second assignment.
+                    'pending_gym_id' => $selectedGymId,
                     'role' => 'member',
                 ]);
+
+                // Same transaction: a failure here must not leave a profile
+                // claiming a gym it has no gym_members row for.
+                if ($selectedGymId) {
+                    $this->assignGymMember($userId, $selectedGymId);
+                    // assignGymMember clears pending_gym_id and re-sets
+                    // gym_id; refresh so the response reflects the DB.
+                    $user->refresh();
+                }
+
+                return $user;
             });
         } catch (\Illuminate\Database\QueryException $e) {
             // 23505 = unique_violation. Race-loser path — present the same
@@ -105,17 +127,34 @@ class AuthController extends Controller
             // Inspect the PG error message to figure out WHICH column raced.
             if ($e->getCode() === '23505') {
                 $msg = $e->getMessage();
+                // Only the credential constraints map to a field-level 422.
+                // Anything else (e.g. a gym_members constraint raised by the
+                // assignment inside the transaction) must NOT be reported as
+                // "email already taken" — the account genuinely does not
+                // exist, and telling the user it does leaves them stuck with
+                // no way forward.
                 $field = match (true) {
                     str_contains($msg, 'profiles_phone_unique')        => 'phone',
                     str_contains($msg, 'profiles_email_lower_unique'),
                     str_contains($msg, 'auth_users_email_lower_unique') => 'email',
-                    default                                              => 'email', // fallback
+                    default                                              => null,
                 };
-                $label = $field === 'phone' ? 'phone number' : 'email';
+
+                if ($field !== null) {
+                    $label = $field === 'phone' ? 'phone number' : 'email';
+                    return response()->json([
+                        'message' => "The {$label} has already been taken.",
+                        'errors'  => [$field => ["The {$label} has already been taken."]],
+                    ], 422);
+                }
+
+                Log::error('register: unexpected unique violation', [
+                    'email' => $validated['email'],
+                    'error' => $msg,
+                ]);
                 return response()->json([
-                    'message' => "The {$label} has already been taken.",
-                    'errors'  => [$field => ["The {$label} has already been taken."]],
-                ], 422);
+                    'message' => 'Registration failed. Please try again.',
+                ], 500);
             }
             throw $e;
         }
@@ -133,22 +172,29 @@ class AuthController extends Controller
 
     /**
      * Create a gym_members row and set profiles.gym_id for a self-registered
-     * user after their email is verified. Called inside a DB transaction.
+     * user. Called inside a DB transaction.
+     *
+     * Runs at registration when the user picked a gym, so they appear in the
+     * admin dashboard before verifying. Still called from the verification
+     * paths for profiles created before that change (gym_id NULL with a
+     * pending_gym_id), which is why both call sites guard on `! gym_id`.
      */
     private function assignGymMember(string $userId, string $gymId): void
     {
-        $maxNumber = DB::table('gym_members')
-            ->where('gym_id', $gymId)
-            ->whereNotNull('member_number')
-            ->max(DB::raw('member_number::int'));
-
         $memberId = Str::uuid()->toString();
 
         DB::table('gym_members')->insert([
             'id'            => $memberId,
             'gym_id'        => $gymId,
             'user_id'       => $userId,
-            'member_number' => $maxNumber ? $maxNumber + 1 : 1,
+            // No member_number yet — same convention as MemberController::store.
+            // It is allocated when a membership is actually paid for, by the
+            // allocators in PaymentController / PaymobController (both of which
+            // only fire while member_number IS NULL, and serialize on
+            // pg_advisory_xact_lock(crc32(gym_id))). Allocating here would burn
+            // numbers on unverified signups AND permanently prevent those
+            // allocators from ever running for this member.
+            'member_number' => null,
             'status'        => 'active',
             'joined_at'     => now(),
             'created_at'    => now(),
@@ -246,6 +292,10 @@ class AuthController extends Controller
 
             DB::table('email_verification_tokens')->where('user_id', $record->user_id)->delete();
 
+            // Back-compat: profiles registered before the gym was assigned at
+            // signup still need their gym_members row here. Rows created by
+            // the current register() flow already have gym_id set, so this is
+            // a no-op for them.
             if ($profile && $profile->pending_gym_id && ! $profile->gym_id) {
                 $this->assignGymMember($record->user_id, $profile->pending_gym_id);
             }
@@ -297,14 +347,26 @@ class AuthController extends Controller
         // White-label gym enforcement: if the client specifies a gym_id, members
         // must belong to that gym. Admins/staff can log in from any flavor.
         if (! empty($validated['gym_id']) && in_array($user->role, ['member', null], true)) {
-            // Self-registered users don't get a gym_members row until email
-            // verification (pending_gym_id flow), so count a matching
-            // pending_gym_id as membership — the verification check below
-            // then returns the proper email_not_verified response.
-            $isMember = $user->pending_gym_id === $validated['gym_id']
-                || GymMember::where('user_id', $user->id)
-                    ->where('gym_id', $validated['gym_id'])
-                    ->exists();
+            // Enrolment is the gym_members row (self-registration now creates
+            // it up front, as does every admin path).
+            $isMember = GymMember::where('user_id', $user->id)
+                ->where('gym_id', $validated['gym_id'])
+                ->whereNull('deleted_at')
+                ->exists();
+
+            // Legacy fallback: profiles registered before the gym was assigned
+            // at signup have no row until they verify. Only honour
+            // pending_gym_id while that is actually the case — an unverified
+            // profile with no membership row at all — so a stale
+            // pending_gym_id can never admit an enrolled-elsewhere user into
+            // another gym's branded app. Those users still hit the
+            // email_not_verified gate immediately below.
+            if (! $isMember
+                && ! $user->email_verified
+                && $user->pending_gym_id === $validated['gym_id']
+                && ! GymMember::where('user_id', $user->id)->exists()) {
+                $isMember = true;
+            }
             if (! $isMember) {
                 return response()->json([
                     'message' => 'Invalid credentials.',

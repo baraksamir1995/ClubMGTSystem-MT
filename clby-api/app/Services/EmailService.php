@@ -51,6 +51,23 @@ class EmailService
         $apiKey = config('services.resend.api_key');
         $from = config('services.resend.from_email', 'no-reply@clbyapp.com');
 
+        // Honour Laravel's mail driver even though we bypass the Mail facade
+        // and post to Resend's HTTP API directly. Without this, `MAIL_MAILER`
+        // is inert here: phpunit.xml sets it to `array` expecting no mail to
+        // leave the machine, but every test that registered a user or asked
+        // for a password reset still sent live email on the production Resend
+        // account (~200 in one day on 2026-08-23, blowing the daily quota).
+        //
+        // `log` and `array` are the conventional "don't actually deliver"
+        // drivers; honour both, and record what would have been sent.
+        $mailer = config('mail.default');
+        if (in_array($mailer, ['array', 'null'], true) || app()->runningUnitTests()) {
+            Log::info('Email suppressed (non-delivering mailer)', [
+                'to' => $to, 'subject' => $subject, 'mailer' => $mailer,
+            ]);
+            return;
+        }
+
         if (! $apiKey) {
             Log::warning('Resend API key not configured, skipping email', ['to' => $to]);
             return;

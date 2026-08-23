@@ -27,6 +27,9 @@
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- EmailService posts to Resend's HTTP API directly, so an
+             empty key is a hard stop even if the mailer guard changes. -->
+        <env name="RESEND_API_KEY" value=""/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

@@ -61,13 +61,12 @@ class LogActivityMiddleware
             $actionType = $this->detectAction($request->method(), $path);
             $description = $this->buildDescription($request->method(), $path, $request);
 
-            // Get staff info
+            // Get staff info. staff_id is FK -> profiles(id), not
+            // staff_members(id) — see the note in LogsActivity. The catch
+            // below meant this only ever silently dropped the log row, but
+            // it dropped it for every staff member.
             $staffName = $user->full_name ?? 'Unknown';
-            $staffId = DB::table('staff_members')
-                ->where('user_id', $user->id)
-                ->where('gym_id', $user->gym_id)
-                ->whereNull('deleted_at')
-                ->value('id');
+            $staffId = $user->id;
 
             DB::table('staff_activity_logs')->insert([
                 'id' => Str::uuid()->toString(),

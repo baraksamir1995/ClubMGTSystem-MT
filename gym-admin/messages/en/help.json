@@ -1,0 +1,29 @@
+{
+  "title": "Help",
+  "subtitle": "Search how-to guides",
+  "launcherLabel": "Open help",
+  "close": "Close help",
+  "back": "Back to all guides",
+  "searchPlaceholder": "Ask a question…",
+  "resultCount": "{count, plural, =1 {# guide} other {# guides}}",
+  "goodToKnow": "Good to know",
+  "related": "Related guides",
+  "takeMeThere": "Take me there",
+  "noMatchTitle": "No guide matches that",
+  "noMatchBody": "Nothing found for “{query}”. Try fewer or different words.",
+  "noMatchSuggestions": "You might be looking for",
+  "askSupport": "Email support about this",
+  "footerHint": "Can't find it?",
+  "contactSupport": "Contact support",
+  "categories": {
+    "getting-started": "Getting started",
+    "members": "Members",
+    "payments": "Payments",
+    "plans": "Plans",
+    "classes": "Classes & schedule",
+    "attendance": "Attendance",
+    "staff": "Staff & roles",
+    "content": "Content & notifications",
+    "settings": "Settings"
+  }
+}

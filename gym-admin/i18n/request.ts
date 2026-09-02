@@ -34,6 +34,7 @@ export const namespaces = [
   'analytics',
   'staff',
   'settings',
+  'help',
 ] as const;
 
 export default getRequestConfig(async () => {

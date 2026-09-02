@@ -1,0 +1,29 @@
+{
+  "title": "المساعدة",
+  "subtitle": "ابحث في أدلة الاستخدام",
+  "launcherLabel": "فتح المساعدة",
+  "close": "إغلاق المساعدة",
+  "back": "الرجوع إلى كل الأدلة",
+  "searchPlaceholder": "اكتب سؤالك…",
+  "resultCount": "{count, plural, =1 {دليل واحد} =2 {دليلان} few {# أدلة} other {# دليلًا}}",
+  "goodToKnow": "معلومات مهمة",
+  "related": "أدلة ذات صلة",
+  "takeMeThere": "الانتقال إلى الصفحة",
+  "noMatchTitle": "لا يوجد دليل مطابق",
+  "noMatchBody": "لم نجد نتائج لـ «{query}». جرّب كلمات أقل أو مختلفة.",
+  "noMatchSuggestions": "ربما تبحث عن",
+  "askSupport": "راسل الدعم بخصوص هذا",
+  "footerHint": "لم تجد ما تبحث عنه؟",
+  "contactSupport": "تواصل مع الدعم",
+  "categories": {
+    "getting-started": "البداية",
+    "members": "الأعضاء",
+    "payments": "المدفوعات",
+    "plans": "الخطط",
+    "classes": "الحصص والجدول",
+    "attendance": "الحضور",
+    "staff": "الموظفون والصلاحيات",
+    "content": "المحتوى والإشعارات",
+    "settings": "الإعدادات"
+  }
+}

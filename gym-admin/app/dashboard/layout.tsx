@@ -7,7 +7,9 @@ import NavLinks from '@/components/nav-links';
 import MobileSidebar from '@/components/mobile-sidebar';
 import ThemeToggle from '@/components/theme/theme-toggle';
 import UserMenu from '@/components/user-menu';
+import WhatsNewBell from '@/components/whats-new/whats-new-bell';
 import MutationListener from '@/components/mutation-listener';
+import HelpWidget from '@/components/help/help-widget';
 import GymTimezoneProvider from '@/components/gym-timezone-provider';
 import type { Metadata } from 'next';
 
@@ -235,6 +237,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <header className="flex items-center justify-between lg:justify-end gap-1 px-4 sm:px-6 pt-3 -mb-3">
           <MobileSidebar>{sidebarContent}</MobileSidebar>
           <div className="flex items-center gap-1">
+            {/* Product updates from the platform. Sits before the theme
+                and account controls so the badge is the first thing in
+                the header cluster. */}
+            <WhatsNewBell />
             <ThemeToggle />
             <UserMenu name={displayName} email={me?.email ?? ''} />
           </div>
@@ -246,6 +252,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {t('poweredBy')} <span className="text-brand font-semibold">CLBY</span>
         </footer>
       </div>
+      {/* Floating help launcher — outside the scroll container so it
+          stays pinned to the viewport on every dashboard route. */}
+      <HelpWidget />
     </div>
   );
 }

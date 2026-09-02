@@ -11,16 +11,16 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# Cap Node heap to fit within 2GB RAM + 5GB swap on tiny EC2 instances.
-# 1536 was too close to the 1.9GB total: with the prod containers also
-# resident, the build reached the cap and the kernel OOM-killed it mid
-# `next build` (2026-09-02, exit 255 with no error in the log — dockerd
-# reported oom_kill on the builder span). 1024 keeps V8 collecting
-# instead of climbing into territory the box cannot back.
-ENV NODE_OPTIONS="--max-old-space-size=1024"
-# CI=1 makes next.config.mjs serialize the build (cpus:1, no worker
-# threads) — image builds happen on the prod box, which dies under
-# parallel workers. See next.config.mjs.
+# This image is built on GitHub Actions (see .github/workflows/
+# build-gym-admin.yml), not on the prod box — `next build` peaks around
+# 1.1GB RSS and the t3.small had ~600MB free, which OOM-killed three
+# deploys in a row on 2026-09-02. The runner has 16GB, so the heap no
+# longer needs the 1024MB cap that was there to appease the small box.
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+# CI=1 also flips next.config.mjs to ignoreBuildErrors and disables the
+# webpack cache, so keep it set — but the parallelism clamp it used to
+# trigger (cpus:1, workerThreads:false) is no longer wanted on a runner.
+# next.config.mjs now keys that clamp off COOLIFY_FQDN alone.
 ENV CI=1
 RUN npm run build
 

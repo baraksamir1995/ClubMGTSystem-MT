@@ -50,19 +50,19 @@ const nextConfig = {
 
   eslint: { ignoreDuringBuilds: true }, // TODO: no .eslintrc yet; enabling needs config + violation pass first
   // "Checking validity of types" spawns a fresh ~1.5GB tsc process right
-  // after webpack — on the 2GB Coolify box that thrashes swap until
-  // dockerd's exec pipe times out (silent exit-255 at that exact line).
-  // Types are checked locally (`npx tsc --noEmit`) before pushing; skip
-  // only in CI builds so local `next build` still verifies.
-  typescript: { ignoreBuildErrors: !!process.env.CI },
+  // after webpack. That was fatal while images were built on the 2GB
+  // Coolify box (it thrashed swap until dockerd's exec pipe timed out —
+  // the silent exit-255 deploys), so it was skipped whenever CI was set.
+  // The image is now built on a 16GB GitHub runner, which has room to
+  // type-check properly, so only skip it on the small box.
+  typescript: { ignoreBuildErrors: !!process.env.COOLIFY_FQDN },
   experimental: {
     instrumentationHook: true, // Next 14: load instrumentation.ts (Sentry server/edge init)
-    // Coolify builds run ON the 2GB prod box. Parallel webpack workers +
-    // tsc make dockerd/health checks starve and the deploy's exec pipe
-    // breaks (silent exit-255 deploys). One worker keeps the box alive;
-    // the build is slower but finishes. Scoped to CI so local `next build`
-    // stays parallel.
-    ...(process.env.CI || process.env.COOLIFY_FQDN ? { cpus: 1, workerThreads: false } : {}),
+    // Parallel webpack workers + tsc starve dockerd and health checks on
+    // the 2GB prod box, breaking the deploy's exec pipe (silent exit-255).
+    // One worker keeps it alive. Keyed off COOLIFY_FQDN, not CI: GitHub
+    // Actions sets CI=1 but has 16GB and should build in parallel.
+    ...(process.env.COOLIFY_FQDN ? { cpus: 1, workerThreads: false } : {}),
     optimizePackageImports: ['recharts', 'lucide-react'],
     outputFileTracingExcludes: {
       '*': [
@@ -74,8 +74,10 @@ const nextConfig = {
     },
   },
   // Webpack's persistent disk cache is useless inside a throwaway Docker
-  // build layer, and serializing it is exactly the IO+memory spike the
-  // 2GB box dies on (deploys abort right after "Serializing big strings").
+  // build layer (it is discarded with the layer, on a runner as much as on
+  // the prod box), and serializing it is a pure IO+memory spike — it is
+  // what the 2GB box died on, right after "Serializing big strings".
+  // Layer caching is handled by buildx/GHA cache instead.
   webpack: (config) => {
     if (process.env.CI) config.cache = false;
     return config;

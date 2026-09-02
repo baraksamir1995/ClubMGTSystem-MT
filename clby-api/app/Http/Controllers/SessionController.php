@@ -394,16 +394,35 @@ class SessionController extends Controller
      */
     public function copyToNextMonth(Request $request): JsonResponse
     {
+        // source_month/target_month are 'YYYY-MM' (any day in the month
+        // works — the SQL date_truncs both). Omit them and this stays the
+        // original "current month -> next month" copy, so existing callers
+        // are unaffected.
+        // required_with is one-directional, so both directions are declared —
+        // otherwise a target-only request passes validation and builds the
+        // date literal '-01', which 500s instead of returning a clean 422.
         $validated = $request->validate([
             'branch_id' => 'nullable|uuid',
+            'source_month' => ['nullable', 'date_format:Y-m', 'required_with:target_month'],
+            'target_month' => ['nullable', 'date_format:Y-m', 'required_with:source_month'],
         ]);
 
         $gymId = $request->user()->gym_id;
+        $branchId = $validated['branch_id'] ?? null;
+        $sourceMonth = $validated['source_month'] ?? null;
+        $targetMonth = $validated['target_month'] ?? null;
 
-        $result = DB::selectOne(
-            'SELECT copy_recurring_sessions_to_month(?, ?, CURRENT_DATE) AS data',
-            [$gymId, $validated['branch_id'] ?? null]
-        );
+        if ($targetMonth !== null) {
+            $result = DB::selectOne(
+                'SELECT copy_recurring_sessions_between_months(?, ?, ?, ?) AS data',
+                [$gymId, $branchId, $sourceMonth.'-01', $targetMonth.'-01']
+            );
+        } else {
+            $result = DB::selectOne(
+                'SELECT copy_recurring_sessions_to_month(?, ?, CURRENT_DATE) AS data',
+                [$gymId, $branchId]
+            );
+        }
 
         $payload = is_string($result?->data ?? null) ? json_decode($result->data, true) : null;
         if (! is_array($payload)) {
@@ -414,16 +433,28 @@ class SessionController extends Controller
 
         if (! ($payload['ok'] ?? false)) {
             $reason = $payload['reason'] ?? null;
-            $message = $reason === 'busy'
-                ? 'Another copy is already running for this branch — try again in a moment.'
-                : 'Target month is not empty — clear it before copying.';
+            $message = match ($reason) {
+                'busy' => 'Another copy is already running for this branch — try again in a moment.',
+                'target_in_past' => 'The target month has already passed — pick the current month or a later one.',
+                'same_month' => 'Pick two different months — a month cannot be copied onto itself.',
+                'target_month_not_empty' => 'Target month is not empty — clear it before copying.',
+                // Don't advise clearing the target month for a reason we
+                // don't recognise — that sends the admin after the wrong fix.
+                default => 'Copy failed — the schedule could not be copied.',
+            };
+            $status = match ($reason) {
+                'busy' => 409,
+                default => 422,
+            };
+
             return response()->json([
                 'error' => $message,
                 'reason' => $reason,
                 'existing_count' => $payload['existing_count'] ?? null,
+                'source_start' => $payload['source_start'] ?? null,
                 'target_start' => $payload['target_start'] ?? null,
                 'target_end' => $payload['target_end'] ?? null,
-            ], $reason === 'busy' ? 409 : 422);
+            ], $status);
         }
 
         return response()->json($payload);

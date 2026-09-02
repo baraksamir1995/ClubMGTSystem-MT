@@ -56,7 +56,7 @@
     "publishedLabel": "Published",
     "publishSchedule": "Publish Schedule",
     "noSessionsToPublish": "Add at least one session to publish",
-    "copyToNextMonth": "Copy this month to next month",
+    "copyToNextMonth": "Copy month to month",
     "legendPopup": "Pop-up (one-off)",
     "legendRecurring": "Recurring (every week)",
     "today": "Today",
@@ -299,9 +299,11 @@
   },
 
   "copyMonth": {
-    "title": "Copy Schedule to Next Month",
+    "title": "Copy Schedule to Another Month",
     "from": "From",
     "to": "To",
+    "errSameMonth": "Pick two different months.",
+    "errTargetInPast": "The target month has already passed.",
     "branch": "Branch:",
     "bulletRecurringOnly": "Recurring sessions only — pop-ups and cancelled sessions are skipped.",
     "bulletWeekdayPattern": "Each weekday's pattern is copied to the matching weekdays in {month}.",

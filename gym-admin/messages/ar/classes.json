@@ -56,7 +56,7 @@
     "publishedLabel": "منشور",
     "publishSchedule": "نشر الجدول",
     "noSessionsToPublish": "أضف جلسة واحدة على الأقل للنشر",
-    "copyToNextMonth": "نسخ هذا الشهر إلى الشهر القادم",
+    "copyToNextMonth": "نسخ شهر إلى شهر",
     "legendPopup": "إضافية (مرة واحدة)",
     "legendRecurring": "متكرر (كل أسبوع)",
     "today": "اليوم",
@@ -299,9 +299,11 @@
   },
 
   "copyMonth": {
-    "title": "نسخ الجدول إلى الشهر القادم",
+    "title": "نسخ الجدول إلى شهر آخر",
     "from": "من",
     "to": "إلى",
+    "errSameMonth": "اختر شهرين مختلفين.",
+    "errTargetInPast": "الشهر المستهدف قد مضى بالفعل.",
     "branch": "الفرع:",
     "bulletRecurringOnly": "الجلسات المتكررة فقط — يتم تخطي الجلسات الإضافية والملغاة.",
     "bulletWeekdayPattern": "يتم نسخ نمط كل يوم من أيام الأسبوع إلى أيام الأسبوع المقابلة في {month}.",

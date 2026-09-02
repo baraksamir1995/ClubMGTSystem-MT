@@ -434,7 +434,21 @@ export default function ClassesPageClient({ initialClasses, initialSessions, ini
             onCancelSession={s => setCancelModal(s)}
             onViewBookings={s => setBookingsSession(s)}
 
-            onPublished={() => setSessions(prev => prev.map(s => ({ ...s, is_published: true })))}
+            // Mirror ScheduleController::publish exactly — it only marks
+            // non-cancelled sessions from today onwards. Flipping every row
+            // here made the local state disagree with the server, so the
+            // banner vanished on click and came back on refresh.
+            onPublished={() => {
+              // en-CA gives local-time YYYY-MM-DD, matching schedule-tab's
+              // toDateStr; toISOString would be UTC and disagree by a day
+              // for gyms east of UTC late in the evening.
+              const today = new Date().toLocaleDateString('en-CA');
+              setSessions(prev => prev.map(s =>
+                s.status !== 'cancelled' && s.session_date >= today
+                  ? { ...s, is_published: true }
+                  : s,
+              ));
+            }}
             onStopRecurring={async (templateId) => {
               if (!window.confirm(t('schedule.stopRecurringConfirm'))) return;
               try {

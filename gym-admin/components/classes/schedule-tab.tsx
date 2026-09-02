@@ -116,15 +116,26 @@ export default function ScheduleTab({
     }
   }, [sessions.length]);
 
+  const todayStr = toDateStr(new Date());
+
+  // Only sessions from today onwards can ever be published: ScheduleController
+  // ::publish updates `session_date >= today` and leaves older rows alone. The
+  // banner must use the same window, or a gym with old unpublished sessions
+  // (e.g. imported, or scheduled before the first publish) shows "unpublished
+  // changes" forever — pushing appears to do nothing because the rows keeping
+  // the banner alive are ones publish will never touch.
+  const isPublishable = (s: ClassSession) =>
+    s.status !== 'cancelled' && s.session_date >= todayStr;
+
   // Show banner only when there are scheduled sessions not yet published.
   // Avoids false positives from last_updated_at being bumped by booking count changes.
   const hasUnpublishedChanges = Boolean(
     settings?.is_published &&
-    sessions.some(s => s.status !== 'cancelled' && !s.is_published)
+    sessions.some(s => isPublishable(s) && !s.is_published)
   );
   // Anything to publish at all? Used to disable "Publish Schedule" pre-publish
   // when the gym has no live sessions yet.
-  const hasPublishableContent = sessions.some(s => s.status !== 'cancelled');
+  const hasPublishableContent = sessions.some(isPublishable);
 
   const handlePublish = async (publish: boolean) => {
     setPublishing(true);
@@ -156,7 +167,6 @@ export default function ScheduleTab({
   const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
   const weekDates = getWeekDates(baseDate);
-  const todayStr  = toDateStr(new Date());
   const isPublished = settings?.is_published ?? false;
 
   // Filter sessions by active branch (only when multi-branch)

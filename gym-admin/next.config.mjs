@@ -38,6 +38,16 @@ const securityHeaders = [
       "font-src 'self' data:",
       // Sentry ingest (all regions) — required so the browser SDK can POST events.
       "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
+      // "What's New" announcements can carry a YouTube/Vimeo embed. Without
+      // an explicit frame-src these iframes fall back to `default-src 'self'`
+      // and the browser blocks them, rendering its "This content is blocked"
+      // placeholder instead of the player. Scoped to the two player origins
+      // the media component can actually produce — see
+      // components/whats-new/announcement-media.tsx `toEmbedUrl`.
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
+      // Uploaded announcement media is served from R2, and <video> is
+      // governed by media-src rather than img-src.
+      "media-src 'self' data: blob: https:",
       "frame-ancestors 'none'",
     ].join('; '),
   },

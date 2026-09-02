@@ -56,7 +56,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./gym-admin
-          file: ./gym-admin/Dockerfile
+          # Dockerfile.build is the real multi-stage build. ./Dockerfile is a
+          # one-line pull of the image this workflow publishes — that is what
+          # Coolify builds, so that the prod box never runs `next build`.
+          file: ./gym-admin/Dockerfile.build
           push: true
           # :latest is what Coolify pulls; the SHA tag makes it possible to
           # identify and roll back to an exact commit's image.

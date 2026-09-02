@@ -2,13 +2,15 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, CreditCard, FileText, Inbox } from 'lucide-react';
+import { Building2, CreditCard, FileText, Inbox, ImageIcon, Megaphone } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/super-admin', icon: Building2, label: 'Gyms' },
   { href: '/super-admin/plans', icon: FileText, label: 'Plans' },
   { href: '/super-admin/payments', icon: CreditCard, label: 'Payments' },
   { href: '/super-admin/leads', icon: Inbox, label: 'Leads' },
+  { href: '/super-admin/client-logos', icon: ImageIcon, label: 'Client Logos' },
+  { href: '/super-admin/whats-new', icon: Megaphone, label: "What's New" },
 ];
 
 export default function SuperAdminNav() {

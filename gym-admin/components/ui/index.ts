@@ -9,6 +9,7 @@ export { Button, type ButtonProps } from './button';
 export { Field, type FieldProps } from './field';
 export { Input, type InputProps } from './input';
 export { Textarea, type TextareaProps } from './textarea';
+export { RichTextEditor, type RichTextEditorProps } from './rich-text-editor';
 export { Select, type SelectProps } from './select';
 export { PasswordInput, type PasswordInputProps } from './password-input';
 export { Modal, type ModalProps } from './modal';

@@ -223,3 +223,65 @@ input[type='number'].no-spinner {
 .bg-clby-greenDim > * {
   color: rgb(var(--brand-ink)) !important;
 }
+
+/* ── Rich text ────────────────────────────────────────────────────────────
+   Shared by the announcement editor (components/ui/rich-text-editor) and
+   the tenant-facing announcement popup/detail views, so what a super-admin
+   composes is what a gym admin sees. The tag set matches the server-side
+   allowlist in clby-api App\Services\HtmlSanitizer — anything outside it
+   is stripped on write and never reaches this stylesheet. */
+.rich-text > *:first-child { margin-top: 0; }
+.rich-text > *:last-child  { margin-bottom: 0; }
+
+.rich-text p {
+  margin: 0 0 0.75em;
+  line-height: 1.6;
+}
+
+.rich-text h2 {
+  margin: 1.25em 0 0.5em;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgb(var(--fg));
+}
+
+.rich-text h3 {
+  margin: 1em 0 0.4em;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgb(var(--fg));
+}
+
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 0.75em;
+  padding-inline-start: 1.4em;
+}
+
+.rich-text ul { list-style: disc; }
+.rich-text ol { list-style: decimal; }
+
+.rich-text li {
+  margin-bottom: 0.25em;
+  line-height: 1.6;
+}
+
+.rich-text a {
+  color: rgb(var(--brand));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text a:hover { opacity: 0.85; }
+
+.rich-text strong, .rich-text b { font-weight: 600; color: rgb(var(--fg)); }
+.rich-text em, .rich-text i     { font-style: italic; }
+
+.rich-text blockquote {
+  margin: 0 0 0.75em;
+  padding-inline-start: 0.875em;
+  border-inline-start: 3px solid rgb(var(--line-strong));
+  color: rgb(var(--fg-muted));
+}

@@ -3,8 +3,11 @@
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SaasPlanController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\ClientLogoController;
 use App\Http\Controllers\AccessController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AnnouncementAdminController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
@@ -78,6 +81,8 @@ Route::get('/health', function () {
 Route::get('/gyms', [GymController::class, 'listPublic']);
 Route::get('/gyms/{id}', [GymController::class, 'showPublic']);
 Route::post('/leads', [LeadController::class, 'store']);
+// Landing-page client-logo carousel (read-only, managed from super-admin).
+Route::get('/client-logos', [ClientLogoController::class, 'listPublic']);
 // Gym sales-pipeline intake (website forms / ad platforms) — per-gym token auth.
 Route::post('/sales/intake', [SalesIntakeController::class, 'store'])->middleware('throttle:60,1');
 Route::post('/paymob/webhook', [PaymobController::class, 'webhook'])
@@ -483,6 +488,18 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // gym-announcement create permission since this is operationally
     // the same blast-to-members capability.
     Route::post('/push/test', [PushController::class, 'test'])->middleware('permission:content,create');
+
+    // ─── "What's New" product announcements (read side) ──────────────────
+    // Platform updates authored by super-admins. No permission middleware:
+    // every dashboard user sees the product updates for their gym, the
+    // same way every user sees the theme toggle. Targeting and isolation
+    // are enforced inside the controller via Announcement::forGym().
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
+    Route::get('/announcements/unread-count', [AnnouncementController::class, 'unreadCount']);
+    Route::get('/announcements/popup', [AnnouncementController::class, 'popup']);
+    Route::get('/announcements/{id}', [AnnouncementController::class, 'show']);
+    Route::post('/announcements/{id}/read', [AnnouncementController::class, 'markRead']);
+    Route::post('/announcements/{id}/dismiss', [AnnouncementController::class, 'dismiss']);
 });
 
 // ─── Super-admin routes (platform-wide) ────────────────────────────────────
@@ -507,6 +524,24 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', \App\Http\Middleware\R
     Route::post('/invoices', [SaasPlanController::class, 'createInvoice']);
     Route::post('/invoices/{id}/mark-paid', [SaasPlanController::class, 'markPaid']);
     Route::delete('/invoices/{id}', [SaasPlanController::class, 'deleteInvoice']);
+
+    // Landing page client logos (carousel)
+    Route::get('/client-logos', [ClientLogoController::class, 'index']);
+    Route::post('/client-logos', [ClientLogoController::class, 'store']);
+    Route::post('/client-logos/upload', [ClientLogoController::class, 'upload']);
+    Route::post('/client-logos/reorder', [ClientLogoController::class, 'reorder']);
+    Route::patch('/client-logos/{id}', [ClientLogoController::class, 'update']);
+    Route::delete('/client-logos/{id}', [ClientLogoController::class, 'destroy']);
+
+    // "What's New" product announcements (authoring side)
+    Route::get('/announcements', [AnnouncementAdminController::class, 'index']);
+    Route::post('/announcements', [AnnouncementAdminController::class, 'store']);
+    Route::post('/announcements/upload', [AnnouncementAdminController::class, 'upload']);
+    Route::get('/announcements/{id}', [AnnouncementAdminController::class, 'show']);
+    Route::patch('/announcements/{id}', [AnnouncementAdminController::class, 'update']);
+    Route::post('/announcements/{id}/publish', [AnnouncementAdminController::class, 'publish']);
+    Route::post('/announcements/{id}/unpublish', [AnnouncementAdminController::class, 'unpublish']);
+    Route::delete('/announcements/{id}', [AnnouncementAdminController::class, 'destroy']);
 
     // Landing page leads
     Route::get('/leads', [LeadController::class, 'index']);

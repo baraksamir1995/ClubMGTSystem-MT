@@ -1,5 +1,6 @@
 import LeadForm from "@/components/LeadForm";
 import DashboardMockup from "@/components/DashboardMockup";
+import ClientLogos from "@/components/ClientLogos";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -56,6 +57,7 @@ export default function Home() {
       {/* <SocialProof /> */}
       <Features />
       <ProductShowcase />
+      <ClientLogos />
       <Pricing />
       {/* <Comparison /> */}
       <FAQ />

@@ -11,8 +11,17 @@
 # while the deploy itself becomes a registry pull that takes seconds and
 # cannot exhaust the box.
 #
-# To roll back, point this at a :<sha> tag instead of :latest.
+# PINNED BY SHA, not :latest, and that is load-bearing. Coolify tags its
+# images by git SHA and skips the build when neither the SHA nor this
+# file changed. With a static `:latest` line the text never changed, so
+# Coolify reused a cached local image instead of re-resolving what
+# :latest had become — the deploy reported success while serving old
+# code (a stale CSP shipped this way on 2026-09-02). Bumping this tag on
+# every deploy is what forces the pull.
+#
+# To deploy: after CI publishes the image, set this to the new commit's
+# SHA and push. To roll back: point it at an older :<sha>.
 #
 # Local development still uses `npm run dev`; to build the image the way CI
 # does, run: docker build -f Dockerfile.build .
-FROM ghcr.io/baraksamir1995/clby-gym-admin:latest
+FROM ghcr.io/baraksamir1995/clby-gym-admin:571ad0965e070b7b4c9f62bcd4048e76fbc68a85

@@ -32,6 +32,13 @@ class TrainerController extends Controller
         if ($trainerType = $request->query('trainer_type')) {
             $query->where('trainer_type', $trainerType);
         }
+        // `class_sessions.instructor` / `classes.instructor` are free-text
+        // name columns, so the mobile class-detail screen can only resolve a
+        // coach by name. Filter on it here — without this the caller gets the
+        // whole roster back and picks the wrong (most recent) trainer.
+        if (($name = $request->query('name')) !== null && trim($name) !== '') {
+            $query->whereRaw('LOWER(TRIM(name)) = LOWER(TRIM(?))', [$name]);
+        }
 
         $trainers = $query->orderBy('created_at', 'desc')->get();
 

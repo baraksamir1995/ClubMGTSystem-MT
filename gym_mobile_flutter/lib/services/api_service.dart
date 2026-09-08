@@ -1231,7 +1231,18 @@ class ApiService {
         return null;
       }
       if (list.isEmpty) return null;
-      return list.first as Map<String, dynamic>;
+      // Never trust `list.first`: older API builds ignore `?name=` and return
+      // the whole roster, which silently resolves to the most recently created
+      // trainer (the "coach detail swap" bug). Match the name client-side and
+      // show nothing rather than the wrong coach.
+      final target = name.trim().toLowerCase();
+      for (final item in list) {
+        if (item is Map<String, dynamic> &&
+            (item['name'] as String?)?.trim().toLowerCase() == target) {
+          return item;
+        }
+      }
+      return null;
     } catch (e) {
       appLog('getTrainerProfile error: $e');
       return null;

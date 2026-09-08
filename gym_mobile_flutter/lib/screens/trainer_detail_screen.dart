@@ -53,6 +53,14 @@ class _TrainerDetailScreenState extends State<TrainerDetailScreen> {
       return;
     }
 
+    // An unmatched free-text session instructor arrives with no id: there's
+    // no trainer_profiles row to fetch reviews/sessions for, so just render
+    // the name we were handed instead of firing lookups that can't resolve.
+    if (widget.trainer.id.isEmpty) {
+      setState(() => _loading = false);
+      return;
+    }
+
     final isPersonalTrainer = widget.trainer.trainerType == 'personal_trainer';
 
     final results = await Future.wait([

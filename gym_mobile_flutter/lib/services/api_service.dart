@@ -1234,15 +1234,42 @@ class ApiService {
       if (list.isEmpty) return null;
       // Never trust `list.first`: older API builds ignore `?name=` and return
       // the whole roster, which silently resolves to the most recently created
-      // trainer (the "coach detail swap" bug). Match the name client-side and
-      // show nothing rather than the wrong coach.
-      final target = name.trim().toLowerCase();
-      for (final item in list) {
-        if (item is Map<String, dynamic> &&
-            (item['name'] as String?)?.trim().toLowerCase() == target) {
-          return item;
-        }
+      // trainer (the "coach detail swap" bug). Match by name client-side.
+      //
+      // `class_sessions.instructor` is free text, so it drifts from
+      // `trainer_profiles.name` (case, spacing, punctuation, "Coach " prefix).
+      // Narrow the match progressively rather than giving up: an exact hit
+      // wins, then a normalized hit, then a unique partial. Only an ambiguous
+      // partial falls through, since picking one of several would resurrect
+      // the swap bug.
+      final maps = list.whereType<Map<String, dynamic>>().toList();
+      if (maps.length == 1) return maps.first;
+
+      String norm(String v) => v
+          .toLowerCase()
+          .replaceAll(RegExp(r'^(coach|dr\.?|mr\.?|ms\.?|mrs\.?)\s+'), '')
+          .replaceAll(RegExp(r'[^a-z0-9\u0600-\u06FF]'), '');
+
+      final raw = name.trim().toLowerCase();
+      final target = norm(name);
+      if (target.isEmpty) return null;
+
+      for (final m in maps) {
+        if ((m['name'] as String?)?.trim().toLowerCase() == raw) return m;
       }
+      for (final m in maps) {
+        if (norm((m['name'] as String?) ?? '') == target) return m;
+      }
+
+      final partial = maps.where((m) {
+        final n = norm((m['name'] as String?) ?? '');
+        return n.isNotEmpty &&
+            (n.contains(target) || target.contains(n));
+      }).toList();
+      if (partial.length == 1) return partial.first;
+
+      appLog('getTrainerProfile: no unique match for "$name" '
+          '(${maps.length} trainers, ${partial.length} partial)');
       return null;
     } catch (e) {
       appLog('getTrainerProfile error: $e');

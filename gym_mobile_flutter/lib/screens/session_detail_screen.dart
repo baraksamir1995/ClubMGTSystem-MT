@@ -852,14 +852,17 @@ class _CoachCardState extends State<_CoachCard> {
     final double? avgRating = (_trainerData?['avg_rating'] as num?)?.toDouble();
 
     void navigateToTrainer() {
-      if (_trainerData == null) return;
+      // Always navigable. The lookup only enriches the profile (photo,
+      // rating, specialties); when the free-text session instructor can't be
+      // matched to a trainer_profiles row we still open the detail screen
+      // with the name we have rather than making the coach untappable.
       final trainer = TrainerProfile.fromJson({
-        'id': _trainerData!['id'] ?? '',
+        'id': _trainerData?['id'] ?? '',
         'name': instructor,
-        'photo_url': _trainerData!['photo_url'],
-        'trainer_type': _trainerData!['trainer_type'],
-        'specialisations': _trainerData!['specialisations'] ?? [],
-        'avg_rating': _trainerData!['avg_rating'],
+        'photo_url': _trainerData?['photo_url'],
+        'trainer_type': _trainerData?['trainer_type'],
+        'specialisations': _trainerData?['specialisations'] ?? [],
+        'avg_rating': _trainerData?['avg_rating'],
         'is_active': true,
       });
       Navigator.of(context).push(
@@ -870,7 +873,7 @@ class _CoachCardState extends State<_CoachCard> {
     }
 
     return GestureDetector(
-      onTap: _trainerData != null ? navigateToTrainer : null,
+      onTap: navigateToTrainer,
       child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

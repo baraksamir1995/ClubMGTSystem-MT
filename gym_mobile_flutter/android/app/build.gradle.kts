@@ -115,8 +115,8 @@ android {
             dimension = "brand"
             applicationId = "com.clbyapp.thebarnapp"
             resValue("string", "app_name", "The Barn")
-            versionCode = 1
-            versionName = "1.0.0"
+            versionCode = 2
+            versionName = "1.0.1"
             signingConfig = signingConfigs.getByName("releaseTheBarn")
         }
         create("alfag") {

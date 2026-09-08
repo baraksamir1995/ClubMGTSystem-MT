@@ -257,6 +257,81 @@ class RegistrationFlowTest extends TestCase
         ])->assertStatus(401);
     }
 
+    public function test_an_enrolled_member_cannot_join_a_second_gym(): void
+    {
+        // A member belongs to exactly one gym. Registering the same profile
+        // into another gym would leave two live gym_members rows while
+        // profiles.gym_id (single column) silently moved them to the newer
+        // gym, orphaning the first.
+        $this->postJson('/api/auth/register', $this->payload())->assertStatus(201);
+        $profile = DB::table('profiles')->where('email', 'newmember@example.test')->first();
+
+        // Simulate the legacy verification fallback trying to enrol them
+        // again, this time into the other gym.
+        DB::table('profiles')->where('id', $profile->id)->update([
+            'gym_id'         => null,
+            'pending_gym_id' => $this->otherGymId,
+            'email_verified' => false,
+        ]);
+
+        // Registration already issued one; user_id is unique.
+        DB::table('email_verification_tokens')->where('user_id', $profile->id)->delete();
+        $raw = Str::random(64);
+        DB::table('email_verification_tokens')->insert([
+            'user_id'    => $profile->id,
+            'token'      => hash('sha256', $raw),
+            'expires_at' => now()->addDay(),
+            'created_at' => now(),
+        ]);
+
+        $this->postJson('/api/auth/verify-email', ['token' => $raw])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('gym_id');
+
+        // Still exactly one membership, still the original gym.
+        $rows = DB::table('gym_members')
+            ->where('user_id', $profile->id)
+            ->whereNull('deleted_at')
+            ->pluck('gym_id');
+        $this->assertCount(1, $rows);
+        $this->assertSame($this->gymId, $rows->first());
+    }
+
+    public function test_a_member_who_left_can_join_another_gym(): void
+    {
+        // Soft-deleted memberships must not block a rejoin.
+        $this->postJson('/api/auth/register', $this->payload())->assertStatus(201);
+        $profile = DB::table('profiles')->where('email', 'newmember@example.test')->first();
+
+        DB::table('gym_members')->where('user_id', $profile->id)
+            ->update(['deleted_at' => now()]);
+
+        DB::table('profiles')->where('id', $profile->id)->update([
+            'gym_id'         => null,
+            'pending_gym_id' => $this->otherGymId,
+            'email_verified' => false,
+        ]);
+
+        // Registration already issued one; user_id is unique.
+        DB::table('email_verification_tokens')->where('user_id', $profile->id)->delete();
+        $raw = Str::random(64);
+        DB::table('email_verification_tokens')->insert([
+            'user_id'    => $profile->id,
+            'token'      => hash('sha256', $raw),
+            'expires_at' => now()->addDay(),
+            'created_at' => now(),
+        ]);
+
+        $this->postJson('/api/auth/verify-email', ['token' => $raw])->assertStatus(200);
+
+        $live = DB::table('gym_members')
+            ->where('user_id', $profile->id)
+            ->whereNull('deleted_at')
+            ->pluck('gym_id');
+        $this->assertCount(1, $live);
+        $this->assertSame($this->otherGymId, $live->first());
+    }
+
     // ── verification ────────────────────────────────────────────────────────
 
     public function test_token_verification_marks_verified_without_duplicating_membership(): void

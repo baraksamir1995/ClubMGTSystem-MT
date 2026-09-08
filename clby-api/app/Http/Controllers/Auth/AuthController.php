@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -189,6 +190,38 @@ class AuthController extends Controller
      */
     private function assignGymMember(string $userId, string $gymId): void
     {
+        // A member belongs to exactly one gym. Without this guard a user who
+        // already registered at gym A could sign up for gym B and end up with
+        // two live gym_members rows — they'd show in both gyms' dashboards
+        // while profiles.gym_id (a single column, overwritten below) silently
+        // moved them to whichever gym they joined last, orphaning the first.
+        //
+        // Soft-deleted rows are ignored on purpose: a member who left a gym
+        // and rejoins — the same gym or another — must still be able to.
+        $existing = DB::table('gym_members')
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at')
+            ->first(['gym_id']);
+
+        if ($existing) {
+            if ($existing->gym_id === $gymId) {
+                // Idempotent: already enrolled here. Just make sure the
+                // profile's active gym agrees.
+                DB::table('profiles')
+                    ->where('id', $userId)
+                    ->update([
+                        'gym_id'         => $gymId,
+                        'pending_gym_id' => null,
+                        'updated_at'     => now(),
+                    ]);
+                return;
+            }
+
+            throw ValidationException::withMessages([
+                'gym_id' => 'This account is already registered with another gym.',
+            ]);
+        }
+
         $memberId = Str::uuid()->toString();
 
         DB::table('gym_members')->insert([

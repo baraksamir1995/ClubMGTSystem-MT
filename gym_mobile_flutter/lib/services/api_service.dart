@@ -151,8 +151,9 @@ class ApiService {
     final body = jsonDecode(response.body);
     if (response.statusCode >= 400) {
       if (response.statusCode == 401) {
-        // Sanctum tokens expire after 24h. Clear stale credentials so the
-        // next app start can't loop on a dead token and end up in a
+        // Sanctum tokens expire after a year (SANCTUM_EXPIRATION, see the
+        // API's config/sanctum.php). Clear stale credentials so the next app
+        // start can't loop on a dead token and end up in a
         // logged-in-but-empty state.
         await _storage.delete(key: _tokenKey);
         await _storage.delete(key: _userIdKey);

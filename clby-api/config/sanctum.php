@@ -47,7 +47,10 @@ return [
     |
     */
 
-    'expiration' => 43200,
+    // One year. Members stay signed in on their phone rather than being
+    // silently logged out mid-use; a 401 wipes local credentials client-side,
+    // so a short window meant unexpected trips back to the login screen.
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 525600),
 
     /*
     |--------------------------------------------------------------------------

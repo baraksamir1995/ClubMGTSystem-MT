@@ -30,9 +30,37 @@ cd gym_mobile_flutter && flutter run --flavor clby --dart-define-from-file=flavo
 
 ## Production
 
-- Coolify auto-deploys `main` to `https://api.clbyapp.com` (clby-api), `https://admin.clbyapp.com` (gym-admin), `https://superadmin.clbyapp.com` (gym-super-admin), `https://clbyapp.com` (clby-landing).
+- Coolify auto-deploys `main` to `https://api.clbyapp.com` (clby-api), `https://superadmin.clbyapp.com` (gym-super-admin), `https://clbyapp.com` (clby-landing).
+- **gym-admin (`https://admin.clbyapp.com`) does NOT deploy from a push alone — see below.**
 - See `~/.claude/projects/-Users-rtg/memory/reference_clby_prod_server.md` for SSH + container details.
 - Postgres on prod is in a Coolify-managed container, db `clby_prod`, user `clby`.
+
+### Deploying gym-admin — two pushes, always
+
+`gym-admin/Dockerfile` is **not a build**. It is a single `FROM` line pulling a
+prebuilt image from GHCR, pinned by commit SHA. The prod box is a t3.small that
+OOM-kills `next build`, so the real build (`Dockerfile.build`) runs on a GitHub
+Actions runner and publishes to GHCR.
+
+So shipping a gym-admin change takes two pushes:
+
+1. Push the app change. `.github/workflows/build-gym-admin.yml` (triggers on
+   `gym-admin/**`) builds and publishes `ghcr.io/baraksamir1995/clby-gym-admin:<sha>`.
+   Wait for it: `gh run list --workflow=build-gym-admin.yml --limit 1`.
+2. Bump the `FROM` line in `gym-admin/Dockerfile` to that **same commit SHA** and
+   push again. This is the push that actually deploys.
+
+⚠️ Skipping step 2 gives you a **green deploy that serves old code**. Coolify
+clones the new commit, reads the Dockerfile, pulls whatever SHA is pinned there,
+and reports success. The tell is the build taking ~6 seconds and the log showing
+`FROM ghcr.io/...clby-gym-admin:<some older sha>`. This bit us on 2026-09-09
+(payments CSV export shipped to a green deploy and never appeared).
+
+The SHA pin is load-bearing — do not "simplify" it to `:latest`. With a static
+tag the Dockerfile text never changes, so Coolify skips the pull and reuses a
+cached local image (a stale CSP shipped that way on 2026-09-02).
+
+To roll back: point the `FROM` line at an older `:<sha>` and push.
 
 ## Mobile build
 

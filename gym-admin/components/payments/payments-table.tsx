@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, Search, X, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Clock, AlertCircle, FileText, RotateCcw, Bell, Filter } from 'lucide-react';
+import { Plus, Search, X, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Clock, AlertCircle, FileText, RotateCcw, Bell, Filter, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import RecordPaymentModal from './record-payment-modal';
@@ -150,6 +150,16 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     ? Number(serverSummary.daily_revenue)
     : collected.filter(isToday).reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
 
+  // Total money in the current view. Deliberately keyed off `filtered` (not
+  // `baseFiltered`, which the status tiles use) so the amount always matches
+  // the rows in the table and the `filters.countOfTotal` label — including
+  // when a status tile is toggled on. Net of refunds, like dailyRevenue.
+  const filteredTotal = useMemo(
+    () => filtered.reduce((s, p) => s + Number(p.amount) - Number(p.refunded_amount ?? 0), 0),
+    [filtered],
+  );
+  const filteredCurrency = filtered[0]?.currency ?? 'EGP';
+
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -179,6 +189,68 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     router.refresh();
   };
 
+  /** Export the currently filtered rows (every active filter applied, all
+   *  pages — not just the visible page) as CSV. */
+  const exportCsv = () => {
+    if (filtered.length === 0) {
+      toast.error(t('export.exportEmpty'));
+      return;
+    }
+    const h = (k: string) => t(`export.csvHeaders.${k}` as any);
+    const d = (v: string | null) => (v ? new Date(v).toLocaleDateString('en-GB') : '');
+    const num = (v: number | string | null | undefined) =>
+      v === null || v === undefined || v === '' ? '' : Number(v).toFixed(2);
+
+    const rows: (string | number)[][] = [
+      [
+        h('date'), h('memberNumber'), h('member'), h('email'), h('serviceItem'),
+        h('branch'), h('specialist'), h('method'), h('source'), h('status'),
+        h('originalAmount'), h('discount'), h('amount'), h('refunded'), h('net'),
+        h('currency'), h('periodStart'), h('periodEnd'), h('dueDate'), h('paidAt'),
+        h('transactionId'), h('notes'),
+      ],
+      ...filtered.map(p => [
+        d(p.paid_at ?? p.created_at),
+        p.member_number,
+        p.full_name,
+        p.email,
+        p.service_name ?? '',
+        p.branch_name ?? '',
+        p.specialist_name ?? '',
+        methodLabel[p.payment_method] ?? p.payment_method,
+        p.source === 'mobile_app' ? t('source.mobileApp') : t('source.admin'),
+        statusConfig[p.status]?.label ?? p.status,
+        num(p.original_amount),
+        num(p.discount_amount),
+        num(p.amount),
+        num(p.refunded_amount ?? 0),
+        num(Number(p.amount) - Number(p.refunded_amount ?? 0)),
+        p.currency,
+        d(p.period_start),
+        d(p.period_end),
+        d(p.due_date),
+        d(p.paid_at),
+        p.paymob_transaction_id ?? '',
+        p.notes ?? '',
+      ]),
+    ];
+
+    // Totals line — net of refunds, matching the Net column above.
+    const netTotal = filtered.reduce((sum, p) => sum + Number(p.amount) - Number(p.refunded_amount ?? 0), 0);
+    rows.push([]);
+    rows.push([t('export.totalRow', { count: filtered.length }), '', '', '', '', '', '', '', '', '', '', '', '', '', netTotal.toFixed(2), filtered[0]?.currency ?? 'EGP']);
+
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    // BOM so Excel reads UTF-8 (Arabic member names) correctly.
+    a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
+    const period = fromDate || toDate ? `_${fromDate || 'start'}_to_${toDate || 'end'}` : '';
+    a.download = `payments${period}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success(t('export.exportDone', { count: filtered.length }));
+  };
+
   const overduePayments = payments.filter(p => p.status === 'overdue');
   const selectCls = 'bg-surface-3 border border-line text-sm text-fg rounded-lg px-3 py-2 focus:outline-none focus:border-brand transition-colors';
 
@@ -198,6 +270,9 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                 <span className="ms-1.5 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{overduePayments.length}</span>
               </Button>
             )}
+            <Button variant="secondary" onClick={exportCsv} disabled={filtered.length === 0} leftIcon={<Download className="w-4 h-4" />}>
+              {t('export.exportCsv')}
+            </Button>
             {can(permissions, 'payments', 'create') && (
               <Button variant="primary" onClick={() => setModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
                 {t('recordPayment')}
@@ -207,7 +282,12 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-surface-2 border border-line rounded-xl p-4">
+            <p className="text-xs text-fg-muted mb-1">{t('summary.totalAmount')}</p>
+            <p className="text-xl font-bold text-fg">{fmt(filteredTotal, filteredCurrency)}</p>
+            <p className="text-xs text-fg-faint mt-1">{t('summary.totalAmountCount', { count: filtered.length })}</p>
+          </div>
           <div className="bg-surface-2 border border-line rounded-xl p-4">
             <p className="text-xs text-fg-muted mb-1">{t('summary.dailyRevenue')}</p>
             <p className="text-xl font-bold text-success">{fmt(dailyRevenue)}</p>

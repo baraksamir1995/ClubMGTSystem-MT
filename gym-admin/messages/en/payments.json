@@ -10,7 +10,9 @@
     "dailyRevenue": "Daily Revenue",
     "paid": "Paid",
     "pending": "Pending",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "totalAmount": "Total Amount",
+    "totalAmountCount": "{count, plural, =1 {# payment} other {# payments}}"
   },
 
   "status": {
@@ -63,6 +65,36 @@
     "actions": "Actions"
   },
 
+  "export": {
+    "exportCsv": "Export CSV",
+    "exportEmpty": "Nothing to export",
+    "exportDone": "Exported {count} payments",
+    "totalRow": "TOTAL ({count} payments)",
+    "csvHeaders": {
+      "date": "Date",
+      "memberNumber": "Member #",
+      "member": "Member",
+      "email": "Email",
+      "serviceItem": "Service / Item",
+      "branch": "Branch",
+      "specialist": "Specialist",
+      "method": "Method",
+      "source": "Source",
+      "status": "Status",
+      "originalAmount": "Original Amount",
+      "discount": "Discount",
+      "amount": "Amount",
+      "refunded": "Refunded",
+      "net": "Net",
+      "currency": "Currency",
+      "periodStart": "Period Start",
+      "periodEnd": "Period End",
+      "dueDate": "Due Date",
+      "paidAt": "Paid At",
+      "transactionId": "Transaction ID",
+      "notes": "Notes"
+    }
+  },
   "empty": {
     "noPayments": "No payments recorded yet",
     "noMatch": "No payments match your filters",

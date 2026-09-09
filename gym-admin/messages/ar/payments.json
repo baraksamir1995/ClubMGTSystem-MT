@@ -10,7 +10,9 @@
     "dailyRevenue": "إيرادات اليوم",
     "paid": "مدفوع",
     "pending": "قيد الانتظار",
-    "overdue": "متأخر"
+    "overdue": "متأخر",
+    "totalAmount": "إجمالي المبلغ",
+    "totalAmountCount": "{count, plural, zero {لا توجد مدفوعات} one {مدفوعة واحدة} two {مدفوعتان} few {# مدفوعات} many {# مدفوعة} other {# مدفوعة}}"
   },
 
   "status": {
@@ -63,6 +65,36 @@
     "actions": "الإجراءات"
   },
 
+  "export": {
+    "exportCsv": "تصدير CSV",
+    "exportEmpty": "لا يوجد ما يمكن تصديره",
+    "exportDone": "تم تصدير {count} دفعة",
+    "totalRow": "الإجمالي ({count} دفعة)",
+    "csvHeaders": {
+      "date": "التاريخ",
+      "memberNumber": "رقم العضوية",
+      "member": "العضو",
+      "email": "البريد الإلكتروني",
+      "serviceItem": "الخدمة / البند",
+      "branch": "الفرع",
+      "specialist": "المتخصص",
+      "method": "طريقة الدفع",
+      "source": "المصدر",
+      "status": "الحالة",
+      "originalAmount": "المبلغ الأصلي",
+      "discount": "الخصم",
+      "amount": "المبلغ",
+      "refunded": "المُسترَد",
+      "net": "الصافي",
+      "currency": "العملة",
+      "periodStart": "بداية الفترة",
+      "periodEnd": "نهاية الفترة",
+      "dueDate": "تاريخ الاستحقاق",
+      "paidAt": "تاريخ الدفع",
+      "transactionId": "رقم المعاملة",
+      "notes": "ملاحظات"
+    }
+  },
   "empty": {
     "noPayments": "لا توجد مدفوعات مسجلة بعد",
     "noMatch": "لا توجد مدفوعات تطابق الفلاتر",

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "992558175205",
+    "project_id": "fived-fitness-eg",
+    "storage_bucket": "fived-fitness-eg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:992558175205:android:1c8c3b48484286ec41150c",
+        "android_client_info": {
+          "package_name": "com.clbyapp.fivedfitness"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_z6ykU8VASv4Q3gdqk4kfZcZQ66C1HUI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

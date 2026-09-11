@@ -37,6 +37,12 @@ if (alfagKeystorePropertiesFile.exists()) {
     alfagKeystoreProperties.load(FileInputStream(alfagKeystorePropertiesFile))
 }
 
+val fiveDKeystoreProperties = Properties()
+val fiveDKeystorePropertiesFile = rootProject.file("five_d-key.properties")
+if (fiveDKeystorePropertiesFile.exists()) {
+    fiveDKeystoreProperties.load(FileInputStream(fiveDKeystorePropertiesFile))
+}
+
 android {
     namespace = "com.clubmgt.gym_mobile_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -85,6 +91,12 @@ android {
             storeFile = alfagKeystoreProperties.getProperty("storeFile")?.let { f -> file(f) }
             storePassword = alfagKeystoreProperties.getProperty("storePassword")
         }
+        create("releaseFiveD") {
+            keyAlias = fiveDKeystoreProperties.getProperty("keyAlias")
+            keyPassword = fiveDKeystoreProperties.getProperty("keyPassword")
+            storeFile = fiveDKeystoreProperties.getProperty("storeFile")?.let { f -> file(f) }
+            storePassword = fiveDKeystoreProperties.getProperty("storePassword")
+        }
     }
     // Per-brand white-label dimension. Each flavor owns its applicationId,
     // user-visible app name, signing keystore, version, and (via
@@ -126,6 +138,14 @@ android {
             versionCode = 4
             versionName = "1.0.1"
             signingConfig = signingConfigs.getByName("releaseAlfag")
+        }
+        create("fiveD") {
+            dimension = "brand"
+            applicationId = "com.clbyapp.fivedfitness"
+            resValue("string", "app_name", "5D Fitness EG")
+            versionCode = 1
+            versionName = "1.0.0"
+            signingConfig = signingConfigs.getByName("releaseFiveD")
         }
     }
     buildTypes {

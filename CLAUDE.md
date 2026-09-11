@@ -79,7 +79,7 @@ Bundle ID `com.clbyapp.clby` (matches Firebase). Current pubspec: `1.0.6+18`.
 
 So: check App Store Connect for both the open train and the last build number BEFORE building. Trains `1.0.0` and `1.0.5` are closed. Do not trust a "next IPA" note in this file — it has been stale every time.
 
-Only clby reads its version from `pubspec.yaml`. The white-label flavors pin their own in `ios/<Brand>.xcconfig` (`FLUTTER_BUILD_NAME`/`NUMBER`) plus the Android productFlavor's `versionCode`/`versionName`, so bumping pubspec affects clby alone. Current: alfag `1.0.1+4` (1.0 is live on the store), shift `1.0.2+4`, theBarn `1.0.0+1`.
+Only clby reads its version from `pubspec.yaml`. The white-label flavors pin their own in `ios/<Brand>.xcconfig` (`FLUTTER_BUILD_NAME`/`NUMBER`) plus the Android productFlavor's `versionCode`/`versionName`, so bumping pubspec affects clby alone. Current: alfag `1.0.1+4` (1.0 is live on the store), shift `1.0.2+4`, theBarn `1.0.1+3`, fiveD `1.0.0+1`.
 
 ⚠️ `flutter build ipa` names its output from the shared Xcode scheme, so EVERY flavor writes `build/ios/ipa/CLBY.ipa` — an alfag build silently overwrites a clby one. Rename each IPA immediately after building.
 

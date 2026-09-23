@@ -47,10 +47,10 @@ return [
     |
     */
 
-    // One year. Members stay signed in on their phone rather than being
-    // silently logged out mid-use; a 401 wipes local credentials client-side,
-    // so a short window meant unexpected trips back to the login screen.
-    'expiration' => (int) env('SANCTUM_EXPIRATION', 525600),
+    // Never. Members stay signed in on their phone until they log out, reset
+    // their password, or delete their account — those revoke the token
+    // explicitly. Set SANCTUM_EXPIRATION (minutes) only to opt back in.
+    'expiration' => env('SANCTUM_EXPIRATION') ? (int) env('SANCTUM_EXPIRATION') : null,
 
     /*
     |--------------------------------------------------------------------------

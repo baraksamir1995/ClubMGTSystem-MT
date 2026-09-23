@@ -48,7 +48,21 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   AuthProvider(this._service) {
     WidgetsBinding.instance.addObserver(this);
+    ApiService.onSessionRevoked = _onSessionRevoked;
     _init();
+  }
+
+  /// The server rejected our token (logged out elsewhere, password reset).
+  /// ApiService has already cleared storage; drop local state so the router
+  /// sends the member to /login instead of leaving them on empty screens.
+  void _onSessionRevoked() {
+    if (_userId == null) return;
+    _runSignOutCallbacks();
+    _userId = null;
+    _profile = null;
+    _gym = null;
+    _isGuest = false;
+    notifyListeners();
   }
 
   String? get userId => _userId;
@@ -120,10 +134,11 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
     } on ApiException catch (e) {
-      if (e.statusCode == 401) {
-        // Token expired/revoked server-side. ApiService already cleared
-        // storage; drop local state so the router sends us to /login
-        // instead of leaving the user stuck on an empty home screen.
+      if (e.statusCode == 401 && !await _service.hasSession()) {
+        // Token revoked server-side and ApiService cleared it; drop local
+        // state so the router sends us to /login. A 401 that didn't clear
+        // the token (request went out without it) is treated as a normal
+        // error — never a logout.
         _userId = null;
         _profile = null;
         _gym = null;

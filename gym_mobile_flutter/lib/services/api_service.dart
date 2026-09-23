@@ -37,7 +37,70 @@ class ApiService {
 
   String get _baseUrl => Env.apiUrl;
 
-  Future<String?> get _token => _storage.read(key: _tokenKey);
+  /// In-memory copy of the auth token, shared by every ApiService instance
+  /// (screens construct their own). Keychain reads on iOS can intermittently
+  /// return null or throw; without this, one flaky read sent a request with
+  /// no Authorization header, the 401 wiped the real token, and the member
+  /// was stranded on empty "No active membership" screens.
+  static String? _memToken;
+
+  /// Fired when the server rejects a token we actually sent — the session was
+  /// revoked (logout elsewhere, password reset). AuthProvider hooks this to
+  /// drop local state so the router lands on /login.
+  static VoidCallback? onSessionRevoked;
+
+  /// Set once a read (with its retry) comes back empty, so signed-out and
+  /// guest traffic doesn't pay the 200ms retry on every request. Tokens are
+  /// only ever written by signIn/register, which set _memToken directly.
+  static bool _knownNoToken = false;
+
+  Future<String?> get _token async {
+    if (_memToken != null) return _memToken;
+    if (_knownNoToken) return null;
+    String? stored;
+    try {
+      stored = await _storage.read(key: _tokenKey);
+    } catch (_) {
+      // Retry once below — a transient keychain failure must not look like
+      // "logged out".
+    }
+    if (stored == null) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      try {
+        stored = await _storage.read(key: _tokenKey);
+      } catch (_) {}
+    }
+    if (stored != null && stored.isNotEmpty) {
+      _memToken = stored;
+    } else {
+      _knownNoToken = true;
+    }
+    return _memToken;
+  }
+
+  /// For services that build their own requests (PaymobService).
+  Future<String?> get authToken => _token;
+
+  Future<void> _clearCredentials() async {
+    _memToken = null;
+    _knownNoToken = true;
+    _cachedUserId = null;
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _userIdKey);
+  }
+
+  /// Only a Sanctum "Unauthenticated." answer to a request that carried our
+  /// token means the session is dead. Other 401s (bad QR signature, wrong
+  /// password, a request that went out without a token) leave it alone.
+  Future<void> _handle401(http.Response response, Object? body) async {
+    final sentToken = _memToken != null &&
+        response.request?.headers['Authorization'] == 'Bearer $_memToken';
+    final isAuthFailure =
+        body is Map && body['message']?.toString() == 'Unauthenticated.';
+    if (!sentToken || !isAuthFailure) return;
+    await _clearCredentials();
+    onSessionRevoked?.call();
+  }
 
   String? _cachedUserId;
 
@@ -48,7 +111,14 @@ class ApiService {
 
   /// Loads the cached user ID from secure storage (call once at startup).
   Future<void> loadCachedUserId() async {
-    _cachedUserId = await _storage.read(key: _userIdKey);
+    for (var attempt = 0; attempt < 2 && _cachedUserId == null; attempt++) {
+      if (attempt > 0) await Future.delayed(const Duration(milliseconds: 200));
+      try {
+        _cachedUserId = await _storage.read(key: _userIdKey);
+      } catch (_) {
+        // Same flaky-keychain guard as _token.
+      }
+    }
   }
 
   Future<Map<String, String>> get _headers async {
@@ -150,15 +220,7 @@ class ApiService {
     if (response.body.isEmpty) return <String, dynamic>{};
     final body = jsonDecode(response.body);
     if (response.statusCode >= 400) {
-      if (response.statusCode == 401) {
-        // Sanctum tokens expire after a year (SANCTUM_EXPIRATION, see the
-        // API's config/sanctum.php). Clear stale credentials so the next app
-        // start can't loop on a dead token and end up in a
-        // logged-in-but-empty state.
-        await _storage.delete(key: _tokenKey);
-        await _storage.delete(key: _userIdKey);
-        _cachedUserId = null;
-      }
+      if (response.statusCode == 401) await _handle401(response, body);
       final msg = body is Map ? (body['message']?.toString() ?? 'Unknown error') : 'Unknown error';
       throw ApiException(statusCode: response.statusCode, message: msg);
     }
@@ -179,6 +241,8 @@ class ApiService {
     final user = data['user'] as Map<String, dynamic>;
     final userId = user['id']?.toString() ?? '';
 
+    _memToken = token;
+    _knownNoToken = false;
     await _storage.write(key: _tokenKey, value: token);
     await _storage.write(key: _userIdKey, value: userId);
     _cachedUserId = userId;
@@ -197,16 +261,12 @@ class ApiService {
     } catch (_) {
       // Best-effort — clear local state regardless
     }
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _userIdKey);
-    _cachedUserId = null;
+    await _clearCredentials();
   }
 
   Future<void> deleteAccount() async {
     await _delete('/api/members/account');
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _userIdKey);
-    _cachedUserId = null;
+    await _clearCredentials();
   }
 
   Future<void> changePassword(String newPassword) async {
@@ -263,6 +323,8 @@ class ApiService {
     final userId = user['id']?.toString() ?? '';
 
     if (token != null) {
+      _memToken = token;
+      _knownNoToken = false;
       await _storage.write(key: _tokenKey, value: token);
       await _storage.write(key: _userIdKey, value: userId);
       _cachedUserId = userId;
@@ -277,10 +339,7 @@ class ApiService {
   }
 
   /// Check if there is a stored auth token.
-  Future<bool> hasSession() async {
-    final token = await _storage.read(key: _tokenKey);
-    return token != null && token.isNotEmpty;
-  }
+  Future<bool> hasSession() async => (await _token) != null;
 
   // ─── Gym ─────────────────────────────────────────────────────────────────
 
@@ -372,6 +431,17 @@ class ApiService {
         return GymMember.fromJson(data);
       }
       return null;
+    } on ApiException {
+      // Network/auth failures propagate so the UI can show "couldn't load"
+      // with a retry — returning null here rendered as "No active
+      // membership" for members who have one.
+      rethrow;
+    } on SocketException {
+      rethrow;
+    } on TimeoutException {
+      rethrow;
+    } on http.ClientException {
+      rethrow;
     } catch (_) {
       return null;
     }
@@ -902,11 +972,7 @@ class ApiService {
         final data = map['data'] is Map ? Map<String, dynamic>.from(map['data'] as Map) : map;
         return {'ok': true, ...data};
       }
-      if (response.statusCode == 401) {
-        await _storage.delete(key: _tokenKey);
-        await _storage.delete(key: _userIdKey);
-        _cachedUserId = null;
-      }
+      if (response.statusCode == 401) await _handle401(response, map);
       return {
         'ok': false,
         ...map,

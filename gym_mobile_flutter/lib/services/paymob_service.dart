@@ -1,11 +1,8 @@
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../utils/env.dart';
 import 'analytics_service.dart';
-
-const _storage = FlutterSecureStorage();
-const _tokenKey = 'auth_token';
+import 'api_service.dart';
 
 /// Result returned by [PaymobService.createIntention].
 class PaymobIntention {
@@ -28,7 +25,7 @@ class PaymobService {
   String get _baseUrl => Env.apiUrl;
 
   Future<Map<String, String>> get _headers async {
-    final token = await _storage.read(key: _tokenKey);
+    final token = await ApiService().authToken;
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

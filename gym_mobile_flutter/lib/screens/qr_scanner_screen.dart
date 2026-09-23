@@ -52,6 +52,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final memberProvider = context.read<MemberProvider>();
     final userGymId = context.read<AuthProvider>().profile?.gymId;
 
+    // If the member record never loaded (flaky network on app open), try
+    // once more now rather than rejecting a paid member's scan locally.
+    if (memberProvider.member == null && userGymId != null) {
+      await memberProvider.loadMemberData(userGymId);
+      if (!mounted) return;
+    }
+
     try {
       // ── Try JSON payload first (new format) ─────────────────────────────────
       Map<String, dynamic>? jsonPayload;
@@ -163,9 +170,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
           final gymMember = memberProvider.member;
           if (gymMember == null) {
+            final loadError = memberProvider.memberError;
             _showResult(_CheckInResult.error(
-              title: context.l10n.qrNotRegisteredTitle,
-              subtitle: context.l10n.qrNotRegisteredSubtitle,
+              title: loadError != null
+                  ? context.l10n.qrCheckinFailedTitle
+                  : context.l10n.qrNotRegisteredTitle,
+              subtitle: loadError ?? context.l10n.qrNotRegisteredSubtitle,
             ));
             return;
           }

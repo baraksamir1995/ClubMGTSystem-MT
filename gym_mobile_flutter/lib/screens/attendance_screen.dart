@@ -161,10 +161,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 onRetry: _loadAttendance,
               )
-            : _NoMembershipBody(
-                isSuspended: isSuspended,
-                onBrowse: isSuspended ? null : () => context.push('/explore/memberships'),
-              ),
+            // Couldn't load the member at all — say so, rather than telling
+            // someone with a paid plan they have no membership.
+            : (member == null && mp.memberError != null)
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      _ErrorBlock(error: mp.memberError!, onRetry: _loadAttendance),
+                    ],
+                  )
+                : _NoMembershipBody(
+                    isSuspended: isSuspended,
+                    onBrowse: isSuspended ? null : () => context.push('/explore/memberships'),
+                  ),
       ),
     );
   }

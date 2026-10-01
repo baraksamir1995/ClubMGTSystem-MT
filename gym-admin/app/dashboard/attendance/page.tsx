@@ -108,7 +108,11 @@ export default async function AttendanceRoute() {
   const branchMap = Object.fromEntries(branches.map(b => [b.id, b.name]));
 
   // Normalize: Laravel returns class name inside class_model.name
-  const sessionsWithClassName = rawSessions.map((s: any) => ({
+  // Cancelled sessions can't be attended — and a copied-then-cancelled
+  // schedule otherwise lists the same class several times.
+  const sessionsWithClassName = rawSessions
+    .filter((s: any) => s.status !== 'cancelled')
+    .map((s: any) => ({
     ...s,
     class_name: s.class_name ?? s.class_model?.name ?? null,
     instructor: s.instructor ?? s.class_model?.instructor ?? null,

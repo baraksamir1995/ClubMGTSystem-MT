@@ -65,7 +65,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
           instructor: s.instructor ?? s.class_model?.instructor ?? null,
         }));
         const opts: SessionOption[] = sessions
-          .filter((s: any) => s.class_name)
+          .filter((s: any) => s.class_name && s.status !== 'cancelled')
           .map((s: any) => ({
             id: s.id,
             label: s.start_time ? `${s.class_name} - ${s.start_time}` : s.class_name,

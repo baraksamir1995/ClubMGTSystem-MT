@@ -1,9 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, CreditCard, Check, Trash2, RefreshCw, X, Filter } from 'lucide-react';
+import { Plus, CreditCard, Check, Trash2, RefreshCw, X, Filter, Ban, Undo2, BellRing } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiErrorMessage, networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
+import { Button, Modal } from '@/components/ui';
+import { INVOICES_CHANGED_EVENT } from '@/lib/saas-invoice-events';
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending Payment',
+  awaiting_confirmation: 'Awaiting Confirmation',
+  paid: 'Paid',
+  overdue: 'Overdue',
+  cancelled: 'Cancelled',
+};
 
 interface Invoice {
   id: string;
@@ -18,6 +28,9 @@ interface Invoice {
   billing_period_end: string;
   paid_at: string | null;
   created_at: string;
+  settlement_request_id: string | null;
+  settlement_requested_at: string | null;
+  settlement_requested_by: string | null;
 }
 
 interface Gym { id: string; name: string }
@@ -32,6 +45,9 @@ export default function PaymentsPage() {
   const [creating, setCreating] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterGym, setFilterGym] = useState('');
+  const [awaitingCount, setAwaitingCount] = useState(0);
+  const [confirmingPaid, setConfirmingPaid] = useState<Invoice | null>(null);
+  const [busy, setBusy] = useState(false);
 
   // Form
   const [gymId, setGymId] = useState('');
@@ -56,6 +72,21 @@ export default function PaymentsPage() {
     finally { setLoading(false); }
   }, [filterStatus, filterGym]);
 
+  // Filter-independent, so the review callout shows even while the table
+  // is filtered to something else.
+  const fetchAwaitingCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/super-admin/invoices/awaiting-count');
+      if (res.ok) setAwaitingCount((await res.json()).data?.awaiting ?? 0);
+    } catch {}
+  }, []);
+
+  const statusChanged = () => {
+    fetchInvoices();
+    fetchAwaitingCount();
+    window.dispatchEvent(new Event(INVOICES_CHANGED_EVENT));
+  };
+
   const fetchGymsAndPlans = useCallback(async () => {
     try {
       const [gRes, pRes] = await Promise.all([
@@ -71,6 +102,7 @@ export default function PaymentsPage() {
 
   useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
   useEffect(() => { fetchGymsAndPlans(); }, [fetchGymsAndPlans]);
+  useEffect(() => { fetchAwaitingCount(); }, [fetchAwaitingCount]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,17 +130,46 @@ export default function PaymentsPage() {
       toast.success('Invoice created');
       setShowCreate(false);
       setGymId(''); setPlanId(''); setAmount(''); setPeriodStart(''); setPeriodEnd(''); setStatus('pending');
-      fetchInvoices();
+      statusChanged();
     } catch { toast.error(networkErrorMessage()); }
     finally { setCreating(false); }
   };
 
+  // Every route to "paid" goes through the confirmation dialog. An invoice
+  // the gym has claimed is confirmed via its settlement request (approving
+  // the claim); any other unpaid invoice uses the plain mark-paid.
   const markPaid = async (inv: Invoice) => {
+    setBusy(true);
     try {
-      const res = await fetch(`/api/super-admin/invoices/${inv.id}`, { method: 'POST' });
+      const path = inv.status === 'awaiting_confirmation'
+        ? `/api/super-admin/invoices/${inv.id}/confirm-settlement`
+        : `/api/super-admin/invoices/${inv.id}`;
+      const res = await fetch(path, { method: 'POST' });
       if (!res.ok) { toast.error(`Couldn't mark invoice as paid — ${await responseErrorMessage(res)}`); return; }
-      setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'paid', paid_at: new Date().toISOString() } : i));
       toast.success('Marked as paid');
+      setConfirmingPaid(null);
+      statusChanged();
+    } catch { toast.error(networkErrorMessage()); }
+    finally { setBusy(false); }
+  };
+
+  const rejectSettlement = async (inv: Invoice) => {
+    if (!confirm(`Reject ${inv.gym_name}'s payment confirmation? The payment returns to Pending Payment and their reminder reappears.`)) return;
+    try {
+      const res = await fetch(`/api/super-admin/invoices/${inv.id}/reject-settlement`, { method: 'POST' });
+      if (!res.ok) { toast.error(`Couldn't reject confirmation — ${await responseErrorMessage(res)}`); return; }
+      toast.success('Confirmation rejected');
+      statusChanged();
+    } catch { toast.error(networkErrorMessage()); }
+  };
+
+  const cancelInvoice = async (inv: Invoice) => {
+    if (!confirm(`Cancel this invoice for ${inv.gym_name}? The gym will no longer be reminded about it.`)) return;
+    try {
+      const res = await fetch(`/api/super-admin/invoices/${inv.id}/cancel`, { method: 'POST' });
+      if (!res.ok) { toast.error(`Couldn't cancel invoice — ${await responseErrorMessage(res)}`); return; }
+      toast.success('Invoice cancelled');
+      statusChanged();
     } catch { toast.error(networkErrorMessage()); }
   };
 
@@ -119,6 +180,8 @@ export default function PaymentsPage() {
       if (!res.ok) { toast.error(`Couldn't delete invoice — ${await responseErrorMessage(res)}`); return; }
       setInvoices(prev => prev.filter(i => i.id !== inv.id));
       toast.success('Invoice deleted');
+      fetchAwaitingCount();
+      window.dispatchEvent(new Event(INVOICES_CHANGED_EVENT));
     } catch { toast.error(networkErrorMessage()); }
   };
 
@@ -133,15 +196,21 @@ export default function PaymentsPage() {
   const fmtDate = (iso: string) => { try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return '—'; } };
 
   const statusBadge = (s: string) => {
-    const cls = s === 'paid' ? 'bg-success-soft text-success' : s === 'overdue' ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning';
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{s}</span>;
+    const cls = s === 'paid' ? 'bg-success-soft text-success'
+      : s === 'overdue' ? 'bg-danger-soft text-danger'
+      : s === 'awaiting_confirmation' ? 'bg-info-soft text-info'
+      : s === 'cancelled' ? 'bg-surface-3 text-fg-muted'
+      : 'bg-warning-soft text-warning';
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cls}`}>{STATUS_LABELS[s] ?? s}</span>;
   };
 
   const inp = 'w-full px-3 py-2 bg-surface-3 border border-line-strong rounded-lg text-sm text-fg placeholder:text-fg-faint focus:outline-none focus:border-brand transition-colors';
 
   // Summary
   const totalCollected = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0);
-  const totalPending = invoices.filter(i => i.status === 'pending').reduce((s, i) => s + Number(i.amount), 0);
+  // A gym's "I have paid" claim is still owed money until confirmed, so it
+  // stays in Pending rather than vanishing from both cards.
+  const totalPending = invoices.filter(i => i.status === 'pending' || i.status === 'awaiting_confirmation').reduce((s, i) => s + Number(i.amount), 0);
 
   return (
     <div className="space-y-5">
@@ -156,8 +225,26 @@ export default function PaymentsPage() {
         </button>
       </div>
 
+      {/* Settlement claims from gyms waiting on review */}
+      {awaitingCount > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-info bg-info-soft px-4 py-3">
+          <div className="flex items-center gap-3 flex-1">
+            <BellRing className="w-5 h-5 text-info flex-shrink-0" aria-hidden />
+            <p className="text-sm text-fg">
+              <span className="font-semibold">{awaitingCount} {awaitingCount === 1 ? 'gym says it has' : 'gyms say they have'} paid.</span>{' '}
+              Confirm once the external payment has been received, or reject the claim.
+            </p>
+          </div>
+          {filterStatus !== 'awaiting_confirmation' && (
+            <Button size="sm" variant="secondary" onClick={() => setFilterStatus('awaiting_confirmation')}>
+              Review
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface-2 border border-line rounded-xl p-4">
           <p className="text-xs text-fg-muted mb-1">Total Collected</p>
           <p className="text-xl font-bold text-success">{fmt(totalCollected)}</p>
@@ -170,6 +257,10 @@ export default function PaymentsPage() {
           <p className="text-xs text-fg-muted mb-1">Total Invoices</p>
           <p className="text-xl font-bold text-fg">{invoices.length}</p>
         </div>
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+          <p className="text-xs text-fg-muted mb-1">Awaiting Confirmation</p>
+          <p className="text-xl font-bold text-info">{awaitingCount}</p>
+        </div>
       </div>
 
       {/* Filters */}
@@ -178,9 +269,11 @@ export default function PaymentsPage() {
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="bg-surface-2 border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
           <option value="">All statuses</option>
+          <option value="pending">Pending Payment</option>
+          <option value="awaiting_confirmation">Awaiting Confirmation</option>
           <option value="paid">Paid</option>
-          <option value="pending">Pending</option>
           <option value="overdue">Overdue</option>
+          <option value="cancelled">Cancelled</option>
         </select>
         <select value={filterGym} onChange={e => setFilterGym(e.target.value)}
           className="bg-surface-2 border border-line rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-brand">
@@ -285,13 +378,38 @@ export default function PaymentsPage() {
                       {fmtDate(inv.billing_period_start)} — {fmtDate(inv.billing_period_end)}
                     </td>
                     <td className="px-5 py-3.5 text-fg font-medium">{fmt(Number(inv.amount), inv.currency)}</td>
-                    <td className="px-5 py-3.5">{statusBadge(inv.status)}</td>
+                    <td className="px-5 py-3.5">
+                      {statusBadge(inv.status)}
+                      {inv.status === 'awaiting_confirmation' && inv.settlement_requested_at && (
+                        <p className="text-[11px] text-fg-muted mt-1 whitespace-nowrap">
+                          Claimed{inv.settlement_requested_by ? ` by ${inv.settlement_requested_by}` : ''} · {fmtDate(inv.settlement_requested_at)}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {inv.status !== 'paid' && (
-                          <button onClick={() => markPaid(inv)} title="Mark as paid" aria-label="Mark as paid"
+                        {inv.status === 'awaiting_confirmation' && (
+                          <>
+                            <button onClick={() => setConfirmingPaid(inv)}
+                              className="px-2.5 py-1 text-xs font-medium whitespace-nowrap text-success bg-success-soft hover:bg-success hover:text-on-status rounded-lg transition-colors">
+                              Confirm Payment
+                            </button>
+                            <button onClick={() => rejectSettlement(inv)} title="Reject confirmation" aria-label="Reject confirmation"
+                              className="p-1.5 text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition-colors">
+                              <Undo2 className="w-3.5 h-3.5" aria-hidden />
+                            </button>
+                          </>
+                        )}
+                        {(inv.status === 'pending' || inv.status === 'overdue') && (
+                          <button onClick={() => setConfirmingPaid(inv)} title="Mark as paid" aria-label="Mark as paid"
                             className="p-1.5 text-fg-muted hover:text-success hover:bg-success-soft rounded-lg transition-colors">
                             <Check className="w-3.5 h-3.5" aria-hidden />
+                          </button>
+                        )}
+                        {inv.status !== 'paid' && inv.status !== 'cancelled' && (
+                          <button onClick={() => cancelInvoice(inv)} title="Cancel invoice" aria-label="Cancel invoice"
+                            className="p-1.5 text-fg-muted hover:text-fg hover:bg-surface-3 rounded-lg transition-colors">
+                            <Ban className="w-3.5 h-3.5" aria-hidden />
                           </button>
                         )}
                         <button onClick={() => deleteInvoice(inv)} title="Delete" aria-label="Delete invoice"
@@ -307,6 +425,22 @@ export default function PaymentsPage() {
           </div>
         </div>
       )}
+
+      <Modal open={confirmingPaid !== null} onClose={() => setConfirmingPaid(null)} size="sm">
+        <Modal.Header>Confirm Payment</Modal.Header>
+        <Modal.Body>
+          <p className="text-sm text-fg-muted">
+            Are you sure you want to mark this payment as Paid? This action confirms that the external payment has been received.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" fullWidth onClick={() => setConfirmingPaid(null)}>Cancel</Button>
+          <Button variant="primary" fullWidth isLoading={busy}
+            onClick={() => confirmingPaid && markPaid(confirmingPaid)}>
+            Confirm Payment
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

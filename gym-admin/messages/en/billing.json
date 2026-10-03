@@ -1,0 +1,17 @@
+{
+  "reminder": {
+    "title": "Outstanding payment",
+    "message": "You have an outstanding payment. If you have already settled it, please notify the Super Admin for confirmation.",
+    "period": "Billing period: {start} – {end}",
+    "iHavePaid": "I Have Paid",
+    "dismiss": "Dismiss",
+    "dismissHint": "Hide this reminder for 24 hours",
+    "confirmTitle": "Notify the Super Admin?",
+    "confirmBody": "We'll let the Super Admin know you've settled this payment. It stays outstanding until they confirm they've received it.",
+    "cancel": "Cancel",
+    "confirm": "Notify Super Admin",
+    "sent": "Super Admin notified — awaiting confirmation",
+    "dismissed": "Reminder hidden for 24 hours",
+    "failed": "Couldn't update the reminder — {error}"
+  }
+}

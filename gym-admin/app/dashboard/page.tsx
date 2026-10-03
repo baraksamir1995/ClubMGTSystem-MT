@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Users, CreditCard, UserCheck, TrendingUp } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { getMe } from '@/lib/get-permissions';
+import PaymentReminderBanner, { type BillingReminder } from '@/components/billing/payment-reminder-banner';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +28,14 @@ export default async function DashboardPage() {
 
   const t = await getTranslations('overview');
 
-  const statsData = await fetchApi('/dashboard/stats', token);
+  // Platform billing reminders are the gym owner's business only; the API
+  // 403s anyone else, so don't even ask on their behalf.
+  const me = await getMe(token);
+  const [statsData, remindersData] = await Promise.all([
+    fetchApi('/dashboard/stats', token),
+    me?.role === 'gym_admin' ? fetchApi('/billing/reminders', token) : Promise.resolve(null),
+  ]);
+  const reminders: BillingReminder[] = Array.isArray(remindersData?.data) ? remindersData.data : [];
 
   const totalMembers = statsData?.total_members ?? 0;
   const activeStaff = statsData?.active_staff ?? 0;
@@ -46,6 +55,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <PaymentReminderBanner initial={reminders} />
+
       <div>
         <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
         <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>

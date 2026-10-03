@@ -9,6 +9,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AnnouncementAdminController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BillingReminderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BranchController;
@@ -500,6 +501,13 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/announcements/{id}', [AnnouncementController::class, 'show']);
     Route::post('/announcements/{id}/read', [AnnouncementController::class, 'markRead']);
     Route::post('/announcements/{id}/dismiss', [AnnouncementController::class, 'dismiss']);
+
+    // ─── Platform billing reminders (SaaS invoices owed by this gym) ─────
+    // Owner-only and gym-scoped inside the controller. "I have paid" only
+    // opens a claim for super-admin review; it never marks anything paid.
+    Route::get('/billing/reminders', [BillingReminderController::class, 'index']);
+    Route::post('/billing/reminders/{id}/settle', [BillingReminderController::class, 'settle']);
+    Route::post('/billing/reminders/{id}/dismiss', [BillingReminderController::class, 'dismiss']);
 });
 
 // ─── Super-admin routes (platform-wide) ────────────────────────────────────
@@ -522,7 +530,11 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', \App\Http\Middleware\R
     // Payments / Invoices
     Route::get('/invoices', [SaasPlanController::class, 'invoices']);
     Route::post('/invoices', [SaasPlanController::class, 'createInvoice']);
+    Route::get('/invoices/awaiting-count', [SaasPlanController::class, 'awaitingCount']);
     Route::post('/invoices/{id}/mark-paid', [SaasPlanController::class, 'markPaid']);
+    Route::post('/invoices/{id}/confirm-settlement', [SaasPlanController::class, 'confirmSettlement']);
+    Route::post('/invoices/{id}/reject-settlement', [SaasPlanController::class, 'rejectSettlement']);
+    Route::post('/invoices/{id}/cancel', [SaasPlanController::class, 'cancelInvoice']);
     Route::delete('/invoices/{id}', [SaasPlanController::class, 'deleteInvoice']);
 
     // Landing page client logos (carousel)

@@ -33,8 +33,10 @@ RUN mkdir -p storage/framework/{sessions,views,cache/data} \
     && chmod -R 775 storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-# Suppress PHP version in response headers
-RUN echo "expose_php = Off" > /usr/local/etc/php/conf.d/security.ini
+# Suppress PHP version in response headers.
+# session.upload_progress off: interim mitigation for CVE-2026-109618/109619
+# (PHP2Shell). Laravel doesn't use native PHP sessions, so nothing depends on it.
+RUN printf "expose_php = Off\nsession.upload_progress.enabled = Off\n" > /usr/local/etc/php/conf.d/security.ini
 
 # Upload limits. The php:*-fpm default upload_max_filesize is 2M, which is
 # below the 5M our image-upload endpoints validate against — PHP would

@@ -24,4 +24,4 @@
 #
 # Local development still uses `npm run dev`; to build the image the way CI
 # does, run: docker build -f Dockerfile.build .
-FROM ghcr.io/baraksamir1995/clby-gym-admin:4bc5c59c9306bdf00fd0f29f3473739b8b5f0551
+FROM ghcr.io/baraksamir1995/clby-gym-admin:9b14a0f793d3e32501822a9e65b011f51209e81b

@@ -1,4 +1,4 @@
-FROM php:8.4-fpm
+FROM php:8.4.27-fpm
 
 # Install system dependencies + nginx + supervisor.
 # We run nginx and php-fpm side-by-side under supervisor so the container

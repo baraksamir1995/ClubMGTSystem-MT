@@ -9,6 +9,7 @@ import {
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import { fmtDateGym as fmtDate } from '@/lib/time';
+import { escapeCsv } from '@/lib/csv';
 import {
   Avatar,
   Badge,
@@ -847,21 +848,4 @@ function SummaryTile({
       </div>
     </button>
   );
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-function escapeCsv(v: string | number): string {
-  let s = String(v);
-  // Neutralise spreadsheet formula injection. These exports are opened in
-  // Excel/Sheets, where a cell starting with = + - @ (or tab/CR, which some
-  // parsers strip back to those) is evaluated as a formula — a member name
-  // like "=HYPERLINK(...)" would execute on open. Prefixing with a single
-  // quote makes it literal text in both Excel and Sheets.
-  // A leading "-" is only dangerous when it isn't just a negative number —
-  // guarding it unconditionally turned every negative value (e.g. an expired
-  // row's days-remaining) into text like '-12 in the spreadsheet.
-  const isNumeric = /^-?\d+(\.\d+)?$/.test(s);
-  if (!isNumeric && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
 }

@@ -281,5 +281,123 @@
     "sendFailed": "Failed to send",
     "sentSuccess": "Reminder sent to {count} member",
     "sentSuccessPlural": "Reminder sent to {count} members"
+  },
+  "moduleTabs": {
+    "payments": "Payments",
+    "financial": "Financial Overview"
+  },
+  "financial": {
+    "title": "Financial Overview",
+    "subtitle": "Track expenses against collected revenue",
+    "period": "Reporting period: {from} – {to}",
+    "thisMonth": "This month",
+    "customRange": "Custom range",
+    "cards": {
+      "revenueMonth": "Total Revenue This Month",
+      "expensesMonth": "Total Expenses This Month",
+      "netMonth": "Net Profit This Month",
+      "revenueRange": "Total Revenue",
+      "expensesRange": "Total Expenses",
+      "netRange": "Net Profit",
+      "revenueHint": "Collected payments, net of refunds",
+      "expensesHint": "{count, plural, =0 {No recorded expenses} =1 {# recorded expense} other {# recorded expenses}}",
+      "netHint": "Recorded revenue minus recorded expenses",
+      "netDisclaimer": "Calculated from recorded revenue and expenses only. Not accounting profit — taxes, payment fees and other costs aren't included.",
+      "excludedCurrencies": "Revenue only includes {currency} payments. Payments in {others} were collected this period and are not included."
+    },
+    "filters": {
+      "startDate": "Start date",
+      "endDate": "End date",
+      "apply": "Apply filters",
+      "reset": "Reset",
+      "invalidRange": "Start date must not be after end date.",
+      "category": "Category",
+      "allCategories": "All categories",
+      "searchPlaceholder": "Search title or vendor…"
+    },
+    "export": "Export CSV",
+    "exporting": "Preparing export…",
+    "exportFailed": "Export failed",
+    "exported": "{count, plural, =0 {Exported the summary} =1 {Exported # expense} other {Exported # expenses}}",
+    "addExpense": "Add Expense",
+    "expensesTitle": "Expenses",
+    "col": {
+      "title": "Expense",
+      "category": "Category",
+      "amount": "Amount",
+      "date": "Expense date",
+      "vendor": "Vendor / Recipient",
+      "method": "Payment method",
+      "actions": "Actions"
+    },
+    "sortBy": "Sort by {column}",
+    "showingRange": "Showing {from}–{to} of {total}",
+    "empty": "No expenses in this period",
+    "emptyFiltered": "No expenses match these filters",
+    "emptyHint": "Record rent, salaries, equipment and other costs to see your net profit.",
+    "categories": {
+      "rent": "Rent",
+      "salaries": "Salaries",
+      "equipment": "Equipment",
+      "utilities": "Utilities",
+      "marketing": "Marketing",
+      "maintenance": "Maintenance",
+      "software": "Software & Subscriptions",
+      "transportation": "Transportation",
+      "other": "Other"
+    },
+    "form": {
+      "newTitle": "Add Expense",
+      "editTitle": "Edit Expense",
+      "viewTitle": "Expense Details",
+      "title": "Expense title",
+      "titlePlaceholder": "e.g. October rent",
+      "amount": "Amount",
+      "date": "Expense date",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "vendor": "Vendor / Recipient",
+      "method": "Payment method",
+      "noMethod": "Not recorded",
+      "description": "Description / Notes",
+      "required": "Required",
+      "amountInvalid": "Enter an amount greater than 0 (max 2 decimals).",
+      "created": "Created",
+      "updated": "Last updated",
+      "saveNew": "Add expense",
+      "saveEdit": "Save changes"
+    },
+    "toast": {
+      "created": "Expense added",
+      "updated": "Expense updated",
+      "deleted": "Expense deleted",
+      "saveFailed": "Could not save the expense",
+      "deleteFailed": "Could not delete the expense"
+    },
+    "delete": {
+      "title": "Delete expense?",
+      "body": "“{title}” ({amount}) will be permanently removed and excluded from totals and exports.",
+      "confirm": "Delete expense"
+    },
+    "csv": {
+      "summaryHeader": "Financial summary",
+      "period": "Reporting period",
+      "totalRevenue": "Total revenue",
+      "totalExpenses": "Total expenses",
+      "netProfit": "Net profit",
+      "currency": "Currency",
+      "netNote": "Net profit = recorded revenue − recorded expenses (not accounting profit)",
+      "expensesHeader": "Expenses",
+      "id": "Expense ID",
+      "title": "Expense title",
+      "category": "Category",
+      "amount": "Amount",
+      "date": "Expense date",
+      "method": "Payment method",
+      "vendor": "Vendor / Recipient",
+      "description": "Description / Notes",
+      "created": "Created date",
+      "updated": "Last updated date"
+    }
   }
 }

@@ -27,6 +27,7 @@ use App\Http\Controllers\MembershipPlanController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PaymentConfigController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymobController;
 use App\Http\Controllers\PlanPromotionController;
@@ -310,6 +311,16 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::delete('/payments/{id}', [PaymentController::class, 'destroy'])->middleware('permission:payments,delete');
     Route::post('/payments/{id}/stamp-txn', [PaymentController::class, 'stampTransaction'])->middleware('permission:payments,edit');
     Route::post('/payments/{id}/send-invoice', [PaymentController::class, 'sendInvoice'])->middleware('permission:payments,view');
+
+    // Expenses + financial summary (Payments → Financial Overview).
+    // Static paths before {id} so they aren't swallowed by it.
+    Route::get('/expenses', [ExpenseController::class, 'index'])->middleware('permission:payments,view');
+    Route::get('/expenses/summary', [ExpenseController::class, 'summary'])->middleware('permission:payments,view');
+    Route::get('/expenses/export', [ExpenseController::class, 'export'])->middleware('permission:payments,view');
+    Route::get('/expenses/{id}', [ExpenseController::class, 'show'])->middleware('permission:payments,view');
+    Route::post('/expenses', [ExpenseController::class, 'store'])->middleware('permission:payments,create');
+    Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('permission:payments,edit');
+    Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])->middleware('permission:payments,delete');
 
     // Payment Config (settings-level, requires settings permission)
     Route::get('/payment-config/credentials', [PaymentConfigController::class, 'credentials'])->middleware('permission:settings,view');

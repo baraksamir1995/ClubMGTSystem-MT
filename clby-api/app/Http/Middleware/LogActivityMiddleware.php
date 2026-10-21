@@ -15,6 +15,7 @@ class LogActivityMiddleware
         'memberships' => 'members',
         'payments' => 'payments',
         'paymob' => 'payments',
+        'expenses' => 'payments',
         'classes' => 'classes',
         'sessions' => 'classes',
         'bookings' => 'classes',

@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import PaymentsTable from '@/components/payments/payments-table';
+import PaymentsModuleTabs from '@/components/payments/payments-module-tabs';
+import FinancialOverview from '@/components/payments/financial-overview';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 
 export interface GymInfo {
@@ -100,7 +102,11 @@ async function fetchApi(path: string, token: string) {
     return null;
   }
 }
-export default async function PaymentsPage() {
+interface PageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function PaymentsPage({ searchParams }: PageProps) {
   const t = await getTranslations('payments');
   const cookieStore = await cookies();
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
@@ -108,6 +114,18 @@ export default async function PaymentsPage() {
 
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
+
+  // Financial Overview fetches its own data client-side; skip the ledger's
+  // eleven-way prefetch entirely when it's the active sub-tab.
+  const sp = await searchParams;
+  if (sp.view === 'financial') {
+    return (
+      <div className="space-y-5">
+        <PaymentsModuleTabs />
+        <FinancialOverview permissions={permissions} />
+      </div>
+    );
+  }
 
   // Fetch all data from Laravel in parallel
   const [paymentsData, settingsData, branchesData, plansData, programsData, offersData, trainersData, svcPackagesData, promoCodesData, membersData, planPromosData] = await Promise.all([
@@ -282,5 +300,10 @@ export default async function PaymentsPage() {
     is_active: c.is_active,
   }));
 
-  return <PaymentsTable payments={payments} memberOptions={memberOptions} serviceOptions={serviceOptions} trainerOptions={trainerOptions} branches={branches} gym={gym} permissions={permissions} promoCodes={promoCodes} serverSummary={paymentsData?.summary ?? null} />;
+  return (
+    <div className="space-y-5">
+      <PaymentsModuleTabs />
+      <PaymentsTable payments={payments} memberOptions={memberOptions} serviceOptions={serviceOptions} trainerOptions={trainerOptions} branches={branches} gym={gym} permissions={permissions} promoCodes={promoCodes} serverSummary={paymentsData?.summary ?? null} />
+    </div>
+  );
 }

@@ -539,6 +539,8 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', \App\Http\Middleware\R
     // Self-onboarding review queue
     Route::get('/gym-requests', [GymRequestController::class, 'index']);
     Route::get('/gym-requests/{id}', [GymRequestController::class, 'show']);
+    Route::patch('/gym-requests/{id}', [GymRequestController::class, 'update']);
+    Route::post('/gym-requests/{id}/logo', [GymRequestController::class, 'uploadLogo']);
     Route::post('/gym-requests/{id}/approve', [GymRequestController::class, 'approve']);
     Route::post('/gym-requests/{id}/decline', [GymRequestController::class, 'decline']);
     Route::post('/gym-requests/{id}/reopen', [GymRequestController::class, 'reopen']);

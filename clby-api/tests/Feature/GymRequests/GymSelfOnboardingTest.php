@@ -30,6 +30,9 @@ class GymSelfOnboardingTest extends TestCase
         parent::setUp();
         $this->buildSchema();
         config(['services.admin_dashboard.url' => 'https://admin.example.test']);
+        // Logo is mandatory on submit; keep uploads off real storage.
+        Storage::fake('local');
+        config(['filesystems.default' => 'local']);
     }
 
     private function buildSchema(): void
@@ -71,7 +74,7 @@ class GymSelfOnboardingTest extends TestCase
             $t->string('email');
             $t->string('password')->nullable();
             $t->string('full_name')->nullable();
-            $t->string('phone')->nullable();
+            $t->string('phone')->nullable()->unique();   // profiles_phone_unique on prod
             $t->string('username')->nullable();
             $t->string('role')->default('member');
             $t->uuid('gym_id')->nullable();
@@ -143,6 +146,7 @@ class GymSelfOnboardingTest extends TestCase
             'owner_name' => 'Sara Owner',
             'owner_email' => 'Sara@IronTemple.test',
             'owner_phone' => '01098765432',
+            'logo' => UploadedFile::fake()->image('logo.png', 64, 64),
         ], $overrides);
     }
 
@@ -262,15 +266,19 @@ class GymSelfOnboardingTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors(['owner_email']);
     }
 
-    public function test_recently_declined_email_cannot_resubmit(): void
+    public function test_declined_email_can_submit_again(): void
     {
         Queue::fake();
-        $id = $this->submit();
+        $first = $this->submit();
         $this->actingAsSuperAdmin();
-        $this->postJson("/api/super-admin/gym-requests/{$id}/decline")->assertOk();
+        $this->postJson("/api/super-admin/gym-requests/{$first}/decline")->assertOk();
 
-        $this->postJson('/api/gym-requests', $this->payload())
-            ->assertStatus(422)->assertJsonValidationErrors(['owner_email']);
+        $second = $this->postJson('/api/gym-requests', $this->payload())
+            ->assertCreated()->assertJsonPath('data.status', 'pending')->json('data.id');
+
+        $this->assertNotSame($first, $second);
+        $this->assertSame('declined', GymRequest::find($first)->status);
+        $this->postJson("/api/super-admin/gym-requests/{$second}/approve")->assertOk();
     }
 
     /* ── authorization ──────────────────────────────────────────── */
@@ -715,7 +723,120 @@ class GymSelfOnboardingTest extends TestCase
         $this->assertNotSame('198.51.100.9', DB::table('gym_requests')->where('id', $spoofed)->value('submitted_ip'));
     }
 
+    /* ── logo + edit + conflicts ────────────────────────────────── */
+
+    public function test_logo_is_required_on_submit(): void
+    {
+        $this->postJson('/api/gym-requests', $this->payload(['logo' => null]))
+            ->assertStatus(422)->assertJsonValidationErrors(['logo']);
+        $this->assertSame(0, GymRequest::count());
+    }
+
+    public function test_owner_phone_already_on_an_account_is_rejected_at_submit(): void
+    {
+        $this->user('member')->forceFill(['phone' => '01098765432'])->save();
+
+        $this->postJson('/api/gym-requests', $this->payload())
+            ->assertStatus(422)->assertJsonValidationErrors(['owner_phone']);
+    }
+
+    public function test_phone_conflict_at_approval_is_readable_and_fixable_by_editing(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+        // Phone taken after submission.
+        $this->user('member')->forceFill(['phone' => '01098765432'])->save();
+        $admin = $this->actingAsSuperAdmin();
+
+        $res = $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertStatus(422);
+        $this->assertStringContainsString('mobile number already exists', $res->json('message'));
+        $this->assertStringNotContainsString('SQLSTATE', GymRequest::find($id)->last_provisioning_error);
+
+        // Editing to another taken number is refused…
+        $this->user('member')->forceFill(['phone' => '01222222222'])->save();
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['owner_phone' => '01222222222'])
+            ->assertStatus(422)->assertJsonValidationErrors(['owner_phone']);
+        // …a free one is saved and audited, and approval then succeeds.
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['owner_phone' => '01111111111', 'gym_name' => 'Iron Temple 2'])
+            ->assertOk()->assertJsonPath('data.owner_phone', '01111111111');
+        $event = DB::table('gym_request_events')->where('event', 'edited')->first();
+        $this->assertSame($admin->id, $event->actor_id);
+        $this->assertSame('01098765432', json_decode($event->details, true)['changes']['owner_phone']['from']);
+
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertOk();
+        $this->assertSame('Iron Temple 2', DB::table('gyms')->value('name'));
+        $this->assertSame('01111111111', DB::table('profiles')->where('role', 'gym_admin')->value('phone'));
+    }
+
+    public function test_unexpected_unique_violation_message_has_no_sql(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+        $this->actingAsSuperAdmin();
+        // Collide inside provisioning with something the pre-checks don't cover.
+        DB::statement('CREATE UNIQUE INDEX branches_name_unique ON branches (name)');
+        DB::table('branches')->insert(['id' => (string) Str::uuid(), 'gym_id' => (string) Str::uuid(), 'name' => 'Main Branch']);
+
+        $res = $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertStatus(500);
+        $this->assertStringNotContainsString('SQLSTATE', $res->json('message'));
+        $this->assertStringContainsString('already exists', $res->json('message'));
+        $this->assertSame(0, DB::table('gyms')->count());
+    }
+
+    public function test_edit_only_for_pending_and_super_admin(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+
+        Sanctum::actingAs($this->user('gym_admin', (string) Str::uuid()));
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['gym_name' => 'Hijack'])->assertForbidden();
+
+        $this->actingAsSuperAdmin();
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['gym_name' => ''])->assertStatus(422);
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['status' => 'approved'])->assertOk();
+        $this->assertSame('pending', GymRequest::find($id)->status);
+
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertOk();
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['gym_name' => 'Late edit'])->assertStatus(409);
+        $this->postJson("/api/super-admin/gym-requests/{$id}/logo", ['logo' => UploadedFile::fake()->image('x.png')])->assertStatus(409);
+    }
+
+    public function test_logo_can_be_replaced_and_is_required_to_approve(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+        DB::table('gym_requests')->where('id', $id)->update(['logo_url' => null]); // legacy request without logo
+        $this->actingAsSuperAdmin();
+
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")
+            ->assertStatus(422)->assertJsonPath('message', fn ($m) => str_contains($m, 'no gym logo'));
+
+        $this->postJson("/api/super-admin/gym-requests/{$id}/logo", ['logo' => UploadedFile::fake()->image('new.png', 80, 80)])
+            ->assertOk();
+        $url = GymRequest::find($id)->logo_url;
+        $this->assertNotNull($url);
+
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertOk();
+        $this->assertSame($url, DB::table('gyms')->value('logo_url'));
+    }
+
     /* ── existing create-gym path still works ───────────────────── */
+
+    public function test_super_admin_can_deactivate_and_reactivate_a_gym(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+        $this->actingAsSuperAdmin();
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertOk();
+        $gymId = GymRequest::find($id)->provisioned_gym_id;
+
+        $this->postJson("/api/super-admin/gyms/{$gymId}/toggle-active")->assertOk()->assertJsonPath('data.is_active', false);
+        $this->assertFalse((bool) DB::table('gyms')->where('id', $gymId)->value('is_active'));
+        $this->getJson('/api/gyms')->assertJsonCount(0, 'data');
+
+        $this->postJson("/api/super-admin/gyms/{$gymId}/toggle-active")->assertOk()->assertJsonPath('data.is_active', true);
+        $this->getJson('/api/gyms')->assertJsonCount(1, 'data');
+    }
 
     public function test_super_admin_create_gym_uses_shared_provisioning(): void
     {

@@ -249,6 +249,7 @@ export default function GymRegistrationForm() {
     const e: Errors = {};
     if (n === 0) {
       if (v.gym_name.trim().length < 2) e.gym_name = "Enter your gym or club name.";
+      if (!logo) e.logo = "Upload your gym logo — it's shown on your members' app splash screen.";
       if (v.country === OTHER_COUNTRY && v.other_country.trim().length < 2) e.other_country = "Enter your country.";
       if (!v.city.trim()) e.city = "Enter the city.";
       if (!PHONE_RE.test(cleanPhone(v.phone))) e.phone = "Enter a valid phone number (digits, optional +country code).";
@@ -425,9 +426,9 @@ export default function GymRegistrationForm() {
 
           {/* Logo */}
           <div>
-            <span className={labelCls}>Logo <span className="normal-case tracking-normal text-muted/60">(optional)</span></span>
+            <span className={labelCls}>Logo</span>
             <div className="flex items-center gap-4">
-              <div className="h-20 w-20 flex-shrink-0 rounded-sm border border-canvas/15 bg-ink flex items-center justify-center overflow-hidden">
+              <div className={`h-20 w-20 flex-shrink-0 rounded-sm border ${errors.logo ? "border-red-400/60" : "border-canvas/15"} bg-ink flex items-center justify-center overflow-hidden`}>
                 {logoPreview
                   ? <img src={logoPreview} alt="Logo preview" className="h-full w-full object-cover" />
                   : <ImagePlus className="h-6 w-6 text-muted" />}
@@ -449,7 +450,7 @@ export default function GymRegistrationForm() {
             </div>
             {errors.logo
               ? <p className="mt-1.5 text-[11px] text-red-400">{errors.logo}</p>
-              : <p className="mt-1.5 text-[11px] text-muted">PNG, JPG or WebP, up to 2 MB. Square works best.</p>}
+              : <p className="mt-1.5 text-[11px] text-muted">Shown on your members' app splash screen. PNG, JPG or WebP, up to 2 MB. Square works best.</p>}
           </div>
 
           <Field label="Description" id="description" optional error={errors.description}>
@@ -595,7 +596,7 @@ export default function GymRegistrationForm() {
               <Review label="Contact" value={`${values.phone} · ${values.business_email}`} onEdit={() => goTo(0)} />
               <Review label="Type" value={CATEGORIES.find((c) => c.value === values.category)?.label ?? "—"} onEdit={() => goTo(1)} />
               <Review label="Branches" value={values.branches_count} onEdit={() => goTo(1)} />
-              <Review label="Logo" value={logo ? logo.name : "None"} onEdit={() => goTo(0)} />
+              <Review label="Logo" value={logo ? logo.name : "Missing"} onEdit={() => goTo(0)} />
             </dl>
           </div>
 

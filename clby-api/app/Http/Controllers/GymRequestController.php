@@ -33,13 +33,6 @@ class GymRequestController extends Controller
     public const CATEGORIES = ['gym', 'crossfit', 'martial_arts', 'yoga_pilates', 'boxing', 'dance', 'swimming', 'sports_club', 'other'];
 
     /**
-     * A declined applicant can't immediately resubmit under the same owner
-     * email to get a fresh review; within this window the super-admin has
-     * to reopen the original request instead.
-     */
-    public const DECLINE_COOLDOWN_DAYS = 30;
-
-    /**
      * The applicant's IP. Submissions arrive via the landing site's
      * server-side proxy, so $request->ip() is that server for everyone. The
      * proxy forwards the real client IP alongside a shared secret
@@ -57,22 +50,17 @@ class GymRequestController extends Controller
         return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : null;
     }
 
-    /* ───────────────────────── public ───────────────────────── */
-
-    public function store(Request $request, StorageService $storage): JsonResponse
+    /**
+     * Gym + owner field rules shared by the public submit and the
+     * super-admin edit. Limits mirror SuperAdminController::store /
+     * GymController::update so an approved request always fits the gyms +
+     * profiles columns.
+     */
+    private function fieldRules(): array
     {
-        $request->merge([
-            'owner_email' => Str::lower(trim((string) $request->input('owner_email'))),
-            'business_email' => Str::lower(trim((string) $request->input('business_email'))),
-        ]);
-
-        // Field limits mirror SuperAdminController::store / GymController::update
-        // so an approved request always fits the gyms + profiles columns.
-        $validated = $request->validate([
-            'submission_key' => 'nullable|uuid',
+        return [
             'gym_name' => 'required|string|min:2|max:255',
             'description' => 'nullable|string|max:2000',
-            'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'address' => 'nullable|string|max:500',
             'city' => 'required|string|max:100',
             'country' => 'required|string|max:100',
@@ -88,8 +76,51 @@ class GymRequestController extends Controller
             'owner_name' => 'required|string|min:2|max:255',
             'owner_email' => 'required|email|max:255',
             'owner_phone' => 'required|string|max:20',
+        ];
+    }
+
+    /**
+     * The gym logo becomes gyms.logo_url, which the mobile app shows on the
+     * splash screen — so every request must carry one.
+     */
+    private const LOGO_RULE = 'image|mimes:jpg,jpeg,png,webp|max:2048';
+
+    /**
+     * Owner details that would collide with an existing account on approval
+     * (profiles.email is unique case-insensitively in practice, and
+     * profiles.phone has a unique constraint). Field => message.
+     *
+     * @return array<string, string>
+     */
+    private function ownerConflicts(?string $email, ?string $phone): array
+    {
+        $conflicts = [];
+        if ($email !== null && DB::table('profiles')->whereRaw('LOWER(email) = ?', [Str::lower($email)])->exists()) {
+            $conflicts['owner_email'] = 'An account with this email already exists. Use a different email, or contact the CLBY team to add another gym.';
+        }
+        if ($phone !== null && $phone !== '' && DB::table('profiles')->where('phone', $phone)->exists()) {
+            $conflicts['owner_phone'] = 'An account with this mobile number already exists. Use a different number.';
+        }
+        return $conflicts;
+    }
+
+    /* ───────────────────────── public ───────────────────────── */
+
+    public function store(Request $request, StorageService $storage): JsonResponse
+    {
+        $request->merge([
+            'owner_email' => Str::lower(trim((string) $request->input('owner_email'))),
+            'business_email' => Str::lower(trim((string) $request->input('business_email'))),
+        ]);
+
+        $validated = $request->validate([
+            'submission_key' => 'nullable|uuid',
+            ...$this->fieldRules(),
+            'logo' => 'required|' . self::LOGO_RULE,
             // Honeypot — hidden on the form, so only bots fill it.
             'company_website' => 'prohibited',
+        ], [
+            'logo.required' => 'Please upload your gym logo — it is shown on your members\' app splash screen.',
         ]);
 
         // Idempotent retry: same key → same request, no second row or email.
@@ -102,8 +133,8 @@ class GymRequestController extends Controller
 
         $ownerEmail = $validated['owner_email'];
 
-        if (DB::table('profiles')->whereRaw('LOWER(email) = ?', [$ownerEmail])->exists()) {
-            return $this->fieldError('owner_email', 'An account with this email already exists. Use a different email, or contact the CLBY team to add another gym.');
+        if ($conflicts = $this->ownerConflicts($ownerEmail, $validated['owner_phone'])) {
+            return response()->json(['message' => reset($conflicts), 'errors' => array_map(fn ($m) => [$m], $conflicts)], 422);
         }
 
         if (GymRequest::whereRaw('LOWER(owner_email) = ?', [$ownerEmail])->where('status', GymRequest::STATUS_PENDING)->exists()) {
@@ -112,17 +143,13 @@ class GymRequestController extends Controller
             ], 409);
         }
 
-        $recentlyDeclined = GymRequest::whereRaw('LOWER(owner_email) = ?', [$ownerEmail])
-            ->where('status', GymRequest::STATUS_DECLINED)
-            ->where('reviewed_at', '>', now()->subDays(self::DECLINE_COOLDOWN_DAYS))
-            ->exists();
-        if ($recentlyDeclined) {
-            return $this->fieldError('owner_email', 'A recent request for this email was declined. Please contact the CLBY team if you would like it reconsidered.');
-        }
+        // A declined applicant may simply submit again: it becomes a new
+        // pending request (the declined one stays as history). Only one
+        // *pending* request per email is enforced.
 
         // Uploaded only after every pre-check, and removed again below if
         // the insert loses a race, so a rejected submission leaves no file.
-        $logo = $request->hasFile('logo') ? $storage->upload($request->file('logo'), 'gym-requests') : null;
+        $logo = $storage->upload($request->file('logo'), 'gym-requests');
 
         try {
             $gymRequest = GymRequest::create([
@@ -270,10 +297,13 @@ class GymRequestController extends Controller
                 if ($gymRequest->status === GymRequest::STATUS_APPROVED) return ['already', $gymRequest];
                 if ($gymRequest->status !== GymRequest::STATUS_PENDING) return ['not_pending', $gymRequest];
 
-                // Re-checked under the lock: the email may have been taken
-                // (member signup, manual gym) since the request came in.
-                if (DB::table('profiles')->whereRaw('LOWER(email) = ?', [Str::lower($gymRequest->owner_email)])->exists()) {
-                    throw new \DomainException('An account with the owner email already exists. Decline this request or ask the applicant for a different email.');
+                // Re-checked under the lock: the email or phone may have been
+                // taken (member signup, manual gym) since the request came in.
+                if ($conflicts = $this->ownerConflicts($gymRequest->owner_email, $gymRequest->owner_phone)) {
+                    throw new \DomainException(implode(' ', $conflicts) . ' Edit the owner details on this request, then approve again.');
+                }
+                if (! $gymRequest->logo_url) {
+                    throw new \DomainException('This request has no gym logo. Upload one (it is the app splash logo), then approve again.');
                 }
 
                 $result = $provisioning->provision([
@@ -314,7 +344,16 @@ class GymRequestController extends Controller
         } catch (\Throwable $e) {
             // The transaction rolled back: no gym, no owner, request still
             // pending. Record why so the super-admin can fix and re-approve.
-            $message = $e instanceof \DomainException ? $e->getMessage() : 'Provisioning failed: ' . Str::limit($e->getMessage(), 300);
+            // Shown in the dashboard and stored on the request: never the raw
+            // SQL (it carries host/database names). Full detail goes to the log.
+            $message = match (true) {
+                $e instanceof \DomainException => $e->getMessage(),
+                $e instanceof QueryException && $this->isUniqueViolation($e) => sprintf(
+                    'Provisioning failed: a record with the same value already exists%s. Edit the request and approve again.',
+                    preg_match('/unique constraint "([^"]+)"/', $e->getMessage(), $m) ? " ({$m[1]})" : '',
+                ),
+                default => 'Provisioning failed because of a server error. The details are in the API log.',
+            };
             DB::table('gym_requests')->where('id', $id)->update([
                 'provisioning_attempts' => DB::raw('provisioning_attempts + 1'),
                 'last_provisioning_error' => $message,
@@ -437,6 +476,89 @@ class GymRequestController extends Controller
     }
 
     /**
+     * Correct a pending request before approving it (e.g. the owner's phone
+     * already belongs to another account). Only pending requests: decided
+     * ones are history — reopen a declined request first.
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        if (! Str::isUuid($id)) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
+        foreach (['owner_email', 'business_email'] as $f) {
+            if ($request->has($f)) {
+                $request->merge([$f => Str::lower(trim((string) $request->input($f)))]);
+            }
+        }
+        $rules = array_map(fn ($r) => "sometimes|{$r}", $this->fieldRules());
+        $rules['services.*'] = 'string|max:50';
+        $validated = $request->validate($rules);
+        $actorId = $request->user()->id;
+
+        try {
+            $result = DB::transaction(function () use ($id, $validated) {
+                $gymRequest = GymRequest::whereKey($id)->lockForUpdate()->first();
+                if (! $gymRequest) return ['missing'];
+                if ($gymRequest->status !== GymRequest::STATUS_PENDING) return ['not_pending'];
+
+                $gymRequest->fill($validated);
+                $dirty = $gymRequest->getDirty();
+                if (! $dirty) return ['unchanged', $gymRequest, []];
+
+                $conflicts = $this->ownerConflicts(
+                    array_key_exists('owner_email', $dirty) ? $gymRequest->owner_email : null,
+                    array_key_exists('owner_phone', $dirty) ? $gymRequest->owner_phone : null,
+                );
+                if ($conflicts) return ['conflict', $conflicts];
+
+                $changes = [];
+                foreach (array_keys($dirty) as $field) {
+                    $changes[$field] = ['from' => $gymRequest->getOriginal($field), 'to' => $gymRequest->{$field}];
+                }
+                $gymRequest->save();
+
+                return ['updated', $gymRequest, $changes];
+            });
+        } catch (QueryException $e) {
+            if ($this->isUniqueViolation($e)) {
+                return response()->json(['message' => 'Another request for this owner email is already pending.'], 409);
+            }
+            throw $e;
+        }
+
+        return match ($result[0]) {
+            'missing' => response()->json(['error' => 'Not found'], 404),
+            'not_pending' => response()->json(['message' => 'Only pending requests can be edited. Reopen a declined request first.'], 409),
+            'conflict' => response()->json(['message' => reset($result[1]), 'errors' => array_map(fn ($m) => [$m], $result[1])], 422),
+            'unchanged' => response()->json(['data' => $result[1]]),
+            'updated' => (function () use ($result, $actorId) {
+                $result[1]->logEvent('edited', $actorId, ['changes' => $result[2]]);
+                return response()->json(['data' => $result[1]->fresh()]);
+            })(),
+        };
+    }
+
+    /**
+     * Replace (or add) the logo on a pending request.
+     */
+    public function uploadLogo(Request $request, string $id, StorageService $storage): JsonResponse
+    {
+        $request->validate(['logo' => 'required|' . self::LOGO_RULE]);
+        $gymRequest = $this->findOr404($id);
+        if ($gymRequest instanceof JsonResponse) return $gymRequest;
+        if ($gymRequest->status !== GymRequest::STATUS_PENDING) {
+            return response()->json(['message' => 'Only pending requests can be edited.'], 409);
+        }
+
+        $previous = $gymRequest->logo_url;
+        $upload = $storage->upload($request->file('logo'), 'gym-requests');
+        DB::table('gym_requests')->where('id', $gymRequest->id)->update(['logo_url' => $upload['url'], 'updated_at' => now()]);
+        $gymRequest->logEvent('edited', $request->user()->id, ['changes' => ['logo_url' => ['from' => $previous, 'to' => $upload['url']]]]);
+
+        return response()->json(['data' => $gymRequest->fresh()]);
+    }
+
+    /**
      * Re-send the notification for the request's current state. For an
      * approved request this issues a fresh setup link (replacing the old one
      * once delivered) while the owner hasn't set a password yet — never
@@ -493,11 +615,6 @@ class GymRequestController extends Controller
     {
         $gymRequest = Str::isUuid($id) ? GymRequest::find($id) : null;
         return $gymRequest ?? response()->json(['error' => 'Not found'], 404);
-    }
-
-    private function fieldError(string $field, string $message): JsonResponse
-    {
-        return response()->json(['message' => $message, 'errors' => [$field => [$message]]], 422);
     }
 
     private function isUniqueViolation(QueryException $e): bool

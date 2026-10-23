@@ -45,8 +45,6 @@ export interface GeoConfig {
 export default function GeoPage({ geo }: { geo: GeoConfig }) {
   const siteUrl = SITE_URL;
   const pageUrl = `${siteUrl}/${geo.slug}`;
-  const numericPrice = geo.price.replace(/,/g, "");
-  const hasNumericPrice = /^\d+(\.\d+)?$/.test(numericPrice);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -70,19 +68,18 @@ export default function GeoPage({ geo }: { geo: GeoConfig }) {
         name: "CLBY",
         applicationCategory: "BusinessApplication",
         description: geo.metaDescription,
-        // schema.org Offer.price must be numeric — quote-only pages omit it.
-        ...(hasNumericPrice && {
-          offers: {
-            "@type": "Offer",
-            price: numericPrice,
-            priceCurrency: geo.currency,
-            eligibleRegion: {
-              "@type": "Place",
-              name: geo.addressLocality,
-              address: { "@type": "PostalAddress", addressCountry: geo.addressCountry },
-            },
+        // Marketplace plan is free for a limited time (same as the home
+        // page pricing card), so the Offer is price 0 everywhere.
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: geo.currency,
+          eligibleRegion: {
+            "@type": "Place",
+            name: geo.addressLocality,
+            address: { "@type": "PostalAddress", addressCountry: geo.addressCountry },
           },
-        }),
+        },
         availableInCountry: geo.addressCountry,
         inLanguage: ["en", "ar"],
       },
@@ -264,14 +261,14 @@ export default function GeoPage({ geo }: { geo: GeoConfig }) {
               <p className="text-xs font-mono uppercase tracking-wider text-canvas/50 mb-2">
                 Marketplace Plan
               </p>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="font-display text-5xl leading-none tabular">{geo.price}</span>
-                {hasNumericPrice ? (
-                  <span className="text-canvas/60 font-mono text-sm">{geo.currency} / mo</span>
-                ) : (
-                  <span className="text-canvas/60 font-mono text-sm">{geo.priceLabel}</span>
-                )}
+              <div className="flex items-baseline gap-3 mb-1">
+                <span className="font-display text-5xl leading-none">Free</span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-entry border border-entry/40 rounded-sm px-2 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-entry animate-blink" />
+                  Limited time
+                </span>
               </div>
+              <p className="text-xs text-canvas/50 mb-4">For a limited time — all branches included</p>
               <ul className="space-y-2 mb-8">
                 {[
                   "Unlimited members & staff",
@@ -287,10 +284,10 @@ export default function GeoPage({ geo }: { geo: GeoConfig }) {
                 ))}
               </ul>
               <a
-                href="#demo"
+                href="/register"
                 className="group inline-flex items-center justify-center gap-2 bg-entry text-ink font-medium px-6 py-3 rounded-sm hover:bg-entry/90 transition-colors w-full"
               >
-                Book a demo
+                Register your gym
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
             </div>

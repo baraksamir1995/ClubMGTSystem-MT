@@ -488,14 +488,17 @@ function Pricing() {
                 List your gym on the CLBY consumer marketplace. Members discover
                 and join you through one shared app.
               </p>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-5xl md:text-6xl leading-none tabular">
-                  5,000
+              <div className="flex items-baseline gap-3">
+                <span className="font-display text-5xl md:text-6xl leading-none">
+                  Free
                 </span>
-                <span className="text-canvas/60 font-mono text-sm">EGP / mo</span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-entry border border-entry/40 rounded-sm px-2 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-entry animate-blink" />
+                  Limited time
+                </span>
               </div>
               <p className="text-xs text-canvas/50 mt-2">
-                + 2,000 EGP / mo per extra branch
+                For a limited time — all branches included
               </p>
             </div>
 
@@ -509,10 +512,10 @@ function Pricing() {
             </div>
 
             <a
-              href="#demo"
+              href="/register"
               className="mt-8 group inline-flex items-center justify-center gap-2 bg-entry text-ink font-medium px-6 py-3 rounded-sm hover:bg-entry/90 transition-colors w-full"
             >
-              Book a demo
+              Register your gym
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
           </div>

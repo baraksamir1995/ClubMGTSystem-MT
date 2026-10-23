@@ -83,7 +83,10 @@ class SuperAdminController extends Controller
     public function toggleActive(string $id): JsonResponse
     {
         $gym = Gym::findOrFail($id);
-        $gym->update(['is_active' => !$gym->is_active]);
+        // is_active is deliberately not in Gym::$fillable (tenant-facing
+        // GymController::update must never flip it), so update() silently
+        // dropped it and this toggle was a no-op. Set it explicitly.
+        $gym->forceFill(['is_active' => ! $gym->is_active])->save();
 
         return response()->json(['data' => $gym]);
     }

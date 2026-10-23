@@ -5,12 +5,13 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Building2, Check, X, RefreshCw, Mail, MapPin, Phone, User, Settings2,
-  AlertTriangle, RotateCcw, Send, History, ShieldCheck,
+  AlertTriangle, RotateCcw, Send, History, ShieldCheck, Pencil,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiErrorMessage, networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
 import { GYM_REQUESTS_CHANGED_EVENT } from '@/lib/gym-request-events';
 import { RequestStatusBadge, type GymRequestStatus } from '../status-badge';
+import EditRequestModal from './edit-request-modal';
 
 interface GymRequest {
   id: string;
@@ -68,6 +69,7 @@ const EVENT_LABELS: Record<string, string> = {
   email_failed: 'Email delivery failed',
   email_resend_requested: 'Email resend requested',
   email_skipped: 'Email skipped — owner already set a password',
+  edited: 'Details edited',
 };
 
 const fmtDate = (iso: string | null) => {
@@ -89,6 +91,7 @@ export default function GymRequestDetailPage() {
   const [declineReason, setDeclineReason] = useState('');
   const [shareReason, setShareReason] = useState(false);
   const [maxBranches, setMaxBranches] = useState('');
+  const [editing, setEditing] = useState(false);
 
   const fetchRequest = useCallback(async () => {
     setError(null);
@@ -188,6 +191,10 @@ export default function GymRequestDetailPage() {
         <div className="flex items-center gap-2">
           {req.status === 'pending' && (
             <>
+              <button onClick={() => setEditing(true)} disabled={!!busy}
+                className="flex items-center gap-1.5 px-4 py-2 bg-surface-2 border border-line hover:bg-surface-3 text-fg text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                <Pencil className="w-4 h-4" aria-hidden /> Edit
+              </button>
               <button onClick={() => { setDeclineReason(''); setShareReason(false); setModal('decline'); }} disabled={!!busy}
                 className="flex items-center gap-1.5 px-4 py-2 bg-surface-2 border border-line hover:bg-danger-soft hover:text-danger text-fg-muted text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
                 <X className="w-4 h-4" aria-hidden /> Decline
@@ -211,7 +218,11 @@ export default function GymRequestDetailPage() {
       {req.status === 'pending' && req.last_provisioning_error && (
         <Alert tone="danger" title={`Last approval attempt failed (${req.provisioning_attempts} attempt${req.provisioning_attempts === 1 ? '' : 's'}, ${fmtDate(req.last_provisioning_failed_at)})`}>
           {req.last_provisioning_error}
-          <p className="mt-1 text-fg-muted">Nothing was created. Fix the cause and approve again.</p>
+          <p className="mt-1 text-fg-muted">
+            Nothing was created.{' '}
+            <button onClick={() => setEditing(true)} className="text-brand hover:underline">Edit the request</button>{' '}
+            to fix it, then approve again.
+          </p>
         </Alert>
       )}
       {req.last_email_error && (
@@ -312,6 +323,9 @@ export default function GymRequestDetailPage() {
                     {fmtDate(ev.created_at)}{ev.actor_name ? ` · ${ev.actor_name}` : ''}
                   </p>
                   {ev.details?.error && <p className="text-xs text-fg-muted mt-0.5 break-words">{ev.details.error}</p>}
+                  {ev.event === 'edited' && ev.details?.changes && (
+                    <p className="text-xs text-fg-muted mt-0.5">{Object.keys(ev.details.changes).map(k => humanize(k)).join(', ')}</p>
+                  )}
                   {ev.event === 'declined' && ev.details?.reason && <p className="text-xs text-fg-muted mt-0.5">“{ev.details.reason}”</p>}
                 </li>
               ))}
@@ -319,6 +333,10 @@ export default function GymRequestDetailPage() {
           </Section>
         </div>
       </div>
+
+      {editing && (
+        <EditRequestModal request={req} onClose={() => setEditing(false)} onSaved={fetchRequest} />
+      )}
 
       {/* Approve */}
       {modal === 'approve' && (

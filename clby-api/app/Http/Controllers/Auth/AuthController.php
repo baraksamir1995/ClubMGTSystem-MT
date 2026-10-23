@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\GymMember;
 use App\Models\User;
 use App\Services\EmailService;
+use App\Services\PasswordResetTokens;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -532,23 +533,18 @@ class AuthController extends Controller
         // lingers indefinitely (prod had one from 105 days earlier). They are
         // already unusable — resetPassword rejects anything over an hour old —
         // but there is no reason to keep the hashes around.
+        // Rows with their own expires_at (gym-owner setup links, valid for
+        // days) are only swept once that has passed.
         DB::table('password_reset_tokens')
-            ->where('created_at', '<', now()->subDay())
+            ->where(function ($q) {
+                $q->where(fn ($q) => $q->whereNull('expires_at')->where('created_at', '<', now()->subDay()))
+                    ->orWhere('expires_at', '<', now());
+            })
             ->delete();
 
-        $token = Str::random(64);
-        $tokenHash = hash('sha256', $token);
-
-        // Table schema: email (PK), token, created_at — no user_id, no
-        // expires_at column; resetPassword enforces the 1-hour lifetime by
-        // comparing created_at instead.
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token' => $tokenHash,
-                'created_at' => now(),
-            ]
-        );
+        $tokens = app(PasswordResetTokens::class);
+        [$token, $tokenHash] = $tokens->mint();
+        $tokens->store($user->email, $tokenHash, 3600);
 
         try {
             (new EmailService())->sendPasswordReset($user->email, $token);
@@ -570,10 +566,15 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
-        // Tokens older than 1 hour are considered expired
+        // A token expires at its own expires_at when set (gym-owner setup
+        // links, see SendGymRequestEmail); legacy rows without one expire
+        // 1 hour after creation.
         $record = DB::table('password_reset_tokens')
             ->where('token', hash('sha256', $validated['token']))
-            ->where('created_at', '>', now()->subHour())
+            ->where(function ($q) {
+                $q->where('expires_at', '>', now())
+                    ->orWhere(fn ($q) => $q->whereNull('expires_at')->where('created_at', '>', now()->subHour()));
+            })
             ->first();
 
         if (! $record) {

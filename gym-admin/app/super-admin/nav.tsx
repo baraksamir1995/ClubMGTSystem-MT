@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { INVOICES_CHANGED_EVENT } from '@/lib/saas-invoice-events';
-import { Building2, CreditCard, FileText, Inbox, ImageIcon, Megaphone } from 'lucide-react';
+import { GYM_REQUESTS_CHANGED_EVENT } from '@/lib/gym-request-events';
+import { Building2, ClipboardList, CreditCard, FileText, Inbox, ImageIcon, Megaphone } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/super-admin', icon: Building2, label: 'Gyms' },
+  { href: '/super-admin/gym-requests', icon: ClipboardList, label: 'Gym Requests' },
   { href: '/super-admin/plans', icon: FileText, label: 'Plans' },
   { href: '/super-admin/payments', icon: CreditCard, label: 'Payments' },
   { href: '/super-admin/leads', icon: Inbox, label: 'Leads' },
@@ -20,6 +22,8 @@ export default function SuperAdminNav() {
   // Gyms' "I have paid" claims waiting on review — the super-admin's
   // notification that a settlement needs confirming.
   const [awaiting, setAwaiting] = useState(0);
+  // Self-onboarding requests waiting on approve / decline.
+  const [pendingRequests, setPendingRequests] = useState(0);
 
   useEffect(() => {
     const load = () => {
@@ -31,6 +35,18 @@ export default function SuperAdminNav() {
     load();
     window.addEventListener(INVOICES_CHANGED_EVENT, load);
     return () => window.removeEventListener(INVOICES_CHANGED_EVENT, load);
+  }, [pathname]);
+
+  useEffect(() => {
+    const load = () => {
+      fetch('/api/super-admin/gym-requests?status=pending&per_page=1')
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => setPendingRequests(j?.counts?.pending ?? 0))
+        .catch(() => {});
+    };
+    load();
+    window.addEventListener(GYM_REQUESTS_CHANGED_EVENT, load);
+    return () => window.removeEventListener(GYM_REQUESTS_CHANGED_EVENT, load);
   }, [pathname]);
 
   return (
@@ -47,6 +63,12 @@ export default function SuperAdminNav() {
               <span className="ms-auto min-w-5 h-5 px-1.5 rounded-full bg-info text-on-status text-[11px] font-semibold inline-flex items-center justify-center"
                 aria-label={`${awaiting} awaiting confirmation`}>
                 {awaiting}
+              </span>
+            )}
+            {item.href === '/super-admin/gym-requests' && pendingRequests > 0 && (
+              <span className="ms-auto min-w-5 h-5 px-1.5 rounded-full bg-warning text-on-status text-[11px] font-semibold inline-flex items-center justify-center"
+                aria-label={`${pendingRequests} pending`}>
+                {pendingRequests}
               </span>
             )}
           </Link>

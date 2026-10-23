@@ -88,6 +88,7 @@ class RegistrationFlowTest extends TestCase
             $t->string('token');
             $t->timestampTz('created_at')->nullable();
         });
+        (require database_path('migrations/2026_10_23_100100_add_expires_at_to_password_reset_tokens.php'))->up();
 
         Schema::create('email_verification_tokens', function ($t) {
             $t->uuid('user_id')->primary();

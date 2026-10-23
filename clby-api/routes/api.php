@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\GymRequestController;
 use App\Http\Controllers\SaasPlanController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ClientLogoController;
@@ -83,6 +84,9 @@ Route::get('/health', function () {
 Route::get('/gyms', [GymController::class, 'listPublic']);
 Route::get('/gyms/{id}', [GymController::class, 'showPublic']);
 Route::post('/leads', [LeadController::class, 'store']);
+// Gym self-onboarding (clbyapp.com/register). Creates a *pending* request
+// only — nothing is provisioned until a super-admin approves it.
+Route::post('/gym-requests', [GymRequestController::class, 'store'])->middleware('throttle:gym-requests');
 // Landing-page client-logo carousel (read-only, managed from super-admin).
 Route::get('/client-logos', [ClientLogoController::class, 'listPublic']);
 // Gym sales-pipeline intake (website forms / ad platforms) — per-gym token auth.
@@ -531,6 +535,14 @@ Route::prefix('super-admin')->middleware(['auth:sanctum', \App\Http\Middleware\R
     Route::patch('/gyms/{id}', [SuperAdminController::class, 'update']);
     Route::post('/gyms/{id}/toggle-active', [SuperAdminController::class, 'toggleActive']);
     Route::delete('/gyms/{id}', [SuperAdminController::class, 'destroy']);
+
+    // Self-onboarding review queue
+    Route::get('/gym-requests', [GymRequestController::class, 'index']);
+    Route::get('/gym-requests/{id}', [GymRequestController::class, 'show']);
+    Route::post('/gym-requests/{id}/approve', [GymRequestController::class, 'approve']);
+    Route::post('/gym-requests/{id}/decline', [GymRequestController::class, 'decline']);
+    Route::post('/gym-requests/{id}/reopen', [GymRequestController::class, 'reopen']);
+    Route::post('/gym-requests/{id}/resend-email', [GymRequestController::class, 'resendEmail']);
 
     // Plans
     Route::get('/plans', [SaasPlanController::class, 'index']);

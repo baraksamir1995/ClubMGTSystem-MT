@@ -24,6 +24,20 @@ return [
         'from_email' => env('FROM_EMAIL', 'no-reply@clbyapp.com'),
     ],
 
+    // gym-admin (Next.js) base URL — used to build the dashboard and
+    // password-setup links in gym-owner approval emails. No default on
+    // purpose: an unset value fails the email job loudly (and retryably)
+    // instead of mailing an owner a localhost link.
+    'admin_dashboard' => [
+        'url' => env('ADMIN_DASHBOARD_URL'),
+    ],
+
+    // Shared with clby-landing's /api/gym-request proxy. Lets the API trust
+    // the client IP that proxy forwards (rate limiting, submitted_ip).
+    'landing' => [
+        'proxy_secret' => env('LANDING_PROXY_SECRET'),
+    ],
+
     'paymob' => [
         'secret_key' => env('PAYMOB_SECRET_KEY'),
         'public_key' => env('PAYMOB_PUBLIC_KEY'),

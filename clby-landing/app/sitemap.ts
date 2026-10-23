@@ -28,6 +28,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     },
+    {
+      url: `${SITE_URL}/register`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
     ...geoPages.map(({ slug, priority }) => ({
       url: `${SITE_URL}/${slug}`,
       changeFrequency: "monthly" as const,

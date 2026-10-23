@@ -11,6 +11,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   };
 
+  // Public pages: /set-password is opened from the gym-owner approval email
+  // before the owner has ever signed in.
+  if (pathname === '/set-password') {
+    return NextResponse.next();
+  }
+
   // Redirect unauthenticated users to /login
   if (!token && pathname !== '/login') {
     return redirect('/login');

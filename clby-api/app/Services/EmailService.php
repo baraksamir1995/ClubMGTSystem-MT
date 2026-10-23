@@ -46,6 +46,61 @@ class EmailService
         $this->send($to, 'Confirm email change — ' . self::PLATFORM_NAME, $html);
     }
 
+    /**
+     * Self-onboarding: request received, awaiting super-admin review.
+     */
+    public function sendGymRequestReceived(string $to, string $ownerName, string $gymName, string $reference): void
+    {
+        $html = $this->renderEmail(
+            'We received your request',
+            'Hi ' . e($ownerName) . ', thanks for registering <strong style="color:#111827;">' . e($gymName) . '</strong> on ' . self::PLATFORM_NAME . '.'
+                . '<br><br>Your request reference is <strong style="color:#111827;">' . e($reference) . '</strong>. Our team will review it shortly.'
+                . ' Once it is approved you will receive a second email with your admin dashboard link and instructions to set your password.',
+            footer: 'You are receiving this because this address was used to register a gym on ' . self::PLATFORM_NAME . '.',
+        );
+        $this->send($to, "We received your request ({$reference}) — " . self::PLATFORM_NAME, $html);
+    }
+
+    /**
+     * Self-onboarding: gym approved and provisioned. $setupUrl carries a
+     * single-use, time-limited password-setup token — never a password.
+     */
+    public function sendGymRequestApproved(string $to, string $ownerName, string $gymName, string $setupUrl, string $dashboardUrl, int $setupValidDays): void
+    {
+        $html = $this->renderEmail(
+            'Your gym is approved',
+            'Hi ' . e($ownerName) . ', great news — <strong style="color:#111827;">' . e($gymName) . '</strong> is now live on ' . self::PLATFORM_NAME . ' and visible to members in the app.'
+                . '<br><br>Your admin username is <strong style="color:#111827;">' . e($to) . '</strong>.'
+                . ' Tap the button below to set your password, then sign in to your dashboard at <a href="' . e($dashboardUrl) . '" style="color:#5b50e8;">' . e($dashboardUrl) . '</a>.'
+                . "<br><br>The setup link is valid for {$setupValidDays} days and can be used once.",
+            'Set my password',
+            $setupUrl,
+            footer: 'If the link has expired, contact the ' . self::PLATFORM_NAME . ' team and we will send you a new one.',
+        );
+        $this->send($to, "{$gymName} is approved — " . self::PLATFORM_NAME, $html);
+    }
+
+    /**
+     * Self-onboarding: request declined. $reason is only passed when the
+     * super-admin chose to share it with the applicant.
+     */
+    public function sendGymRequestDeclined(string $to, string $ownerName, string $gymName, ?string $reason): void
+    {
+        $body = 'Hi ' . e($ownerName) . ', thank you for your interest in ' . self::PLATFORM_NAME . '.'
+            . ' After reviewing your request for <strong style="color:#111827;">' . e($gymName) . '</strong>, we are unable to approve it at this time.';
+        if ($reason !== null && trim($reason) !== '') {
+            $body .= '<br><br><strong style="color:#111827;">Reason:</strong> ' . nl2br(e($reason));
+        }
+        $body .= '<br><br>If you believe this was a mistake or your circumstances change, contact the ' . self::PLATFORM_NAME . ' team and we will take another look.';
+
+        $html = $this->renderEmail(
+            'Update on your request',
+            $body,
+            footer: 'You are receiving this because this address was used to register a gym on ' . self::PLATFORM_NAME . '.',
+        );
+        $this->send($to, "Update on your {$gymName} request — " . self::PLATFORM_NAME, $html);
+    }
+
     private function send(string $to, string $subject, string $html): void
     {
         $apiKey = config('services.resend.api_key');
@@ -96,10 +151,18 @@ class EmailService
         return "{$baseUrl}/auth/verify?token={$tokenHash}&type={$type}&redirect_to=" . urlencode($redirectTo);
     }
 
-    private function renderEmail(string $heading, string $body, string $buttonText, string $buttonUrl): string
-    {
+    private function renderEmail(
+        string $heading,
+        string $body,
+        ?string $buttonText = null,
+        ?string $buttonUrl = null,
+        string $footer = "If you didn't request this, you can safely ignore this email.",
+    ): string {
         $year = date('Y');
         $platform = self::PLATFORM_NAME;
+        $button = $buttonText && $buttonUrl
+            ? '<tr><td align="center" style="padding-bottom:32px;"><a href="' . e($buttonUrl) . '" style="display:inline-block;background:#5b50e8;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:12px;">' . e($buttonText) . '</a></td></tr>'
+            : '';
 
         return <<<HTML
 <!DOCTYPE html>
@@ -126,11 +189,9 @@ class EmailService
                 <tr><td align="center" style="padding-bottom:32px;">
                   <p style="margin:0;font-size:15px;color:#6b7280;line-height:1.65;max-width:380px;">{$body}</p>
                 </td></tr>
-                <tr><td align="center" style="padding-bottom:32px;">
-                  <a href="{$buttonUrl}" style="display:inline-block;background:#5b50e8;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:12px;">{$buttonText}</a>
-                </td></tr>
+                {$button}
                 <tr><td style="border-top:1px solid #f0f0f0;padding-top:22px;">
-                  <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;text-align:center;">If you didn't request this, you can safely ignore this email.</p>
+                  <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;text-align:center;">{$footer}</p>
                 </td></tr>
               </table>
             </td>

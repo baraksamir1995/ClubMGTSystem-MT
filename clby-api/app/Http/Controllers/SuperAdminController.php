@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Gym;
 use App\Models\User;
+use App\Services\GymProvisioningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class SuperAdminController extends Controller
 {
@@ -57,7 +56,7 @@ class SuperAdminController extends Controller
     /**
      * Create a new gym with admin account, default branch, studio, and schedule settings.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, GymProvisioningService $provisioning): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -72,82 +71,8 @@ class SuperAdminController extends Controller
             'max_branches' => 'nullable|integer|min:1|max:100',
         ]);
 
-        $gymId = Str::uuid()->toString();
-        $profileId = Str::uuid()->toString();
-        $timezone = $validated['timezone'] ?? 'Africa/Cairo';
-        $currency = $validated['currency'] ?? 'EGP';
-
-        $gym = DB::transaction(function () use ($gymId, $profileId, $validated, $timezone, $currency) {
-            // 1. Create gym
-            DB::table('gyms')->insert([
-                'id' => $gymId,
-                'name' => $validated['name'],
-                'city' => $validated['city'] ?? null,
-                'country' => $validated['country'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'timezone' => $timezone,
-                'language' => 'en',
-                'is_active' => true,
-                'max_branches' => $validated['max_branches'] ?? 10,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $gym = Gym::find($gymId);
-
-            // 2. Create auth.users stub (FK target)
-            DB::table('auth.users')->insertOrIgnore([
-                'id' => $profileId,
-                'email' => $validated['admin_email'],
-                'encrypted_password' => Hash::make($validated['admin_password']),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // 3. Create admin profile
-            DB::table('profiles')->insert([
-                'id' => $profileId,
-                'email' => $validated['admin_email'],
-                'password' => Hash::make($validated['admin_password']),
-                'full_name' => $validated['admin_name'],
-                'gym_id' => $gymId,
-                'role' => 'gym_admin',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // 4. Create default branch + studio
-            $branchId = Str::uuid()->toString();
-            DB::table('branches')->insert([
-                'id' => $branchId,
-                'gym_id' => $gymId,
-                'name' => 'Main Branch',
-                'is_active' => true,
-                'created_at' => now(),
-            ]);
-
-            DB::table('studios')->insert([
-                'id' => Str::uuid()->toString(),
-                'gym_id' => $gymId,
-                'branch_id' => $branchId,
-                'name' => 'Main Studio',
-                'capacity' => 30,
-                'created_at' => now(),
-            ]);
-
-            // 5. Create schedule settings
-            DB::table('schedule_settings')->insert([
-                'id' => Str::uuid()->toString(),
-                'gym_id' => $gymId,
-                'is_published' => false,
-                'last_updated_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return $gym;
-        });
+        // Shared with self-onboarding approval so both paths build the same tenant.
+        $gym = $provisioning->provision($validated)['gym'];
 
         return response()->json(['data' => $gym], 201);
     }

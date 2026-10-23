@@ -87,13 +87,21 @@ function Nav() {
             FAQ
           </a>
         </div>
-        <a
-          href="#demo"
-          className="group inline-flex items-center gap-1.5 bg-entry text-ink text-sm font-medium px-4 py-2 rounded-sm hover:bg-entry/90 transition-colors"
-        >
-          Book demo
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-        </a>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <a
+            href="/register"
+            className="inline-flex items-center text-sm font-medium px-3 sm:px-4 py-2 rounded-sm border border-canvas/20 text-canvas hover:border-entry hover:text-entry transition-colors"
+          >
+            Register your gym
+          </a>
+          <a
+            href="#demo"
+            className="group hidden sm:inline-flex items-center gap-1.5 bg-entry text-ink text-sm font-medium px-4 py-2 rounded-sm hover:bg-entry/90 transition-colors"
+          >
+            Book demo
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </a>
+        </div>
       </div>
     </nav>
   );
@@ -176,6 +184,17 @@ function Hero() {
                 <CheckCircle2 className="h-4 w-4 text-entry" />
                 Setup in one afternoon
               </div>
+            </div>
+
+            <div className="reveal reveal-4 mt-8">
+              <a
+                href="/register"
+                className="group inline-flex items-center gap-2 bg-entry text-ink font-semibold px-6 py-3.5 rounded-sm hover:bg-entry/90 transition-colors"
+              >
+                Register your gym
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+              <p className="mt-2 text-xs text-muted">Self-serve signup · reviewed by our team, usually within a day</p>
             </div>
 
             {/* App store badges. Members download the CLBY marketplace app */}
@@ -712,6 +731,12 @@ function FinalCTA() {
           >
             Book my demo
             <ArrowUpRight className="h-5 w-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+          </a>
+          <a
+            href="/register"
+            className="inline-flex items-center gap-2 border border-canvas/25 text-canvas font-medium px-8 py-4 rounded-sm hover:border-entry hover:text-entry transition-colors"
+          >
+            Register your gym
           </a>
           <a
             href="https://wa.me/201027823660?text=Hi%20CLBY%2C%20I'd%20like%20to%20book%20a%20demo"

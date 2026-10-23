@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/client-ip';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ const loginLimiter = createRateLimiter({ limit: 10, windowMs: 60_000 });
 
 export async function POST(request: Request) {
   // Rate limit by IP
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const ip = clientIp(request);
   const rateCheck = loginLimiter.check(`login:${ip}`);
   if (!rateCheck.allowed) {
     return NextResponse.json(

@@ -181,6 +181,8 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
       plan_id: p.plan_id ?? null,
       paymob_transaction_id: p.paymob_transaction_id ?? null,
       refunded_amount: p.refunded_amount ?? 0,
+      period_start: p.period_start ?? null,
+      period_end: p.period_end ?? null,
       member_number: String(member?.member_number ?? p.member_number ?? '---'),
       full_name: profile?.full_name ?? p.full_name ?? '---',
       email: profile?.email ?? p.email ?? '',

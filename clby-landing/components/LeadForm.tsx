@@ -186,9 +186,9 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           name="phone"
           type="tel"
           inputMode="tel"
-          placeholder="01X XXXX XXXX or +962 7X XXX XXXX"
+          placeholder="+20 100 123 4567"
           autoComplete="tel"
-          hint={`${offering ? "We'll send your quote here." : "We'll send the demo link here."} Outside Egypt? Include your country code.`}
+          hint={offering ? "We'll send your quote here." : "We'll send the demo link here."}
           error={errors.phone}
           onChange={() => errors.phone && setErrors((e) => ({ ...e, phone: undefined }))}
         />

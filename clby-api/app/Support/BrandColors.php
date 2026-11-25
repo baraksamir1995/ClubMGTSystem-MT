@@ -14,9 +14,9 @@ namespace App\Support;
  *   drawn in/on it, so it must reach WCAG's 3:1 (large/bold text) against
  *   white.
  * - secondary: only the far end of the membership-card gradient, where
- *   little text sits. The platform's own default (#818cf8) is ~1.8:1, so
- *   only near-white values (< 1.5:1), which would swallow the card's white
- *   labels and pill, are rejected.
+ *   little text sits. The platform's own default (#818cf8) is ~2.98:1,
+ *   just under the 3:1 primary floor, so secondary only rejects near-white
+ *   values (< 1.5:1), which would swallow the card's white labels and pill.
  */
 final class BrandColors
 {

@@ -163,6 +163,13 @@ export default function GymRegistrationForm() {
   // True while the colours in use came from the logo (not hand-picked), so
   // replacing the logo can refresh them automatically.
   const colorsFromLogo = useRef(false);
+  // Object URL of the most recently picked logo. Image checks and colour
+  // detection are async; results for any older pick (or after Remove) are
+  // dropped so they can't overwrite the current logo's state.
+  const currentLogoUrl = useRef<string | null>(null);
+  // Latest form values for async callbacks (avoids a stale closure).
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
   // One key per attempt-sequence: a retried POST after a network blip maps
   // to the same request server-side instead of creating a duplicate.
   const submissionKey = useRef<string>("");
@@ -217,8 +224,11 @@ export default function GymRegistrationForm() {
       return;
     }
     const url = URL.createObjectURL(file);
+    currentLogoUrl.current = url;
+    const isCurrent = () => currentLogoUrl.current === url;
     const img = new Image();
     img.onload = () => {
+      if (!isCurrent()) { URL.revokeObjectURL(url); return; }
       const { naturalWidth: w, naturalHeight: h } = img;
       if (w < MIN_LOGO_PX || h < MIN_LOGO_PX) {
         URL.revokeObjectURL(url);
@@ -236,17 +246,25 @@ export default function GymRegistrationForm() {
       setPreviewScreen("splash");
       extractLogoPalette(url)
         .then((palette) => {
+          if (!isCurrent()) return;
           setLogoPalette(palette);
           if (!palette) return;
           // Auto-apply unless the owner already chose their own colours.
-          setValues((v) => {
-            const untouched = v.primary_color.toUpperCase() === DEFAULT_PRIMARY && v.secondary_color.toUpperCase() === DEFAULT_SECONDARY;
-            if (!untouched && !colorsFromLogo.current) return v;
-            colorsFromLogo.current = true;
-            return { ...v, primary_color: palette.primary, secondary_color: palette.secondary };
-          });
+          const v = valuesRef.current;
+          const untouched = v.primary_color.toUpperCase() === DEFAULT_PRIMARY && v.secondary_color.toUpperCase() === DEFAULT_SECONDARY;
+          if (!untouched && !colorsFromLogo.current) return;
+          colorsFromLogo.current = true;
+          setValues((v) => ({ ...v, primary_color: palette.primary, secondary_color: palette.secondary }));
+          // New colours replace whatever was there, so old colour errors go too.
+          setErrors((e) => ({ ...e, primary_color: undefined, secondary_color: undefined }));
+          // Let the splash show the new logo, then move to Home to show the colours.
+          setTimeout(() => {
+            if (isCurrent()) setPreviewScreen((sc) => (sc === "splash" ? "home" : sc));
+          }, 1600);
         })
-        .catch(() => setLogoPalette(null));
+        .catch(() => {
+          if (isCurrent()) setLogoPalette(null);
+        });
       setErrors((e) => ({
         ...e,
         logo: undefined,
@@ -255,12 +273,15 @@ export default function GymRegistrationForm() {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
+      if (!isCurrent()) return;
       setErrors((e) => ({ ...e, logo: "We couldn't read that image. Try another PNG, JPG or WebP file." }));
     };
     img.src = url;
   }
 
   function removeLogo() {
+    currentLogoUrl.current = null; // drops any check/detection still running
+    colorsFromLogo.current = false;
     if (logoPreview) URL.revokeObjectURL(logoPreview);
     setLogo(null);
     setLogoPreview(null);

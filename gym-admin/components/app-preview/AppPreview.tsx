@@ -16,7 +16,11 @@
  * Content (member, classes, prices, photos) is illustrative sample data;
  * photos live in /public/app-preview (Pexels, free licence) in both apps.
  *
- * MIRRORED FILE: keep identical to gym-admin/components/app-preview/.
+ * MIRRORED FILE: identical copies live in
+ *   clby-landing/components/app-preview/  (onboarding, /register)
+ *   gym-admin/components/app-preview/     (super-admin request review)
+ * gym-admin is built from its own folder, so it can't import this one.
+ * Change both together.
  */
 
 import { useEffect, useState, type ReactNode } from "react";

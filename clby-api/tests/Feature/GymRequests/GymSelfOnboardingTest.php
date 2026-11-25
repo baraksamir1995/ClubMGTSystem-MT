@@ -878,6 +878,19 @@ class GymSelfOnboardingTest extends TestCase
         $this->assertNull(GymRequest::find($id)->branding_config);
     }
 
+    public function test_blank_colours_count_as_not_sent(): void
+    {
+        Queue::fake();
+        $id = $this->submit(['primary_color' => '', 'secondary_color' => '']);
+        $this->assertNull(GymRequest::find($id)->branding_config);
+
+        // A blank admin edit on a request without branding is a no-op.
+        $this->actingAsSuperAdmin();
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['primary_color' => '', 'secondary_color' => ''])->assertOk();
+        $this->assertNull(GymRequest::find($id)->branding_config);
+        $this->assertFalse(DB::table('gym_request_events')->where('event', 'edited')->exists());
+    }
+
     public function test_default_colours_are_marked_not_customized(): void
     {
         Queue::fake();

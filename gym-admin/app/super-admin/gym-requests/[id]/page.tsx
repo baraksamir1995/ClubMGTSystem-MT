@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -428,6 +428,32 @@ const CURRENCY_BY_COUNTRY: Record<string, string> = {
 /** Logo + colours as submitted, and the same live app preview the owner saw. */
 function BrandingSection({ req }: { req: GymRequest }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Modal keyboard behaviour: focus moves in on open, Escape closes, and
+  // focus returns to the button that opened it.
+  useEffect(() => {
+    if (!open) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setOpen(false); return; }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      // Keep Tab inside the dialog.
+      const items = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])'));
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    const trigger = triggerRef.current;
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      trigger?.focus();
+    };
+  }, [open]);
   const bc = req.branding_config;
   const primary = (bc?.primary_color ?? DEFAULT_PRIMARY).toUpperCase();
   const secondary = (bc?.secondary_color ?? DEFAULT_SECONDARY).toUpperCase();
@@ -450,7 +476,7 @@ function BrandingSection({ req }: { req: GymRequest }) {
         <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
           <Palette className="w-4 h-4 text-fg-muted" aria-hidden /> Branding
         </h2>
-        <button onClick={() => setOpen(true)}
+        <button ref={triggerRef} onClick={() => setOpen(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-3 border border-line hover:border-line-strong text-fg text-xs font-medium rounded-lg transition-colors">
           <Smartphone className="w-3.5 h-3.5" aria-hidden /> Open app preview
         </button>
@@ -474,9 +500,9 @@ function BrandingSection({ req }: { req: GymRequest }) {
       {open && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75" onClick={() => setOpen(false)}>
           <div className="flex min-h-full items-center justify-center p-4">
-            <div role="dialog" aria-modal="true" aria-label="App preview" onClick={e => e.stopPropagation()}
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="App preview" onClick={e => e.stopPropagation()}
               className="relative rounded-2xl bg-[#0B0B0D] px-6 pb-6 pt-5 shadow-2xl ring-1 ring-white/10">
-              <button onClick={() => setOpen(false)} aria-label="Close preview"
+              <button ref={closeRef} onClick={() => setOpen(false)} aria-label="Close preview"
                 className="absolute right-3 top-3 rounded-full p-1.5 text-white/60 hover:text-white">
                 <X className="w-4 h-4" aria-hidden />
               </button>

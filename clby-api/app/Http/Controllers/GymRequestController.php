@@ -94,7 +94,11 @@ class GymRequestController extends Controller
      */
     private function brandingFrom(array $validated, ?array $current = null): ?array
     {
-        $sent = array_intersect_key($validated, array_flip(self::BRANDING_FIELDS));
+        // Blank fields arrive as null (ConvertEmptyStringsToNull): not "sent".
+        $sent = array_filter(
+            array_intersect_key($validated, array_flip(self::BRANDING_FIELDS)),
+            fn ($v) => $v !== null,
+        );
         if (! $sent) return $current;
 
         $config = [];

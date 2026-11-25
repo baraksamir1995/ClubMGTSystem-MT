@@ -36,12 +36,9 @@ export default function HowItWorks() {
 
           {STEPS.map((s, i) => (
             <Reveal as="li" key={s.title} className="relative flex h-full flex-col">
-              <div className="flex items-center gap-4">
-                <span className="relative z-10 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-fg font-display text-2xl text-brand ring-8 ring-card">
-                  {i + 1}
-                </span>
-                <span className="text-sm font-semibold uppercase tracking-[0.08em] text-fg-muted">Step {String(i + 1).padStart(2, "0")}</span>
-              </div>
+              <span className="relative z-10 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-fg font-display text-2xl text-brand ring-8 ring-card">
+                {i + 1}
+              </span>
 
               <h3 className="mt-8 font-display text-display-md text-fg">{s.title}</h3>
               <p className="mt-3 max-w-md text-body text-fg-muted lg:min-h-[5.25rem]">{s.body}</p>

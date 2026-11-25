@@ -98,12 +98,3 @@ export function Logo({ dark = false, size = 40 }: { dark?: boolean; size?: numbe
     </span>
   );
 }
-
-/** Small lime chip holding a dark icon (icon contrast 14.5:1 on lime). */
-export function IconChip({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <span className={`inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px] bg-brand text-fg ${className}`} aria-hidden>
-      {children}
-    </span>
-  );
-}

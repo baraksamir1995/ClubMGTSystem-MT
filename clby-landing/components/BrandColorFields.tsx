@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, RotateCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, Check, RotateCcw } from "lucide-react";
 import { readable, type LogoPalette } from "@/lib/logoColors";
 import {
   checkColor,
@@ -84,9 +84,7 @@ export default function BrandColorFields({
                 style={{ background: `linear-gradient(135deg, ${logoPalette.primary} 50%, ${logoPalette.secondary} 50%)` }}
               />
               <div>
-                <p className="flex items-center gap-1.5 text-[15px] font-semibold text-fg">
-                  <Sparkles className="h-4 w-4" aria-hidden /> Recommended from your logo
-                </p>
+                <p className="text-[15px] font-semibold text-fg">Recommended from your logo</p>
                 <p className="font-mono text-sm text-fg-muted">
                   {logoPalette.primary} · {logoPalette.secondary}
                 </p>

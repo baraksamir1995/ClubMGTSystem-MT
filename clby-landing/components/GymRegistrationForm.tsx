@@ -933,7 +933,7 @@ export default function GymRegistrationForm() {
 function PreviewLabel() {
   return (
     <p className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-fg-muted">
-      <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Live app preview
+      Live app preview
     </p>
   );
 }

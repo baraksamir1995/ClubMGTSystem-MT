@@ -106,21 +106,15 @@ function AppShowcase({
     <div>
       <Reveal className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-end lg:gap-16">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 text-sm font-semibold text-fg ring-1 ring-line">
-            <span aria-hidden className="h-2 w-2 rounded-full bg-brand ring-1 ring-[#8FCB1F]" />
-            {tag}
-          </p>
-          <h3 id={id} className="mt-5 font-display text-[2.25rem] leading-[1.1] tracking-[-0.02em] text-fg">
+          <p className="text-[15px] font-medium text-fg-muted">{tag}</p>
+          <h3 id={id} className="mt-2 font-display text-[2.25rem] leading-[1.1] tracking-[-0.02em] text-fg">
             {title}
           </h3>
           <p className="mt-4 max-w-xl text-body text-fg-muted">{body}</p>
         </div>
         <ol className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
-          {screens.map((s, i) => (
-            <li key={s.name} className="flex gap-4">
-              <span aria-hidden className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-fg text-[13px] font-semibold text-brand">
-                {i + 1}
-              </span>
+          {screens.map((s) => (
+            <li key={s.name} className="border-l-2 border-line-strong/40 pl-4">
               <span>
                 <span className="block text-[17px] font-semibold text-fg">{s.caption}</span>
                 <span className="mt-0.5 block text-[15px] leading-relaxed text-fg-muted">{s.detail}</span>
@@ -137,12 +131,10 @@ function AppShowcase({
         role="group"
         aria-labelledby={id}
       >
-        {screens.map((s, i) => (
+        {screens.map((s) => (
           <figure key={s.name} className="w-[260px] flex-shrink-0 snap-center lg:w-[calc((100%-6rem)/5)]">
             <ScrollPhone s={s} />
-            <figcaption className="mt-5 text-center text-[15px] font-semibold text-fg">
-              {i + 1}. {s.caption}
-            </figcaption>
+            <figcaption className="mt-5 text-center text-[15px] font-semibold text-fg">{s.caption}</figcaption>
           </figure>
         ))}
       </div>

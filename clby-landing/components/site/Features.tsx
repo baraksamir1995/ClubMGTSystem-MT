@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { BarChart3, CalendarCheck, CreditCard, QrCode, Smartphone, Building2 } from "lucide-react";
-import { Container, IconChip, SectionHeader } from "./ui";
+import { Container, SectionHeader } from "./ui";
 import Reveal from "./Reveal";
 
 export type Feature = { icon: ReactNode; title: string; body: string };
@@ -54,14 +54,11 @@ export default function Features({
       <Container>
         <SectionHeader id="features-title" title={title} />
         <ul className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3 lg:gap-6">
-          {items.map((f, i) => (
+          {items.map((f) => (
             <Reveal as="li" key={f.title} className="h-full">
-              <div className="group flex h-full flex-col rounded-card border border-line bg-card p-8 transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-lift lg:p-9">
-                <div className="flex items-center justify-between">
-                  <IconChip>{f.icon}</IconChip>
-                  <span aria-hidden className="font-display text-lg text-[#B9BCB3]">{String(i + 1).padStart(2, "0")}</span>
-                </div>
-                <h3 className="mt-8 font-display text-display-sm text-fg">{f.title}</h3>
+              <div className="flex h-full flex-col rounded-card border border-line bg-card p-8 lg:p-9">
+                <span aria-hidden className="text-fg [&_svg]:h-6 [&_svg]:w-6 [&_svg]:stroke-[1.6]">{f.icon}</span>
+                <h3 className="mt-6 font-display text-display-sm text-fg">{f.title}</h3>
                 <p className="mt-3 text-body text-fg-muted">{f.body}</p>
               </div>
             </Reveal>

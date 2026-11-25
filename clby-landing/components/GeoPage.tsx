@@ -90,9 +90,7 @@ export default function GeoPage({ geo }: { geo: GeoConfig }) {
                 <ul className="mt-8 space-y-3">
                   {[`Built for gyms in ${place}`, "Your logo and colours in your members' app", "Launch in days, not months."].map((point) => (
                     <li key={point} className="flex items-start gap-3 text-base text-fg md:text-lg">
-                      <span aria-hidden className="mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand">
-                        <Check className="h-3 w-3 text-fg" strokeWidth={3} />
-                      </span>
+                      <Check aria-hidden className="mt-1 h-5 w-5 flex-shrink-0 text-brand-ink" strokeWidth={2.5} />
                       {point}
                     </li>
                   ))}

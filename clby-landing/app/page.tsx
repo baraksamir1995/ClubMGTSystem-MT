@@ -111,9 +111,7 @@ function Hero() {
                 "One connected platform for owners, coaches, and members.",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-3.5 text-[17px] font-medium text-fg">
-                  <span aria-hidden className="mt-[3px] flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-full bg-brand">
-                    <Check className="h-3.5 w-3.5 text-fg" strokeWidth={3} />
-                  </span>
+                  <Check aria-hidden className="mt-[3px] h-5 w-5 flex-shrink-0 text-brand-ink" strokeWidth={2.5} />
                   {t}
                 </li>
               ))}

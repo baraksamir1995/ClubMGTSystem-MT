@@ -62,6 +62,9 @@ class GymProvisioningService
                 'language' => 'en',
                 'is_active' => true,
                 'max_branches' => $data['max_branches'] ?? 10,
+                // Only when given (self-onboarding with chosen colours);
+                // otherwise the column default applies, as before.
+                ...(! empty($data['branding_config']) ? ['branding_config' => json_encode($data['branding_config'])] : []),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

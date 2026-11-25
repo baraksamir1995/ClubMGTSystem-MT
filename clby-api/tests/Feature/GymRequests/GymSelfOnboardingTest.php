@@ -67,6 +67,8 @@ class GymSelfOnboardingTest extends TestCase
             $t->double('latitude')->nullable();
             $t->double('longitude')->nullable();
             $t->text('services')->nullable();
+            // Mirrors the Postgres column default (legacy Supabase table).
+            $t->text('branding_config')->nullable()->default('{"icon_url": null, "logo_url": null, "splash_url": null, "font_family": "System", "primary_color": "#4f46e5", "secondary_color": "#818cf8"}');
             $t->timestampsTz();
         });
         Schema::create('profiles', function ($t) {
@@ -125,6 +127,7 @@ class GymSelfOnboardingTest extends TestCase
 
         (require database_path('migrations/2026_10_23_100000_create_gym_requests_table.php'))->up();
         (require database_path('migrations/2026_10_23_100100_add_expires_at_to_password_reset_tokens.php'))->up();
+        (require database_path('migrations/2026_11_25_100000_add_branding_config_to_gym_requests.php'))->up();
     }
 
     /* ── factories ───────────────────────────────────────────────── */
@@ -853,5 +856,87 @@ class GymSelfOnboardingTest extends TestCase
         $this->assertSame('gym_admin', $owner->role);
         $this->assertFalse((bool) $owner->must_reset_password);
         $this->assertSame(1, DB::table('studios')->where('gym_id', $owner->gym_id)->count());
+    }
+
+    /* ── branding (live app preview) ────────────────────────────── */
+
+    public function test_submission_stores_brand_colours(): void
+    {
+        Queue::fake();
+        $id = $this->submit(['primary_color' => '#0F766E', 'secondary_color' => '#134E4A']);
+
+        $this->assertSame(
+            ['primary_color' => '#0f766e', 'secondary_color' => '#134e4a', 'customized' => true],
+            GymRequest::find($id)->branding_config,
+        );
+    }
+
+    public function test_submission_without_colours_keeps_branding_null(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+        $this->assertNull(GymRequest::find($id)->branding_config);
+    }
+
+    public function test_default_colours_are_marked_not_customized(): void
+    {
+        Queue::fake();
+        $id = $this->submit(['primary_color' => '#4F46E5', 'secondary_color' => '#818CF8']);
+        $this->assertFalse(GymRequest::find($id)->branding_config['customized']);
+    }
+
+    public function test_rejects_malformed_and_unreadable_colours(): void
+    {
+        Queue::fake();
+        $this->postJson('/api/gym-requests', $this->payload(['primary_color' => 'red']))
+            ->assertStatus(422)->assertJsonValidationErrors('primary_color');
+        // Yellow primary: white button text on it is unreadable (< 3:1).
+        $this->postJson('/api/gym-requests', $this->payload(['primary_color' => '#FACC15']))
+            ->assertStatus(422)->assertJsonValidationErrors('primary_color');
+        // Near-white secondary swallows the membership card's white labels.
+        $this->postJson('/api/gym-requests', $this->payload(['secondary_color' => '#F1F5F9']))
+            ->assertStatus(422)->assertJsonValidationErrors('secondary_color');
+        $this->assertSame(0, GymRequest::count());
+    }
+
+    public function test_approval_copies_branding_into_gym(): void
+    {
+        Queue::fake();
+        $id = $this->submit(['primary_color' => '#0F766E', 'secondary_color' => '#134E4A']);
+        $this->actingAsSuperAdmin();
+
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertOk();
+
+        $gym = DB::table('gyms')->where('id', GymRequest::find($id)->provisioned_gym_id)->first();
+        $branding = json_decode($gym->branding_config, true);
+        $this->assertSame('#0f766e', $branding['primary_color']);
+        $this->assertSame('#134e4a', $branding['secondary_color']);
+        // Other default keys survive (same shape as the column default).
+        $this->assertSame('System', $branding['font_family']);
+        $this->assertArrayNotHasKey('customized', $branding);
+    }
+
+    public function test_approval_without_branding_keeps_gym_default(): void
+    {
+        Queue::fake();
+        $id = $this->submit();
+        $this->actingAsSuperAdmin();
+        $this->postJson("/api/super-admin/gym-requests/{$id}/approve")->assertOk();
+
+        $gym = DB::table('gyms')->where('id', GymRequest::find($id)->provisioned_gym_id)->first();
+        $this->assertSame('#4f46e5', json_decode($gym->branding_config, true)['primary_color']);
+    }
+
+    public function test_super_admin_can_edit_brand_colours(): void
+    {
+        Queue::fake();
+        $id = $this->submit(['primary_color' => '#0F766E', 'secondary_color' => '#134E4A']);
+        $this->actingAsSuperAdmin();
+
+        $this->patchJson("/api/super-admin/gym-requests/{$id}", ['primary_color' => '#B91C1C'])
+            ->assertOk()
+            ->assertJsonPath('data.branding_config.primary_color', '#b91c1c')
+            ->assertJsonPath('data.branding_config.secondary_color', '#134e4a');
+        $this->assertTrue(DB::table('gym_request_events')->where('event', 'edited')->exists());
     }
 }

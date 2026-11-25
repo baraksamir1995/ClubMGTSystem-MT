@@ -32,7 +32,7 @@ class GymRequest extends Model
         'submission_key',
         'gym_name', 'description', 'logo_url', 'address', 'city', 'country',
         'latitude', 'longitude', 'phone', 'business_email', 'category',
-        'services', 'branches_count', 'timezone',
+        'services', 'branches_count', 'timezone', 'branding_config',
         'owner_name', 'owner_email', 'owner_phone',
         'submitted_ip', 'user_agent',
     ];
@@ -43,6 +43,7 @@ class GymRequest extends Model
     {
         return [
             'services' => 'array',
+            'branding_config' => 'array',
             'latitude' => 'float',
             'longitude' => 'float',
             'branches_count' => 'integer',

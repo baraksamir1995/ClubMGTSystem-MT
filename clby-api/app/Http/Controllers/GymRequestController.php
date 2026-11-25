@@ -6,6 +6,7 @@ use App\Jobs\SendGymRequestEmail;
 use App\Models\GymRequest;
 use App\Services\GymProvisioningService;
 use App\Services\StorageService;
+use App\Support\BrandColors;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,7 +77,35 @@ class GymRequestController extends Controller
             'owner_name' => 'required|string|min:2|max:255',
             'owner_email' => 'required|email|max:255',
             'owner_phone' => 'required|string|max:20',
+            // Brand colours picked in the live app preview. Optional: an
+            // omitted colour falls back to the CLBY default on approval.
+            'primary_color' => BrandColors::rule('primary'),
+            'secondary_color' => BrandColors::rule('secondary'),
         ];
+    }
+
+    /** Request fields that live inside gym_requests.branding_config. */
+    private const BRANDING_FIELDS = ['primary_color', 'secondary_color'];
+
+    /**
+     * Merge submitted colours into a request's branding_config. Returns the
+     * current value untouched when no colour was sent. `customized` records
+     * whether the applicant moved off the CLBY defaults.
+     */
+    private function brandingFrom(array $validated, ?array $current = null): ?array
+    {
+        $sent = array_intersect_key($validated, array_flip(self::BRANDING_FIELDS));
+        if (! $sent) return $current;
+
+        $config = [];
+        foreach (self::BRANDING_FIELDS as $key) {
+            $value = $sent[$key] ?? $current[$key] ?? BrandColors::DEFAULT[$key];
+            $config[$key] = Str::lower($value ?? BrandColors::DEFAULT[$key]);
+        }
+        $config['customized'] = $config['primary_color'] !== BrandColors::DEFAULT['primary_color']
+            || $config['secondary_color'] !== BrandColors::DEFAULT['secondary_color'];
+
+        return $config;
     }
 
     /**
@@ -153,7 +182,8 @@ class GymRequestController extends Controller
 
         try {
             $gymRequest = GymRequest::create([
-                ...collect($validated)->except(['logo', 'company_website'])->all(),
+                ...collect($validated)->except(['logo', 'company_website', ...self::BRANDING_FIELDS])->all(),
+                'branding_config' => $this->brandingFrom($validated),
                 'owner_email' => $ownerEmail,
                 'logo_url' => $logo['url'] ?? null,
                 'branches_count' => $validated['branches_count'] ?? 1,
@@ -315,6 +345,14 @@ class GymRequestController extends Controller
                     'phone' => $gymRequest->phone,
                     'email' => $gymRequest->business_email,
                     'logo_url' => $gymRequest->logo_url,
+                    // Submitted colours over the platform default, in the
+                    // same shape gyms.branding_config already uses (the app
+                    // and the gym settings page read these keys).
+                    'branding_config' => $gymRequest->branding_config ? [
+                        ...BrandColors::DEFAULT,
+                        'primary_color' => $gymRequest->branding_config['primary_color'] ?? BrandColors::DEFAULT['primary_color'],
+                        'secondary_color' => $gymRequest->branding_config['secondary_color'] ?? BrandColors::DEFAULT['secondary_color'],
+                    ] : null,
                     'category' => $gymRequest->category,
                     'latitude' => $gymRequest->latitude,
                     'longitude' => $gymRequest->longitude,
@@ -490,7 +528,7 @@ class GymRequestController extends Controller
                 $request->merge([$f => Str::lower(trim((string) $request->input($f)))]);
             }
         }
-        $rules = array_map(fn ($r) => "sometimes|{$r}", $this->fieldRules());
+        $rules = array_map(fn ($r) => is_array($r) ? ['sometimes', ...$r] : "sometimes|{$r}", $this->fieldRules());
         $rules['services.*'] = 'string|max:50';
         $validated = $request->validate($rules);
         $actorId = $request->user()->id;
@@ -501,7 +539,8 @@ class GymRequestController extends Controller
                 if (! $gymRequest) return ['missing'];
                 if ($gymRequest->status !== GymRequest::STATUS_PENDING) return ['not_pending'];
 
-                $gymRequest->fill($validated);
+                $gymRequest->fill(collect($validated)->except(self::BRANDING_FIELDS)->all());
+                $gymRequest->branding_config = $this->brandingFrom($validated, $gymRequest->branding_config);
                 $dirty = $gymRequest->getDirty();
                 if (! $dirty) return ['unchanged', $gymRequest, []];
 

@@ -5,13 +5,15 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Building2, Check, X, RefreshCw, Mail, MapPin, Phone, User, Settings2,
-  AlertTriangle, RotateCcw, Send, History, ShieldCheck, Pencil,
+  AlertTriangle, RotateCcw, Send, History, ShieldCheck, Pencil, Palette, Smartphone,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiErrorMessage, networkErrorMessage, responseErrorMessage } from '@/lib/api-error';
 import { GYM_REQUESTS_CHANGED_EVENT } from '@/lib/gym-request-events';
 import { RequestStatusBadge, type GymRequestStatus } from '../status-badge';
 import EditRequestModal from './edit-request-modal';
+import AppPreview from '@/components/app-preview/AppPreview';
+import { DEFAULT_PRIMARY, DEFAULT_SECONDARY, type AppBrand } from '@/components/app-preview/brand';
 
 interface GymRequest {
   id: string;
@@ -34,6 +36,8 @@ interface GymRequest {
   owner_name: string;
   owner_email: string;
   owner_phone: string;
+  /** Chosen in the live app preview on /register; null on older requests. */
+  branding_config: { primary_color?: string; secondary_color?: string; customized?: boolean } | null;
   created_at: string;
   reviewed_at: string | null;
   reviewer_name: string | null;
@@ -241,6 +245,8 @@ export default function GymRequestDetailPage() {
             <Field label="Description" value={req.description} wide />
           </Section>
 
+          <BrandingSection req={req} />
+
           <Section icon={MapPin} title="Location">
             <Field label="Address" value={req.address} wide />
             <Field label="City" value={req.city} />
@@ -413,6 +419,88 @@ export default function GymRequestDetailPage() {
 }
 
 /* ── pieces ─────────────────────────────────────────────────────── */
+
+const CURRENCY_BY_COUNTRY: Record<string, string> = {
+  Egypt: 'EGP', 'Saudi Arabia': 'SAR', 'United Arab Emirates': 'AED', Kuwait: 'KWD', Qatar: 'QAR',
+  Bahrain: 'BHD', Oman: 'OMR', Jordan: 'JOD', Lebanon: 'USD', Morocco: 'MAD',
+};
+
+/** Logo + colours as submitted, and the same live app preview the owner saw. */
+function BrandingSection({ req }: { req: GymRequest }) {
+  const [open, setOpen] = useState(false);
+  const bc = req.branding_config;
+  const primary = (bc?.primary_color ?? DEFAULT_PRIMARY).toUpperCase();
+  const secondary = (bc?.secondary_color ?? DEFAULT_SECONDARY).toUpperCase();
+  const status = !bc
+    ? 'Not set (submitted before branding existed). The gym gets the CLBY default colours.'
+    : bc.customized
+      ? 'Custom colours. Applied to the gym\'s app on approval.'
+      : 'Kept the CLBY default colours.';
+  const brand: AppBrand = {
+    gymName: req.gym_name,
+    logoUrl: req.logo_url,
+    primary,
+    secondary,
+    currency: CURRENCY_BY_COUNTRY[req.country] ?? 'USD',
+  };
+
+  return (
+    <section className="bg-surface-2 border border-line rounded-xl p-5">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
+          <Palette className="w-4 h-4 text-fg-muted" aria-hidden /> Branding
+        </h2>
+        <button onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-3 border border-line hover:border-line-strong text-fg text-xs font-medium rounded-lg transition-colors">
+          <Smartphone className="w-3.5 h-3.5" aria-hidden /> Open app preview
+        </button>
+      </div>
+      <div className="flex flex-wrap items-start gap-5">
+        <div>
+          <p className="text-xs text-fg-faint mb-1.5">Logo</p>
+          {req.logo_url
+            ? <a href={req.logo_url} target="_blank" rel="noopener noreferrer" title="Open full size">
+                <img src={req.logo_url} alt={`${req.gym_name} logo`} className="w-24 h-24 rounded-xl object-contain bg-surface-3 border border-line" />
+              </a>
+            : <div className="w-24 h-24 rounded-xl bg-surface-3 border border-line flex items-center justify-center text-xs text-fg-faint">None</div>}
+        </div>
+        <div className="flex-1 min-w-[220px] space-y-2.5">
+          <ColorRow label="Primary" hint="Buttons, selected tabs, links" hex={primary} />
+          <ColorRow label="Secondary" hint="Membership card gradient" hex={secondary} />
+          <p className="text-xs text-fg-muted pt-1">{status}</p>
+        </div>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75" onClick={() => setOpen(false)}>
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div role="dialog" aria-modal="true" aria-label="App preview" onClick={e => e.stopPropagation()}
+              className="relative rounded-2xl bg-[#0B0B0D] px-6 pb-6 pt-5 shadow-2xl ring-1 ring-white/10">
+              <button onClick={() => setOpen(false)} aria-label="Close preview"
+                className="absolute right-3 top-3 rounded-full p-1.5 text-white/60 hover:text-white">
+                <X className="w-4 h-4" aria-hidden />
+              </button>
+              <p className="mb-3 px-8 text-center text-xs text-white/50">Exactly as submitted by the owner · sample content</p>
+              <AppPreview brand={brand} scale={0.62} fallbackLogoUrl={null} />
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ColorRow({ label, hint, hex }: { label: string; hint: string; hex: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-9 h-9 rounded-lg border border-line flex-shrink-0" style={{ background: hex }} aria-hidden />
+      <div className="min-w-0">
+        <p className="text-sm text-fg"><span className="font-medium">{label}</span> <span className="font-mono text-fg-muted">{hex}</span></p>
+        <p className="text-xs text-fg-faint">{hint}</p>
+      </div>
+    </div>
+  );
+}
 
 function BackLink() {
   return (

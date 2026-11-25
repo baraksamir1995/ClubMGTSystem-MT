@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { StatCard } from '@/components/ui';
 import { useTranslations } from 'next-intl';
 import {
   Users, ShieldCheck, ClipboardList, Plus, Edit2, UserX, UserCheck,
@@ -340,42 +341,10 @@ export default function StaffPage({ permissions, initialStaff, initialRoles, ini
             <>
               {/* Stat cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-surface-2 border border-line rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-brand/15 flex items-center justify-center">
-                      <Users className="w-4.5 h-4.5 text-brand" />
-                    </div>
-                    <p className="text-xs text-fg-muted">{t('overview.totalStaff')}</p>
-                  </div>
-                  <p className="text-2xl font-bold text-fg">{overview.totalStaff}</p>
-                </div>
-                <div className="bg-surface-2 border border-line rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-success-soft flex items-center justify-center">
-                      <UserCheck2 className="w-4.5 h-4.5 text-success" />
-                    </div>
-                    <p className="text-xs text-fg-muted">{t('overview.active')}</p>
-                  </div>
-                  <p className="text-2xl font-bold text-success">{overview.activeStaff}</p>
-                </div>
-                <div className="bg-surface-2 border border-line rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-danger-soft flex items-center justify-center">
-                      <UserX2 className="w-4.5 h-4.5 text-danger" />
-                    </div>
-                    <p className="text-xs text-fg-muted">{t('overview.inactive')}</p>
-                  </div>
-                  <p className="text-2xl font-bold text-danger">{overview.inactiveStaff}</p>
-                </div>
-                <div className="bg-surface-2 border border-line rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-info-soft flex items-center justify-center">
-                      <Shield className="w-4.5 h-4.5 text-info" />
-                    </div>
-                    <p className="text-xs text-fg-muted">{t('overview.roles')}</p>
-                  </div>
-                  <p className="text-2xl font-bold text-fg">{overview.totalRoles}</p>
-                </div>
+                <StatCard icon={Users} label={t('overview.totalStaff')} value={overview.totalStaff} />
+                <StatCard icon={UserCheck2} label={t('overview.active')} value={overview.activeStaff} />
+                <StatCard icon={UserX2} label={t('overview.inactive')} value={overview.inactiveStaff} />
+                <StatCard icon={Shield} label={t('overview.roles')} value={overview.totalRoles} />
               </div>
 
               <div className="grid grid-cols-1 gap-5">

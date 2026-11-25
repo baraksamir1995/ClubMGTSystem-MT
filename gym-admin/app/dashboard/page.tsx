@@ -4,6 +4,7 @@ import { Users, CreditCard, UserCheck, TrendingUp } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getMe } from '@/lib/get-permissions';
 import PaymentReminderBanner, { type BillingReminder } from '@/components/billing/payment-reminder-banner';
+import { StatCard } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,10 +48,10 @@ export default async function DashboardPage() {
     new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
 
   const stats = [
-    { label: t('stats.totalMembers'), value: totalMembers.toLocaleString(), icon: Users, color: 'text-info', bg: 'bg-info-soft' },
-    { label: t('stats.activeStaff'), value: activeStaff.toLocaleString(), icon: UserCheck, color: 'text-success', bg: 'bg-success-soft' },
-    { label: t('stats.thisMonthRevenue'), value: fmt(monthRevenue), icon: TrendingUp, color: 'text-brand', bg: 'bg-brand/15' },
-    { label: t('stats.totalRevenue'), value: fmt(totalRevenue), icon: CreditCard, color: 'text-warning', bg: 'bg-warning-soft' },
+    { label: t('stats.totalMembers'), value: totalMembers.toLocaleString(), icon: Users },
+    { label: t('stats.activeStaff'), value: activeStaff.toLocaleString(), icon: UserCheck },
+    { label: t('stats.thisMonthRevenue'), value: fmt(monthRevenue), icon: TrendingUp },
+    { label: t('stats.totalRevenue'), value: fmt(totalRevenue), icon: CreditCard },
   ];
 
   return (
@@ -64,13 +65,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <div key={s.label} className="bg-surface-2 border border-line rounded-xl p-4">
-            <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center mb-3`}>
-              <s.icon className={`w-4 h-4 ${s.color}`} aria-hidden />
-            </div>
-            <p className="text-xs text-fg-muted mb-1">{s.label}</p>
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
+          <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
         ))}
       </div>
 

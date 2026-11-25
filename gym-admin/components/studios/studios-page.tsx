@@ -174,7 +174,7 @@ export default function StudiosPageClient({ initialStudios, branches, gymId, per
             {Object.entries(grouped).map(([bId, branchStudios]) => (
               <div key={bId}>
                 {branches.length > 1 && (
-                  <h2 className="text-xs text-fg-faint uppercase tracking-wider font-semibold mb-3">
+                  <h2 className="text-sm text-fg font-semibold mb-3">
                     {branchMap[bId] ?? t('studios.unknownBranch')}
                   </h2>
                 )}

@@ -22,3 +22,4 @@ export { SearchInput, type SearchInputProps } from './search-input';
 export { FilterDropdown, type FilterDropdownProps, type FilterOption } from './filter-dropdown';
 export { Pagination, type PaginationProps } from './pagination';
 export { DataTable, type DataTableProps, type DataTableColumn } from './data-table';
+export { StatCard, type StatCardProps } from './stat-card';

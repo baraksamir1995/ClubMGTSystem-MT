@@ -323,7 +323,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
 
           {/* ══ BENEFITS & ACCESS ══ */}
           <div className={sectionCls}>
-            <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4">{t('modal.benefitsAccess')}</p>
+            <p className="text-sm font-semibold text-fg mb-4">{t('modal.benefitsAccess')}</p>
 
             {/* Facilities */}
             <div className="mb-4">
@@ -342,7 +342,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
           {/* ══ BRANCH ACCESS ══ */}
           {branches.length > 1 && (
             <div className={sectionCls}>
-              <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest mb-4">{t('modal.branchAccess')}</p>
+              <p className="text-sm font-semibold text-fg mb-4">{t('modal.branchAccess')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                 {[
                   { value: 'all_branches',      label: t('modal.allBranchesOpt'),   hint: t('modal.allBranchesHint') },
@@ -388,7 +388,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
             <div className={sectionCls}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest">{t('modal.freezePlan')}</p>
+                  <p className="text-sm font-semibold text-fg">{t('modal.freezePlan')}</p>
                   <p className="text-xs text-fg-faint mt-0.5">{t('modal.freezeHint')}</p>
                 </div>
                 <button
@@ -429,7 +429,7 @@ export default function PlanModal({ plan, branches, onClose }: Props) {
           <div className={sectionCls}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs font-semibold text-fg-muted uppercase tracking-widest">{t('modal.guestInvitations')}</p>
+                <p className="text-sm font-semibold text-fg">{t('modal.guestInvitations')}</p>
                 <p className="text-xs text-fg-faint mt-0.5">{t('modal.invitationsHint')}</p>
               </div>
               <button

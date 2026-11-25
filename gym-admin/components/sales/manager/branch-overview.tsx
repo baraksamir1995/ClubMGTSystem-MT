@@ -151,7 +151,7 @@ export default function BranchOverview({ team }: Props) {
         <Card variant="hoverable" onClick={() => goView('assign')}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-fg-muted uppercase tracking-wide">Unassigned leads</p>
+              <p className="text-xs font-medium text-fg-muted">Unassigned leads</p>
               <p className={`text-2xl font-bold mt-1 ${unassigned.count > 0 ? 'text-warning' : 'text-fg'}`}>
                 {unassigned.count}
               </p>
@@ -174,7 +174,7 @@ export default function BranchOverview({ team }: Props) {
         <Card variant="hoverable" onClick={() => goView('pipeline')}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-fg-muted uppercase tracking-wide">SLA breaches</p>
+              <p className="text-xs font-medium text-fg-muted">SLA breaches</p>
               <p className={`text-2xl font-bold mt-1 ${totalBreaches > 0 ? 'text-danger' : 'text-fg'}`}>
                 {totalBreaches}
               </p>
@@ -198,7 +198,7 @@ export default function BranchOverview({ team }: Props) {
         <Card variant="hoverable" onClick={() => goView('pipeline')}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-fg-muted uppercase tracking-wide">No-shows (7 days)</p>
+              <p className="text-xs font-medium text-fg-muted">No-shows (7 days)</p>
               <p className={`text-2xl font-bold mt-1 ${noShows.length > 0 ? 'text-warning' : 'text-fg'}`}>
                 {noShows.length}
               </p>
@@ -219,7 +219,7 @@ export default function BranchOverview({ team }: Props) {
         <Card variant="hoverable" onClick={() => goView('team')}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-fg-muted uppercase tracking-wide">Team open tasks</p>
+              <p className="text-xs font-medium text-fg-muted">Team open tasks</p>
               <p className="text-2xl font-bold text-fg mt-1">
                 {taskLoad.reduce((s, t) => s + t.count, 0)}
               </p>

@@ -214,7 +214,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
           <Tabs.List>
             <Tabs.Trigger value="live" icon={Radio}>
               {t('tabs.liveFeed')}
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span aria-hidden className="w-2 h-2 rounded-full bg-success" />
             </Tabs.Trigger>
             <Tabs.Trigger value="logs" icon={ClipboardList}>{t('tabs.logsAccess')}</Tabs.Trigger>
             <Tabs.Trigger value="services" icon={HeartPulse}>{t('tabs.servicesAttendance')}</Tabs.Trigger>
@@ -226,7 +226,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span aria-hidden className="w-2 h-2 rounded-full bg-success" />
                 <span className="text-sm text-fg-muted">{t('live.statusLine')}</span>
                 <span className="text-xs text-fg-faint">{t('live.lastRefresh', { time: fmtTime(lastRefresh.toISOString()) })}</span>
               </div>
@@ -249,7 +249,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
                 {logs.length > 1 && (
                   <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
                     <div className="px-5 py-2.5 border-b border-line/50 flex items-center justify-between">
-                      <p className="text-xs text-fg-faint uppercase tracking-wider font-semibold">{t('live.recentHeader')}</p>
+                      <p className="text-sm text-fg font-semibold">{t('live.recentHeader')}</p>
                       <p className="text-xs text-fg-faint">{t('live.earlierOnPage', { count: logs.length - 1 })}</p>
                     </div>
                     <div className="divide-y divide-line">
@@ -584,18 +584,17 @@ function LatestScanHero({ log, isLive, methods }: LatestScanHeroProps) {
   const plan = planLabel(log, t);
   const dt = new Date(log.check_in_at);
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-gradient-to-br from-surface-2 via-surface-2 to-surface-2/60 p-6">
-      <div className="pointer-events-none absolute end-[-4rem] top-[-4rem] h-56 w-56 rounded-full bg-success-soft blur-3xl" />
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
+    <div className="rounded-2xl border border-line bg-surface-2 p-6">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
         <div className="flex items-center gap-5">
           <Avatar log={log} size={88} ring={isLive} />
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success-soft text-success text-[10px] font-bold uppercase tracking-wider">
-                {isLive && <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />}
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success-soft text-success text-xs font-semibold">
+                {isLive && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-success" />}
                 {t('hero.latest')}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-fg-faint">
+              <span className="text-xs font-medium text-fg-muted">
                 {methods[log.method ?? ''] ?? log.method ?? t('manualCheckin')}
               </span>
             </div>
@@ -633,7 +632,7 @@ interface HeroFieldProps {
 function HeroField({ icon, label, value, sub, mute }: HeroFieldProps) {
   return (
     <div className="min-w-0">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-faint mb-1">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-fg-muted mb-1">
         {icon}
         {label}
       </div>

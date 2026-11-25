@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { StatCard as UiStatCard } from '@/components/ui';
 import { useTranslations } from 'next-intl';
 import { BarChart3, Users, TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, Download, Dumbbell, LayoutDashboard, FileSpreadsheet, Printer, ScanLine, CalendarDays } from 'lucide-react';
 import {
@@ -665,37 +666,22 @@ export default function AnalyticsPage() {
   );
 }
 
-function StatCard({ icon: Icon, color, bg, label, value, valueColor }: {
-  icon: React.ElementType; color: string; bg: string; label: string; value: string; valueColor?: string;
+// Thin adapters over the shared plain StatCard. `color`/`bg` were per-card
+// decoration and are ignored; valueColor keeps meaningful good/bad tones.
+const TONE_FROM_CLASS: Record<string, 'success' | 'danger' | 'warning'> = {
+  'text-success': 'success', 'text-danger': 'danger', 'text-warning': 'warning',
+};
+
+function StatCard({ icon, label, value, valueColor }: {
+  icon: React.ElementType; color?: string; bg?: string; label: string; value: string; valueColor?: string;
 }) {
-  return (
-    <div className="bg-surface-2 border border-line rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
-          <Icon aria-hidden className={`w-3.5 h-3.5 ${color}`} />
-        </div>
-        <p className="text-xs text-fg-muted">{label}</p>
-      </div>
-      <p className={`text-2xl font-bold ${valueColor ?? 'text-fg'}`}>{value}</p>
-    </div>
-  );
+  return <UiStatCard icon={icon} label={label} value={value} tone={valueColor ? TONE_FROM_CLASS[valueColor] ?? 'default' : 'default'} />;
 }
 
-function KpiCard({ icon: Icon, color, bg, label, value, sub }: {
-  icon: React.ElementType; color: string; bg: string; label: string; value: string; sub?: string;
+function KpiCard({ icon, label, value, sub }: {
+  icon: React.ElementType; color?: string; bg?: string; label: string; value: string; sub?: string;
 }) {
-  return (
-    <div className="bg-surface-2 border border-line rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
-          <Icon aria-hidden className={`w-3.5 h-3.5 ${color}`} />
-        </div>
-        <p className="text-xs text-fg-muted">{label}</p>
-      </div>
-      <p className="text-2xl font-bold text-fg">{value}</p>
-      {sub && <p className="text-xs text-fg-faint mt-0.5">{sub}</p>}
-    </div>
-  );
+  return <UiStatCard icon={icon} label={label} value={value} sub={sub} />;
 }
 
 function EmptyChart({ label }: { label: string }) {

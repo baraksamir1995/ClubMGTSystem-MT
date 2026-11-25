@@ -809,7 +809,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
 
                 {capacityEnabled && liveCapacity && (
                   <div className="bg-surface border border-line rounded-lg p-4">
-                    <p className="text-xs text-fg-muted font-semibold uppercase tracking-wider mb-3">{t('capacity.livePreview')}</p>
+                    <p className="text-sm text-fg font-semibold mb-3">{t('capacity.livePreview')}</p>
                     <div className="flex items-center gap-3 mb-2">
                       <span className={`inline-block w-2 h-2 rounded-full ${
                         liveCapacity.status === 'not_busy' ? 'bg-success' :

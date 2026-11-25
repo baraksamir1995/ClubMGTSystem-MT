@@ -188,7 +188,7 @@ export default function Reports({ context }: Props) {
     <div className="space-y-5">
       {/* Filter bar */}
       <div className="flex items-end gap-3 flex-wrap bg-surface-2 border border-line rounded-xl px-4 py-3">
-        <div className="flex items-center gap-1.5 text-xs text-fg-muted uppercase tracking-wide me-1">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-fg-muted me-1">
           <Filter className="w-3.5 h-3.5" /> Filters
         </div>
         <div>

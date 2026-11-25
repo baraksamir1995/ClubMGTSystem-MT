@@ -106,7 +106,7 @@ export default function MemberModal({ member, onClose }: Props) {
         <form id="member-form" onSubmit={handleSubmit} className="space-y-5">
           {/* ── Personal Info ── */}
           <div>
-            <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
+            <p className="text-sm font-semibold text-fg mb-3">
               {t('sectionPersonal')}
             </p>
             <div className="space-y-3">
@@ -171,7 +171,7 @@ export default function MemberModal({ member, onClose }: Props) {
 
           {/* ── Membership Details ── */}
           <div>
-            <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
+            <p className="text-sm font-semibold text-fg mb-3">
               {t('sectionMembership')}
             </p>
             <div className="space-y-3">

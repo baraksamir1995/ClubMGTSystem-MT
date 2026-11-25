@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useId } from "react";
+import { useState, useRef, useEffect, useId, type ReactNode } from "react";
 import { AlertCircle, ArrowRight, Check, Loader2, X } from "lucide-react";
 import { buttonClass } from "@/components/site/ui";
 import { OFFERINGS, QUOTE_EVENT, isOffering, type Offering } from "@/lib/offerings";
-import { cleanPhone, PHONE_ERROR } from "@/lib/phone";
+import { cleanPhone, joinPhone, COUNTRY_CODES, DEFAULT_DIAL, PHONE_ERROR } from "@/lib/phone";
 
 type FormState = "idle" | "submitting" | "success" | "error";
 type FieldErrors = {
@@ -43,14 +43,14 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
     return () => window.removeEventListener(QUOTE_EVENT, onQuote);
   }, []);
 
-  function validate(data: { name: string; phone: string; gymName: string }): FieldErrors {
+  function validate(data: { name: string; dial: string; phone: string; gymName: string }): FieldErrors {
     const errs: FieldErrors = {};
     if (!data.name || data.name.trim().length < 2) {
       errs.name = "Please enter your name.";
     }
     if (!data.phone.trim()) {
       errs.phone = "Please enter your WhatsApp number.";
-    } else if (!cleanPhone(data.phone)) {
+    } else if (!cleanPhone(joinPhone(data.dial, data.phone))) {
       errs.phone = PHONE_ERROR;
     }
     if (!data.gymName || data.gymName.trim().length < 2) {
@@ -66,6 +66,7 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
     const fd = new FormData(e.currentTarget);
     const data = {
       name: String(fd.get("name") ?? ""),
+      dial: String(fd.get("dial") ?? DEFAULT_DIAL),
       phone: String(fd.get("phone") ?? ""),
       gymName: String(fd.get("gymName") ?? ""),
       branches: String(fd.get("branches") ?? "1"),
@@ -92,6 +93,7 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
         // rides along in `source` (e.g. "landing-hero:quote:branded_app").
         body: JSON.stringify({
           ...data,
+          phone: joinPhone(data.dial, data.phone),
           source: offering ? `${source}:quote:${offering}` : source,
         }),
       });
@@ -170,7 +172,7 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
       </p>
 
       <div className="space-y-6">
-        <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 sm:gap-4">
+        <div className="grid grid-cols-1 gap-6">
         <Field
           id={`${uid}-name`}
           label="Your name"
@@ -186,8 +188,26 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           name="phone"
           type="tel"
           inputMode="tel"
-          placeholder="+20 100 123 4567"
-          autoComplete="tel"
+          placeholder="Phone number"
+          autoComplete="tel-national"
+          leading={
+            <>
+              <label htmlFor={`${uid}-dial`} className="sr-only">Country code</label>
+              <select
+                id={`${uid}-dial`}
+                name="dial"
+                defaultValue={DEFAULT_DIAL}
+                autoComplete="tel-country-code"
+                className="h-[52px] w-[104px] flex-shrink-0 rounded-control border border-line-strong bg-card px-3 text-base text-fg focus:border-fg focus:outline-none focus:ring-2 focus:ring-fg/10"
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.iso} value={c.dial}>
+                    {c.iso} +{c.dial}
+                  </option>
+                ))}
+              </select>
+            </>
+          }
           hint={offering ? "We'll send your quote here." : "We'll send the demo link here."}
           error={errors.phone}
           onChange={() => errors.phone && setErrors((e) => ({ ...e, phone: undefined }))}
@@ -278,10 +298,12 @@ interface FieldProps {
   as?: "input" | "textarea";
   rows?: number;
   maxLength?: number;
+  /** Rendered before the input on the same row (e.g. a country code select). */
+  leading?: ReactNode;
   onChange?: () => void;
 }
 
-function Field({ id, label, name, type = "text", inputMode, placeholder, optional = false, autoComplete, hint, error, as = "input", rows = 3, maxLength, onChange }: FieldProps) {
+function Field({ id, label, name, type = "text", inputMode, placeholder, optional = false, autoComplete, hint, error, as = "input", rows = 3, maxLength, leading, onChange }: FieldProps) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   const base = `w-full rounded-control border bg-card px-4 text-base text-fg placeholder:text-fg-subtle transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
     error ? "border-danger focus:ring-danger/25" : "border-line-strong focus:border-fg focus:ring-fg/10"
@@ -296,8 +318,11 @@ function Field({ id, label, name, type = "text", inputMode, placeholder, optiona
         <textarea id={id} name={name} placeholder={placeholder} rows={rows} maxLength={maxLength} onChange={onChange}
           aria-describedby={describedBy} aria-invalid={!!error || undefined} className={`${base} resize-y py-3`} />
       ) : (
-        <input id={id} name={name} type={type} inputMode={inputMode} placeholder={placeholder} autoComplete={autoComplete} onChange={onChange}
-          aria-describedby={describedBy} aria-invalid={!!error || undefined} aria-required={optional ? undefined : true} className={`${base} h-[52px]`} />
+        <div className={leading ? "flex gap-2" : undefined}>
+          {leading}
+          <input id={id} name={name} type={type} inputMode={inputMode} placeholder={placeholder} autoComplete={autoComplete} onChange={onChange}
+            aria-describedby={describedBy} aria-invalid={!!error || undefined} aria-required={optional ? undefined : true} className={`${base} h-[52px] min-w-0`} />
+        </div>
       )}
       {error ? (
         <p id={`${id}-error`} className="mt-1.5 flex items-start gap-1.5 text-sm text-danger">

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useId } from "react";
 import { AlertCircle, ArrowRight, Check, Loader2, X } from "lucide-react";
 import { buttonClass } from "@/components/site/ui";
 import { OFFERINGS, QUOTE_EVENT, isOffering, type Offering } from "@/lib/offerings";
+import { cleanPhone, PHONE_ERROR } from "@/lib/phone";
 
 type FormState = "idle" | "submitting" | "success" | "error";
 type FieldErrors = {
@@ -14,8 +15,6 @@ type FieldErrors = {
   general?: string;
 };
 
-// Simple Egyptian phone validation
-const EG_PHONE = /^(\+?20|0)?1[0125]\d{8}$/;
 
 interface LeadFormProps {
   source?: string;
@@ -49,11 +48,10 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
     if (!data.name || data.name.trim().length < 2) {
       errs.name = "Please enter your name.";
     }
-    const cleanPhone = data.phone.replace(/\s|-/g, "");
-    if (!cleanPhone) {
+    if (!data.phone.trim()) {
       errs.phone = "Please enter your WhatsApp number.";
-    } else if (!EG_PHONE.test(cleanPhone)) {
-      errs.phone = "Enter a valid Egyptian mobile (e.g. 01X XXXX XXXX).";
+    } else if (!cleanPhone(data.phone)) {
+      errs.phone = PHONE_ERROR;
     }
     if (!data.gymName || data.gymName.trim().length < 2) {
       errs.gymName = "Please tell us your gym or club name.";
@@ -188,9 +186,9 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           name="phone"
           type="tel"
           inputMode="tel"
-          placeholder="01X XXXX XXXX"
+          placeholder="01X XXXX XXXX or +962 7X XXX XXXX"
           autoComplete="tel"
-          hint={offering ? "We'll send your quote here." : "We'll send the demo link here."}
+          hint={`${offering ? "We'll send your quote here." : "We'll send the demo link here."} Outside Egypt? Include your country code.`}
           error={errors.phone}
           onChange={() => errors.phone && setErrors((e) => ({ ...e, phone: undefined }))}
         />
@@ -230,7 +228,8 @@ export default function LeadForm({ source = "landing-hero", compact = false }: L
           label="Anything we should know?"
           name="notes"
           as="textarea"
-          rows={2}
+          rows={3}
+          maxLength={2000}
           optional
           placeholder="Current setup, team size, biggest pain…"
           hint={offering ? "Optional, but helps us prepare your quote." : "Optional, but helps us tailor the demo."}
@@ -278,10 +277,11 @@ interface FieldProps {
   error?: string;
   as?: "input" | "textarea";
   rows?: number;
+  maxLength?: number;
   onChange?: () => void;
 }
 
-function Field({ id, label, name, type = "text", inputMode, placeholder, optional = false, autoComplete, hint, error, as = "input", rows = 3, onChange }: FieldProps) {
+function Field({ id, label, name, type = "text", inputMode, placeholder, optional = false, autoComplete, hint, error, as = "input", rows = 3, maxLength, onChange }: FieldProps) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   const base = `w-full rounded-control border bg-card px-4 text-base text-fg placeholder:text-fg-subtle transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
     error ? "border-danger focus:ring-danger/25" : "border-line-strong focus:border-fg focus:ring-fg/10"
@@ -293,8 +293,8 @@ function Field({ id, label, name, type = "text", inputMode, placeholder, optiona
         {label} {optional && <span className="font-normal text-fg-muted">(optional)</span>}
       </label>
       {as === "textarea" ? (
-        <textarea id={id} name={name} placeholder={placeholder} rows={rows} onChange={onChange}
-          aria-describedby={describedBy} aria-invalid={!!error || undefined} className={`${base} resize-none py-3`} />
+        <textarea id={id} name={name} placeholder={placeholder} rows={rows} maxLength={maxLength} onChange={onChange}
+          aria-describedby={describedBy} aria-invalid={!!error || undefined} className={`${base} resize-y py-3`} />
       ) : (
         <input id={id} name={name} type={type} inputMode={inputMode} placeholder={placeholder} autoComplete={autoComplete} onChange={onChange}
           aria-describedby={describedBy} aria-invalid={!!error || undefined} aria-required={optional ? undefined : true} className={`${base} h-[52px]`} />

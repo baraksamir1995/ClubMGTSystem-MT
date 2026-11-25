@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cleanPhone as normalizePhone, PHONE_ERROR } from "@/lib/phone";
 
-// Simple Egyptian phone validation: +20, 01X, etc.
-const EG_PHONE = /^(\+?20|0)?1[0125]\d{8}$/;
+const NOTES_MAX = 2000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,10 +16,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanPhone = String(phone ?? "").replace(/\s|-/g, "");
-    if (!EG_PHONE.test(cleanPhone)) {
+    const cleanPhone = normalizePhone(String(phone ?? ""));
+    if (!cleanPhone) {
       return NextResponse.json(
-        { ok: false, error: "Please enter a valid Egyptian mobile number." },
+        { ok: false, error: PHONE_ERROR },
         { status: 400 }
       );
     }
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       phone: cleanPhone,
       gymName: gymName.trim(),
       branches: Number(branches) || 1,
-      notes: (notes ?? "").toString().slice(0, 500),
+      // Same cap as clby-api (LeadController: notes max:2000).
+      notes: (notes ?? "").toString().slice(0, NOTES_MAX),
       source: source ?? "landing-hero",
       createdAt: new Date().toISOString(),
       userAgent: req.headers.get("user-agent") ?? "",

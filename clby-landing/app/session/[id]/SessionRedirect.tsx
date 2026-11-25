@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/site/ui";
 
 const APP_STORE_URL = "https://apps.apple.com/app/clby/id0000000000";
 const PLAY_STORE_URL =
@@ -51,28 +52,24 @@ export default function SessionRedirect({ sessionId }: { sessionId: string }) {
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col">
-      <header className="px-5 md:px-8 py-5 border-b border-canvas/10">
+      <header className="px-5 md:px-8 py-5 border-b border-line">
         <Link href="/" className="inline-flex items-center gap-2.5">
-          <img src="/logo.png" alt="CLBY" className="h-8 w-8 object-contain" />
-          <span className="font-sans font-black text-lg leading-none tracking-tight text-canvas">
-            CLBY
-          </span>
+          <Logo />
         </Link>
       </header>
 
       <section className="flex-1 flex items-center justify-center px-5 md:px-8 py-16 relative overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-entry/10 blur-3xl pointer-events-none" />
         <div className="max-w-md w-full relative text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted mb-5">
-            <span className="h-1.5 w-1.5 rounded-full bg-entry animate-pulse" />
+          <div className="inline-flex items-center gap-2 text-sm font-medium text-fg-muted mb-5">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
             {attempted ? "Opening CLBY" : "CLBY"}
           </div>
 
-          <h1 className="font-display text-display-lg text-canvas leading-[0.95]">
+          <h1 className="font-display text-display-lg text-fg leading-[0.95]">
             {attempted ? "Opening the class…" : "Open in CLBY"}
           </h1>
 
-          <p className="mt-5 text-base md:text-lg text-canvas/70 leading-relaxed">
+          <p className="mt-5 text-base md:text-lg text-fg-muted leading-relaxed">
             This link opens a class inside the CLBY app. If it didn&apos;t open
             automatically, you can launch it manually or grab the app below.
           </p>
@@ -80,7 +77,7 @@ export default function SessionRedirect({ sessionId }: { sessionId: string }) {
           <div className="mt-8 flex flex-col gap-3">
             <button
               onClick={openInApp}
-              className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-sm bg-entry text-ink font-sans font-bold text-sm tracking-wide hover:opacity-90 transition-opacity"
+              className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-control bg-brand text-fg font-sans font-bold text-sm tracking-wide hover:opacity-90 transition-opacity"
             >
               Open in CLBY app
             </button>
@@ -88,7 +85,7 @@ export default function SessionRedirect({ sessionId }: { sessionId: string }) {
             {platform === "ios" && (
               <a
                 href={APP_STORE_URL}
-                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-sm border border-canvas/20 text-canvas font-sans font-medium text-sm tracking-wide hover:bg-canvas/5 transition-colors"
+                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-control border border-line-strong text-fg font-sans font-medium text-sm tracking-wide hover:bg-page-alt transition-colors"
               >
                 Download on the App Store
               </a>
@@ -97,7 +94,7 @@ export default function SessionRedirect({ sessionId }: { sessionId: string }) {
             {platform === "android" && (
               <a
                 href={PLAY_STORE_URL}
-                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-sm border border-canvas/20 text-canvas font-sans font-medium text-sm tracking-wide hover:bg-canvas/5 transition-colors"
+                className="w-full inline-flex items-center justify-center px-6 py-3.5 rounded-control border border-line-strong text-fg font-sans font-medium text-sm tracking-wide hover:bg-page-alt transition-colors"
               >
                 Get it on Google Play
               </a>
@@ -107,13 +104,13 @@ export default function SessionRedirect({ sessionId }: { sessionId: string }) {
               <div className="grid grid-cols-2 gap-3">
                 <a
                   href={APP_STORE_URL}
-                  className="inline-flex items-center justify-center px-4 py-3.5 rounded-sm border border-canvas/20 text-canvas font-sans font-medium text-sm tracking-wide hover:bg-canvas/5 transition-colors"
+                  className="inline-flex items-center justify-center px-4 py-3.5 rounded-control border border-line-strong text-fg font-sans font-medium text-sm tracking-wide hover:bg-page-alt transition-colors"
                 >
                   App Store
                 </a>
                 <a
                   href={PLAY_STORE_URL}
-                  className="inline-flex items-center justify-center px-4 py-3.5 rounded-sm border border-canvas/20 text-canvas font-sans font-medium text-sm tracking-wide hover:bg-canvas/5 transition-colors"
+                  className="inline-flex items-center justify-center px-4 py-3.5 rounded-control border border-line-strong text-fg font-sans font-medium text-sm tracking-wide hover:bg-page-alt transition-colors"
                 >
                   Google Play
                 </a>
@@ -121,7 +118,7 @@ export default function SessionRedirect({ sessionId }: { sessionId: string }) {
             )}
           </div>
 
-          <p className="mt-8 text-xs font-mono uppercase tracking-wider text-muted">
+          <p className="mt-8 text-sm font-medium text-fg-muted">
             Session · {sessionId.slice(0, 8)}
           </p>
         </div>

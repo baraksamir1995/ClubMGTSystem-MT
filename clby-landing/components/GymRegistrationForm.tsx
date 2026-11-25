@@ -5,30 +5,38 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  CheckCircle2,
+  Eye,
   ImagePlus,
   Loader2,
   LocateFixed,
   MapPin,
+  Paintbrush,
   Plus,
   RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
+import AppPreview, { type PreviewScreen } from "@/components/app-preview/AppPreview";
+import { checkColor, DEFAULT_PRIMARY, DEFAULT_SECONDARY, type AppBrand } from "@/components/app-preview/brand";
+import BrandColorFields from "@/components/BrandColorFields";
+import { extractLogoPalette, type LogoPalette } from "@/lib/logoColors";
 
 /* ─────────────────────────────── config ─────────────────────────────── */
 
 // Country → IANA timezone, so the gym's schedule starts in the right zone.
-const COUNTRIES: { name: string; tz: string }[] = [
-  { name: "Egypt", tz: "Africa/Cairo" },
-  { name: "Saudi Arabia", tz: "Asia/Riyadh" },
-  { name: "United Arab Emirates", tz: "Asia/Dubai" },
-  { name: "Kuwait", tz: "Asia/Kuwait" },
-  { name: "Qatar", tz: "Asia/Qatar" },
-  { name: "Bahrain", tz: "Asia/Bahrain" },
-  { name: "Oman", tz: "Asia/Muscat" },
-  { name: "Jordan", tz: "Asia/Amman" },
-  { name: "Lebanon", tz: "Asia/Beirut" },
-  { name: "Morocco", tz: "Africa/Casablanca" },
+// Currency only drives the sample prices in the app preview.
+const COUNTRIES: { name: string; tz: string; currency: string }[] = [
+  { name: "Egypt", tz: "Africa/Cairo", currency: "EGP" },
+  { name: "Saudi Arabia", tz: "Asia/Riyadh", currency: "SAR" },
+  { name: "United Arab Emirates", tz: "Asia/Dubai", currency: "AED" },
+  { name: "Kuwait", tz: "Asia/Kuwait", currency: "KWD" },
+  { name: "Qatar", tz: "Asia/Qatar", currency: "QAR" },
+  { name: "Bahrain", tz: "Asia/Bahrain", currency: "BHD" },
+  { name: "Oman", tz: "Asia/Muscat", currency: "OMR" },
+  { name: "Jordan", tz: "Asia/Amman", currency: "JOD" },
+  { name: "Lebanon", tz: "Asia/Beirut", currency: "USD" },
+  { name: "Morocco", tz: "Africa/Casablanca", currency: "MAD" },
 ];
 const OTHER_COUNTRY = "Other";
 
@@ -59,6 +67,9 @@ const SUGGESTED_SERVICES = [
 ];
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+// The app shows the logo at 88pt on the splash (264px on a 3x screen).
+const MIN_LOGO_PX = 128;
+const MAX_LOGO_PX = 4096;
 const PHONE_RE = /^\+?[0-9]{7,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DRAFT_KEY = "clby:gym-registration:draft";
@@ -82,11 +93,13 @@ type Values = {
   owner_name: string;
   owner_email: string;
   owner_phone: string;
+  primary_color: string;
+  secondary_color: string;
   agree: boolean;
   company_website: string; // honeypot
 };
 
-type Errors = Partial<Record<keyof Values | "logo" | "general", string>>;
+type Errors = Partial<Record<keyof Values | "logo" | "logoHint" | "general", string>>;
 
 const INITIAL: Values = {
   gym_name: "",
@@ -105,6 +118,8 @@ const INITIAL: Values = {
   owner_name: "",
   owner_email: "",
   owner_phone: "",
+  primary_color: DEFAULT_PRIMARY,
+  secondary_color: DEFAULT_SECONDARY,
   agree: false,
   company_website: "",
 };
@@ -114,7 +129,7 @@ const STEPS = ["Gym information", "Business details", "Owner account"] as const;
 // Which step each server-side field error belongs to, so a 422 jumps back.
 const FIELD_STEP: Record<string, number> = {
   gym_name: 0, description: 0, logo: 0, country: 0, city: 0, address: 0,
-  latitude: 0, longitude: 0, phone: 0, business_email: 0,
+  latitude: 0, longitude: 0, phone: 0, business_email: 0, primary_color: 0, secondary_color: 0,
   category: 1, services: 1, branches_count: 1, timezone: 1,
   owner_name: 2, owner_email: 2, owner_phone: 2,
 };
@@ -141,6 +156,13 @@ export default function GymRegistrationForm() {
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ reference: string } | null>(null);
+  const [previewScreen, setPreviewScreen] = useState<PreviewScreen>("splash");
+  const [mobilePreview, setMobilePreview] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [logoPalette, setLogoPalette] = useState<LogoPalette | null>(null);
+  // True while the colours in use came from the logo (not hand-picked), so
+  // replacing the logo can refresh them automatically.
+  const colorsFromLogo = useRef(false);
   // One key per attempt-sequence: a retried POST after a network blip maps
   // to the same request server-side instead of creating a duplicate.
   const submissionKey = useRef<string>("");
@@ -194,16 +216,55 @@ export default function GymRegistrationForm() {
       setErrors((e) => ({ ...e, logo: "Logo must be 2 MB or smaller." }));
       return;
     }
-    if (logoPreview) URL.revokeObjectURL(logoPreview);
-    setLogo(file);
-    setLogoPreview(URL.createObjectURL(file));
-    setErrors((e) => ({ ...e, logo: undefined }));
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      if (w < MIN_LOGO_PX || h < MIN_LOGO_PX) {
+        URL.revokeObjectURL(url);
+        setErrors((e) => ({ ...e, logo: `Logo is too small (${w}×${h}px). Use at least ${MIN_LOGO_PX}×${MIN_LOGO_PX}px so it stays sharp in the app.` }));
+        return;
+      }
+      if (w > MAX_LOGO_PX || h > MAX_LOGO_PX) {
+        URL.revokeObjectURL(url);
+        setErrors((e) => ({ ...e, logo: `Logo is too large (${w}×${h}px). Keep it under ${MAX_LOGO_PX}px on each side.` }));
+        return;
+      }
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+      setLogo(file);
+      setLogoPreview(url);
+      setPreviewScreen("splash");
+      extractLogoPalette(url)
+        .then((palette) => {
+          setLogoPalette(palette);
+          if (!palette) return;
+          // Auto-apply unless the owner already chose their own colours.
+          setValues((v) => {
+            const untouched = v.primary_color.toUpperCase() === DEFAULT_PRIMARY && v.secondary_color.toUpperCase() === DEFAULT_SECONDARY;
+            if (!untouched && !colorsFromLogo.current) return v;
+            colorsFromLogo.current = true;
+            return { ...v, primary_color: palette.primary, secondary_color: palette.secondary };
+          });
+        })
+        .catch(() => setLogoPalette(null));
+      setErrors((e) => ({
+        ...e,
+        logo: undefined,
+        logoHint: Math.max(w, h) / Math.min(w, h) > 1.6 ? "Tip: the app shows your logo in a square. A square logo will look best." : undefined,
+      }));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setErrors((e) => ({ ...e, logo: "We couldn't read that image. Try another PNG, JPG or WebP file." }));
+    };
+    img.src = url;
   }
 
   function removeLogo() {
     if (logoPreview) URL.revokeObjectURL(logoPreview);
     setLogo(null);
     setLogoPreview(null);
+    setLogoPalette(null);
     if (fileInput.current) fileInput.current.value = "";
   }
 
@@ -254,6 +315,10 @@ export default function GymRegistrationForm() {
       if (!v.city.trim()) e.city = "Enter the city.";
       if (!PHONE_RE.test(cleanPhone(v.phone))) e.phone = "Enter a valid phone number (digits, optional +country code).";
       if (!EMAIL_RE.test(v.business_email.trim())) e.business_email = "Enter a valid email address.";
+      const p = checkColor("primary", v.primary_color);
+      const s = checkColor("secondary", v.secondary_color);
+      if (p.level === "error") e.primary_color = p.message;
+      if (s.level === "error") e.secondary_color = s.message;
     }
     if (n === 1) {
       const b = Number(v.branches_count);
@@ -284,7 +349,12 @@ export default function GymRegistrationForm() {
     const e = validateStep(2);
     setErrors(e);
     if (Object.keys(e).length > 0) return;
+    // Final look at the app + details before anything is sent.
+    setConfirming(true);
+  }
 
+  async function sendRequest() {
+    if (submitting) return;
     const v = values;
     const country = v.country === OTHER_COUNTRY ? v.other_country.trim() : v.country;
     const tz =
@@ -308,6 +378,8 @@ export default function GymRegistrationForm() {
     fd.set("owner_name", v.owner_name.trim());
     fd.set("owner_email", v.owner_email.trim());
     fd.set("owner_phone", cleanPhone(v.owner_phone));
+    fd.set("primary_color", v.primary_color);
+    fd.set("secondary_color", v.secondary_color);
     if (v.company_website) fd.set("company_website", v.company_website);
     if (logo) fd.set("logo", logo);
 
@@ -319,6 +391,7 @@ export default function GymRegistrationForm() {
 
       if (res.ok && body?.data?.reference) {
         try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+        setConfirming(false);
         setResult({ reference: body.data.reference });
         requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
         return;
@@ -333,6 +406,7 @@ export default function GymRegistrationForm() {
           if (FIELD_STEP[key] !== undefined) firstStep = Math.min(firstStep, FIELD_STEP[key]);
         }
         setErrors(fieldErrors);
+        setConfirming(false);
         if (firstStep !== step) goTo(firstStep);
         return;
       }
@@ -341,38 +415,85 @@ export default function GymRegistrationForm() {
       // attempt — use a fresh key so a corrected resubmission isn't deduped.
       if (res.status < 500) submissionKey.current = newSubmissionKey();
       setErrors({ general: body?.message ?? "Something went wrong. Please try again." });
+      setConfirming(false);
     } catch {
       setErrors({ general: "Network error. Please check your connection and try again." });
+      setConfirming(false);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  /* ── shared derived state ── */
+
+  const currency = COUNTRIES.find((c) => c.name === values.country)?.currency ?? "USD";
+  const brand: AppBrand = {
+    gymName: values.gym_name,
+    logoUrl: logoPreview,
+    primary: values.primary_color,
+    secondary: values.secondary_color,
+    currency,
+  };
+  const locationLabel = [values.city, values.country === OTHER_COUNTRY ? values.other_country : values.country].filter(Boolean).join(", ");
+
+  function applyLogoColors() {
+    if (!logoPalette) return;
+    setColors({ primary: logoPalette.primary, secondary: logoPalette.secondary });
+    colorsFromLogo.current = true;
+  }
+
+  function setColors(next: { primary?: string; secondary?: string }) {
+    colorsFromLogo.current = false;
+    setValues((v) => ({
+      ...v,
+      ...(next.primary !== undefined ? { primary_color: next.primary } : {}),
+      ...(next.secondary !== undefined ? { secondary_color: next.secondary } : {}),
+    }));
+    setErrors((e) => ({ ...e, primary_color: undefined, secondary_color: undefined }));
+    // Colours show on Home, not on the (cream) splash.
+    setPreviewScreen((s) => (s === "splash" ? "home" : s));
+  }
+
+  function backToCustomize() {
+    setConfirming(false);
+    setErrors({});
+    setStep(0);
+    requestAnimationFrame(() =>
+      document.getElementById("branding")?.scrollIntoView({ behavior: "smooth", block: "center" })
+    );
   }
 
   /* ── confirmation ── */
 
   if (result) {
     return (
-      <div className="rounded-sm border border-canvas/10 bg-surface p-8 md:p-12 text-canvas" role="status">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-entry mb-6">
-          <Check className="h-6 w-6 text-ink" strokeWidth={3} />
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-start">
+        <div className="lg:col-span-7 rounded-control border border-line bg-card p-8 md:p-12 text-fg" role="status">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand mb-6">
+            <Check className="h-6 w-6 text-fg" strokeWidth={3} />
+          </div>
+          <h2 className="font-display text-display-md mb-4">Request received.</h2>
+          <p className="text-fg-muted leading-relaxed max-w-xl">
+            Thanks for registering <span className="text-fg font-medium">{values.gym_name}</span>.
+            Our team will review your request, usually within one business day.
+          </p>
+          <div className="mt-6 inline-flex items-center gap-3 rounded-control border border-line-strong px-4 py-3">
+            <span className="text-sm font-medium text-fg-muted">Reference</span>
+            <span className="font-mono text-brand-ink">{result.reference}</span>
+          </div>
+          <ol className="mt-8 space-y-3 text-sm text-fg-muted">
+            <li className="flex gap-3"><span className="font-mono text-brand-ink">01</span> <span>We sent a confirmation to <span className="text-fg">{values.owner_email}</span>.</span></li>
+            <li className="flex gap-3"><span className="font-mono text-brand-ink">02</span> Once approved, you'll get an email with your dashboard link and a secure link to set your password.</li>
+            <li className="flex gap-3"><span className="font-mono text-brand-ink">03</span> Your gym goes live in the CLBY app with the logo and colours you chose.</li>
+          </ol>
+          <a href="/" className="mt-10 inline-flex items-center gap-2 text-sm text-fg-muted hover:text-brand-ink transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Back to clbyapp.com
+          </a>
         </div>
-        <h2 className="font-display text-display-md mb-4">Request received.</h2>
-        <p className="text-canvas/70 leading-relaxed max-w-xl">
-          Thanks for registering <span className="text-canvas font-medium">{values.gym_name}</span>.
-          Our team will review your request, usually within one business day.
-        </p>
-        <div className="mt-6 inline-flex items-center gap-3 rounded-sm border border-canvas/15 px-4 py-3">
-          <span className="text-xs font-mono uppercase tracking-wider text-muted">Reference</span>
-          <span className="font-mono text-entry">{result.reference}</span>
+        <div className="lg:col-span-5 flex flex-col items-center">
+          <PreviewLabel />
+          <AppPreview tone="light" brand={brand} scale={0.62} />
         </div>
-        <ol className="mt-8 space-y-3 text-sm text-canvas/70">
-          <li className="flex gap-3"><span className="font-mono text-entry">01</span> <span>We sent a confirmation to <span className="text-canvas">{values.owner_email}</span>.</span></li>
-          <li className="flex gap-3"><span className="font-mono text-entry">02</span> Once approved, you'll get an email with your dashboard link and a secure link to set your password.</li>
-          <li className="flex gap-3"><span className="font-mono text-entry">03</span> Your gym goes live in the CLBY app for your members.</li>
-        </ol>
-        <a href="/" className="mt-10 inline-flex items-center gap-2 text-sm text-canvas/70 hover:text-entry transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to clbyapp.com
-        </a>
       </div>
     );
   }
@@ -382,17 +503,53 @@ export default function GymRegistrationForm() {
   const countryOptions = [...COUNTRIES.map((c) => c.name), OTHER_COUNTRY];
 
   return (
+    <div className="grid grid-cols-1 gap-10 xl:grid-cols-12 xl:gap-8">
+      {/* LEFT: intro, progress, benefits */}
+      <aside className="xl:col-span-3">
+        <h1 className="font-display text-display-md mb-5">Bring your gym to CLBY.</h1>
+        <p className="text-fg-muted leading-relaxed mb-8">
+          Takes about three minutes. Pick your logo and colours and watch your members&apos; app take shape
+          as you go. Our team reviews every request before it goes live.
+        </p>
+        <ol className="hidden xl:block mb-10 space-y-1" aria-label="Registration progress">
+          {STEPS.map((label, i) => (
+            <li key={label} aria-current={i === step ? "step" : undefined}
+              className={`flex items-center gap-3 rounded-control px-3 py-2.5 text-sm transition-colors ${i === step ? "bg-card text-fg" : "text-fg-muted"}`}>
+              <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full font-mono text-sm ${
+                i < step ? "bg-brand text-fg" : i === step ? "border border-fg text-brand-ink" : "border border-line-strong"}`}>
+                {i < step ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
+              </span>
+              {label}
+            </li>
+          ))}
+        </ol>
+        <ul className="space-y-3 text-sm text-fg">
+          {[
+            "Your gym listed in the CLBY member app",
+            "Your logo and colours across the app",
+            "Admin dashboard for members, classes and payments",
+            "Secure setup link emailed once you're approved",
+          ].map((t) => (
+            <li key={t} className="flex items-start gap-2.5">
+              <CheckCircle2 className="h-4 w-4 text-brand-ink mt-0.5 flex-shrink-0" /> {t}
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      {/* CENTER: the form */}
+      <div className="xl:col-span-5">
     <form
       onSubmit={submit}
       noValidate
-      className="relative rounded-sm border border-canvas/15 bg-surface p-6 md:p-10 text-canvas"
+      className="relative rounded-control border border-line-strong bg-card p-6 md:p-10 text-fg"
     >
       {/* Progress */}
-      <ol className="grid grid-cols-3 gap-2 mb-8" aria-label="Registration progress">
+      <ol className="grid grid-cols-3 gap-2 mb-8 xl:hidden" aria-label="Registration progress">
         {STEPS.map((label, i) => (
           <li key={label} aria-current={i === step ? "step" : undefined}>
-            <div className={`h-1 rounded-full transition-colors ${i <= step ? "bg-entry" : "bg-canvas/15"}`} />
-            <p className={`mt-2 text-[11px] font-mono uppercase tracking-wider ${i === step ? "text-canvas" : "text-muted"}`}>
+            <div className={`h-1 rounded-full transition-colors ${i <= step ? "bg-brand" : "bg-line"}`} />
+            <p className={`mt-2 text-sm font-medium ${i === step ? "text-fg" : "text-fg-muted"}`}>
               <span className="hidden sm:inline">{String(i + 1).padStart(2, "0")} · </span>{label}
             </p>
           </li>
@@ -402,7 +559,7 @@ export default function GymRegistrationForm() {
       <h2 ref={headingRef} tabIndex={-1} className="font-display text-3xl md:text-4xl leading-none mb-2 outline-none scroll-mt-28">
         {STEPS[step]}
       </h2>
-      <p className="text-sm text-muted mb-8">
+      <p className="text-sm text-fg-muted mb-8">
         {step === 0 && "Tell us about your gym. This is what members will see in the CLBY app."}
         {step === 1 && "A few details to set up your gym's profile. You can change these later."}
         {step === 2 && "This person will own the admin dashboard. We'll email them once the gym is approved."}
@@ -428,19 +585,19 @@ export default function GymRegistrationForm() {
           <div>
             <span className={labelCls}>Logo</span>
             <div className="flex items-center gap-4">
-              <div className={`h-20 w-20 flex-shrink-0 rounded-sm border ${errors.logo ? "border-red-400/60" : "border-canvas/15"} bg-ink flex items-center justify-center overflow-hidden`}>
+              <div className={`h-20 w-20 flex-shrink-0 rounded-control border ${errors.logo ? "border-danger" : "border-line-strong"} bg-card flex items-center justify-center overflow-hidden`}>
                 {logoPreview
                   ? <img src={logoPreview} alt="Logo preview" className="h-full w-full object-cover" />
-                  : <ImagePlus className="h-6 w-6 text-muted" />}
+                  : <ImagePlus className="h-6 w-6 text-fg-muted" />}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => fileInput.current?.click()}
-                  className="inline-flex items-center gap-1.5 border border-canvas/15 hover:border-entry rounded-sm px-3 py-2 text-sm transition-colors">
+                  className="inline-flex items-center gap-1.5 border border-line-strong hover:border-fg rounded-control px-3 py-2 text-sm transition-colors">
                   {logo ? <><RefreshCw className="h-3.5 w-3.5" /> Replace</> : <><ImagePlus className="h-3.5 w-3.5" /> Upload logo</>}
                 </button>
                 {logo && (
                   <button type="button" onClick={removeLogo}
-                    className="inline-flex items-center gap-1.5 border border-canvas/15 hover:border-red-400 hover:text-red-300 rounded-sm px-3 py-2 text-sm transition-colors">
+                    className="inline-flex items-center gap-1.5 border border-line-strong hover:border-danger hover:text-danger rounded-control px-3 py-2 text-sm transition-colors">
                     <Trash2 className="h-3.5 w-3.5" /> Remove
                   </button>
                 )}
@@ -449,9 +606,20 @@ export default function GymRegistrationForm() {
                 aria-label="Upload logo" onChange={(e) => pickLogo(e.target.files?.[0])} />
             </div>
             {errors.logo
-              ? <p className="mt-1.5 text-[11px] text-red-400">{errors.logo}</p>
-              : <p className="mt-1.5 text-[11px] text-muted">Shown on your members' app splash screen. PNG, JPG or WebP, up to 2 MB. Square works best.</p>}
+              ? <p className="mt-1.5 text-sm text-danger">{errors.logo}</p>
+              : errors.logoHint
+                ? <p className="mt-1.5 text-sm text-warn">{errors.logoHint}</p>
+                : <p className="mt-1.5 text-sm text-fg-muted">Shown on your app&apos;s splash screen and header. PNG, JPG or WebP, at least {MIN_LOGO_PX}×{MIN_LOGO_PX}px, up to 2 MB. Square works best.</p>}
           </div>
+
+          <BrandColorFields
+            primary={values.primary_color}
+            secondary={values.secondary_color}
+            onChange={setColors}
+            errors={{ primary: errors.primary_color, secondary: errors.secondary_color }}
+            logoPalette={logoPalette}
+            onApplyLogo={applyLogoColors}
+          />
 
           <Field label="Description" id="description" optional error={errors.description}>
             <textarea id="description" rows={3} className={`${inputCls(errors.description)} resize-none`} maxLength={2000}
@@ -491,13 +659,13 @@ export default function GymRegistrationForm() {
                 autoComplete="street-address" placeholder="e.g. 12 Nile St, Zamalek" onChange={(e) => set("address", e.target.value)} />
               {values.latitude ? (
                 <button type="button" onClick={() => { set("latitude", ""); set("longitude", ""); }}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 border border-entry text-entry rounded-sm px-3 text-sm"
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 border border-fg text-brand-ink rounded-control px-3 text-sm"
                   aria-label="Clear pinned location">
                   <MapPin className="h-4 w-4" /> <X className="h-3.5 w-3.5" />
                 </button>
               ) : (
                 <button type="button" onClick={useMyLocation} disabled={locating}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 border border-canvas/15 hover:border-entry rounded-sm px-3 text-sm transition-colors disabled:opacity-60"
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 border border-line-strong hover:border-fg rounded-control px-3 text-sm transition-colors disabled:opacity-60"
                   title="Use my current location">
                   {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
                   <span className="hidden sm:inline">Pin location</span>
@@ -528,7 +696,7 @@ export default function GymRegistrationForm() {
                 <label key={c.value} className="relative cursor-pointer group">
                   <input type="radio" name="category" value={c.value} checked={values.category === c.value}
                     onChange={() => set("category", c.value)} className="peer sr-only" />
-                  <div className="border border-canvas/15 rounded-sm py-3 px-3 text-sm text-center transition-all peer-checked:border-entry peer-checked:bg-entry peer-checked:text-ink peer-focus-visible:ring-2 peer-focus-visible:ring-entry group-hover:border-canvas/40">
+                  <div className="border border-line-strong rounded-control py-3 px-3 text-sm text-center transition-all peer-checked:border-fg peer-checked:bg-brand peer-checked:text-fg peer-focus-visible:ring-2 peer-focus-visible:ring-fg group-hover:border-fg">
                     {c.label}
                   </div>
                 </label>
@@ -537,13 +705,13 @@ export default function GymRegistrationForm() {
           </fieldset>
 
           <fieldset>
-            <legend className={labelCls}>Facilities & services <span className="normal-case tracking-normal text-muted/60">(optional)</span></legend>
+            <legend className={labelCls}>Facilities & services <span className="normal-case tracking-normal text-fg-subtle">(optional)</span></legend>
             <div className="flex flex-wrap gap-2">
               {[...SUGGESTED_SERVICES, ...values.services.filter((s) => !SUGGESTED_SERVICES.includes(s))].map((s) => {
                 const on = values.services.includes(s);
                 return (
                   <button key={s} type="button" onClick={() => toggleService(s)} aria-pressed={on}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${on ? "border-entry bg-entry text-ink" : "border-canvas/15 hover:border-canvas/40"}`}>
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${on ? "border-fg bg-brand text-fg" : "border-line-strong hover:border-fg"}`}>
                     {on && <Check className="h-3.5 w-3.5" strokeWidth={3} />} {s}
                   </button>
                 );
@@ -555,11 +723,11 @@ export default function GymRegistrationForm() {
                 onChange={(e) => setCustomService(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomService(); } }} />
               <button type="button" onClick={addCustomService} aria-label="Add service"
-                className="flex-shrink-0 border border-canvas/15 hover:border-entry rounded-sm px-3 transition-colors">
+                className="flex-shrink-0 border border-line-strong hover:border-fg rounded-control px-3 transition-colors">
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            {errors.services && <p className="mt-1.5 text-[11px] text-red-400">{errors.services}</p>}
+            {errors.services && <p className="mt-1.5 text-sm text-danger">{errors.services}</p>}
           </fieldset>
 
           <Field label="Number of branches" id="branches_count" error={errors.branches_count}>
@@ -588,7 +756,7 @@ export default function GymRegistrationForm() {
           </div>
 
           {/* Review */}
-          <div className="rounded-sm border border-canvas/10 bg-ink/60 p-5 text-sm">
+          <div className="rounded-control border border-line bg-page p-5 text-sm">
             <p className={labelCls}>Review</p>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               <Review label="Gym" value={values.gym_name} onEdit={() => goTo(0)} />
@@ -598,24 +766,36 @@ export default function GymRegistrationForm() {
               <Review label="Branches" value={values.branches_count} onEdit={() => goTo(1)} />
               <Review label="Logo" value={logo ? logo.name : "Missing"} onEdit={() => goTo(0)} />
             </dl>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-fg-muted">Branding</span>
+                <span className="h-6 w-6 rounded-control ring-1 ring-line-strong" style={{ background: values.primary_color }} title={`Primary ${values.primary_color}`} />
+                <span className="h-6 w-6 rounded-control ring-1 ring-line-strong" style={{ background: values.secondary_color }} title={`Secondary ${values.secondary_color}`} />
+                <span className="font-mono text-xs text-fg-muted">{values.primary_color} · {values.secondary_color}</span>
+              </div>
+              <button type="button" onClick={backToCustomize}
+                className="inline-flex items-center gap-1.5 text-sm text-fg-muted underline underline-offset-2 hover:text-brand-ink">
+                <Paintbrush className="h-3 w-3" /> Back to customize
+              </button>
+            </div>
           </div>
 
-          <label className="flex items-start gap-3 text-sm text-canvas/80 cursor-pointer">
+          <label className="flex items-start gap-3 text-sm text-fg cursor-pointer">
             <input type="checkbox" checked={values.agree} onChange={(e) => set("agree", e.target.checked)}
-              className="mt-1 h-4 w-4 accent-[#B8FF2E]" aria-invalid={!!errors.agree} />
+              className="mt-1 h-4 w-4 accent-[#3B6600]" aria-invalid={!!errors.agree} />
             <span>
               I agree to the{" "}
-              <a href="/terms" target="_blank" className="underline underline-offset-2 hover:text-entry">Terms</a> and{" "}
-              <a href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-entry">Privacy Policy</a>, and confirm
+              <a href="/terms" target="_blank" className="underline underline-offset-2 hover:text-brand-ink">Terms</a> and{" "}
+              <a href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-brand-ink">Privacy Policy</a>, and confirm
               I'm authorised to register this business.
             </span>
           </label>
-          {errors.agree && <p className="-mt-3 text-[11px] text-red-400">{errors.agree}</p>}
+          {errors.agree && <p className="-mt-3 text-sm text-danger">{errors.agree}</p>}
         </div>
       )}
 
       {errors.general && (
-        <div role="alert" className="mt-6 rounded-sm border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+        <div role="alert" className="mt-6 rounded-control border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {errors.general}
         </div>
       )}
@@ -624,33 +804,172 @@ export default function GymRegistrationForm() {
       <div className="mt-10 flex items-center justify-between gap-3">
         {step > 0 ? (
           <button type="button" onClick={() => { setErrors({}); goTo(step - 1); }} disabled={submitting}
-            className="inline-flex items-center gap-2 text-sm text-canvas/70 hover:text-canvas transition-colors disabled:opacity-50">
+            className="inline-flex items-center gap-2 text-sm text-fg-muted hover:text-fg transition-colors disabled:opacity-50">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
         ) : <span />}
 
         <button type="submit" disabled={submitting}
-          className="group inline-flex items-center gap-2 bg-entry text-ink font-semibold py-3.5 px-6 rounded-sm transition-all hover:bg-entry/90 disabled:opacity-60 disabled:cursor-not-allowed">
+          className="group inline-flex items-center gap-2 bg-brand text-fg font-semibold py-3.5 px-6 rounded-control transition-all hover:bg-brand-hover disabled:opacity-60 disabled:cursor-not-allowed">
           {submitting ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
           ) : step < STEPS.length - 1 ? (
             <>Continue <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>
           ) : (
-            <>Submit for review <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>
+            <>Review &amp; submit <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>
           )}
         </button>
       </div>
     </form>
+      </div>
+
+      {/* RIGHT: live preview (desktop) */}
+      <div className="hidden xl:block xl:col-span-4">
+        <div className="sticky top-6 flex flex-col items-center">
+          <PreviewLabel />
+          <AppPreview tone="light" brand={brand} scale={0.66} screen={previewScreen} onScreenChange={setPreviewScreen} />
+        </div>
+      </div>
+
+      {/* Smaller screens: preview behind a button */}
+      <button
+        type="button"
+        onClick={() => setMobilePreview(true)}
+        className="xl:hidden fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-fg shadow-[0_10px_30px_-8px_rgba(0,0,0,0.6)]"
+      >
+        <Eye className="h-4 w-4" /> Preview your app
+      </button>
+      {mobilePreview && (
+        <Overlay sheet onClose={() => setMobilePreview(false)} label="Live app preview">
+          <div className="flex min-h-full flex-col items-center justify-center px-4 py-16">
+            <PreviewLabel />
+            <AppPreview tone="light" brand={brand} scale={fitScale()} screen={previewScreen} onScreenChange={setPreviewScreen} />
+          </div>
+        </Overlay>
+      )}
+
+      {/* Final confirmation */}
+      {confirming && (
+        <Overlay onClose={() => !submitting && setConfirming(false)} label="Review your gym before submitting">
+          <div className="flex min-h-full items-center justify-center p-4 md:p-8">
+            <div className="w-full max-w-5xl rounded-control border border-line-strong bg-card text-fg">
+              <div className="grid grid-cols-1 md:grid-cols-2">
+                <div className="flex flex-col items-center border-b border-line p-6 md:border-b-0 md:border-r md:p-8">
+                  <PreviewLabel />
+                  <AppPreview tone="light" brand={brand} scale={0.56} />
+                </div>
+                <div className="flex flex-col p-6 md:p-8">
+                  <h2 className="font-display text-3xl md:text-4xl leading-none">Your gym, ready for review</h2>
+                  <p className="mt-2 text-sm text-fg-muted">Check everything once more. You can still go back and change your branding.</p>
+
+                  <div className="mt-6 flex items-center gap-4">
+                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-control border border-line-strong bg-card">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {logoPreview && <img src={logoPreview} alt="Your logo" className="h-full w-full object-contain" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xl font-semibold">{values.gym_name}</p>
+                      <p className="text-sm text-fg-muted">{CATEGORIES.find((c) => c.value === values.category)?.label} · {locationLabel}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <Swatch label="Primary" hex={values.primary_color} />
+                    <Swatch label="Secondary" hex={values.secondary_color} />
+                  </div>
+
+                  <dl className="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                    <Detail label="Gym contact" value={`${values.phone} · ${values.business_email}`} />
+                    <Detail label="Branches" value={values.branches_count} />
+                    <Detail label="Owner" value={`${values.owner_name} · ${values.owner_email}`} />
+                    <Detail label="Services" value={values.services.length ? values.services.join(", ") : "—"} />
+                  </dl>
+
+                  <div className="mt-auto flex flex-col-reverse gap-3 pt-8 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" onClick={backToCustomize} disabled={submitting}
+                      className="inline-flex items-center justify-center gap-2 rounded-control border border-line-strong px-5 py-3 text-sm transition-colors hover:border-fg disabled:opacity-50">
+                      <Paintbrush className="h-4 w-4" /> Back to Customize
+                    </button>
+                    <button type="button" onClick={sendRequest} disabled={submitting} autoFocus
+                      className="group inline-flex items-center justify-center gap-2 rounded-control bg-brand px-6 py-3.5 font-semibold text-fg transition-all hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60">
+                      {submitting
+                        ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
+                        : <>Submit Registration Request <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Overlay>
+      )}
+    </div>
   );
 }
 
 /* ─────────────────────────────── pieces ─────────────────────────────── */
 
-const labelCls = "block text-xs font-mono uppercase tracking-wider text-muted mb-2";
+function PreviewLabel() {
+  return (
+    <p className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-fg-muted">
+      <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Live app preview
+    </p>
+  );
+}
+
+/** Device scale that fits the viewport height in the mobile preview sheet. */
+function fitScale(): number {
+  if (typeof window === "undefined") return 0.7;
+  const byHeight = (window.innerHeight - 190) / 876;
+  const byWidth = (window.innerWidth - 40) / 417;
+  return Math.max(0.45, Math.min(0.85, byHeight, byWidth));
+}
+
+function Overlay({ onClose, label, children, sheet = false }: { onClose: () => void; label: string; children: React.ReactNode; sheet?: boolean }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [onClose]);
+  return (
+    <div role="dialog" aria-modal="true" aria-label={label} className={`fixed inset-0 z-50 overflow-y-auto ${sheet ? "bg-page" : "bg-dark/60 backdrop-blur-sm"}`}>
+      <button type="button" onClick={onClose} aria-label="Close"
+        className="fixed right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-card text-fg ring-1 ring-line-strong hover:ring-fg">
+        <X className="h-4 w-4" />
+      </button>
+      {children}
+    </div>
+  );
+}
+
+function Swatch({ label, hex }: { label: string; hex: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-control border border-line bg-card p-2.5">
+      <span className="h-9 w-9 flex-shrink-0 rounded-control ring-1 ring-line-strong" style={{ background: hex }} />
+      <span>
+        <span className="block text-sm font-medium text-fg-muted">{label}</span>
+        <span className="block font-mono text-sm">{hex}</span>
+      </span>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-sm font-medium text-fg-muted">{label}</dt>
+      <dd className="mt-0.5 break-words text-fg">{value || "—"}</dd>
+    </div>
+  );
+}
+
+const labelCls = "mb-2 block text-[15px] font-medium text-fg";
 
 function inputCls(error?: string) {
-  return `w-full bg-ink border rounded-sm px-4 py-3 text-canvas placeholder:text-muted/60 transition-colors focus:outline-none ${
-    error ? "border-red-400/60 focus:border-red-400" : "border-canvas/15 focus:border-entry"
+  return `w-full bg-card border rounded-control px-4 py-3 text-fg placeholder:text-fg-subtle transition-colors focus:outline-none ${
+    error ? "border-danger focus:border-danger" : "border-line-strong focus:border-fg"
   }`;
 }
 
@@ -662,13 +981,13 @@ function Field({
   return (
     <div>
       <label htmlFor={id} className={labelCls}>
-        {label} {optional && <span className="normal-case tracking-normal text-muted/60">(optional)</span>}
+        {label} {optional && <span className="normal-case tracking-normal text-fg-subtle">(optional)</span>}
       </label>
       {children}
       {error ? (
-        <p className="mt-1.5 text-[11px] text-red-400" role="alert">{error}</p>
+        <p className="mt-1.5 text-sm text-danger" role="alert">{error}</p>
       ) : hint ? (
-        <p className="mt-1.5 text-[11px] text-muted">{hint}</p>
+        <p className="mt-1.5 text-sm text-fg-muted">{hint}</p>
       ) : null}
     </div>
   );
@@ -678,10 +997,10 @@ function Review({ label, value, onEdit }: { label: string; value: string; onEdit
   return (
     <div className="flex items-baseline justify-between gap-3 min-w-0">
       <div className="min-w-0">
-        <dt className="text-[11px] font-mono uppercase tracking-wider text-muted">{label}</dt>
-        <dd className="text-canvas truncate">{value || "—"}</dd>
+        <dt className="text-sm font-medium text-fg-muted">{label}</dt>
+        <dd className="text-fg truncate">{value || "—"}</dd>
       </div>
-      <button type="button" onClick={onEdit} className="text-[11px] text-muted hover:text-entry underline underline-offset-2 flex-shrink-0">
+      <button type="button" onClick={onEdit} className="text-sm text-fg-muted hover:text-brand-ink underline underline-offset-2 flex-shrink-0">
         Edit
       </button>
     </div>

@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import { SITE_URL } from "@/lib/config";
 import "./globals.css";
 
-const display = Instrument_Serif({
+// Editorial serif for headings: variable weight + optical size, used at
+// 500 so large headlines have presence (Instrument Serif was condensed
+// and single-weight, which read thin and narrow).
+const display = Fraunces({
   subsets: ["latin"],
-  weight: "400",
+  axes: ["opsz"],
   variable: "--font-display",
   display: "swap",
 });
 
-const sans = DM_Sans({
+const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
@@ -182,16 +185,6 @@ const jsonLd = {
       description: DESCRIPTION,
       inLanguage: ["en", "ar"],
       availableOnDevice: ["Mobile", "Tablet", "Desktop"],
-      offers: [
-        {
-          "@type": "Offer",
-          name: "Marketplace Plan",
-          price: "5000",
-          priceCurrency: "EGP",
-          description: "Listed on the CLBY marketplace app, unlimited members, all modules included.",
-          eligibleRegion: { "@type": "Place", name: "MENA" },
-        },
-      ],
       publisher: { "@id": `${SITE_URL}/#organization` },
     },
   ],
@@ -207,7 +200,7 @@ export default function RootLayout({
       lang="en"
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >
-      <body className="grain antialiased">
+      <body className="antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

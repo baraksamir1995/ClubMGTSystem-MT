@@ -9,6 +9,7 @@ import '../security/key_store.dart';
 import '../platform/client_info.dart';
 import '../platform/connectivity.dart';
 import '../sync/transport.dart';
+import 'last_scope.dart';
 import 'offline_store.dart';
 
 /// App-level glue: opens the scoped store after login, closes it on
@@ -28,6 +29,7 @@ class OfflineSessionManager {
     this.directory,
     this.onError,
     this.refreshOnActivate = true,
+    this.bootstrapWhenDisabled = false,
   }) : _connectivity = connectivity ?? ConnectivityPlusMonitor();
 
   final OfflineApp app;
@@ -40,6 +42,8 @@ class OfflineSessionManager {
   final void Function(Object error, StackTrace stack)? onError;
   /// Call `refreshIfStale()` (status + bootstrap when enabled) on activate.
   final bool refreshOnActivate;
+  /// Bootstrap on activate even when the server policy is disabled.
+  final bool bootstrapWhenDisabled;
   final ConnectivityMonitor _connectivity;
 
   OfflineStore? _store;
@@ -63,9 +67,14 @@ class OfflineSessionManager {
   /// again for the open scope (re-login, profile refresh) resumes a paused
   /// engine via `resumeAfterAuth()`. Switching
   /// scope closes the previous one first (its cache wiped, outbox kept).
+  ///
+  /// [rememberScope] (online logins) records this scope as the last one, so
+  /// a later offline cold start may reopen it ([LastOfflineScope]). Offline
+  /// re-entry passes false.
   Future<OfflineStore?> activate({
     required String userId,
     required String gymId,
+    bool rememberScope = true,
   }) =>
       _serial(() async {
         if (userId.isEmpty || gymId.isEmpty) return _store;
@@ -97,6 +106,11 @@ class OfflineSessionManager {
           );
           _store = s;
           _changes.add(s);
+          if (rememberScope) {
+            await _guard(() => LastOfflineScope(
+                    apiBase: apiBase, gymId: gymId, userId: userId)
+                .write(keyStore));
+          }
           _connSub = _connectivity.changes.listen((online) {
             unawaited(_guard(() => s.engine.onConnectivityChanged(online)));
           });
@@ -104,7 +118,9 @@ class OfflineSessionManager {
           await s.engine.onConnectivityChanged(online);
           unawaited(_guard(() async {
             await s.engine.onAppStart();
-            if (refreshOnActivate && online) await s.refreshIfStale();
+            if (refreshOnActivate && online) {
+              await s.refreshIfStale(evenIfDisabled: bootstrapWhenDisabled);
+            }
           }));
           return s;
         } on OfflineStoreUnavailable catch (e, st) {

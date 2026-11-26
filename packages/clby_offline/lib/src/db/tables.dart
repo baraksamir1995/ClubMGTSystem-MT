@@ -195,6 +195,26 @@ class CachedRecentServiceLogs extends Table {
   Set<Column<Object>> get primaryKey => {serviceLogId};
 }
 
+/// Member-pass verification keys (PHASE2-CONTRACT "Keys"), from the
+/// bootstrap's `pass_keys`. Public keys only. Added in schema v2.
+@DataClassName('CachedPassKey')
+class CachedPassKeys extends Table {
+  @override
+  String get tableName => 'cached_pass_keys';
+
+  TextColumn get kid => text()();
+  /// Ed25519 public key, base64url (32 bytes).
+  TextColumn get publicKey => text()();
+  /// `active` | `retired`.
+  TextColumn get status => text()();
+  /// ISO-8601; for retired keys, passes signed by it are accepted until
+  /// then. NULL = no limit (active key).
+  TextColumn get validUntil => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {kid};
+}
+
 /// Key/value sync bookkeeping (as_of, last successful sync, policy JSON,
 /// cursors, gym/member identity JSON). See [SyncMetaKeys].
 @DataClassName('SyncMetaEntry')

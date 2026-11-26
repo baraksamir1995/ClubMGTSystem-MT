@@ -23,6 +23,7 @@ class BootstrapResult {
     required this.assignments,
     required this.recentAttendance,
     required this.recentServiceLogs,
+    this.passKeys = 0,
   });
 
   final DateTime? asOf;
@@ -34,6 +35,7 @@ class BootstrapResult {
   final int assignments;
   final int recentAttendance;
   final int recentServiceLogs;
+  final int passKeys;
 
   @override
   String toString() => 'BootstrapResult(asOf=$asOf, pages=$pages, '
@@ -137,6 +139,7 @@ class BootstrapService {
     final assignments = <String, CachedAssignmentsCompanion>{};
     final recentAtt = <String, CachedRecentAttendanceCompanion>{};
     final recentLogs = <String, CachedRecentServiceLogsCompanion>{};
+    final passKeys = <String, CachedPassKeysCompanion>{};
     DateTime? asOf;
     String? asOfRaw;
     String? serverTime;
@@ -258,6 +261,17 @@ class BootstrapService {
           checkInAt: Value(_s(r['check_in_at'])),
         );
       }
+      for (final k in page.list('pass_keys')) {
+        final kid = _s(k['kid']);
+        final pub = _s(k['public_key']);
+        if (kid == null || pub == null) continue;
+        passKeys[kid] = CachedPassKeysCompanion.insert(
+          kid: kid,
+          publicKey: pub,
+          status: _s(k['status']) ?? 'active',
+          validUntil: Value(_s(k['valid_until'])),
+        );
+      }
       for (final r in page.list('recent_service_logs')) {
         final id = _s(r['service_log_id']);
         final a = _s(r['assignment_id']);
@@ -285,6 +299,7 @@ class BootstrapService {
         b.insertAll(db.cachedAssignments, assignments.values);
         b.insertAll(db.cachedRecentAttendance, recentAtt.values);
         b.insertAll(db.cachedRecentServiceLogs, recentLogs.values);
+        b.insertAll(db.cachedPassKeys, passKeys.values);
       });
       await db.writeMeta(SyncMetaKeys.asOf, asOfRaw);
       await db.writeMeta(SyncMetaKeys.serverTime, serverTime);
@@ -305,6 +320,7 @@ class BootstrapService {
       assignments: assignments.length,
       recentAttendance: recentAtt.length,
       recentServiceLogs: recentLogs.length,
+      passKeys: passKeys.length,
     );
   }
 

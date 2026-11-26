@@ -115,6 +115,18 @@ void main() {
     expect(store.policy.value.enabled, isFalse);
   });
 
+  test('refreshIfStale(evenIfDisabled) bootstraps while disabled (coach pass keys)', () async {
+    t.statusResponse = OfflineStatusResponse.fromJson({
+      'enabled': false, 'policy': {'enabled': false}, 'device': {'registered': true}});
+    t.bootstrapPages[null] = SnapshotPage({
+      ...t.bootstrapPages[null]!.json,
+      'policy': {'enabled': false},
+      'next_cursor': null,
+    });
+    expect(await store.refreshIfStale(evenIfDisabled: true), isNotNull);
+    expect(store.policy.value.enabled, isFalse);
+  });
+
   test('refreshIfStale: enabled + stale → bootstraps once', () async {
     expect(await store.refreshIfStale(), isNotNull);
     expect(await store.refreshIfStale(), isNull, reason: 'fresh now');

@@ -22,6 +22,8 @@ dependencies:
   flutter_timezone: ^5.1.1
   uuid: ^4.5.1
   crypto: ^3.0.6
+  # Pure-Dart Ed25519 (DartEd25519) for offline member-pass verification.
+  cryptography: ^2.9.0
   meta: ^1.15.0
 
 dev_dependencies:

@@ -8,6 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'features/coach/coach_app_state.dart';
+import 'features/offline/coach_offline_controller.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/branding_provider.dart';
@@ -88,6 +89,15 @@ class CoachesApp extends StatelessWidget {
         // the home shell. HomeScreen triggers .load() on first build.
         ChangeNotifierProvider<CoachAppState>(
           create: (ctx) => CoachAppState(ctx.read<ApiService>()),
+        ),
+        // Offline attendance UI glue (sync indicator, offline mode, logging
+        // path selection, pass verification).
+        ChangeNotifierProvider<CoachOfflineController>(
+          create: (ctx) => CoachOfflineController(
+            offline: ctx.read<OfflineAttendance>(),
+            api: ctx.read<ApiService>(),
+            coach: ctx.read<CoachAppState>(),
+          ),
         ),
       ],
       child: const _CoachesAppShell(),

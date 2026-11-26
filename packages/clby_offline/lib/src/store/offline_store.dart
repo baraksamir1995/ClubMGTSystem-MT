@@ -11,6 +11,7 @@ import '../db/offline_database.dart';
 import '../db/open.dart';
 import '../errors.dart';
 import '../model/clock_offset.dart';
+import '../pass/member_pass.dart';
 import '../model/enums.dart';
 import '../model/policy_holder.dart';
 import '../model/sync_models.dart';
@@ -44,6 +45,10 @@ class OfflineStore {
 
   /// Shared server-time estimate (status / bootstrap / sync / recorder).
   final ServerClock serverClock;
+
+  /// Offline member-pass verification (PHASE2-CONTRACT steps 1–6).
+  late final MemberPassVerifier passVerifier = MemberPassVerifier(
+      db: db, gymId: scope.gymId, serverClock: serverClock, policy: policy);
 
   static final Map<String, OfflineStore> _open = {};
 
@@ -177,11 +182,14 @@ class OfflineStore {
   }
 
   /// Best-effort readiness refresh: status, then a bootstrap when offline
-  /// attendance is enabled and the cache is missing/stale (or [force]).
-  /// Returns the bootstrap result, or null when not needed.
-  Future<BootstrapResult?> refreshIfStale({bool force = false}) async {
+  /// attendance is enabled (or [evenIfDisabled] — e.g. the coach app needs
+  /// `pass_keys` to verify member passes online, PHASE2-CONTRACT) and the
+  /// cache is missing/stale (or [force]). Returns the bootstrap result, or
+  /// null when not needed.
+  Future<BootstrapResult?> refreshIfStale(
+      {bool force = false, bool evenIfDisabled = false}) async {
     final s = await refreshStatus();
-    if (!s.enabled || s.deviceRevoked) return null;
+    if (s.deviceRevoked || (!s.enabled && !evenIfDisabled)) return null;
     if (!force && !await bootstrap.isStale()) return null;
     final r = await bootstrap.refresh();
     await engine.refreshState();
@@ -212,10 +220,58 @@ class OfflineStore {
   Future<List<OutboxEvent>> outbox({Set<OutboxStatus>? statuses}) =>
       _outboxQuery(statuses).get();
 
+  /// Live state of one recorded event (result screens).
+  Stream<OutboxEvent?> watchEvent(String eventId) => (db.select(db.outboxEvents)
+        ..where((t) =>
+            t.eventId.equals(eventId) & t.actorUserId.equals(scope.userId)))
+      .watchSingleOrNull();
+
   Future<OutboxEvent?> event(String eventId) => (db.select(db.outboxEvents)
         ..where((t) =>
             t.eventId.equals(eventId) & t.actorUserId.equals(scope.userId)))
       .getSingleOrNull();
+
+  /// True when a snapshot has been bootstrapped into this store.
+  Future<bool> hasCachedData() async =>
+      (await db.readMeta(SyncMetaKeys.asOf)) != null;
+
+  /// Cached coach assignments, optionally filtered by member name or
+  /// member number (case-insensitive substring). Ordered by member name.
+  Future<List<CachedAssignment>> cachedAssignments({String? query}) {
+    final q = db.select(db.cachedAssignments)
+      ..orderBy([(t) => OrderingTerm.asc(t.memberName)]);
+    final s = query?.trim().toLowerCase() ?? '';
+    if (s.isNotEmpty) {
+      q.where((t) =>
+          t.memberName.lower().contains(s) | t.memberNumber.lower().contains(s));
+    }
+    return q.get();
+  }
+
+  /// Cached members (staff bootstrap) by name / member number.
+  Future<List<CachedMember>> searchMembers(String query, {int limit = 50}) {
+    final s = query.trim().toLowerCase();
+    final q = db.select(db.cachedMembers)
+      ..orderBy([(t) => OrderingTerm.asc(t.fullName)])
+      ..limit(limit);
+    if (s.isNotEmpty) q.where((t) => t.searchText.contains(s));
+    return q.get();
+  }
+
+  /// Counts for the readiness panel.
+  Future<({int members, int assignments, int classSessions, int passKeys})>
+      cachedCounts() async {
+    Future<int> count(TableInfo t) async => (await db
+            .customSelect('SELECT COUNT(*) AS c FROM ${t.actualTableName}')
+            .getSingle())
+        .read<int>('c');
+    return (
+      members: await count(db.cachedMembers),
+      assignments: await count(db.cachedAssignments),
+      classSessions: await count(db.cachedClassSessions),
+      passKeys: await count(db.cachedPassKeys),
+    );
+  }
 
   /// Logout policy (D9): drop cached operational data, keep the outbox.
   Future<void> wipeCache() async {

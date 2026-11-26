@@ -190,6 +190,12 @@ void main() {
     expect(e.serviceAssignmentId, a);
     expect(e.attendanceMethod, isNull);
     expect(e.toWireJson()['note'], 'legs');
+    final q = await coach.recorder.record(NewOfflineEvent.serviceSession(
+        memberId: memberA, serviceAssignmentId: uid(), qrRaw: '{"t":"clby_mp"}',
+        metadata: {'source': 'qr'}));
+    final qe = (q as RecordSaved).event.toWireJson();
+    expect(qe['qr'], {'raw': '{"t":"clby_mp"}'});
+    expect(qe['metadata'], containsPair('source', 'qr'));
     expect((await coach.recorder.record(manual(memberA))), isA<RecordRefused>());
     await coach.close();
   });

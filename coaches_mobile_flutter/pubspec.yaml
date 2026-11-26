@@ -35,6 +35,8 @@ dependencies:
   firebase_core: ^4.9.0
   firebase_crashlytics: ^5.2.2
   qr_flutter: ^4.1.0
+  # Member-pass scanning (same major as gym_mobile_flutter).
+  mobile_scanner: ^7.2.0
 
   # Offline-first attendance core (encrypted outbox + sync engine), shared
   # with gym_mobile_flutter.

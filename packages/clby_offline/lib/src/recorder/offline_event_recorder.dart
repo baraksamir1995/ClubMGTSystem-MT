@@ -52,10 +52,14 @@ class NewOfflineEvent {
       );
 
   /// Coach PT/physio session (D5) — same as POST /coach/sessions/decrement.
+  /// [qrRaw]: the scanned member pass when the member was picked by QR
+  /// (PHASE2-CONTRACT "Coach use"); put `"source":"qr"|"manual"` in
+  /// [metadata].
   factory NewOfflineEvent.serviceSession({
     required String memberId,
     required String serviceAssignmentId,
     String? note,
+    String? qrRaw,
     Map<String, Object?> metadata = const {},
   }) =>
       NewOfflineEvent._(
@@ -63,6 +67,7 @@ class NewOfflineEvent {
         memberId: memberId,
         serviceAssignmentId: serviceAssignmentId,
         note: note,
+        qrRaw: qrRaw,
         metadata: metadata,
       );
 

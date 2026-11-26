@@ -8,6 +8,8 @@ import '../features/coach/screens/attendance_screen.dart';
 import '../features/coach/screens/members_screen.dart';
 import '../features/coach/screens/qr_screen.dart';
 import '../features/coach/widgets/bottom_nav.dart';
+import '../features/offline/coach_offline_controller.dart';
+import '../features/offline/offline_home.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/c_button.dart';
 
@@ -25,6 +27,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
   bool _kickedOff = false;
+  bool _offlineTried = false;
+
+  /// Retry the online load (profile + roster); a fresh failure may enter
+  /// offline mode again.
+  void _retryOnline() {
+    _offlineTried = false;
+    final auth = context.read<AuthProvider>();
+    if (auth.profile == null) auth.refreshProfile();
+    context.read<CoachAppState>().load();
+  }
 
   @override
   void didChangeDependencies() {
@@ -43,20 +55,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<CoachAppState>();
+    final offline = context.watch<CoachOfflineController>();
     final firstLoad = state.identity == null && state.isLoading;
     final hardError = state.identity == null && state.error != null;
+
+    // Offline cold start: instead of blocking on "CAN'T REACH THE GYM",
+    // try to reopen the SAME coach's offline store (token + user in secure
+    // storage, store opens with its own key, has cached data).
+    if (hardError && !offline.offlineMode && !_offlineTried) {
+      _offlineTried = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => context.read<CoachOfflineController>().tryEnterOfflineMode());
+    }
+    if (state.identity != null && offline.offlineMode) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => context.read<CoachOfflineController>().leaveOfflineMode());
+    }
+    if (hardError && offline.offlineMode) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: OfflineHome(
+          onRetry: _retryOnline,
+          onSignOut: () => _signOut(context),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Stack(
         children: [
           Positioned.fill(
-            child: firstLoad
+            child: firstLoad || (hardError && offline.checkingEntry)
                 ? const _ShellLoading()
                 : hardError
                     ? _ShellError(
                         message: state.error!,
-                        onRetry: () => context.read<CoachAppState>().load(),
+                        onRetry: _retryOnline,
                         onSignOut: () => _signOut(context),
                       )
                     : _tabContent(),

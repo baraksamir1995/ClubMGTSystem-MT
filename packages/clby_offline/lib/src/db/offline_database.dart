@@ -54,6 +54,7 @@ abstract final class SyncMetaKeys {
     CachedAssignments,
     CachedRecentAttendance,
     CachedRecentServiceLogs,
+    CachedPassKeys,
     SyncMeta,
   ],
 )
@@ -63,17 +64,19 @@ class OfflineDatabase extends _$OfflineDatabase {
   /// Bump on every schema change and add a step to [_upgradeSteps].
   /// Exported schemas live in `drift_schemas/` (`dart run drift_dev schema
   /// dump lib/src/db/offline_database.dart drift_schemas/`).
-  static const int currentSchemaVersion = 1;
+  static const int currentSchemaVersion = 2;
 
   @override
   int get schemaVersion => currentSchemaVersion;
 
   /// Forward-only, step-wise migrations: `from` → `from+1` → … → `to`.
   /// Each step must be additive for the outbox (never drop unsynced rows).
-  /// v1 is the initial schema; future steps go here, e.g.
-  ///   2: (m) async => m.addColumn(outboxEvents, outboxEvents.someNewCol),
+  /// v1 is the initial schema.
+  /// v2 (Phase 2): `cached_pass_keys` for offline member-pass verification.
   static final Map<int, Future<void> Function(Migrator m, OfflineDatabase db)>
-      _upgradeSteps = {};
+      _upgradeSteps = {
+    2: (m, db) => m.createTable(db.cachedPassKeys),
+  };
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -171,6 +174,7 @@ END''');
         await delete(cachedAssignments).go();
         await delete(cachedRecentAttendance).go();
         await delete(cachedRecentServiceLogs).go();
+        await delete(cachedPassKeys).go();
         await (delete(syncMeta)
               ..where((t) => t.key.isIn(SyncMetaKeys.cacheKeys)))
             .go();

@@ -5166,6 +5166,327 @@ class CachedRecentServiceLogsCompanion
   }
 }
 
+class $CachedPassKeysTable extends CachedPassKeys
+    with TableInfo<$CachedPassKeysTable, CachedPassKey> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedPassKeysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _kidMeta = const VerificationMeta('kid');
+  @override
+  late final GeneratedColumn<String> kid = GeneratedColumn<String>(
+    'kid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _publicKeyMeta = const VerificationMeta(
+    'publicKey',
+  );
+  @override
+  late final GeneratedColumn<String> publicKey = GeneratedColumn<String>(
+    'public_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _validUntilMeta = const VerificationMeta(
+    'validUntil',
+  );
+  @override
+  late final GeneratedColumn<String> validUntil = GeneratedColumn<String>(
+    'valid_until',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kid, publicKey, status, validUntil];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_pass_keys';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedPassKey> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('kid')) {
+      context.handle(
+        _kidMeta,
+        kid.isAcceptableOrUnknown(data['kid']!, _kidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kidMeta);
+    }
+    if (data.containsKey('public_key')) {
+      context.handle(
+        _publicKeyMeta,
+        publicKey.isAcceptableOrUnknown(data['public_key']!, _publicKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_publicKeyMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('valid_until')) {
+      context.handle(
+        _validUntilMeta,
+        validUntil.isAcceptableOrUnknown(data['valid_until']!, _validUntilMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kid};
+  @override
+  CachedPassKey map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedPassKey(
+      kid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kid'],
+      )!,
+      publicKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}public_key'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      validUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}valid_until'],
+      ),
+    );
+  }
+
+  @override
+  $CachedPassKeysTable createAlias(String alias) {
+    return $CachedPassKeysTable(attachedDatabase, alias);
+  }
+}
+
+class CachedPassKey extends DataClass implements Insertable<CachedPassKey> {
+  final String kid;
+
+  /// Ed25519 public key, base64url (32 bytes).
+  final String publicKey;
+
+  /// `active` | `retired`.
+  final String status;
+
+  /// ISO-8601; for retired keys, passes signed by it are accepted until
+  /// then. NULL = no limit (active key).
+  final String? validUntil;
+  const CachedPassKey({
+    required this.kid,
+    required this.publicKey,
+    required this.status,
+    this.validUntil,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['kid'] = Variable<String>(kid);
+    map['public_key'] = Variable<String>(publicKey);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || validUntil != null) {
+      map['valid_until'] = Variable<String>(validUntil);
+    }
+    return map;
+  }
+
+  CachedPassKeysCompanion toCompanion(bool nullToAbsent) {
+    return CachedPassKeysCompanion(
+      kid: Value(kid),
+      publicKey: Value(publicKey),
+      status: Value(status),
+      validUntil: validUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(validUntil),
+    );
+  }
+
+  factory CachedPassKey.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedPassKey(
+      kid: serializer.fromJson<String>(json['kid']),
+      publicKey: serializer.fromJson<String>(json['publicKey']),
+      status: serializer.fromJson<String>(json['status']),
+      validUntil: serializer.fromJson<String?>(json['validUntil']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kid': serializer.toJson<String>(kid),
+      'publicKey': serializer.toJson<String>(publicKey),
+      'status': serializer.toJson<String>(status),
+      'validUntil': serializer.toJson<String?>(validUntil),
+    };
+  }
+
+  CachedPassKey copyWith({
+    String? kid,
+    String? publicKey,
+    String? status,
+    Value<String?> validUntil = const Value.absent(),
+  }) => CachedPassKey(
+    kid: kid ?? this.kid,
+    publicKey: publicKey ?? this.publicKey,
+    status: status ?? this.status,
+    validUntil: validUntil.present ? validUntil.value : this.validUntil,
+  );
+  CachedPassKey copyWithCompanion(CachedPassKeysCompanion data) {
+    return CachedPassKey(
+      kid: data.kid.present ? data.kid.value : this.kid,
+      publicKey: data.publicKey.present ? data.publicKey.value : this.publicKey,
+      status: data.status.present ? data.status.value : this.status,
+      validUntil: data.validUntil.present
+          ? data.validUntil.value
+          : this.validUntil,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPassKey(')
+          ..write('kid: $kid, ')
+          ..write('publicKey: $publicKey, ')
+          ..write('status: $status, ')
+          ..write('validUntil: $validUntil')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kid, publicKey, status, validUntil);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedPassKey &&
+          other.kid == this.kid &&
+          other.publicKey == this.publicKey &&
+          other.status == this.status &&
+          other.validUntil == this.validUntil);
+}
+
+class CachedPassKeysCompanion extends UpdateCompanion<CachedPassKey> {
+  final Value<String> kid;
+  final Value<String> publicKey;
+  final Value<String> status;
+  final Value<String?> validUntil;
+  final Value<int> rowid;
+  const CachedPassKeysCompanion({
+    this.kid = const Value.absent(),
+    this.publicKey = const Value.absent(),
+    this.status = const Value.absent(),
+    this.validUntil = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedPassKeysCompanion.insert({
+    required String kid,
+    required String publicKey,
+    required String status,
+    this.validUntil = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : kid = Value(kid),
+       publicKey = Value(publicKey),
+       status = Value(status);
+  static Insertable<CachedPassKey> custom({
+    Expression<String>? kid,
+    Expression<String>? publicKey,
+    Expression<String>? status,
+    Expression<String>? validUntil,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kid != null) 'kid': kid,
+      if (publicKey != null) 'public_key': publicKey,
+      if (status != null) 'status': status,
+      if (validUntil != null) 'valid_until': validUntil,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedPassKeysCompanion copyWith({
+    Value<String>? kid,
+    Value<String>? publicKey,
+    Value<String>? status,
+    Value<String?>? validUntil,
+    Value<int>? rowid,
+  }) {
+    return CachedPassKeysCompanion(
+      kid: kid ?? this.kid,
+      publicKey: publicKey ?? this.publicKey,
+      status: status ?? this.status,
+      validUntil: validUntil ?? this.validUntil,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kid.present) {
+      map['kid'] = Variable<String>(kid.value);
+    }
+    if (publicKey.present) {
+      map['public_key'] = Variable<String>(publicKey.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (validUntil.present) {
+      map['valid_until'] = Variable<String>(validUntil.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPassKeysCompanion(')
+          ..write('kid: $kid, ')
+          ..write('publicKey: $publicKey, ')
+          ..write('status: $status, ')
+          ..write('validUntil: $validUntil, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncMetaTable extends SyncMeta
     with TableInfo<$SyncMetaTable, SyncMetaEntry> {
   @override
@@ -5399,6 +5720,7 @@ abstract class _$OfflineDatabase extends GeneratedDatabase {
       $CachedRecentAttendanceTable(this);
   late final $CachedRecentServiceLogsTable cachedRecentServiceLogs =
       $CachedRecentServiceLogsTable(this);
+  late final $CachedPassKeysTable cachedPassKeys = $CachedPassKeysTable(this);
   late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -5413,6 +5735,7 @@ abstract class _$OfflineDatabase extends GeneratedDatabase {
     cachedAssignments,
     cachedRecentAttendance,
     cachedRecentServiceLogs,
+    cachedPassKeys,
     syncMeta,
   ];
 }
@@ -8039,6 +8362,204 @@ typedef $$CachedRecentServiceLogsTableProcessedTableManager =
       CachedRecentServiceLog,
       PrefetchHooks Function()
     >;
+typedef $$CachedPassKeysTableCreateCompanionBuilder =
+    CachedPassKeysCompanion Function({
+      required String kid,
+      required String publicKey,
+      required String status,
+      Value<String?> validUntil,
+      Value<int> rowid,
+    });
+typedef $$CachedPassKeysTableUpdateCompanionBuilder =
+    CachedPassKeysCompanion Function({
+      Value<String> kid,
+      Value<String> publicKey,
+      Value<String> status,
+      Value<String?> validUntil,
+      Value<int> rowid,
+    });
+
+class $$CachedPassKeysTableFilterComposer
+    extends Composer<_$OfflineDatabase, $CachedPassKeysTable> {
+  $$CachedPassKeysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get kid => $composableBuilder(
+    column: $table.kid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get validUntil => $composableBuilder(
+    column: $table.validUntil,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedPassKeysTableOrderingComposer
+    extends Composer<_$OfflineDatabase, $CachedPassKeysTable> {
+  $$CachedPassKeysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kid => $composableBuilder(
+    column: $table.kid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get validUntil => $composableBuilder(
+    column: $table.validUntil,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedPassKeysTableAnnotationComposer
+    extends Composer<_$OfflineDatabase, $CachedPassKeysTable> {
+  $$CachedPassKeysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get kid =>
+      $composableBuilder(column: $table.kid, builder: (column) => column);
+
+  GeneratedColumn<String> get publicKey =>
+      $composableBuilder(column: $table.publicKey, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get validUntil => $composableBuilder(
+    column: $table.validUntil,
+    builder: (column) => column,
+  );
+}
+
+class $$CachedPassKeysTableTableManager
+    extends
+        RootTableManager<
+          _$OfflineDatabase,
+          $CachedPassKeysTable,
+          CachedPassKey,
+          $$CachedPassKeysTableFilterComposer,
+          $$CachedPassKeysTableOrderingComposer,
+          $$CachedPassKeysTableAnnotationComposer,
+          $$CachedPassKeysTableCreateCompanionBuilder,
+          $$CachedPassKeysTableUpdateCompanionBuilder,
+          (
+            CachedPassKey,
+            BaseReferences<
+              _$OfflineDatabase,
+              $CachedPassKeysTable,
+              CachedPassKey
+            >,
+          ),
+          CachedPassKey,
+          PrefetchHooks Function()
+        > {
+  $$CachedPassKeysTableTableManager(
+    _$OfflineDatabase db,
+    $CachedPassKeysTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedPassKeysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedPassKeysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedPassKeysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> kid = const Value.absent(),
+                Value<String> publicKey = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> validUntil = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedPassKeysCompanion(
+                kid: kid,
+                publicKey: publicKey,
+                status: status,
+                validUntil: validUntil,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String kid,
+                required String publicKey,
+                required String status,
+                Value<String?> validUntil = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedPassKeysCompanion.insert(
+                kid: kid,
+                publicKey: publicKey,
+                status: status,
+                validUntil: validUntil,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CachedPassKeysTable, CachedPassKey>(table),
+                  BaseReferences<
+                    _$OfflineDatabase,
+                    $CachedPassKeysTable,
+                    CachedPassKey
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedPassKeysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OfflineDatabase,
+      $CachedPassKeysTable,
+      CachedPassKey,
+      $$CachedPassKeysTableFilterComposer,
+      $$CachedPassKeysTableOrderingComposer,
+      $$CachedPassKeysTableAnnotationComposer,
+      $$CachedPassKeysTableCreateCompanionBuilder,
+      $$CachedPassKeysTableUpdateCompanionBuilder,
+      (
+        CachedPassKey,
+        BaseReferences<_$OfflineDatabase, $CachedPassKeysTable, CachedPassKey>,
+      ),
+      CachedPassKey,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncMetaTableCreateCompanionBuilder =
     SyncMetaCompanion Function({
       required String key,
@@ -8213,6 +8734,8 @@ class $OfflineDatabaseManager {
         _db,
         _db.cachedRecentServiceLogs,
       );
+  $$CachedPassKeysTableTableManager get cachedPassKeys =>
+      $$CachedPassKeysTableTableManager(_db, _db.cachedPassKeys);
   $$SyncMetaTableTableManager get syncMeta =>
       $$SyncMetaTableTableManager(_db, _db.syncMeta);
 }

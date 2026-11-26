@@ -35,6 +35,13 @@ class ServerClock {
   DateTime? _anchorServer;
   Duration? _anchorMono;
 
+  /// Device wall-clock now (the injected clock).
+  DateTime deviceNow() => _now();
+
+  /// [estimatedServerNow], or the device clock when never measured.
+  Future<DateTime> bestServerNow() async =>
+      (await estimatedServerNow()) ?? _now().toUtc();
+
   /// True when an in-memory (monotonic) anchor exists this process.
   bool get hasAnchor => _anchorServer != null;
 

@@ -7,6 +7,10 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text.dart';
 import '../../../widgets/coach_greeting_header.dart';
 import '../coach_app_state.dart';
+import '../../offline/coach_offline_controller.dart';
+import '../../offline/offline_logic.dart';
+import '../../offline/offline_strings.dart';
+import '../../offline/offline_widgets.dart';
 
 /// Coach QR / Scan — the home tab, now wired to `/api/coach/*`.
 ///
@@ -93,8 +97,25 @@ class _QrScreenState extends State<QrScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      _ManualLogRow(onTap: () => context.push('/manual-log')),
+                      const SizedBox(height: 20),
+                      const Center(child: SyncIndicatorChip()),
+                      const SizedBox(height: 16),
+                      _ManualLogRow(
+                        key: const Key('scan-pass-row'),
+                        icon: Icons.qr_code_scanner_rounded,
+                        label: OfflineStrings.current().scanPass,
+                        onTap: () => context.push('/scan-pass'),
+                      ),
+                      const SizedBox(height: 10),
+                      // Offline mode enabled for the gym → the outbox flow
+                      // (single code path, synced immediately when online);
+                      // otherwise the existing online manual log.
+                      _ManualLogRow(
+                        onTap: () => context.push(
+                            context.read<CoachOfflineController>().logPath == LogPath.outbox
+                                ? '/offline-log'
+                                : '/manual-log'),
+                      ),
                     ],
                   ),
                 ),
@@ -157,7 +178,14 @@ class _QrCard extends StatelessWidget {
 
 class _ManualLogRow extends StatelessWidget {
   final VoidCallback onTap;
-  const _ManualLogRow({required this.onTap});
+  final IconData icon;
+  final String label;
+  const _ManualLogRow({
+    super.key,
+    required this.onTap,
+    this.icon = Icons.edit_outlined,
+    this.label = 'Manual session log',
+  });
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -171,11 +199,11 @@ class _ManualLogRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.edit_outlined, size: 16, color: AppColors.text),
+            Icon(icon, size: 16, color: AppColors.text),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Manual session log',
+                label,
                 style: AppText.body(
                   size: 14,
                   weight: FontWeight.w500,

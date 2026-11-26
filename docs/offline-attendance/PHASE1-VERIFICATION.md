@@ -298,3 +298,14 @@ Phase 1 should **not** be signed off as is: three high-severity integration defe
 **Cleanup query:** every row is identifiable by `source_event_id` / `attendance_events.created_at > '2026-11-26 16:30Z'`.
 
 **Tokens:** the three minted tokens (ids 324–326, name `phase1-verify`) were deleted.
+
+## Re-verification after fixes (2026-11-26)
+
+All HIGH and MEDIUM findings fixed (commits c07d09e, cba1c63, 727ecff, 675b5c5, and the Flutter clock commit). Live runs against the amended API on :8082 (offline enabled):
+- Dashboard live suite 5/5 — incl. two accounts on one shared browser device both syncing.
+- Flutter live suite 5/5 — coach service_session + replay + IDOR + clock skew after a later clock change; member QR forms, lost response (exactly one row per event), wrong gym, garbage QR, valid QR after garbage; kill mid-sync recovery; 401 pause; second user on a bound device syncs.
+- Found during re-verification and fixed: skew detection missed clock changes made after the offset was measured (now anchored to a monotonic clock on both stacks).
+
+Suites: clby-api 260 passed; gym-admin 306 passed (+5 live skipped); clby_offline 120 passed (+1 live skipped); member app 14, coach app 2.
+
+Still open (not Phase 1 blockers): on-device Android check of the secure-storage fix (HIGH-2); `device_mismatch` for a gym switch only covered by fake-transport tests; clock changes made while the app/tab is closed are caught only after the next server response; live suites need the documented data reset between runs.

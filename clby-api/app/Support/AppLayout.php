@@ -13,8 +13,8 @@ namespace App\Support;
 final class AppLayout
 {
     public const SCREENS = [
-        'home' => ['banners', 'membership', 'todays_classes', 'activity', 'quick_access', 'locations'],
-        'explore' => ['memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'partners'],
+        'home' => ['banners', 'membership', 'todays_classes', 'activity', 'quick_access', 'events', 'locations'],
+        'explore' => ['memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'store', 'events', 'partners'],
     ];
 
     /**

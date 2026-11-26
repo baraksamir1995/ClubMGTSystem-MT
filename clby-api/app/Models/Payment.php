@@ -22,7 +22,7 @@ class Payment extends Model
         'transaction_id', 'metadata', 'paid_at', 'source',
         'service_type', 'service_name', 'original_amount', 'discount_amount',
         'promo_code_id', 'plan_promotion_id', 'specialist_name',
-        'payment_link_url', 'branch_id',
+        'payment_link_url', 'branch_id', 'event_registration_id',
     ];
 
     protected function casts(): array

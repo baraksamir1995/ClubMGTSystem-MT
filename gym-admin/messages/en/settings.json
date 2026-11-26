@@ -199,6 +199,10 @@
         "locations": {
           "title": "Our locations",
           "hint": "Branches carousel (only with 2+ branches)"
+        },
+        "events": {
+          "title": "Upcoming events",
+          "hint": "Next events members can join"
         }
       },
       "explore": {
@@ -229,6 +233,14 @@
         "partners": {
           "title": "Partners",
           "hint": "Partner brands and perks"
+        },
+        "store": {
+          "title": "Store",
+          "hint": "Products for sale"
+        },
+        "events": {
+          "title": "Events",
+          "hint": "Upcoming events and registration"
         }
       }
     }

@@ -20,7 +20,7 @@ void main() {
     expect(l.home, isNot(contains('banners')));
     expect(l.home, isNot(contains('from_the_future')));
     expect(l.home.where((k) => k == 'activity').length, 1);
-    expect(l.home.sublist(1), ['membership', 'todays_classes', 'quick_access', 'locations']);
+    expect(l.home.sublist(1), ['membership', 'todays_classes', 'quick_access', 'events', 'locations']);
     expect(l.explore, AppLayout.exploreKeys);
   });
 }

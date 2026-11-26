@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Services\PaymobService;
+use App\Support\EventConfigurations;
+use App\Support\EventRegistrationRules;
+use App\Support\ProductStock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -81,6 +84,14 @@ class PaymobController extends Controller
             'user_phone' => 'nullable|string|max:20',
             'user_name' => 'nullable|string|max:255',
             'specialist_name' => 'nullable|string|max:255',
+            // Store products (item_type=product): plan_id = product id. A
+            // variant is required when the product has active variants.
+            'variant_id' => 'nullable|uuid',
+            'quantity' => 'nullable|integer|min:1|max:10',
+            'purchase_note' => 'nullable|string|max:500',
+            // Paid events (item_type=event): plan_id = event id. Required
+            // when the event defines options.
+            'event_configuration_id' => 'nullable|uuid',
         ]);
 
         $user = $request->user();
@@ -107,7 +118,49 @@ class PaymobController extends Controller
         }
 
         // Server-derived price. The client never sets the amount.
-        $catalog = $this->resolveCatalogPrice($gymId, $validated['plan_id']);
+        $itemType = $validated['item_type'] ?? null;
+        if ($itemType === 'product') {
+            $line = ProductStock::resolveLine(
+                $gymId, $validated['plan_id'], $validated['variant_id'] ?? null,
+                (int) ($validated['quantity'] ?? 1),
+            );
+            if (isset($line['error'])) {
+                return response()->json(['error' => $line['error'], 'code' => $line['code']], $line['status']);
+            }
+            $catalog = [
+                'type' => 'product',
+                'name' => $line['name'],
+                'price_cents' => $line['amount_cents'],
+                'currency' => $line['product']->currency ?? 'EGP',
+                'row' => $line['product'],
+                'meta' => $line['meta'],
+            ];
+        } elseif ($itemType === 'event') {
+            $event = DB::table('events')
+                ->where('id', $validated['plan_id'])->where('gym_id', $gymId)
+                ->where('is_published', true)->first();
+            if (! $event || ! $event->is_paid || $event->price_cents === null) {
+                return response()->json(['error' => 'Item not available for purchase'], 404);
+            }
+            if ($err = EventRegistrationRules::check($event, $validated['member_id'])) {
+                return response()->json(['error' => $err['error'], 'code' => $err['code']], $err['status']);
+            }
+            $eventConfig = EventConfigurations::resolveSelection($event->id, $validated['event_configuration_id'] ?? null);
+            if (isset($eventConfig['error'])) {
+                return response()->json(['error' => $eventConfig['error'], 'code' => $eventConfig['code']], 422);
+            }
+            $catalog = [
+                'type' => 'event',
+                'name' => $eventConfig['name'] !== null ? "{$event->title} — {$eventConfig['name']}" : $event->title,
+                'price_cents' => (int) $event->price_cents,
+                'currency' => $event->currency ?? 'EGP',
+                'row' => $event,
+                'config' => $eventConfig,
+                'meta' => ['event_id' => $event->id],
+            ];
+        } else {
+            $catalog = $this->resolveCatalogPrice($gymId, $validated['plan_id']);
+        }
         if (! $catalog) {
             Log::warning('Paymob intention: plan/package not found in caller gym', [
                 'gym_id' => $gymId,
@@ -137,6 +190,10 @@ class PaymobController extends Controller
             ], 409);
         }
 
+        if (isset($catalog['currency'])) {
+            $validated['currency'] = $catalog['currency'];
+        }
+
         $creds = $this->paymob->resolveCredentials($gymId);
         if (empty($creds['secret_key'])) {
             return response()->json(['error' => 'Payment gateway not configured for this gym'], 500);
@@ -159,12 +216,28 @@ class PaymobController extends Controller
         // instead of creating duplicates).
         try {
             [$payment, $entitlementId] = DB::transaction(function () use (
-                $validated, $gymId, $catalog, $amountCents
+                $validated, $gymId, $catalog, $amountCents, $user
             ) {
                 $catRow            = $catalog['row'];
                 $membershipId      = null;
                 $serviceAssignment = null;
                 $entitlementId     = null;
+                $eventRegistrationId = null;
+
+                if ($catalog['type'] === 'event') {
+                    // Re-check under the event row lock so concurrent
+                    // checkouts can't overfill it, then hold the seat with a
+                    // pending_payment registration the webhook confirms.
+                    $event = DB::table('events')->where('id', $catRow->id)->lockForUpdate()->first();
+                    if ($err = EventRegistrationRules::check($event, $validated['member_id'])) {
+                        throw new \App\Exceptions\CheckoutRejected($err['error'], $err['code']);
+                    }
+                    $eventRegistrationId = EventRegistrationRules::upsert(
+                        $event, $validated['member_id'], $user->id,
+                        'pending_payment', 'unpaid', $catalog['config'],
+                    );
+                    $entitlementId = $eventRegistrationId;
+                }
 
                 if ($catalog['type'] === 'membership') {
                     $startDate = now()->toDateString();
@@ -232,6 +305,12 @@ class PaymobController extends Controller
                     'service_type' => $catalog['type'],
                     'service_name' => $catalog['name'],
                     'specialist_name' => $validated['specialist_name'] ?? null,
+                    'event_registration_id' => $eventRegistrationId,
+                    'metadata' => $catalog['meta'] ?? null,
+                    // Customer's note on a store purchase ("size M please").
+                    'notes' => ($catalog['type'] === 'product' && trim((string) ($validated['purchase_note'] ?? '')) !== '')
+                        ? 'Customer note: ' . trim($validated['purchase_note'])
+                        : null,
                 ]);
 
                 return [$payment, $entitlementId];
@@ -254,6 +333,8 @@ class PaymobController extends Controller
                     'entitlement_id' => $entitlementId,
                 ],
             ]);
+        } catch (\App\Exceptions\CheckoutRejected $e) {
+            return response()->json(['error' => $e->getMessage(), 'code' => $e->errorCode], 422);
         } catch (\Throwable $e) {
             Log::error('Paymob intention failed', [
                 'error' => $e->getMessage(),
@@ -367,12 +448,31 @@ class PaymobController extends Controller
         $appendedNotes = trim(($payment->notes ? $payment->notes . "\n" : '') . $newNote);
 
         DB::transaction(function () use ($payment, $newStatus, $newRefundedCents, $appendedNotes) {
-            $payment->update([
+            $updates = [
                 'status' => $newStatus,
                 'refunded_amount' => number_format($newRefundedCents / 100, 2, '.', ''),
                 'refunded_at' => now(),
                 'notes' => $appendedNotes,
-            ]);
+            ];
+
+            if ($newStatus === 'refunded') {
+                // Full refund of a store sale: put the stock back (once).
+                $meta = $payment->metadata ?? [];
+                if ($payment->service_type === 'product'
+                    && ! empty($meta['stock_decremented']) && empty($meta['stock_restored'])) {
+                    ProductStock::restore($meta);
+                    $updates['metadata'] = array_merge($meta, ['stock_restored' => true]);
+                }
+                // Full refund of an event payment: free the seat.
+                if ($payment->event_registration_id) {
+                    DB::table('event_registrations')
+                        ->where('id', $payment->event_registration_id)
+                        ->where('gym_id', $payment->gym_id)
+                        ->update(['status' => 'cancelled', 'payment_status' => 'refunded', 'updated_at' => now()]);
+                }
+            }
+
+            $payment->update($updates);
         });
 
         return response()->json([
@@ -535,6 +635,32 @@ class PaymobController extends Controller
                     ->update([
                         'status' => 'active',
                     ]);
+            }
+
+            // Confirm a paid event registration. Money was captured, so the
+            // seat is confirmed even if the hold lapsed meanwhile.
+            if ($target->event_registration_id) {
+                DB::table('event_registrations')
+                    ->where('id', $target->event_registration_id)
+                    ->where('gym_id', $gymId)
+                    ->update(['status' => 'confirmed', 'payment_status' => 'paid', 'updated_at' => now()]);
+            }
+
+            // Store purchase: take stock now that the payment is captured
+            // (never at intention — abandoned checkouts must not consume it).
+            $meta = $target->metadata ?? [];
+            if ($target->service_type === 'product' && ! empty($meta['product_id'])
+                && empty($meta['stock_decremented']) && empty($meta['stock_error'])) {
+                if (ProductStock::take($meta)) {
+                    $meta['stock_decremented'] = true;
+                } else {
+                    // Sold out between checkout and payment: keep the money
+                    // record, flag it for staff (refund or restock), never
+                    // let stock go negative.
+                    $meta['stock_error'] = 'insufficient_stock';
+                    Log::warning('Store purchase paid without stock', ['payment_id' => $target->id]);
+                }
+                $target->update(['metadata' => $meta]);
             }
         });
 

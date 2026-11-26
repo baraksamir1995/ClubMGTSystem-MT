@@ -31,6 +31,8 @@ use App\Http\Controllers\PaymentConfigController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymobController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\PlanPromotionController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\PromoCodeController;
@@ -209,6 +211,16 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
     // Paymob (mobile payment flow)
     Route::post('/paymob/intention', [PaymobController::class, 'intention']);
 
+    // Store (member browse; purchase = /paymob/intention item_type=product)
+    Route::get('/store/products', [ProductController::class, 'storeIndex']);
+
+    // Events (member) — free events register here; paid events go through
+    // /paymob/intention item_type=event and are confirmed by the webhook.
+    Route::get('/events', [EventController::class, 'published']);
+    Route::post('/events/{id}/register', [EventController::class, 'register']);
+    Route::get('/me/event-registrations', [EventController::class, 'myRegistrations']);
+    Route::post('/event-registrations/{id}/cancel', [EventController::class, 'cancelRegistration']);
+
     // Member details (own — scoped by gym_member_id in query)
     Route::get('/members', [MemberController::class, 'index']);
     Route::delete('/members/account', [MemberController::class, 'deleteAccount']);
@@ -355,6 +367,24 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Paymob admin
     Route::post('/paymob/refund', [PaymobController::class, 'refund'])->middleware('permission:payments,delete');
+
+    // Store catalog (admin) + front-desk sale
+    Route::get('/products', [ProductController::class, 'index'])->middleware('permission:store,view');
+    Route::post('/products', [ProductController::class, 'store'])->middleware('permission:store,create');
+    Route::post('/products/image', [ProductController::class, 'uploadImage'])->middleware('permission:store,edit');
+    Route::patch('/products/{id}', [ProductController::class, 'update'])->middleware('permission:store,edit');
+    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->middleware('permission:store,delete');
+    Route::post('/products/{id}/sell', [ProductController::class, 'sell'])->middleware('permission:payments,create');
+
+    // Events (admin)
+    Route::get('/admin/events', [EventController::class, 'index'])->middleware('permission:events,view');
+    Route::post('/admin/events', [EventController::class, 'store'])->middleware('permission:events,create');
+    Route::post('/admin/events/image', [EventController::class, 'uploadImage'])->middleware('permission:events,edit');
+    Route::put('/admin/events/{id}', [EventController::class, 'update'])->middleware('permission:events,edit');
+    Route::delete('/admin/events/{id}', [EventController::class, 'destroy'])->middleware('permission:events,delete');
+    Route::get('/admin/events/{id}/registrations', [EventController::class, 'registrations'])->middleware('permission:events,view');
+    Route::post('/admin/event-registrations/{id}/attended', [EventController::class, 'markAttended'])->middleware('permission:events,edit');
+    Route::post('/admin/event-registrations/{id}/mark-paid', [EventController::class, 'markRegistrationPaid'])->middleware('permission:payments,create');
 
     // File management (general utility, no specific module permission)
     Route::post('/files/url', [FileController::class, 'url']);

@@ -44,7 +44,7 @@ class AppLayoutTest extends TestCase
         $out = AppLayout::normalize(['explore' => [['key' => 'partners', 'visible' => false]]]);
 
         $this->assertSame(
-            ['partners', 'memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages'],
+            ['partners', 'memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'store', 'events'],
             array_column($out['explore'], 'key'),
         );
         $this->assertTrue($out['explore'][1]['visible']);

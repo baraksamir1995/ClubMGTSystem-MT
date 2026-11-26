@@ -5,10 +5,10 @@
 /// `lib/app-layout.ts`. Adding a section = add it in all three.
 class AppLayout {
   static const homeKeys = <String>[
-    'banners', 'membership', 'todays_classes', 'activity', 'quick_access', 'locations',
+    'banners', 'membership', 'todays_classes', 'activity', 'quick_access', 'events', 'locations',
   ];
   static const exploreKeys = <String>[
-    'memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'partners',
+    'memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'store', 'events', 'partners',
   ];
 
   /// Ordered list of VISIBLE section keys per screen.

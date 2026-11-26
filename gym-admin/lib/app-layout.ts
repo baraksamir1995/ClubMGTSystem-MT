@@ -4,8 +4,8 @@
 // app's `lib/models/app_layout.dart`. Adding a section = add it in all three.
 
 export const APP_LAYOUT_SCREENS = {
-  home: ['banners', 'membership', 'todays_classes', 'activity', 'quick_access', 'locations'],
-  explore: ['memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'partners'],
+  home: ['banners', 'membership', 'todays_classes', 'activity', 'quick_access', 'events', 'locations'],
+  explore: ['memberships', 'offers', 'trainers', 'services', 'programs', 'session_packages', 'store', 'events', 'partners'],
 } as const;
 
 export type AppLayoutScreen = keyof typeof APP_LAYOUT_SCREENS;

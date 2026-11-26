@@ -9,14 +9,17 @@
  *  - class rule (existing CLBY rule): one attendance per (member, class_session)
  *    — checked against the cached recent_attendance + non-rejected outbox rows.
  *
- * Clock skew (CONTRACT §6.6): `device_recorded_at` is device time, but when the
- * known server offset (server_time − device time) shows the server would always
- * reject the event (`clock_in_future` / `event_too_old`), recording is refused
- * with `clock_skew` instead of silently creating an unsyncable event.
+ * Clock skew (CONTRACT §6.6): `device_recorded_at` is device (wall) time. It is
+ * compared against the estimated server now from ./server-clock (anchored to a
+ * monotonic clock, so a clock changed AFTER the last measurement is caught too;
+ * after a reload it falls back to the persisted offset). When the server would
+ * always reject the event (`clock_in_future` / `event_too_old`), recording is
+ * refused with `clock_skew` instead of silently creating an unsyncable event.
  *
  * The server re-validates everything; a local pass never means "confirmed".
  */
 import { getCachedMember, getMeta, type OfflineDB } from './db';
+import { estimateServerNow, systemTime, type TimeSource } from './server-clock';
 import {
   DEFAULT_POLICY,
   type ActorType,
@@ -37,8 +40,14 @@ export interface RecorderContext {
   now?: () => Date;
   timeZone?: string;
   doubleTapWindowMs?: number;
-  /** override; defaults to meta `server_clock_offset_ms` (unknown → no skew check) */
+  /**
+   * Test/diagnostic override: treat server now as `stamp + clockOffsetMs`.
+   * Normally omitted → estimate from ./server-clock (unknown → no skew check).
+   */
   clockOffsetMs?: number | null;
+  /** clock source for the server-time estimate (monotonic + wall); default system clocks.
+   * The event stamp uses `now` if given, else `time.wallNow()`. */
+  time?: TimeSource;
 }
 
 export interface RecordAttendanceInput {
@@ -69,7 +78,7 @@ export type RecordResult =
       existingEvent?: OutboxRow;
       /** for already_checked_in from the server cache */
       existingAttendanceId?: string;
-      /** for clock_skew: server_time − device time (ms) */
+      /** for clock_skew: estimated server now − stamped device time (ms) */
       clockOffsetMs?: number;
     };
 
@@ -110,6 +119,7 @@ export function clockSkewVerdict(
   offsetMs: number | null | undefined,
   policy: Pick<OfflinePolicy, 'future_skew_seconds' | 'max_event_age_days'>,
 ): 'ok' | 'ahead' | 'behind' {
+  // offset = estimated server now − stamped device time
   if (offsetMs == null || !Number.isFinite(offsetMs)) return 'ok';
   const futureLimit = Math.max(0, policy.future_skew_seconds * 1000 - CLOCK_SKEW_MARGIN_MS);
   const pastLimit = Math.max(0, policy.max_event_age_days * 86_400_000 - CLOCK_SKEW_MARGIN_MS);
@@ -142,7 +152,18 @@ export async function recordAttendance(
     return { ok: false, reason: 'invalid_input' };
   }
 
-  const offset = ctx.clockOffsetMs !== undefined ? ctx.clockOffsetMs : await getMeta(db, 'server_clock_offset_ms');
+  const time: TimeSource =
+    ctx.time ?? (ctx.now ? { wallNow: () => ctx.now!().getTime(), monoNow: systemTime.monoNow } : systemTime);
+  const now = ctx.now?.() ?? new Date(time.wallNow());
+  const nowMs = now.getTime();
+
+  let offset: number | null;
+  if (ctx.clockOffsetMs !== undefined) {
+    offset = ctx.clockOffsetMs;
+  } else {
+    const est = await estimateServerNow(db, time);
+    offset = est.serverNowMs == null ? null : est.serverNowMs - nowMs;
+  }
   if (clockSkewVerdict(offset, policy) !== 'ok') {
     return { ok: false, reason: 'clock_skew', clockOffsetMs: offset ?? undefined };
   }
@@ -150,8 +171,6 @@ export async function recordAttendance(
   const member = await getCachedMember(db, input.member_id);
   if (!member) return { ok: false, reason: 'member_not_cached' };
 
-  const now = ctx.now?.() ?? new Date();
-  const nowMs = now.getTime();
   const classSessionId = input.class_session_id ?? null;
   const windowMs = ctx.doubleTapWindowMs ?? DEFAULT_DOUBLE_TAP_WINDOW_MS;
 

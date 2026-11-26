@@ -32,6 +32,7 @@ import {
   setMeta,
   type OfflineDB,
 } from './db';
+import { defaultMonoNow, recordServerTime } from './server-clock';
 import {
   DEFAULT_POLICY,
   EVENT_WIRE_KEYS,
@@ -268,6 +269,8 @@ export interface SyncEngineOptions {
   transport?: SyncTransport;
   lock?: SyncLock;
   now?: () => number;
+  /** monotonic clock for the server-time anchor (default performance.now) */
+  monoNow?: () => number;
   random?: () => number;
   clientInfo?: ClientInfo;
   /** request timeout; a timeout leaves events pending (default 30 s) */
@@ -359,6 +362,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
   const lock = options.lock ?? createDefaultLock(db);
   const now = options.now ?? (() => Date.now());
   const random = options.random ?? Math.random;
+  const monoNow = options.monoNow ?? defaultMonoNow;
   const timeoutMs = options.timeoutMs ?? 30_000;
   const clientInfo = options.clientInfo ?? defaultClientInfo();
   const maxEnvelopeAttempts = Math.max(1, options.maxEnvelopeAttempts ?? 5);
@@ -650,6 +654,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         },
         { timeoutMs },
       );
+      const receivedAt = { wall: now(), mono: monoNow() };
 
       if (outcome.type === 'ok') {
         const t = await applyResults(batch, outcome.response.results, policy);
@@ -657,8 +662,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         summary.rejected += t.rejected;
         summary.retrying += t.retrying;
         await setMeta(db, 'last_successful_sync_at', new Date(now()).toISOString());
-        const serverMs = Date.parse(outcome.response.server_time);
-        if (!Number.isNaN(serverMs)) await setMeta(db, 'server_clock_offset_ms', serverMs - now());
+        await recordServerTime(db, outcome.response.server_time, receivedAt);
         continue;
       }
 

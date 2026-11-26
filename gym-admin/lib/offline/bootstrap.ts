@@ -17,6 +17,7 @@ import {
   type OfflineDB,
 } from './db';
 import { clientHeaders, type ClientInfo } from './sync-engine';
+import { defaultMonoNow, recordServerTime } from './server-clock';
 import {
   DEFAULT_POLICY,
   type AdminBootstrapPage,
@@ -107,6 +108,8 @@ export interface BootstrapOptions {
   /** safety stop against a server that never ends the cursor */
   maxPages?: number;
   now?: () => number;
+  /** monotonic clock for the server-time anchor (default performance.now) */
+  monoNow?: () => number;
 }
 
 function isPage(x: unknown): x is AdminBootstrapPage {
@@ -127,7 +130,8 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
   let first: AdminBootstrapPage | null = null;
   let cursor: string | null = null;
   let pages = 0;
-  let offsetMs: number | null = null;
+  const monoNow = opts.monoNow ?? defaultMonoNow;
+  let clockReading: { serverTime: string; wall: number; mono: number } | null = null;
 
   do {
     if (pages >= maxPages) return { ok: false, reason: 'too_many_pages', cacheWiped: false };
@@ -140,12 +144,14 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
       }
       return { ok: false, reason: out.reason, cacheWiped: false };
     }
-    const receivedAt = now();
+    const receivedWall = now();
+    const receivedMono = monoNow();
     const page = out.data;
     if (!isPage(page)) return { ok: false, reason: 'invalid_response', cacheWiped: false };
-    // measured per page at receipt (not after paging) so it isn't biased by download time
-    const pageServerMs = Date.parse(page.server_time);
-    if (!Number.isNaN(pageServerMs)) offsetMs = pageServerMs - receivedAt;
+    // taken per page at receipt (not after paging) so it isn't biased by download time
+    if (!Number.isNaN(Date.parse(page.server_time))) {
+      clockReading = { serverTime: page.server_time, wall: receivedWall, mono: receivedMono };
+    }
     if (page.gym.id !== opts.gymId) return { ok: false, reason: 'gym_mismatch', cacheWiped: false };
     pages++;
     if (!first) first = page;
@@ -182,9 +188,11 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
       policy: first.policy ?? DEFAULT_POLICY,
       snapshot_stored_at: now(),
       bootstrap_cursor: null,
-      ...(offsetMs == null ? {} : { server_clock_offset_ms: offsetMs }),
     },
   });
+  if (clockReading) {
+    await recordServerTime(db, clockReading.serverTime, { wall: clockReading.wall, mono: clockReading.mono });
+  }
 
   return {
     ok: true,
@@ -203,7 +211,13 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
 export async function fetchOfflineStatus(
   db: OfflineDB,
   deviceId: string,
-  opts: { endpoint?: string; fetchImpl?: typeof fetch; clientInfo?: ClientInfo; now?: () => number } = {},
+  opts: {
+    endpoint?: string;
+    fetchImpl?: typeof fetch;
+    clientInfo?: ClientInfo;
+    now?: () => number;
+    monoNow?: () => number;
+  } = {},
 ): Promise<FetchOutcome<OfflineStatusResponse>> {
   const endpoint = opts.endpoint ?? '/api/attendance/offline/status';
   const now = opts.now ?? (() => Date.now());
@@ -212,14 +226,13 @@ export async function fetchOfflineStatus(
     clientHeaders(deviceId, opts.clientInfo),
     opts.fetchImpl,
   );
-  const receivedAt = now();
+  const receivedAt = { wall: now(), mono: (opts.monoNow ?? defaultMonoNow)() };
   if (out.ok && out.data?.policy) {
     await setMeta(db, 'policy', { ...out.data.policy, enabled: out.data.enabled ?? out.data.policy.enabled });
   }
   if (out.ok) {
     // CONTRACT §6.6: offset = server_time − local time
-    const serverMs = Date.parse(out.data?.server_time ?? '');
-    if (!Number.isNaN(serverMs)) await setMeta(db, 'server_clock_offset_ms', serverMs - receivedAt);
+    await recordServerTime(db, out.data?.server_time, receivedAt);
   }
   return out;
 }

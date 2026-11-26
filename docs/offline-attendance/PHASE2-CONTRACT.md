@@ -53,3 +53,12 @@ Coach scans a member pass to pick the member → then picks one of that member's
 - `policy.enabled == true`: every attendance / PT record from the new screens goes through the outbox and is synced immediately when online (single code path; the existing online endpoints are not called by the new screens). The item shows "Synced" within seconds when online.
 - `policy.enabled == false` (the shipped default): the new screens call the existing online endpoints (`POST /attendance`, `POST /coach/sessions/decrement`) exactly like today, and show a clear "offline mode is off for this gym" note. Staff QR scanning still works online (verify pass → member → existing endpoint).
 - The existing attendance pages/screens stay as they are; the new screens are additive (dashboard: a new client-rendered route; coach app: wire into the existing log flow where natural).
+
+## Amendments after Phase 2 verification (2026-11-26, binding)
+
+1. **Pass must predate the scan.** Add to step 5: `iat` ≤ `device_recorded_at` + `future_skew_seconds` (server) / ≤ scan time + skew (clients), else `qr_invalid`. `iat > exp` → `qr_invalid` everywhere.
+2. **Check order for messages:** after parsing (1), check `g` == staff gym (4) **before** key lookup (2), so another gym's pass says "wrong gym", not "refresh offline data". Then 2, 3, 5, 6.
+3. **Strict canonical parsing on all three implementations** (a pass has exactly one valid QR text): JSON must be an object with exactly the 9 keys; `t` string, `v` integer `1` (not `1.0`), `kid`/`g`/`m` strings, `n` integer or null (not a string), `iat`/`exp` integers (no fractional/`.0`), `sig` base64url without padding whose decoded length is 64 and which re-encodes to the same string (reject non-canonical trailing bits, `+`/`/`, `=`); no BOM; total length ≤ 1024 chars. Anything else → `qr_invalid`.
+4. **Key revocation:** `gym_signing_keys.status` gains `revoked` — never accepted, no grace. `pass_keys` includes revoked keys with `status: "revoked"` so clients reject them offline. Artisan command `attendance:pass-key {gym_id} {--rotate} {--revoke=kid}`.
+5. **Unverified QR data:** `qr_meta` is stored only for passes that verified; rejected passes store only `{verified:false, reason}` (no claimed member/kid/times as if trusted).
+6. **Review endpoint:** rows with result `error` return a generic message (no exception text).

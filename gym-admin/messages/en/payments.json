@@ -4,6 +4,7 @@
 
   "recordPayment": "Record Payment",
   "createPayment": "Create Payment",
+  "walkIn": "Walk-in customer",
   "sendReminders": "Send Reminders",
 
   "summary": {
@@ -27,6 +28,8 @@
 
   "method": {
     "cash": "Cash",
+    "instapay": "InstaPay",
+    "wallet": "Mobile Wallet",
     "bankTransfer": "Bank Transfer",
     "card": "Card",
     "other": "Other",
@@ -180,7 +183,9 @@
     "session_package": "Session Package",
     "program": "Programme",
     "offer": "Offer",
-    "other": "Other"
+    "other": "Other",
+    "product": "Store Product",
+    "event": "Event"
   },
 
   "trainerTypes": {

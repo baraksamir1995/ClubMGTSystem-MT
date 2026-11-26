@@ -4,6 +4,7 @@
 
   "recordPayment": "تسجيل دفعة",
   "createPayment": "إنشاء دفعة",
+  "walkIn": "عميل بدون عضوية",
   "sendReminders": "إرسال تذكيرات",
 
   "summary": {
@@ -27,6 +28,8 @@
 
   "method": {
     "cash": "نقداً",
+    "instapay": "إنستاباي",
+    "wallet": "محفظة إلكترونية",
     "bankTransfer": "تحويل بنكي",
     "card": "بطاقة",
     "other": "أخرى",
@@ -180,7 +183,9 @@
     "session_package": "باقة جلسات",
     "program": "برنامج",
     "offer": "عرض",
-    "other": "أخرى"
+    "other": "أخرى",
+    "product": "منتج من المتجر",
+    "event": "فعالية"
   },
 
   "trainerTypes": {

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, Search, X, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Clock, AlertCircle, FileText, RotateCcw, Bell, Filter, Download } from 'lucide-react';
+import { Plus, Search, X, ChevronLeft, ChevronRight, DollarSign, CheckCircle, Clock, AlertCircle, FileText, RotateCcw, Bell, Filter, Download, UserRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import RecordPaymentModal from './record-payment-modal';
@@ -58,7 +58,15 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     bank_transfer: t('method.bankTransfer'),
     card:          t('method.card'),
     other:         t('method.other'),
+    instapay:      t('method.instapay'),
+    wallet:        t('method.wallet'),
   };
+
+  // Known service types get a translated label; anything else falls back to
+  // the raw value with underscores spaced out (rendered capitalised).
+  const SERVICE_TYPE_KEYS = new Set(['membership', 'session_package', 'program', 'offer', 'other', 'product', 'event']);
+  const serviceTypeLabel = (type: string) =>
+    SERVICE_TYPE_KEYS.has(type) ? t(`serviceTypes.${type}`) : type.replace(/_/g, ' ');
 
   const [payments, setPayments] = useState<Payment[]>(initial);
   const [modalOpen, setModalOpen]           = useState(false);
@@ -444,15 +452,25 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                       return (
                         <tr key={payment.id} className="hover:bg-surface-3/30 transition-colors">
                           <td className="px-5 py-3.5">
-                            <Link href={`/dashboard/members/${payment.gym_member_id}`} className="flex items-center gap-3 hover:opacity-80">
-                              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
-                                {String(payment.full_name ?? payment.member_number ?? "?").slice(0, 2).toUpperCase()}
+                            {payment.gym_member_id ? (
+                              <Link href={`/dashboard/members/${payment.gym_member_id}`} className="flex items-center gap-3 hover:opacity-80">
+                                <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand flex-shrink-0">
+                                  {String(payment.full_name ?? payment.member_number ?? "?").slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="text-fg font-medium hover:text-brand transition-colors">{payment.full_name}</p>
+                                  <p className="text-xs text-fg-faint">{payment.member_number}</p>
+                                </div>
+                              </Link>
+                            ) : (
+                              // Front-desk store sale with no member attached.
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-surface-3 flex items-center justify-center text-fg-faint flex-shrink-0">
+                                  <UserRound className="w-4 h-4" aria-hidden />
+                                </div>
+                                <p className="text-fg-muted font-medium">{t('walkIn')}</p>
                               </div>
-                              <div>
-                                <p className="text-fg font-medium hover:text-brand transition-colors">{payment.full_name}</p>
-                                <p className="text-xs text-fg-faint">{payment.member_number}</p>
-                              </div>
-                            </Link>
+                            )}
                           </td>
                           <td className="px-5 py-3.5 font-semibold text-fg">
                             {fmt(payment.amount, payment.currency)}
@@ -463,7 +481,7 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
                                 <p className="text-fg text-sm">{payment.service_name}</p>
                                 {payment.service_type && (
                                   <p className="text-xs text-fg-faint mt-0.5 capitalize">
-                                    {payment.service_type.replace(/_/g, ' ')}
+                                    {serviceTypeLabel(payment.service_type)}
                                   </p>
                                 )}
                               </div>

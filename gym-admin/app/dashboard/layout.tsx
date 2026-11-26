@@ -67,6 +67,8 @@ const ALL_NAV = [
   { href: '/dashboard/classes',      module: 'classes' },
   { href: '/dashboard/promotions',   module: 'promotions' },
   { href: '/dashboard/services',     module: 'classes' },
+  { href: '/dashboard/events',       module: 'events' },
+  { href: '/dashboard/store',        module: 'store' },
   { href: '/dashboard/attendance',   module: 'attendance' },
   { href: '/dashboard/invitations',  module: 'invitations' },
   { href: '/dashboard/content',      module: 'content' },

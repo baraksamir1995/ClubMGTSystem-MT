@@ -245,7 +245,9 @@ export default function InvoiceModal({ payment, gym, onClose }: Props) {
                         </p>
                         {payment.service_type && (
                           <p className="text-xs text-neutral-600 mt-0.5 capitalize">
-                            {payment.service_type.replace(/_/g, ' ')}
+                            {['membership', 'session_package', 'program', 'offer', 'other', 'product', 'event'].includes(payment.service_type)
+                              ? t(`serviceTypes.${payment.service_type}`)
+                              : payment.service_type.replace(/_/g, ' ')}
                           </p>
                         )}
                         {payment.specialist_name && (

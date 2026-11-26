@@ -1,0 +1,116 @@
+{
+  "title": "Store",
+  "subtitle": "Sell merchandise and supplements at the front desk and in the app.",
+  "addProduct": "Add product",
+  "searchPlaceholder": "Search products or variants…",
+  "variantCount": "{count, plural, one {# variant} other {# variants}}",
+  "activate": "Activate",
+  "deactivate": "Deactivate",
+  "col": {
+    "product": "Product",
+    "price": "Price",
+    "stock": "Stock"
+  },
+  "stock": {
+    "untracked": "Untracked",
+    "out": "Out of stock",
+    "low": "Low stock"
+  },
+  "stats": {
+    "total": "Products",
+    "active": "Active",
+    "low": "Low stock",
+    "out": "Out of stock"
+  },
+  "filter": {
+    "all": "All products",
+    "active": "Active only",
+    "inactive": "Inactive only"
+  },
+  "empty": {
+    "title": "No products yet",
+    "description": "Add your first product to start selling at the desk and in the member app.",
+    "noMatch": "No products match your search"
+  },
+  "toast": {
+    "activated": "Product activated",
+    "deactivated": "Product deactivated",
+    "deleted": "Product deleted"
+  },
+  "delete": {
+    "title": "Delete product?",
+    "body": "\"{name}\" will be removed from the store. Past sales stay in Payments."
+  },
+  "modal": {
+    "addTitle": "New product",
+    "editTitle": "Edit product",
+    "create": "Create product",
+    "created": "Product created",
+    "updated": "Product updated",
+    "active": "Active",
+    "activeHint": "Visible in the member app and available to sell.",
+    "inactiveHint": "Hidden from the app and can't be sold.",
+    "image": "Image",
+    "noImage": "No image",
+    "uploadImage": "Upload",
+    "replaceImage": "Replace",
+    "removeImage": "Remove image",
+    "imageBadType": "Use a JPG, PNG, WebP or GIF image.",
+    "imageTooBig": "Image must be 5 MB or smaller.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Club T-shirt",
+    "descriptionPlaceholder": "Optional details shown in the app",
+    "price": "Price",
+    "priceVariantsHint": "Defaults to the cheapest variant",
+    "beforePrice": "Before price",
+    "beforePriceHint": "Shown struck-through",
+    "displayOrder": "Display order",
+    "stock": "Stock",
+    "stockHint": "Leave empty to not track stock (unlimited).",
+    "stockVariantsHint": "Stock is tracked per variant below.",
+    "untrackedPlaceholder": "Untracked",
+    "variants": "Variants",
+    "variantsHint": "Sizes, flavours or colours. When a product has variants, the buyer must pick one.",
+    "addVariant": "Add variant",
+    "variantName": "Variant name",
+    "variantNamePlaceholder": "e.g. M, Chocolate",
+    "variantActive": "Active",
+    "removeVariant": "Remove variant",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "nameRequired": "Enter a product name.",
+    "priceRequired": "Enter a valid price.",
+    "invalidBeforePrice": "Before price must be 0 or more.",
+    "invalidStock": "Stock must be a whole number of 0 or more.",
+    "variantNameRequired": "Variant {row} needs a name.",
+    "variantPriceRequired": "Variant {row} needs a valid price.",
+    "variantNamesUnique": "Variant names must be unique."
+  },
+  "sell": {
+    "action": "Sell",
+    "inactiveHint": "Activate the product to sell it",
+    "title": "Sell {name}",
+    "variant": "Variant",
+    "chooseVariant": "Choose a variant…",
+    "soldOut": "sold out",
+    "inStock": "{count} in stock",
+    "untracked": "Stock not tracked",
+    "quantity": "Quantity",
+    "quantityInvalid": "Quantity must be between 1 and 100.",
+    "onlyLeft": "Only {count} left in stock.",
+    "member": "Member (optional)",
+    "memberSearchPlaceholder": "Search by name, phone, email or member #",
+    "searching": "Searching…",
+    "noMembers": "No members found",
+    "clearMember": "Clear member",
+    "walkInHint": "Leave empty for a walk-in customer.",
+    "noBranch": "No branch",
+    "confirm": "Record sale",
+    "success": "Sale recorded — {name}",
+    "errors": {
+      "out_of_stock": "Not enough stock for this sale.",
+      "variant_required": "Choose a variant first.",
+      "product_unavailable": "This product is no longer available."
+    }
+  }
+}

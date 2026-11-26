@@ -17,6 +17,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Offline-attendance sync APIs are called by background code (sync engine,
+  // later a service worker) that must see a real 401 — a redirect to the
+  // /login HTML would look like a 200. Still unauthenticated → still blocked;
+  // the route handlers additionally verify the token via resolveGymId().
+  if (!token && isOfflineAttendanceApi(pathname)) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'auth_required' }, { status: 401 });
+  }
+
   // Redirect unauthenticated users to /login
   if (!token && pathname !== '/login') {
     return redirect('/login');
@@ -34,6 +42,11 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set('x-pathname', pathname);
   return response;
+}
+
+/** Exact paths only — no prefix match on /api/attendance itself. */
+function isOfflineAttendanceApi(pathname: string): boolean {
+  return pathname === '/api/attendance/sync' || pathname.startsWith('/api/attendance/offline/');
 }
 
 export const config = {

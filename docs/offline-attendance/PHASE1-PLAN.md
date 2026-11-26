@@ -74,7 +74,7 @@ All new tests green; full existing API suite green; `store()` responses unchange
 
 ## 4. Decisions
 
-Asked of the product owner: P0 hotfix, D1 gym-entry dedupe, D2 validity timing, D5 coach scope.
+Answered by the product owner 2026-11-26: P0 cross-tenant check-in → fixed separately (commit 4dfba7f, cherry-picked here); **D1 = A** (event_id-only dedupe for gym entry); **D2 = A** (validity as of device time, exhausted → accept + flag); **D5 = A** (coaches: PT/physio service sessions offline). Binding details in `CONTRACT.md`.
 
 Defaults taken unless overridden:
 - **D3** signed static v2 branch QR + optional rotating kiosk mode (Phase 3); `allow_member_qr_offline=false` until then.

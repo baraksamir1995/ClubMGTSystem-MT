@@ -94,11 +94,22 @@ class EventController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $gymId = $request->user()->gym_id;
-        if (! DB::table('events')->where('id', $id)->where('gym_id', $gymId)->exists()) {
+        $current = DB::table('events')->where('id', $id)->where('gym_id', $gymId)->first();
+        if (! $current) {
             return response()->json(['error' => 'Event not found.'], 404);
         }
 
         $v = $this->validatePayload($request, partial: true);
+        // Check the price rule against the event as it will be saved, so a
+        // partial update can't leave a paid event below the minimum.
+        $isPaid = (bool) ($v['is_paid'] ?? $current->is_paid);
+        $price = array_key_exists('price_cents', $v) ? $v['price_cents'] : $current->price_cents;
+        if ($isPaid && (int) $price < 100) {
+            return response()->json([
+                'message' => 'Paid events need a price of at least 1.00.',
+                'errors' => ['price_cents' => ['Paid events need a price of at least 1.00.']],
+            ], 422);
+        }
         $v['updated_at'] = now();
 
         DB::transaction(function () use ($id, $v, $request, $gymId) {
@@ -384,8 +395,8 @@ class EventController extends Controller
         ]);
         if (array_key_exists('currency', $v) && $v['currency'] === null) unset($v['currency']);
         // A paid event must carry a chargeable price (Paymob minimum is 1.00).
-        $priceGiven = array_key_exists('price_cents', $v);
-        if (($v['is_paid'] ?? false) && ($priceGiven || ! $partial) && (int) ($v['price_cents'] ?? 0) < 100) {
+        // Create path only; update() checks against the merged row.
+        if (! $partial && ($v['is_paid'] ?? false) && (int) ($v['price_cents'] ?? 0) < 100) {
             abort(response()->json([
                 'message' => 'Paid events need a price of at least 1.00.',
                 'errors' => ['price_cents' => ['Paid events need a price of at least 1.00.']],

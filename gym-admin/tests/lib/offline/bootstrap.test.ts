@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { freshIndexedDb, openTestDb, putRows, row, seedMembers, GYM } from './helpers';
 import {
   computeStaleness,
+  isDateOnly,
+  toDateOnly,
   createFetchBootstrapper,
   fetchOfflineStatus,
   getStaleness,
@@ -161,5 +163,51 @@ describe('bootstrap', () => {
     expect(computeStaleness('2026-11-25T11:59:00Z', p, now)).toMatchObject({ stale: true });
     expect(computeStaleness(null, p, now)).toMatchObject({ stale: true, age_ms: null });
     expect(await getStaleness(db, now)).toMatchObject({ stale: true, as_of: null });
+  });
+
+  it('date-only bucket fields are stored as YYYY-MM-DD (§6.4), tolerating the legacy instant form', async () => {
+    const legacy = bm('m1');
+    legacy.buckets[0].start_date = '2026-10-31T22:00:00.000Z'; // = 2026-11-01 00:00 Africa/Cairo (+02)
+    legacy.buckets[0].end_date = '2027-07-25T21:00:00.000Z'; // = 2027-07-26 00:00 Cairo (+03, DST)
+    const modern = bm('m2');
+    modern.buckets[0].end_date = '2027-01-31';
+    modern.buckets[0].start_date = null;
+    const { fetcher } = fetcherFrom({ first: { ok: true, data: page([legacy, modern], null) } });
+    await runBootstrap(db, { gymId: GYM, fetcher });
+    expect(await getMemberMemberships(db, 'm1')).toEqual([expect.objectContaining({ start_date: '2026-11-01', end_date: '2027-07-26' })]);
+    expect(await getMemberMemberships(db, 'm2')).toEqual([expect.objectContaining({ start_date: null, end_date: '2027-01-31' })]);
+  });
+
+  it('toDateOnly / isDateOnly', () => {
+    expect(isDateOnly('2026-02-28')).toBe(true);
+    expect(isDateOnly('2026-02-30')).toBe(false);
+    expect(toDateOnly('2026-02-30', 'UTC')).toBeNull();
+    expect(toDateOnly('garbage', 'UTC')).toBeNull();
+    expect(toDateOnly('', 'UTC')).toBeNull();
+    expect(toDateOnly('2026-06-30T22:30:00Z', 'Asia/Tokyo')).toBe('2026-07-01');
+  });
+
+  it('accepts null full_name / class name (§ types) and still indexes search', async () => {
+    const nameless = { ...bm('m9'), full_name: null };
+    const { fetcher } = fetcherFrom({
+      first: { ok: true, data: page([nameless], null, { class_sessions: [{ id: 'cs9', class_id: null, name: null, branch_id: null, studio_id: null, starts_at: '2026-11-26T12:00:00Z', ends_at: null }] }) },
+    });
+    expect((await runBootstrap(db, { gymId: GYM, fetcher })).ok).toBe(true);
+    expect((await db.get('members', 'm9'))?.name_lc).toBe('');
+    expect((await db.get('class_sessions', 'cs9'))?.name).toBeNull();
+  });
+
+  it('records server clock offset from the bootstrap page, measured at receipt (§6.6)', async () => {
+    let t = Date.parse('2026-11-26T10:00:00.000Z'); // page server_time is 10:00:05
+    const { fetcher } = fetcherFrom({ first: { ok: true, data: page([bm('m1')], null) } });
+    await runBootstrap(db, { gymId: GYM, fetcher, now: () => t++ });
+    expect(await getMeta(db, 'server_clock_offset_ms')).toBe(5_000);
+  });
+
+  it('fetchOfflineStatus records the server clock offset (§6.6)', async () => {
+    const body = { server_time: '2026-11-26T10:00:00.000Z', enabled: true, policy: { ...DEFAULT_POLICY }, device: { registered: true, revoked: false } };
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+    await fetchOfflineStatus(db, 'dev-1', { fetchImpl, now: () => Date.parse('2026-11-26T11:00:00.000Z') });
+    expect(await getMeta(db, 'server_clock_offset_ms')).toBe(-3_600_000); // device 1 h fast
   });
 });

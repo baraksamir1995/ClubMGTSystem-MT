@@ -11,8 +11,13 @@
  *  - accepted/duplicate → synced, rejected → rejected (kept, never deleted),
  *    error / network / timeout / 5xx / 429 → pending with exponential backoff + jitter;
  *  - 401 (or a redirect to /login) → pause `auth_required`, 403 → pause
- *    (`device_revoked` / `forbidden`); paused batches are restored exactly
- *    as they were (attempts not counted);
+ *    (`device_revoked` / `device_mismatch` / `forbidden`, §6.1); paused
+ *    batches are restored exactly as they were (attempts not counted);
+ *  - 422 envelope errors (§6.5): events the 422 body names are rejected
+ *    `invalid_envelope`; otherwise the batch is re-sent one event at a time to
+ *    isolate the culprit, and a single event that keeps getting 422 is backed
+ *    off and, after `maxEnvelopeAttempts`, put on hold (stays `pending`, not
+ *    auto-retried, counted in `state.held`, status `failed`);
  *  - the engine NEVER deletes an event.
  *
  * Transport, lock, clock and randomness are injectable for tests.
@@ -22,7 +27,7 @@ import {
   getMeta,
   listDueOutbox,
   listOutboxByStatus,
-  nextRetryAt,
+  pendingSummary,
   recoverSyncingRows,
   setMeta,
   type OfflineDB,
@@ -270,6 +275,8 @@ export interface SyncEngineOptions {
   isOnline?: () => boolean;
   /** cross-tab change notifications via BroadcastChannel (default true when available) */
   broadcast?: boolean;
+  /** 422s a single event may get before it is put on hold (default 5, §6.5) */
+  maxEnvelopeAttempts?: number;
 }
 
 export interface SyncRunSummary {
@@ -311,10 +318,39 @@ function toWireEvent(row: OutboxRow): OfflineEvent {
   return out as unknown as OfflineEvent;
 }
 
-function pauseReasonFor403(body: unknown): PauseReason {
-  const b = (body ?? {}) as { code?: unknown; error?: unknown; message?: unknown };
-  const text = [b.code, b.error, b.message].filter((v) => typeof v === 'string').join(' ').toLowerCase();
-  return text.includes('device') ? 'device_revoked' : 'forbidden';
+/** CONTRACT §6.1: device_mismatch and device_revoked are distinct pause reasons. */
+export function pauseReasonFor403(body: unknown): PauseReason {
+  const code = (body as { code?: unknown } | null)?.code;
+  if (code === 'device_revoked') return 'device_revoked';
+  if (code === 'device_mismatch') return 'device_mismatch';
+  return 'forbidden';
+}
+
+/**
+ * Event ids a 422 body explicitly blames (§6.5): either
+ * `{ code: 'invalid_envelope', event_ids: [...] }` or Laravel validation
+ * `errors` keyed `events.<index>[.field]`. Returns id → message.
+ */
+export function envelopeRejectedIds(body: unknown, batch: { event_id: string }[]): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!body || typeof body !== 'object') return out;
+  const b = body as { code?: unknown; event_ids?: unknown; errors?: unknown; message?: unknown };
+  const fallback = typeof b.message === 'string' ? b.message : 'invalid_envelope';
+  const inBatch = new Set(batch.map((r) => r.event_id));
+  if (b.code === 'invalid_envelope' && Array.isArray(b.event_ids)) {
+    for (const id of b.event_ids) if (typeof id === 'string' && inBatch.has(id)) out.set(id, fallback);
+  }
+  if (b.errors && typeof b.errors === 'object') {
+    for (const [key, msgs] of Object.entries(b.errors as Record<string, unknown>)) {
+      const m = /^events\.(\d+)(?:\.|$)/.exec(key);
+      if (!m) continue;
+      const row = batch[Number(m[1])];
+      if (!row) continue;
+      const msg = Array.isArray(msgs) && typeof msgs[0] === 'string' ? msgs[0] : fallback;
+      if (!out.has(row.event_id)) out.set(row.event_id, msg);
+    }
+  }
+  return out;
 }
 
 export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
@@ -325,6 +361,9 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
   const random = options.random ?? Math.random;
   const timeoutMs = options.timeoutMs ?? 30_000;
   const clientInfo = options.clientInfo ?? defaultClientInfo();
+  const maxEnvelopeAttempts = Math.max(1, options.maxEnvelopeAttempts ?? 5);
+  /** event ids to send one at a time after an unspecific 422 on a multi-event batch */
+  const isolate = new Set<string>();
   const isOnline =
     options.isOnline ??
     (() => {
@@ -352,6 +391,8 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     data_age_ms: null,
     data_expired: true,
     next_retry_at: null,
+    held: 0,
+    clock_offset_ms: null,
   };
 
   const channelName = `clby-offline-sync:${db.name}`;
@@ -376,13 +417,14 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
   }
 
   async function refresh(): Promise<SyncEngineState> {
-    const [counts, policy, asOf, lastOk, lastAttempt, retryAt] = await Promise.all([
+    const [counts, policy, asOf, lastOk, lastAttempt, pend, offset] = await Promise.all([
       countOutbox(db),
       getMeta(db, 'policy'),
       getMeta(db, 'as_of'),
       getMeta(db, 'last_successful_sync_at'),
       getMeta(db, 'last_sync_attempt_at'),
-      nextRetryAt(db),
+      pendingSummary(db),
+      getMeta(db, 'server_clock_offset_ms'),
     ]);
     const p = policy ?? DEFAULT_POLICY;
     const online = isOnline();
@@ -393,7 +435,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     let status: SyncEngineState['status'];
     if (running) status = 'syncing';
     else if (!online) status = 'offline';
-    else if (paused || (lastError && counts.pending > 0)) status = 'failed';
+    else if (paused || pend.held > 0 || (lastError && counts.pending > 0)) status = 'failed';
     else if (expired) status = 'expired';
     else if (counts.pending > 0 || counts.syncing > 0) status = 'pending';
     else status = 'online';
@@ -410,7 +452,9 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       data_as_of: asOf ?? null,
       data_age_ms: age,
       data_expired: expired,
-      next_retry_at: retryAt,
+      next_retry_at: pend.nextRetryAt,
+      held: pend.held,
+      clock_offset_ms: offset ?? null,
     };
     emit();
     return state;
@@ -462,7 +506,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     for (const row of rows) {
       const r = byId.get(row.event_id);
       const attempts = row.sync_attempts + 1;
-      const base = { ...row, sync_started_at: null, sync_attempts: attempts };
+      const base = { ...row, sync_started_at: null, sync_attempts: attempts, sync_hold: null, envelope_failures: 0 };
       if (r && (r.status === 'accepted' || r.status === 'duplicate')) {
         tally.synced++;
         await tx.store.put({
@@ -511,6 +555,57 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     return tally;
   }
 
+  /** Keep order; an isolated row (after an unspecific 422) goes alone. */
+  function pickBatch(due: OutboxRow[], size: number): OutboxRow[] {
+    if (isolate.has(due[0].event_id)) return [due[0]];
+    const out: OutboxRow[] = [];
+    for (const r of due) {
+      if (out.length >= size || isolate.has(r.event_id)) break;
+      out.push(r);
+    }
+    return out;
+  }
+
+  async function rejectEnvelope(rows: OutboxRow[], messages: Map<string, string>) {
+    const tx = db.transaction('outbox', 'readwrite');
+    for (const row of rows) {
+      await tx.store.put({
+        ...row,
+        sync_status: 'rejected',
+        sync_started_at: null,
+        sync_attempts: row.sync_attempts + 1,
+        next_attempt_at: null,
+        last_sync_error: null,
+        result_status: 'rejected',
+        result_code: 'invalid_envelope',
+        result_message: messages.get(row.event_id) ?? 'invalid_envelope',
+        sync_hold: null,
+      });
+      isolate.delete(row.event_id);
+    }
+    await tx.done;
+  }
+
+  /** A single event got an unspecific 422: back off; after the cap, hold it. Returns true if held. */
+  async function envelopeFailure(row: OutboxRow, policy: OfflinePolicy, body: unknown): Promise<boolean> {
+    const failures = (row.envelope_failures ?? 0) + 1;
+    const attempts = row.sync_attempts + 1;
+    const hold = failures >= maxEnvelopeAttempts;
+    const message = (body as { message?: unknown } | null)?.message;
+    await db.put('outbox', {
+      ...row,
+      sync_status: 'pending',
+      sync_started_at: null,
+      sync_attempts: attempts,
+      envelope_failures: failures,
+      sync_hold: hold ? 'invalid_envelope' : null,
+      next_attempt_at: hold ? null : now() + computeBackoffMs(attempts, policy, random),
+      last_sync_error: 'invalid_envelope',
+      result_message: typeof message === 'string' ? message : row.result_message,
+    });
+    return hold;
+  }
+
   async function runLocked(force: boolean): Promise<SyncRunSummary> {
     const summary: SyncRunSummary = {
       ran: true,
@@ -526,7 +621,8 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     const batchSize = Math.max(1, Math.min(SERVER_MAX_BATCH, Math.floor(policy.max_batch) || SERVER_MAX_BATCH));
 
     const initial = force ? await listOutboxByStatus(db, 'pending') : await listDueOutbox(db, now());
-    const maxBatches = Math.ceil(initial.length / batchSize) + 1;
+    // + initial.length: 422 isolation may re-send every row once on its own
+    const maxBatches = Math.ceil(initial.length / batchSize) + initial.length + 1;
     // `force` ignores backoff for the rows that were pending when the run started.
     const forced = new Set(force ? initial.map((r) => r.event_id) : []);
     lastError = null;
@@ -536,7 +632,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         ? (await listOutboxByStatus(db, 'pending')).filter((r) => forced.has(r.event_id))
         : await listDueOutbox(db, now());
       if (due.length === 0) break;
-      const batch = await markSyncing(due.slice(0, batchSize));
+      const batch = await markSyncing(pickBatch(due, batchSize));
       for (const r of batch) forced.delete(r.event_id);
       if (batch.length === 0) break;
 
@@ -580,6 +676,30 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         lastError = paused;
         summary.stoppedBy = paused;
         break;
+      }
+
+      if (outcome.type === 'http' && outcome.status === 422) {
+        lastError = 'invalid_envelope';
+        const blamed = envelopeRejectedIds(outcome.body, batch);
+        if (blamed.size > 0) {
+          await rejectEnvelope(batch.filter((r) => blamed.has(r.event_id)), blamed);
+          const rest = batch.filter((r) => !blamed.has(r.event_id));
+          await restore(rest);
+          if (force) for (const r of rest) forced.add(r.event_id);
+          summary.rejected += blamed.size;
+          continue;
+        }
+        if (batch.length > 1) {
+          // Unspecific 422: re-send these one at a time to find the culprit.
+          for (const r of batch) isolate.add(r.event_id);
+          await restore(batch);
+          if (force) for (const r of batch) forced.add(r.event_id);
+          continue;
+        }
+        const held = await envelopeFailure(batch[0], policy, outcome.body);
+        summary.retrying++;
+        if (held) summary.stoppedBy = 'invalid_envelope';
+        continue;
       }
 
       // Transient: keep pending, back off, stop this run.

@@ -19,9 +19,10 @@ import {
   createSyncEngine,
   createWebLock,
   type SyncEngineOptions,
+  type SyncTransport,
   type TransportOutcome,
 } from '@/lib/offline/sync-engine';
-import { countOutbox, getMeta, getOutboxRow, listOutbox, type OfflineDB } from '@/lib/offline/db';
+import { countOutbox, getMeta, getOutboxRow, listOutbox, openOfflineDb, type OfflineDB } from '@/lib/offline/db';
 import type { SyncEngineState, SyncRequest } from '@/lib/offline/types';
 
 const T0 = Date.UTC(2026, 10, 26, 10, 0, 0);
@@ -193,10 +194,87 @@ describe('sync engine', () => {
     expect(await getOutboxRow(db, 'e1')).toMatchObject({ sync_status: 'pending', last_sync_error: 'http_429', next_attempt_at: T0 + 60_000 });
   });
 
-  it('a 422 envelope error keeps events pending (never rejects them)', async () => {
+  // ── 422 envelope errors (CONTRACT §6.5) ─────────────────────────────────
+
+  const http422 = (body: unknown): TransportOutcome => ({ type: 'http', status: 422, body, retryAfterSeconds: null });
+  const acceptAll = (req: SyncRequest): TransportOutcome => ({
+    type: 'ok',
+    response: { server_time: '', results: req.events.map((ev) => accepted(ev.event_id)) },
+  });
+
+  it('an unspecific 422 on a single event keeps it pending with backoff (never rejects it)', async () => {
     await putRows(db, [row({ event_id: 'e1' })]);
-    await engine({ transport: fakeTransport(() => ({ type: 'http', status: 422, body: { message: 'bad' }, retryAfterSeconds: null })) }).syncNow();
-    expect(await getOutboxRow(db, 'e1')).toMatchObject({ sync_status: 'pending', last_sync_error: 'http_422' });
+    await engine({ transport: fakeTransport(() => http422({ message: 'bad' })) }).syncNow();
+    expect(await getOutboxRow(db, 'e1')).toMatchObject({
+      sync_status: 'pending', last_sync_error: 'invalid_envelope', envelope_failures: 1, sync_hold: null,
+      result_message: 'bad', next_attempt_at: T0 + 3750,
+    });
+  });
+
+  it('422 naming events ({code: invalid_envelope, event_ids}) rejects only those; the rest are sent', async () => {
+    await putRows(db, [row({ event_id: 'good', recorded_at_ms: 1 }), row({ event_id: 'bad', recorded_at_ms: 2 })]);
+    const t = fakeTransport((req) =>
+      req.events.some((e) => e.event_id === 'bad')
+        ? http422({ code: 'invalid_envelope', event_ids: ['bad'], message: 'Malformed event' })
+        : acceptAll(req),
+    );
+    const s = await engine({ transport: t }).syncNow();
+    expect(await getOutboxRow(db, 'bad')).toMatchObject({
+      sync_status: 'rejected', result_status: 'rejected', result_code: 'invalid_envelope', result_message: 'Malformed event',
+    });
+    expect(await getOutboxRow(db, 'good')).toMatchObject({ sync_status: 'synced' });
+    expect(s).toMatchObject({ rejected: 1, synced: 1 });
+  });
+
+  it('422 with Laravel validation errors keyed events.<i> rejects the indexed event', async () => {
+    await putRows(db, [row({ event_id: 'a', recorded_at_ms: 1 }), row({ event_id: 'b', recorded_at_ms: 2 })]);
+    const t = fakeTransport((req) =>
+      req.events.length === 2
+        ? http422({ message: 'invalid', errors: { 'events.1.device_recorded_at': ['The date is invalid.'] } })
+        : acceptAll(req),
+    );
+    await engine({ transport: t }).syncNow();
+    expect(await getOutboxRow(db, 'b')).toMatchObject({ sync_status: 'rejected', result_code: 'invalid_envelope', result_message: 'The date is invalid.' });
+    expect(await getOutboxRow(db, 'a')).toMatchObject({ sync_status: 'synced' });
+  });
+
+  it('an unspecific 422 on a batch isolates the culprit by re-sending one at a time', async () => {
+    await putRows(db, [
+      row({ event_id: 'g1', recorded_at_ms: 1 }),
+      row({ event_id: 'poison', recorded_at_ms: 2 }),
+      row({ event_id: 'g2', recorded_at_ms: 3 }),
+    ]);
+    const t = fakeTransport((req) => (req.events.some((e) => e.event_id === 'poison') ? http422({ message: 'nope' }) : acceptAll(req)));
+    await engine({ transport: t }).syncNow();
+    expect(t.requests.map((r) => r.events.map((e) => e.event_id))).toEqual([['g1', 'poison', 'g2'], ['g1'], ['poison'], ['g2']]);
+    expect(await countOutbox(db)).toMatchObject({ synced: 2, pending: 1 });
+    expect(await getOutboxRow(db, 'poison')).toMatchObject({ sync_status: 'pending', envelope_failures: 1 });
+  });
+
+  it('capped 422s put the event on hold: not auto-retried, visible as failed, force retries, success clears it', async () => {
+    await putRows(db, [row({ event_id: 'p' })]);
+    await db.put('meta', new Date(T0 + 4 * 3_600_000).toISOString(), 'as_of'); // fresh snapshot for the whole test
+    let fixed = false;
+    const t = fakeTransport((req) => (fixed ? acceptAll(req) : http422({ message: 'still bad' })));
+    const e = engine({ transport: t, maxEnvelopeAttempts: 3 });
+    for (let i = 0; i < 3; i++) {
+      await e.syncNow();
+      clock += 3_600_000; // past any backoff
+    }
+    expect(t.requests).toHaveLength(3);
+    expect(await getOutboxRow(db, 'p')).toMatchObject({
+      sync_status: 'pending', sync_hold: 'invalid_envelope', envelope_failures: 3, next_attempt_at: null,
+    });
+    expect(e.getState()).toMatchObject({ status: 'failed', held: 1, counts: { pending: 1 }, next_retry_at: null });
+
+    await e.syncNow(); // held → not sent automatically
+    expect(t.requests).toHaveLength(3);
+
+    fixed = true;
+    await e.syncNow({ force: true }); // manual retry
+    expect(t.requests).toHaveLength(4);
+    expect(await getOutboxRow(db, 'p')).toMatchObject({ sync_status: 'synced', sync_hold: null, envelope_failures: 0 });
+    expect(e.getState()).toMatchObject({ held: 0, status: 'online' });
   });
 
   // ── timeout / replay ─────────────────────────────────────────────────────
@@ -241,6 +319,8 @@ describe('sync engine', () => {
     ['401', { type: 'http', status: 401, body: { error: 'Unauthorized' }, retryAfterSeconds: null } as TransportOutcome, 'auth_required'],
     ['redirect to /login', { type: 'auth_redirect' } as TransportOutcome, 'auth_required'],
     ['403 device revoked', { type: 'http', status: 403, body: { code: 'device_revoked' }, retryAfterSeconds: null } as TransportOutcome, 'device_revoked'],
+    ['403 device mismatch', { type: 'http', status: 403, body: { code: 'device_mismatch', error: 'device bound elsewhere' }, retryAfterSeconds: null } as TransportOutcome, 'device_mismatch'],
+    ['403 other (message mentions device, no device code)', { type: 'http', status: 403, body: { code: 'permission_denied', message: 'device x' }, retryAfterSeconds: null } as TransportOutcome, 'forbidden'],
     ['403 other', { type: 'http', status: 403, body: { error: 'Forbidden' }, retryAfterSeconds: null } as TransportOutcome, 'forbidden'],
   ])('%s pauses the engine without touching events', async (_label, outcome, reason) => {
     const original = row({ event_id: 'e1', sync_attempts: 2, next_attempt_at: null, last_sync_error: 'http_503' });
@@ -271,6 +351,44 @@ describe('sync engine', () => {
     await e.resume();
     expect(await getOutboxRow(db, 'e1')).toMatchObject({ sync_status: 'synced' });
     expect(e.getState().paused).toBeNull();
+  });
+
+  it('HIGH-1: two users on one browser share the device id and both sync normally', async () => {
+    // Fake server applying CONTRACT §6.1: binding per (device_id, user_id).
+    const bindings = new Map<string, string>(); // `${device}|${user}` → gym
+    const serverFor = (userId: string, gymId: string) =>
+      fakeTransport((req) => {
+        const key = `${req.device_id}|${userId}`;
+        const bound = bindings.get(key);
+        if (bound && bound !== gymId) return { type: 'http', status: 403, body: { code: 'device_mismatch' }, retryAfterSeconds: null };
+        bindings.set(key, gymId);
+        return acceptAll(req);
+      });
+    const dbA = await openOfflineDb('gym-1', 'alice');
+    const dbB = await openOfflineDb('gym-1', 'bob');
+    await enablePolicy(dbA);
+    await enablePolicy(dbB);
+    await putRows(dbA, [row({ event_id: 'a1' })]);
+    await putRows(dbB, [row({ event_id: 'b1', actor_user_id: 'bob' })]);
+    const tA = serverFor('alice', 'gym-1');
+    const tB = serverFor('bob', 'gym-1');
+    const mk = (d: OfflineDB, t: SyncTransport) =>
+      createSyncEngine({ db: d, deviceId: DEVICE, transport: t, lock: noLock, now: () => clock, isOnline: () => true, broadcast: false });
+    const sA = await mk(dbA, tA).syncNow();
+    const sB = await mk(dbB, tB).syncNow();
+    expect(sA).toMatchObject({ synced: 1 });
+    expect(sB).toMatchObject({ synced: 1 });
+    expect(sB.stoppedBy).toBeUndefined();
+    expect(tA.requests[0].device_id).toBe(tB.requests[0].device_id);
+    expect(await getOutboxRow(dbB, 'b1')).toMatchObject({ sync_status: 'synced' });
+    // the same user moving the device to another gym is a mismatch → distinct pause reason
+    const tOther = serverFor('alice', 'gym-2');
+    const dbA2 = await openOfflineDb('gym-2', 'alice');
+    await putRows(dbA2, [row({ event_id: 'a2', gym_id: 'gym-2' })]);
+    const e2 = mk(dbA2, tOther);
+    expect((await e2.syncNow()).stoppedBy).toBe('device_mismatch');
+    expect(e2.getState().paused).toBe('device_mismatch');
+    expect(await getOutboxRow(dbA2, 'a2')).toMatchObject({ sync_status: 'pending', sync_attempts: 0 });
   });
 
   // ── crash recovery ───────────────────────────────────────────────────────
@@ -361,6 +479,9 @@ describe('sync engine', () => {
       status: 'online',
       counts: { pending: 0, synced: 1 },
       last_successful_sync_at: new Date(T0).toISOString(),
+      held: 0,
+      // fake server_time = 10:00:00Z = T0 → offset 0
+      clock_offset_ms: 0,
     });
     expect(seen.some((s) => s.status === 'syncing')).toBe(true);
     unsub();

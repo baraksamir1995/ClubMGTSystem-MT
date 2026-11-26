@@ -193,7 +193,7 @@ describe.skipIf(!API)('dashboard offline engine → live clby-api', () => {
     expect(rowsFor([row.event_id])[row.event_id]).toBeUndefined();
   }, 60_000);
 
-  it.skipIf(!OTHER)('device_id already bound to another user → 403 → paused, events kept (shared reception browser)', async () => {
+  it.skipIf(!OTHER)('shared reception browser: another user already used this device id → still syncs (CONTRACT §6.1)', async () => {
     await bootstrap(db, ident.gym_id, deviceId);
     // another account syncs first from this "browser" (same device id)
     const other = await fetch(`${API}/attendance/sync`, {
@@ -202,16 +202,18 @@ describe.skipIf(!API)('dashboard offline engine → live clby-api', () => {
       body: JSON.stringify({ device_id: deviceId, app: 'admin', events: [{ event_id: crypto.randomUUID(), kind: 'attendance' }] }),
     });
     expect(other.status).toBe(200);
-    const [m] = await db.getAll('members');
+    const [m] = await eligible(db);
     const ctx = { gymId: ident.gym_id, userId: ident.id, actorType: 'gym_admin' as const, deviceId };
     const r = await recordAttendance(db, ctx, { member_id: m.gym_member_id, attendance_method: 'manual' });
-    if (!r.ok) throw new Error('record failed');
+    if (!r.ok) throw new Error(`record failed: ${r.reason}`);
     const eng = engineFor(db, deviceId, transportFor(TOKEN));
     const s = await eng.syncNow();
     console.log('shared-device run', s, eng.getState().paused);
-    expect(s.stoppedBy).toBe('device_revoked');
-    const row = (await listOutbox(db))[0];
-    expect(row.sync_status).toBe('pending'); // kept, but can never sync from this browser
+    expect(s.stoppedBy).toBeUndefined();
+    expect(eng.getState().paused).toBeNull();
+    const row = (await listOutbox(db)).find((x) => x.event_id === r.event.event_id)!;
+    expect(row.sync_status).toBe('synced');
+    expect(rowsFor([row.event_id])[row.event_id]).toBe(1);
   }, 60_000);
 
   it('500 events drain in batches ≤ 50, no loss, one row each', async () => {

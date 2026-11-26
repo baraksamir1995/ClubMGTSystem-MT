@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { MAX_SYNC_BODY_BYTES, proxyToLaravel } from '@/lib/attendance-offline-proxy';
+import { MAX_SYNC_BODY_BYTES, byteLength, proxyToLaravel } from '@/lib/attendance-offline-proxy';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  if (raw.length > MAX_SYNC_BODY_BYTES) {
+  if (byteLength(raw) > MAX_SYNC_BODY_BYTES) {
     return NextResponse.json({ error: 'Payload too large', code: 'payload_too_large' }, { status: 413 });
   }
   let parsed: unknown;

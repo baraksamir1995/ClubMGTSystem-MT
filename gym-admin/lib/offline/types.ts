@@ -81,6 +81,11 @@ export interface OutboxRow extends OfflineEvent {
   recorded_at_ms: number;
   /** local-only: epoch ms when the row was last moved to `syncing` */
   sync_started_at: number | null;
+  /** local-only: consecutive 422 envelope failures while sent alone (CONTRACT §6.5) */
+  envelope_failures?: number;
+  /** local-only: set when the engine stops auto-retrying this row (capped 422s).
+   * The row stays `pending` (never auto-rejected); a forced sync retries it. */
+  sync_hold?: 'invalid_envelope' | null;
 }
 
 // ── §2 Sync request / response ──────────────────────────────────────────────
@@ -212,7 +217,9 @@ export interface MembershipBucket {
   source_type: string;
   status: string;
   payment_status: string | null;
+  /** date-only `YYYY-MM-DD` in the gym's timezone (CONTRACT §6.4) */
   start_date: string | null;
+  /** date-only `YYYY-MM-DD` in the gym's timezone (CONTRACT §6.4) */
   end_date: string | null;
   sessions_remaining: number | null;
   sessions_total: number | null;
@@ -223,7 +230,7 @@ export interface MembershipBucket {
 export interface BootstrapMember {
   gym_member_id: string;
   member_number: string | number | null;
-  full_name: string;
+  full_name: string | null;
   phone_last4: string | null;
   photo_url: string | null;
   status: string;
@@ -233,7 +240,7 @@ export interface BootstrapMember {
 export interface CachedClassSession {
   id: string;
   class_id: string | null;
-  name: string;
+  name: string | null;
   branch_id: string | null;
   studio_id: string | null;
   starts_at: string;
@@ -296,7 +303,8 @@ export type MetaKey = keyof MetaValues;
 // ── Engine state (for Phase 2 UI) ───────────────────────────────────────────
 
 export type EngineStatus = 'online' | 'offline' | 'syncing' | 'pending' | 'failed' | 'expired';
-export type PauseReason = 'auth_required' | 'device_revoked' | 'forbidden';
+/** device_revoked / device_mismatch are distinct per CONTRACT §6.1. */
+export type PauseReason = 'auth_required' | 'device_revoked' | 'device_mismatch' | 'forbidden';
 
 export interface SyncCounts {
   pending: number;
@@ -321,4 +329,8 @@ export interface SyncEngineState {
   data_expired: boolean;
   /** epoch ms of the earliest scheduled retry, null if none */
   next_retry_at: number | null;
+  /** pending rows the engine stopped auto-retrying (capped 422s, §6.5) — show as failed */
+  held: number;
+  /** last known server_time − device time (ms), null if never measured */
+  clock_offset_ms: number | null;
 }

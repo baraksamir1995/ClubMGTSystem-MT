@@ -127,6 +127,7 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
   let first: AdminBootstrapPage | null = null;
   let cursor: string | null = null;
   let pages = 0;
+  let offsetMs: number | null = null;
 
   do {
     if (pages >= maxPages) return { ok: false, reason: 'too_many_pages', cacheWiped: false };
@@ -139,8 +140,12 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
       }
       return { ok: false, reason: out.reason, cacheWiped: false };
     }
+    const receivedAt = now();
     const page = out.data;
     if (!isPage(page)) return { ok: false, reason: 'invalid_response', cacheWiped: false };
+    // measured per page at receipt (not after paging) so it isn't biased by download time
+    const pageServerMs = Date.parse(page.server_time);
+    if (!Number.isNaN(pageServerMs)) offsetMs = pageServerMs - receivedAt;
     if (page.gym.id !== opts.gymId) return { ok: false, reason: 'gym_mismatch', cacheWiped: false };
     pages++;
     if (!first) first = page;
@@ -148,7 +153,14 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
     for (const m of page.members) {
       const { buckets, ...rest } = m;
       members.set(m.gym_member_id, { ...rest, name_lc: (m.full_name ?? '').toLowerCase() });
-      for (const b of buckets ?? []) memberships.set(b.membership_id, { ...b, gym_member_id: m.gym_member_id });
+      for (const b of buckets ?? []) {
+        memberships.set(b.membership_id, {
+          ...b,
+          gym_member_id: m.gym_member_id,
+          start_date: toDateOnly(b.start_date, page.gym.timezone),
+          end_date: toDateOnly(b.end_date, page.gym.timezone),
+        });
+      }
     }
     for (const b of page.branches ?? []) branches.set(b.id, b);
     for (const s of page.class_sessions ?? []) sessions.set(s.id, s);
@@ -158,7 +170,6 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
 
   if (!first) return { ok: false, reason: 'invalid_response', cacheWiped: false };
 
-  const serverMs = Date.parse(first.server_time);
   await replaceSnapshot(db, {
     members: [...members.values()],
     memberships: [...memberships.values()],
@@ -171,7 +182,7 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
       policy: first.policy ?? DEFAULT_POLICY,
       snapshot_stored_at: now(),
       bootstrap_cursor: null,
-      ...(Number.isNaN(serverMs) ? {} : { server_clock_offset_ms: serverMs - now() }),
+      ...(offsetMs == null ? {} : { server_clock_offset_ms: offsetMs }),
     },
   });
 
@@ -192,18 +203,56 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
 export async function fetchOfflineStatus(
   db: OfflineDB,
   deviceId: string,
-  opts: { endpoint?: string; fetchImpl?: typeof fetch; clientInfo?: ClientInfo } = {},
+  opts: { endpoint?: string; fetchImpl?: typeof fetch; clientInfo?: ClientInfo; now?: () => number } = {},
 ): Promise<FetchOutcome<OfflineStatusResponse>> {
   const endpoint = opts.endpoint ?? '/api/attendance/offline/status';
+  const now = opts.now ?? (() => Date.now());
   const out = await getJson<OfflineStatusResponse>(
     `${endpoint}?${new URLSearchParams({ device_id: deviceId })}`,
     clientHeaders(deviceId, opts.clientInfo),
     opts.fetchImpl,
   );
+  const receivedAt = now();
   if (out.ok && out.data?.policy) {
     await setMeta(db, 'policy', { ...out.data.policy, enabled: out.data.enabled ?? out.data.policy.enabled });
   }
+  if (out.ok) {
+    // CONTRACT §6.6: offset = server_time − local time
+    const serverMs = Date.parse(out.data?.server_time ?? '');
+    if (!Number.isNaN(serverMs)) await setMeta(db, 'server_clock_offset_ms', serverMs - receivedAt);
+  }
   return out;
+}
+
+// ── date-only fields (CONTRACT §6.4) ────────────────────────────────────────
+
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** True for a real calendar date in `YYYY-MM-DD` form (rejects 2026-02-30). */
+export function isDateOnly(value: string): boolean {
+  const m = DATE_ONLY.exec(value);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
+/**
+ * Normalise a date-only field to `YYYY-MM-DD`. Accepts the contract form as-is;
+ * tolerates the pre-§6.4 backend form (an ISO instant of local midnight) by
+ * taking its calendar date in the gym's timezone. Anything unparseable → null.
+ */
+export function toDateOnly(value: string | null | undefined, timeZone: string): string | null {
+  if (value == null || value === '') return null;
+  if (DATE_ONLY.test(value)) return isDateOnly(value) ? value : null;
+  const t = Date.parse(value);
+  if (Number.isNaN(t)) return null;
+  try {
+    // en-CA formats as YYYY-MM-DD
+    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
+  } catch {
+    return new Date(t).toISOString().slice(0, 10);
+  }
 }
 
 // ── staleness ───────────────────────────────────────────────────────────────

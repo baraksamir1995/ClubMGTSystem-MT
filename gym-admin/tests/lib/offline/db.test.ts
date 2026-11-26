@@ -66,7 +66,7 @@ describe('offline db', () => {
     expect((await listOutbox(again)).map((r) => r.event_id)).toEqual(['keep-me']);
   });
 
-  it('device id is per browser (shared by users) and stable', async () => {
+  it('device id is per browser, shared by users (fine: server binds per device+user, CONTRACT §6.1) and stable', async () => {
     const id1 = await getDeviceId();
     const id2 = await getDeviceId();
     expect(id1).toBe(id2);

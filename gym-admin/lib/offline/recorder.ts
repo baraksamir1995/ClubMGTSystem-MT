@@ -9,6 +9,11 @@
  *  - class rule (existing CLBY rule): one attendance per (member, class_session)
  *    — checked against the cached recent_attendance + non-rejected outbox rows.
  *
+ * Clock skew (CONTRACT §6.6): `device_recorded_at` is device time, but when the
+ * known server offset (server_time − device time) shows the server would always
+ * reject the event (`clock_in_future` / `event_too_old`), recording is refused
+ * with `clock_skew` instead of silently creating an unsyncable event.
+ *
  * The server re-validates everything; a local pass never means "confirmed".
  */
 import { getCachedMember, getMeta, type OfflineDB } from './db';
@@ -32,6 +37,8 @@ export interface RecorderContext {
   now?: () => Date;
   timeZone?: string;
   doubleTapWindowMs?: number;
+  /** override; defaults to meta `server_clock_offset_ms` (unknown → no skew check) */
+  clockOffsetMs?: number | null;
 }
 
 export interface RecordAttendanceInput {
@@ -50,7 +57,8 @@ export type RecordRejection =
   | 'invalid_input'
   | 'member_not_cached'
   | 'double_tap'
-  | 'already_checked_in';
+  | 'already_checked_in'
+  | 'clock_skew';
 
 export type RecordResult =
   | { ok: true; event: OutboxRow }
@@ -61,6 +69,8 @@ export type RecordResult =
       existingEvent?: OutboxRow;
       /** for already_checked_in from the server cache */
       existingAttendanceId?: string;
+      /** for clock_skew: server_time − device time (ms) */
+      clockOffsetMs?: number;
     };
 
 const METADATA_MAX_BYTES = 4096;
@@ -85,6 +95,29 @@ export function deviceTimeZone(): string {
   }
 }
 
+/**
+ * Measurement slack for the offset (request latency): we only refuse when the
+ * skew exceeds the server window by this margin's complement, i.e. we refuse a
+ * little early rather than create an event the server rejects.
+ */
+export const CLOCK_SKEW_MARGIN_MS = 30_000;
+
+/**
+ * Would the server reject an event stamped now on this device?
+ * offset = server_time − device_time. Device ahead ⇒ offset < 0.
+ */
+export function clockSkewVerdict(
+  offsetMs: number | null | undefined,
+  policy: Pick<OfflinePolicy, 'future_skew_seconds' | 'max_event_age_days'>,
+): 'ok' | 'ahead' | 'behind' {
+  if (offsetMs == null || !Number.isFinite(offsetMs)) return 'ok';
+  const futureLimit = Math.max(0, policy.future_skew_seconds * 1000 - CLOCK_SKEW_MARGIN_MS);
+  const pastLimit = Math.max(0, policy.max_event_age_days * 86_400_000 - CLOCK_SKEW_MARGIN_MS);
+  if (-offsetMs > futureLimit) return 'ahead';
+  if (offsetMs > pastLimit) return 'behind';
+  return 'ok';
+}
+
 function methodAllowed(policy: OfflinePolicy, method: AttendanceMethod): boolean {
   if (method === 'manual') return policy.allow_manual_offline;
   if (method === 'staff_qr') return policy.allow_staff_qr_offline;
@@ -107,6 +140,11 @@ export async function recordAttendance(
   const metadata = input.metadata ?? {};
   if (new TextEncoder().encode(JSON.stringify(metadata)).length > METADATA_MAX_BYTES) {
     return { ok: false, reason: 'invalid_input' };
+  }
+
+  const offset = ctx.clockOffsetMs !== undefined ? ctx.clockOffsetMs : await getMeta(db, 'server_clock_offset_ms');
+  if (clockSkewVerdict(offset, policy) !== 'ok') {
+    return { ok: false, reason: 'clock_skew', clockOffsetMs: offset ?? undefined };
   }
 
   const member = await getCachedMember(db, input.member_id);

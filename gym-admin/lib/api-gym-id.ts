@@ -17,11 +17,17 @@ const ADMIN_ROLES = new Set(['gym_admin', 'trainer', 'staff']);
 const meCache = new Map<string, { data: any; expiresAt: number }>(); // keyed by token suffix
 const ME_CACHE_TTL = 5_000; // 5 seconds
 
-async function fetchMe(token: string) {
+type MeOutcome = { ok: true; data: any } | { ok: false; status: number; retryAfter: string | null };
+
+/**
+ * `/api/me` with the upstream status preserved (cached on success).
+ * Throws on network errors / invalid JSON, exactly like the original fetchMe.
+ */
+async function fetchMeDetailed(token: string): Promise<MeOutcome> {
   const cacheKey = token.slice(-16);
   const cached = meCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.data;
+    return { ok: true, data: cached.data };
   }
 
   const res = await fetch(`${BACKEND_URL}/api/me`, {
@@ -34,7 +40,7 @@ async function fetchMe(token: string) {
 
   if (!res.ok) {
     meCache.delete(cacheKey);
-    return null;
+    return { ok: false, status: res.status, retryAfter: res.headers?.get?.('retry-after') ?? null };
   }
 
   const data = await res.json();
@@ -48,7 +54,18 @@ async function fetchMe(token: string) {
     }
   }
 
-  return data;
+  return { ok: true, data };
+}
+
+/** Original contract: profile, or null for ANY non-OK response (kept for existing routes). */
+async function fetchMe(token: string) {
+  const out = await fetchMeDetailed(token);
+  return out.ok ? out.data : null;
+}
+
+function readToken(raw: string): string {
+  // Handle URL-encoded pipe character (Sanctum tokens contain |)
+  return raw.includes('%') ? decodeURIComponent(raw) : raw;
 }
 
 /**
@@ -67,9 +84,7 @@ export async function resolveGymId(): Promise<
   | { response: NextResponse; user?: never; gymId?: never; token?: never }
 > {
   const cookieStore = await cookies();
-  const raw = cookieStore.get('auth_token')?.value ?? '';
-  // Handle URL-encoded pipe character (Sanctum tokens contain |)
-  const token = raw.includes('%') ? decodeURIComponent(raw) : raw;
+  const token = readToken(cookieStore.get('auth_token')?.value ?? '');
 
   if (!token) {
     return { response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
@@ -94,6 +109,66 @@ export async function resolveGymId(): Promise<
   } catch {
     return { response: NextResponse.json({ error: 'Service unavailable' }, { status: 503 }) };
   }
+}
+
+type ResolveResult =
+  | { user: { id: string; role: string }; gymId: string; token: string; response?: never }
+  | { response: NextResponse; user?: never; gymId?: never; token?: never };
+
+/**
+ * Variant of resolveGymId() for background sync callers (offline attendance
+ * proxies). Same security contract, but distinguishes "not logged in" from
+ * "backend unavailable" so a sync engine backs off instead of treating an
+ * outage as a logout (PHASE1-VERIFICATION MEDIUM-1):
+ *  - missing token / `/api/me` 401        → 401 { code: 'auth_required' }
+ *  - `/api/me` 403 or non-admin role       → 403 { code: 'forbidden' }
+ *  - `/api/me` 429                         → 429 { code: 'upstream_rate_limited', retryable } (+ Retry-After)
+ *  - `/api/me` other non-OK / network      → 503 { code: 'upstream_unavailable', retryable }
+ * resolveGymId() itself is unchanged for every other route.
+ */
+export async function resolveGymIdForSync(): Promise<ResolveResult> {
+  const cookieStore = await cookies();
+  const token = readToken(cookieStore.get('auth_token')?.value ?? '');
+  const unavailable = () =>
+    NextResponse.json(
+      { error: 'Service unavailable', code: 'upstream_unavailable', retryable: true },
+      { status: 503 },
+    );
+
+  if (!token) {
+    return { response: NextResponse.json({ error: 'Unauthorized', code: 'auth_required' }, { status: 401 }) };
+  }
+
+  let me: MeOutcome;
+  try {
+    me = await fetchMeDetailed(token);
+  } catch {
+    return { response: unavailable() };
+  }
+
+  if (!me.ok) {
+    if (me.status === 401) {
+      return { response: NextResponse.json({ error: 'Unauthorized', code: 'auth_required' }, { status: 401 }) };
+    }
+    if (me.status === 403) {
+      return { response: NextResponse.json({ error: 'Forbidden', code: 'forbidden' }, { status: 403 }) };
+    }
+    if (me.status === 429) {
+      return {
+        response: NextResponse.json(
+          { error: 'Too many requests', code: 'upstream_rate_limited', retryable: true },
+          { status: 429, headers: me.retryAfter ? { 'Retry-After': me.retryAfter } : undefined },
+        ),
+      };
+    }
+    return { response: unavailable() };
+  }
+
+  const profile = me.data;
+  if (!profile?.gym_id || !ADMIN_ROLES.has(profile.role)) {
+    return { response: NextResponse.json({ error: 'Forbidden', code: 'forbidden' }, { status: 403 }) };
+  }
+  return { user: { id: profile.id, role: profile.role }, gymId: profile.gym_id, token };
 }
 
 /**

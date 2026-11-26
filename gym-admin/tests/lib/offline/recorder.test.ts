@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { freshIndexedDb, openTestDb, enablePolicy, seedMembers, GYM, USER, DEVICE } from './helpers';
-import { recordAttendance, toIsoWithOffset, type RecorderContext } from '@/lib/offline/recorder';
-import { getOutboxRow, listOutbox, type OfflineDB } from '@/lib/offline/db';
+import { clockSkewVerdict, recordAttendance, toIsoWithOffset, type RecorderContext } from '@/lib/offline/recorder';
+import { getOutboxRow, listOutbox, setMeta, type OfflineDB } from '@/lib/offline/db';
+import { DEFAULT_POLICY } from '@/lib/offline/types';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -171,5 +172,36 @@ describe('recorder', () => {
     ]);
     expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
     expect(await listOutbox(db)).toHaveLength(1);
+  });
+
+  // ── clock skew (CONTRACT §6.6) ────────────────────────────────────────────
+
+  it('clockSkewVerdict uses server offset vs future_skew_seconds / max_event_age_days', () => {
+    const p = { future_skew_seconds: 300, max_event_age_days: 7 };
+    expect(clockSkewVerdict(null, p)).toBe('ok'); // unknown offset → can't judge
+    expect(clockSkewVerdict(0, p)).toBe('ok');
+    expect(clockSkewVerdict(-200_000, p)).toBe('ok'); // device 200 s ahead
+    expect(clockSkewVerdict(-3_600_000, p)).toBe('ahead'); // device 1 h ahead
+    expect(clockSkewVerdict(6 * 86_400_000, p)).toBe('ok'); // device 6 d behind
+    expect(clockSkewVerdict(8 * 86_400_000, p)).toBe('behind'); // device 8 d behind
+  });
+
+  it('refuses with clock_skew when the stored server offset shows the device 1 h fast', async () => {
+    await setMeta(db, 'server_clock_offset_ms', -3_600_000);
+    const res = await recordAttendance(db, ctx, { member_id: 'm1', attendance_method: 'manual' });
+    expect(res).toEqual({ ok: false, reason: 'clock_skew', clockOffsetMs: -3_600_000 });
+    expect(await listOutbox(db)).toHaveLength(0);
+  });
+
+  it('refuses with clock_skew when the device clock is 8 days behind', async () => {
+    const res = await recordAttendance(db, { ...ctx, clockOffsetMs: 8 * 86_400_000 }, { member_id: 'm1', attendance_method: 'manual' });
+    expect(res).toMatchObject({ ok: false, reason: 'clock_skew' });
+  });
+
+  it('records normally with a small offset and still stamps device time', async () => {
+    await setMeta(db, 'server_clock_offset_ms', 45_000);
+    const res = await recordAttendance(db, ctx, { member_id: 'm1', attendance_method: 'manual' });
+    expect(res.ok && Date.parse(res.event.device_recorded_at)).toBe(clock);
+    expect(DEFAULT_POLICY.future_skew_seconds).toBe(300);
   });
 });

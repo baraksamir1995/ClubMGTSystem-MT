@@ -2,8 +2,10 @@
  * Shared forwarding for the offline-attendance proxies
  * (`/api/attendance/sync`, `/api/attendance/offline/*`).
  *
- * - Auth via `resolveGymId()` (httpOnly cookie → Bearer); returns its JSON
- *   401/403/503 as-is. The token never reaches the browser.
+ * - Auth via `resolveGymIdForSync()` (httpOnly cookie → Bearer). Only a missing
+ *   or invalid token is a 401 `auth_required`; an `/api/me` outage is a
+ *   retryable 503/429 so the engine backs off instead of pausing. The token
+ *   never reaches the browser.
  * - Forwards only an allowlist of client identity headers; `X-App` is forced
  *   to `admin` (this proxy only serves the admin dashboard).
  * - Upstream status + JSON body are passed through unchanged (per-event sync
@@ -11,7 +13,7 @@
  *   Upstream unreachable → 503 JSON (the client keeps events pending).
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { laravelApi, resolveGymId } from '@/lib/api-gym-id';
+import { laravelApi, resolveGymIdForSync } from '@/lib/api-gym-id';
 
 const FORWARDED_HEADERS = ['x-device-id', 'x-app-version', 'x-app-build', 'x-app-platform'] as const;
 const HEADER_NAMES: Record<(typeof FORWARDED_HEADERS)[number], string> = {
@@ -24,6 +26,11 @@ const MAX_HEADER_LEN = 128;
 
 /** 1 MB is far above 50 events × (≤4 KB metadata + fields). */
 export const MAX_SYNC_BODY_BYTES = 1_000_000;
+
+/** UTF-8 byte length (string.length counts UTF-16 units). */
+export function byteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
 
 export function forwardedClientHeaders(req: NextRequest): Record<string, string> {
   const out: Record<string, string> = { 'X-App': 'admin' };
@@ -39,7 +46,7 @@ export async function proxyToLaravel(
   path: string,
   init: { method: 'GET' | 'POST'; body?: string; extraHeaders?: Record<string, string> },
 ): Promise<NextResponse> {
-  const resolved = await resolveGymId();
+  const resolved = await resolveGymIdForSync();
   if (resolved.response) return resolved.response;
 
   let res: Response;

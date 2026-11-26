@@ -219,10 +219,10 @@ export async function listOutbox(db: OfflineDB): Promise<OutboxRow[]> {
   return rows.sort(compareOutbox).reverse();
 }
 
-/** Pending rows whose backoff has elapsed, in sync order. */
+/** Pending rows whose backoff has elapsed and that are not on hold, in sync order. */
 export async function listDueOutbox(db: OfflineDB, nowMs: number): Promise<OutboxRow[]> {
   const rows = await listOutboxByStatus(db, 'pending');
-  return rows.filter((r) => r.next_attempt_at == null || r.next_attempt_at <= nowMs);
+  return rows.filter((r) => !r.sync_hold && (r.next_attempt_at == null || r.next_attempt_at <= nowMs));
 }
 
 export async function countOutbox(db: OfflineDB): Promise<SyncCounts> {
@@ -238,14 +238,24 @@ export async function countOutbox(db: OfflineDB): Promise<SyncCounts> {
   return { pending, syncing, synced, rejected };
 }
 
-/** Earliest scheduled retry among pending rows (epoch ms), or null. */
+/** Earliest scheduled retry among pending, non-held rows (epoch ms), or null. */
 export async function nextRetryAt(db: OfflineDB): Promise<number | null> {
+  return (await pendingSummary(db)).nextRetryAt;
+}
+
+/** One pass over pending rows: earliest retry + how many are on hold (§6.5). */
+export async function pendingSummary(db: OfflineDB): Promise<{ nextRetryAt: number | null; held: number }> {
   const rows = await db.getAllFromIndex('outbox', 'sync_status', 'pending');
   let min: number | null = null;
+  let held = 0;
   for (const r of rows) {
+    if (r.sync_hold) {
+      held++;
+      continue;
+    }
     if (r.next_attempt_at != null && (min == null || r.next_attempt_at < min)) min = r.next_attempt_at;
   }
-  return min;
+  return { nextRetryAt: min, held };
 }
 
 /** Crash recovery: rows stuck in `syncing` go back to `pending`. Returns count. */

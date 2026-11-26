@@ -10,6 +10,7 @@ import { POST as syncPost } from '@/app/api/attendance/sync/route';
 import { GET as bootstrapGet } from '@/app/api/attendance/offline/bootstrap/route';
 import { GET as statusGet } from '@/app/api/attendance/offline/status/route';
 import { middleware } from '@/middleware';
+import { resolveGymId } from '@/lib/api-gym-id';
 
 const ME = { id: 'u1', gym_id: 'gym-1', role: 'staff' };
 
@@ -45,7 +46,8 @@ describe('offline attendance proxies', () => {
 
   // Each test uses a distinct token: resolveGymId caches /api/me for 5 s per token.
   let n = 0;
-  const login = () => cookieGet.mockReturnValue({ value: `token-${++n}-${'x'.repeat(16)}` });
+  // resolveGymId caches /api/me by the token's LAST 16 chars → make them unique.
+  const login = () => cookieGet.mockReturnValue({ value: `1|token-${String(++n).padStart(16, '0')}` });
 
   it('POST /sync without cookie → JSON 401 and no upstream call', async () => {
     cookieGet.mockReturnValue(undefined);
@@ -53,7 +55,7 @@ describe('offline attendance proxies', () => {
     vi.stubGlobal('fetch', fetchMock);
     const res = await syncPost(syncReq(JSON.stringify(syncBody)));
     expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: 'Unauthorized' });
+    expect(await res.json()).toEqual({ error: 'Unauthorized', code: 'auth_required' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -74,7 +76,7 @@ describe('offline attendance proxies', () => {
     expect(url).toBe('http://backend.test/api/attendance/sync');
     expect(init.method).toBe('POST');
     expect(init.body).toBe(raw);
-    expect(headers.Authorization).toMatch(/^Bearer token-/);
+    expect(headers.Authorization).toMatch(/^Bearer 1\|token-\d{16}$/);
     expect(headers).toMatchObject({
       'X-Device-Id': 'dev-1', 'X-App': 'admin', 'X-App-Version': '1.0', 'X-App-Build': '42', 'X-App-Platform': 'web',
     });
@@ -124,6 +126,64 @@ describe('offline attendance proxies', () => {
     cookieGet.mockReturnValue({ value: `member-token-${'y'.repeat(16)}` });
     vi.stubGlobal('fetch', vi.fn(async () => json({ id: 'm', gym_id: 'gym-1', role: 'member' })));
     expect((await syncPost(syncReq(JSON.stringify(syncBody)))).status).toBe(403);
+  });
+
+  // ── MEDIUM-1: an /api/me outage must not look like a logout ──────────────
+
+  const meFails = (me: () => Response | Promise<Response>) =>
+    vi.fn(async (url: string) => (String(url).endsWith('/api/me') ? me() : json({ server_time: 'x', results: [] })));
+
+  it('/api/me 401 → 401 auth_required (genuinely invalid token)', async () => {
+    login();
+    vi.stubGlobal('fetch', meFails(() => json({ message: 'Unauthenticated.' }, 401)));
+    const res = await syncPost(syncReq(JSON.stringify(syncBody)));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Unauthorized', code: 'auth_required' });
+  });
+
+  it.each([500, 502, 503])('/api/me %i → retryable 503 upstream_unavailable (no upstream sync call)', async (status) => {
+    login();
+    const fetchMock = meFails(() => new Response('oops', { status }));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await syncPost(syncReq(JSON.stringify(syncBody)));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: 'upstream_unavailable', retryable: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('/api/me 429 → 429 upstream_rate_limited with Retry-After', async () => {
+    login();
+    vi.stubGlobal('fetch', meFails(() => json({ message: 'Too Many Attempts.' }, 429, { 'retry-after': '42' })));
+    const res = await bootstrapGet(new NextRequest('http://t/api/attendance/offline/bootstrap'));
+    expect(res.status).toBe(429);
+    expect(res.headers.get('retry-after')).toBe('42');
+    expect(await res.json()).toMatchObject({ code: 'upstream_rate_limited', retryable: true });
+  });
+
+  it('/api/me network failure → 503', async () => {
+    login();
+    vi.stubGlobal('fetch', meFails(() => Promise.reject(new TypeError('ECONNREFUSED'))));
+    expect((await statusGet(new NextRequest('http://t/api/attendance/offline/status'))).status).toBe(503);
+  });
+
+  it('backwards compatible: resolveGymId() for other routes still maps /api/me 500 → 401', async () => {
+    login();
+    vi.stubGlobal('fetch', meFails(() => new Response('oops', { status: 500 })));
+    const r = await resolveGymId();
+    expect(r.response?.status).toBe(401);
+    expect(await r.response!.json()).toEqual({ error: 'Unauthorized' });
+  });
+
+  it('POST /sync body limit counts UTF-8 bytes, not UTF-16 units', async () => {
+    login();
+    const fetchMock = backend(() => json({ server_time: 'x', results: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+    // ~600k chars of a 3-byte character ≈ 1.8 MB
+    const big = JSON.stringify({ ...syncBody, pad: '\u20ac'.repeat(600_000) });
+    expect(big.length).toBeLessThan(1_000_000);
+    const res = await syncPost(syncReq(big));
+    expect(res.status).toBe(413);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('GET /offline/bootstrap forwards cursor + limit only', async () => {

@@ -260,8 +260,7 @@ void main() {
     });
 
     test('403 device_revoked → paused device_revoked, events untouched', () async {
-      t.enqueue((r) => throw const SyncForbidden('revoked',
-          code: 'device_revoked', deviceRevoked: true));
+      t.enqueue((r) => throw const SyncForbidden('revoked', code: 'device_revoked'));
       final id = await recordManual(store);
       await store.engine.syncNow(force: false);
       final e = await ev(id);

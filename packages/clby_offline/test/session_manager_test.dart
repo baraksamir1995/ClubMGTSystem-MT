@@ -94,6 +94,23 @@ void main() {
     expect(s.engine.state.pendingCount, 0);
   });
 
+  test('re-activating the same user resumes a paused engine (LOW-5)', () async {
+    t.userId = userA;
+    conn.set(true);
+    final s = (await mgr.activate(userId: userA, gymId: gymA))!;
+    await s.policy.applyServerPolicy(enabledPolicy);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    t.enqueue((r) => throw const SyncAuthRequired());
+    await s.recorder.record(NewOfflineEvent.serviceSession(
+        memberId: memberA, serviceAssignmentId: uid()));
+    await s.engine.syncNow();
+    expect(s.engine.state.pause, SyncPauseReason.authRequired);
+    expect(identical(await mgr.activate(userId: userA, gymId: gymA), s), isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(s.engine.state.pause, isNull);
+    expect(s.engine.state.pendingCount, 0);
+  });
+
   test('unavailable key store → activate returns null, app keeps running', () async {
     ks.failReads = 1000;
     final s = await mgr.activate(userId: userA, gymId: gymA);

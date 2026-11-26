@@ -11,15 +11,40 @@ abstract class KeyStore {
 ///
 /// iOS: `first_unlock_this_device` so a sync running while the phone is
 /// locked (after first unlock) can still open the DB, and the item never
-/// migrates to another device via backup.
-/// Android: EncryptedSharedPreferences.
+/// migrates to another device via backup. The iOS plugin includes the
+/// accessibility in every keychain query, so these items are invisible to
+/// (and untouched by) the apps' default-option reads/writes/deleteAll.
+///
+/// Android: **exactly the plugin defaults** ([androidOptions]) — the same
+/// options both apps use with `FlutterSecureStorage()`. Do NOT change this.
+/// flutter_secure_storage 9.2.4 on Android keeps ONE native storage
+/// instance for the whole app (`FlutterSecureStoragePlugin.secureStorage`):
+/// * `encryptedSharedPreferences: true` makes `ensureInitialized()` call
+///   `checkAndMigrateToEncrypted()`, which moves EVERY plain entry of the
+///   shared `FlutterSecureStorage` prefs file (the apps' `auth_token`,
+///   `user_id`, branding…) into EncryptedSharedPreferences and deletes the
+///   originals — the apps' default-option reads then return null (logout
+///   on every cold start). (PHASE1-VERIFICATION HIGH-2)
+/// * a dedicated `sharedPreferencesName` / `preferencesKeyPrefix` is NOT a
+///   safe alternative: `ensureOptions()` only overwrites the instance's
+///   file name / prefix when the call passes a non-empty value, and the
+///   apps' default calls pass '' — so after one package call every later
+///   app call would silently use OUR file and stop finding its own keys.
+/// Values are still encrypted at rest (the plugin's Keystore-backed
+/// cipher); entries are namespaced by our key names (`clby_offline_*`,
+/// `clby_device_id_v1`). `resetOnError` stays false (true would deleteAll).
+/// On-device Android verification is still required before release.
 class SecureKeyStore implements KeyStore {
-  const SecureKeyStore([this._storage = _defaultStorage]);
+  const SecureKeyStore([this._storage = defaultStorage]);
 
-  static const _defaultStorage = FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  /// Must stay identical to `AndroidOptions()` (see class doc).
+  static const androidOptions = AndroidOptions();
+
+  static const iosOptions =
+      IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device);
+
+  static const defaultStorage =
+      FlutterSecureStorage(iOptions: iosOptions, aOptions: androidOptions);
 
   final FlutterSecureStorage _storage;
 

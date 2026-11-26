@@ -13,6 +13,8 @@ export 'src/db/offline_database.dart';
 export 'src/db/open.dart';
 export 'src/errors.dart';
 export 'src/identity/device_identity.dart';
+export 'src/model/calendar_date.dart';
+export 'src/model/clock_offset.dart';
 export 'src/model/enums.dart';
 export 'src/model/event_wire.dart';
 export 'src/model/offline_policy.dart';

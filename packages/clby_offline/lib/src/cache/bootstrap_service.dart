@@ -4,6 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../db/offline_database.dart';
+import '../model/calendar_date.dart';
+import '../model/clock_offset.dart';
 import '../model/policy_holder.dart';
 import '../model/sync_models.dart';
 import '../scope.dart';
@@ -62,6 +64,7 @@ class BootstrapService {
     required this.transport,
     required this.app,
     required this.policy,
+    this.asUserId,
     DateTime Function()? now,
     this.pageLimit = 500,
     this.maxPages = 1000,
@@ -71,6 +74,8 @@ class BootstrapService {
   final SyncTransport transport;
   final OfflineApp app;
   final PolicyHolder policy;
+  /// Scope user: every request must go out with this user's token (D9).
+  final String? asUserId;
   final int pageLimit;
   final int maxPages;
   final DateTime Function() _now;
@@ -78,7 +83,9 @@ class BootstrapService {
   Future<BootstrapResult> refresh() async {
     final pages = <SnapshotPage>[];
     if (app == OfflineApp.member) {
-      pages.add(await transport.me());
+      final page = await transport.me(asUserId: asUserId);
+      await _recordOffset(page.serverTime);
+      pages.add(page);
     } else {
       String? cursor;
       final seen = <String>{};
@@ -86,7 +93,10 @@ class BootstrapService {
         if (pages.length >= maxPages) {
           throw BootstrapPagingError('more than $maxPages pages');
         }
-        final page = await transport.bootstrapPage(cursor: cursor, limit: pageLimit);
+        final page = await transport.bootstrapPage(
+            cursor: cursor, limit: pageLimit, asUserId: asUserId);
+        // Offset measured per page (right when its server_time arrived).
+        await _recordOffset(page.serverTime);
         pages.add(page);
         cursor = page.nextCursor;
         if (cursor != null) {
@@ -142,8 +152,8 @@ class BootstrapService {
           sourceType: Value(_s(b['source_type'])),
           status: Value(_s(b['status'])),
           paymentStatus: Value(_s(b['payment_status'])),
-          startDate: Value(_s(b['start_date'])),
-          endDate: Value(_s(b['end_date'])),
+          startDate: Value(CalendarDate.normalize(b['start_date'])),
+          endDate: Value(CalendarDate.normalize(b['end_date'])),
           sessionsRemaining: Value(_i(b['sessions_remaining'])),
           sessionsTotal: Value(_i(b['sessions_total'])),
           freezeStatus: Value(_s(b['freeze_status'])),
@@ -277,13 +287,6 @@ class BootstrapService {
           SyncMetaKeys.lastBootstrapAt, _now().toUtc().toIso8601String());
       await db.writeMeta(SyncMetaKeys.gym, gym == null ? null : jsonEncode(gym));
       await db.writeMeta(SyncMetaKeys.member, me == null ? null : jsonEncode(me));
-      if (serverTime != null) {
-        final st = DateTime.tryParse(serverTime);
-        if (st != null) {
-          await db.writeMeta(SyncMetaKeys.clockOffsetMs,
-              '${st.toUtc().difference(_now().toUtc()).inMilliseconds}');
-        }
-      }
     });
     if (serverPolicy != null) await policy.applyServerPolicy(serverPolicy);
 
@@ -299,6 +302,9 @@ class BootstrapService {
       recentServiceLogs: recentLogs.length,
     );
   }
+
+  Future<void> _recordOffset(String? serverTime) =>
+      recordServerClockOffset(db, serverTime, _now());
 
   static String? _s(Object? v) {
     if (v == null) return null;

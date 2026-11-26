@@ -306,7 +306,11 @@ void main() {
     say('reused payload -> ${reused.results.single.rawStatus}/${reused.results.single.code}');
     expect(await sslCount(e1), 1);
 
-    // clock skew: device clock +1h, and 8 days back
+    // clock skew (CONTRACT §6.6): with a known server offset the recorder
+    // refuses what the server would always reject. Measure the offset with
+    // the true clock first (status), then skew the device clock.
+    clock.now = realNow;
+    await s.refreshStatus();
     clock.now = realNow.add(const Duration(hours: 1));
     final of = await s.recorder.record(NewOfflineEvent.serviceSession(
         memberId: barakGm, serviceAssignmentId: assignment, note: 'future'));
@@ -316,15 +320,8 @@ void main() {
         memberId: barakGm, serviceAssignmentId: assignment, note: 'old'));
     say('recorder with -8d clock -> ${oo.runtimeType}');
     clock.now = realNow;
-    final ids = [of, oo].whereType<RecordSaved>().map((e) => e.event.eventId).toList();
-    created['event_ids']!.addAll(ids);
-    await s.engine.syncNow();
-    for (final id in ids) {
-      final r = (await s.event(id))!;
-      say('skew $id ${r.deviceRecordedAt} -> ${r.syncStatus} ${r.resultCode}');
-      expect(r.syncStatus, 'rejected');
-      expect(await sslCount(id), 0);
-    }
+    expect((of as RecordRefused).reason, RecordRefusal.clockSkew);
+    expect((oo as RecordRefused).reason, RecordRefusal.clockSkew);
     await s.close();
   });
 
@@ -364,6 +361,16 @@ void main() {
         'retryTimer=${eng.retryTimer} body=${t.bodies[JsonSyncTransport.syncPath]!.last}');
     expect(row3.syncStatus, 'pending');
     expect(t.requests - before, 1);
+    // CONTRACT §6.1: mismatch and revocation are distinct pause reasons,
+    // and the error stays visible.
+    final bodyCode = jsonDecode(t.bodies[JsonSyncTransport.syncPath]!.last
+        .substring(4))['code'];
+    expect(eng.state.pause, bodyCode == 'device_revoked'
+        ? SyncPauseReason.deviceRevoked
+        : bodyCode == 'device_mismatch'
+            ? SyncPauseReason.deviceMismatch
+            : SyncPauseReason.forbidden);
+    expect(eng.state.lastError, isNotNull);
     // resumeAfterAuth: what the app would do on re-login
     final r6 = await eng.resumeAfterAuth();
     say('403 after resumeAfterAuth: pause=${r6.pause} requests=${t.requests - before}');
@@ -455,6 +462,7 @@ void main() {
     final g = await rec('garbage-qr', const Duration(minutes: 20, seconds: 3));
     final dt = await rec(goldenToken, const Duration(minutes: 20));
     say('valid QR 3 s after a garbage scan saved? ${dt != null}');
+    expect(dt, isNotNull, reason: 'MEDIUM-3: qr_raw is part of the double-tap identity');
 
     final jsonQr = jsonEncode({
       'type': 'gym_access', 'gym_id': gymId, 'branch_id': goldenBranch, 'token': goldenToken

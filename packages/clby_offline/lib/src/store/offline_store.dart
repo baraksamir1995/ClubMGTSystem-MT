@@ -10,6 +10,7 @@ import '../cache/bootstrap_service.dart';
 import '../db/offline_database.dart';
 import '../db/open.dart';
 import '../errors.dart';
+import '../model/clock_offset.dart';
 import '../model/enums.dart';
 import '../model/policy_holder.dart';
 import '../model/sync_models.dart';
@@ -38,7 +39,10 @@ class OfflineStore {
     required this.bootstrap,
     required this.transport,
     required this.deviceId,
-  });
+    required DateTime Function() now,
+  }) : _now = now;
+
+  final DateTime Function() _now;
 
   static final Map<String, OfflineStore> _open = {};
 
@@ -102,7 +106,12 @@ class OfflineStore {
             : null,
       );
       final bootstrap = BootstrapService(
-          db: db, transport: transport, app: app, policy: policy, now: now);
+          db: db,
+          transport: transport,
+          app: app,
+          policy: policy,
+          asUserId: scope.userId,
+          now: now);
       // Crash recovery before anyone can read the outbox.
       await engine.start();
       final store = OfflineStore._(
@@ -115,6 +124,7 @@ class OfflineStore {
         bootstrap: bootstrap,
         transport: transport,
         deviceId: deviceId,
+        now: now ?? DateTime.now,
       );
       _open[scope.key] = store;
       return store;
@@ -144,7 +154,8 @@ class OfflineStore {
   /// `GET /offline/status` → stores policy/enabled, pauses nothing by
   /// itself (a revoked device is paused by the sync endpoint's 403).
   Future<OfflineStatusResponse> refreshStatus() async {
-    final s = await transport.status(deviceId: deviceId);
+    final s = await transport.status(deviceId: deviceId, asUserId: scope.userId);
+    await recordServerClockOffset(db, s.serverTime, _now());
     await policy.applyServerPolicy(s.policy.isEmpty ? null : s.policy,
         enabledOverride: s.enabled);
     await db.writeMeta(SyncMetaKeys.enabled, '${s.enabled}');

@@ -59,7 +59,9 @@ class OfflineSessionManager {
     return prev.then((_) => op()).whenComplete(c.complete);
   }
 
-  /// Opens (or keeps) the store for (apiBase, gymId, userId). Switching
+  /// Opens (or keeps) the store for (apiBase, gymId, userId). Calling it
+  /// again for the open scope (re-login, profile refresh) resumes a paused
+  /// engine via `resumeAfterAuth()`. Switching
   /// scope closes the previous one first (its cache wiped, outbox kept).
   Future<OfflineStore?> activate({
     required String userId,
@@ -68,7 +70,15 @@ class OfflineSessionManager {
       _serial(() async {
         if (userId.isEmpty || gymId.isEmpty) return _store;
         final scope = OfflineScope(apiBase: apiBase, gymId: gymId, userId: userId);
-        if (_store != null && _store!.scope == scope) return _store;
+        final current = _store;
+        if (current != null && current.scope == scope) {
+          // Same user signed in again / session restored with a valid
+          // token: lift any auth/device pause (LOW-5).
+          if (current.engine.state.pause != null) {
+            unawaited(_guard(current.engine.resumeAfterAuth));
+          }
+          return current;
+        }
         await _closeCurrent(wipeCache: true);
         try {
           final info = ClientInfo.instance;

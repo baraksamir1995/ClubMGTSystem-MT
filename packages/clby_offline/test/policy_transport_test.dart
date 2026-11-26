@@ -65,9 +65,17 @@ void main() {
       expect(() => JsonSyncTransport.mapResponse(r(401, '{"message":"Unauthenticated."}')),
           throwsA(isA<SyncAuthRequired>()));
     });
-    test('403 device_revoked → SyncForbidden(deviceRevoked)', () {
+    test('403 device_revoked / device_mismatch are distinct', () {
       expect(() => JsonSyncTransport.mapResponse(r(403, '{"code":"device_revoked"}')),
-          throwsA(isA<SyncForbidden>().having((e) => e.deviceRevoked, 'revoked', isTrue)));
+          throwsA(isA<SyncForbidden>()
+              .having((e) => e.deviceRevoked, 'revoked', isTrue)
+              .having((e) => e.deviceMismatch, 'mismatch', isFalse)));
+      expect(() => JsonSyncTransport.mapResponse(
+              r(403, '{"error":"bound elsewhere","code":"device_mismatch"}')),
+          throwsA(isA<SyncForbidden>()
+              .having((e) => e.deviceMismatch, 'mismatch', isTrue)
+              .having((e) => e.deviceRevoked, 'revoked', isFalse)
+              .having((e) => e.message, 'message', 'bound elsewhere')));
       expect(() => JsonSyncTransport.mapResponse(r(403, '{"message":"nope"}')),
           throwsA(isA<SyncForbidden>().having((e) => e.deviceRevoked, 'revoked', isFalse)));
     });

@@ -42,15 +42,25 @@ class FakeTransport implements SyncTransport {
   @override
   String? get authenticatedUserId => userId;
 
+  /// User each request was made "as" (engine/bootstrap binding).
+  final asUsers = <String?>[];
+  /// Hook run right before a sync is answered (e.g. switch user mid-pass).
+  void Function()? beforeSync;
+
   @override
-  Future<SyncResponse> sync(SyncRequest request) async {
+  Future<SyncResponse> sync(SyncRequest request, {String? asUserId}) async {
+    asUsers.add(asUserId);
+    if (asUserId != null && asUserId != userId) throw const SyncUserChanged();
     requests.add(request);
+    beforeSync?.call();
     final h = _queue.isNotEmpty ? _queue.removeFirst() : (defaultHandler ?? acceptAll);
     return await h(request);
   }
 
   @override
-  Future<SnapshotPage> bootstrapPage({String? cursor, int? limit}) async {
+  Future<SnapshotPage> bootstrapPage(
+      {String? cursor, int? limit, String? asUserId}) async {
+    asUsers.add(asUserId);
     bootstrapCalls.add(cursor);
     if (failCursor != null && cursor == failCursor) {
       throw const SyncNetworkError('page failed');
@@ -61,10 +71,11 @@ class FakeTransport implements SyncTransport {
   }
 
   @override
-  Future<SnapshotPage> me() async => mePage!;
+  Future<SnapshotPage> me({String? asUserId}) async => mePage!;
 
   @override
-  Future<OfflineStatusResponse> status({required String deviceId}) async =>
+  Future<OfflineStatusResponse> status(
+          {required String deviceId, String? asUserId}) async =>
       statusResponse ??
       OfflineStatusResponse.fromJson({
         'server_time': '2026-11-26T06:00:00Z',

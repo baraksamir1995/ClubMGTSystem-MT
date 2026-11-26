@@ -27,6 +27,9 @@ class ApiService {
 
   Future<String?> get _token => _storage.read(key: _tokenKey);
 
+  /// Current stored token (offline sync transport binds it per scope).
+  Future<String?> get authToken => _token;
+
   String? _cachedUserId;
   String? get currentUserId => _cachedUserId;
 
@@ -116,15 +119,25 @@ class ApiService {
   /// the sync endpoints must not wipe the session here, and it never
   /// touches the offline outbox — the engine just pauses. Network errors
   /// propagate for the transport to map.
+  ///
+  /// [bearerToken] is the token the transport bound to its scope's user at
+  /// session start; it REPLACES whatever token is current, so an account
+  /// switch mid-sync can never send user A's events with user B's token
+  /// (D9). Null → no Authorization header (the server answers 401 and the
+  /// engine pauses).
   Future<TransportResponse> rawRequest(
     String method,
     String path, {
+    required String? bearerToken,
     Map<String, String>? query,
     String? body,
     Duration timeout = const Duration(seconds: 30),
   }) async {
     final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: query);
-    final request = http.Request(method, uri)..headers.addAll(await _headers);
+    final headers = Map<String, String>.of(await _headers)
+      ..remove('Authorization');
+    if (bearerToken != null) headers['Authorization'] = 'Bearer $bearerToken';
+    final request = http.Request(method, uri)..headers.addAll(headers);
     if (body != null) request.body = body;
     final streamed = await _http.send(request).timeout(timeout);
     final response = await http.Response.fromStream(streamed).timeout(timeout);

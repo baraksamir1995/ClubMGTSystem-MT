@@ -1,8 +1,9 @@
 import 'package:meta/meta.dart';
 
 /// Single headline status for the connection indicator (SPEC §9).
-/// Precedence (first match wins): deviceRevoked, authRequired, syncing,
-/// offline, failed, expired, pending, online.
+/// Precedence (first match wins): deviceRevoked, deviceMismatch,
+/// authRequired, failed (envelope rejected), syncing, offline, failed,
+/// expired, pending, online.
 enum SyncIndicator {
   online,
   offline,
@@ -12,6 +13,9 @@ enum SyncIndicator {
   expired,
   authRequired,
   deviceRevoked,
+  /// 403 `device_mismatch`: this device id is bound to another gym for this
+  /// user (CONTRACT §6.1).
+  deviceMismatch,
 }
 
 /// Why the engine is paused. Paused engines never touch events; they wait
@@ -21,11 +25,21 @@ enum SyncPauseReason {
   /// 401 from the sync endpoint (`auth_required`).
   authRequired,
 
-  /// 403 device revoked / bound to another user (`device_revoked`).
+  /// 403 `device_revoked`.
   deviceRevoked,
+
+  /// 403 `device_mismatch` — same user, device id presented for another
+  /// gym (CONTRACT §6.1). Distinct from a revocation.
+  deviceMismatch,
 
   /// Other 403 on the envelope (role/permission/gym).
   forbidden,
+
+  /// The server kept rejecting the batch envelope (422) without naming
+  /// events (CONTRACT §6.5): stop after a capped number of attempts and
+  /// show "failed" instead of retrying forever. A manual `syncNow()`
+  /// retries once.
+  invalidEnvelope,
 }
 
 @immutable
@@ -77,6 +91,8 @@ class SyncState {
 
   SyncIndicator get indicator {
     if (pause == SyncPauseReason.deviceRevoked) return SyncIndicator.deviceRevoked;
+    if (pause == SyncPauseReason.deviceMismatch) return SyncIndicator.deviceMismatch;
+    if (pause == SyncPauseReason.invalidEnvelope) return SyncIndicator.failed;
     if (pause != null || authMismatch) return SyncIndicator.authRequired;
     if (syncing) return SyncIndicator.syncing;
     if (!online) return SyncIndicator.offline;
@@ -149,6 +165,7 @@ class SyncRunResult {
     this.pause,
     this.error,
     this.skipped = false,
+    this.aborted = false,
   });
 
   /// Events included in requests that got a 200.
@@ -162,6 +179,8 @@ class SyncRunResult {
   final Object? error;
   /// Nothing attempted (paused, disposed, user mismatch).
   final bool skipped;
+  /// The pass stopped early because the signed-in user changed (D9).
+  final bool aborted;
 
   SyncRunResult operator +(SyncRunResult o) => SyncRunResult(
         sent: sent + o.sent,
@@ -171,5 +190,6 @@ class SyncRunResult {
         pause: o.pause ?? pause,
         error: o.error ?? error,
         skipped: skipped && o.skipped,
+        aborted: aborted || o.aborted,
       );
 }

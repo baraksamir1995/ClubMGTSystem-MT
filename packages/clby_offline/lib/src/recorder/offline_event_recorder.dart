@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../db/offline_database.dart';
 import '../model/enums.dart';
+import '../model/clock_offset.dart';
 import '../model/event_wire.dart';
 import '../model/policy_holder.dart';
 import '../scope.dart';
@@ -91,6 +92,11 @@ enum RecordRefusal {
   cacheExpired,
   /// Member app: the member id isn't the signed-in member's own id.
   notSelf,
+  /// The device clock, corrected by the last known server offset, puts the
+  /// event outside the server's accept window (ahead by more than
+  /// `future_skew_seconds`, or behind by more than `max_event_age_days`):
+  /// the server would always reject it (CONTRACT §6.6). Fix the clock.
+  clockSkew,
 }
 
 sealed class RecordOutcome {
@@ -133,7 +139,8 @@ class RecordRefused extends RecordOutcome {
 /// Local duplicate rules (D1 — deliberately NOT a business duplicate
 /// window for gym entry):
 /// 1. **Anti-double-tap**: an *identical* event (same kind, member, method,
-///    branch, class session, studio, assignment) recorded within
+///    branch, class session, studio, assignment AND scanned QR text — a
+///    valid scan right after a garbage one must record) recorded within
 ///    [antiDoubleTapWindow] (default **10 s**) that is pending, syncing or
 ///    synced → [RecordDuplicate] (`doubleTap`). Rejected events don't
 ///    count. 10 s covers double taps, double submits and a scanner firing
@@ -196,12 +203,31 @@ class OfflineEventRecorder {
           'Offline data is out of date — connect to refresh.');
     }
 
+    // CONTRACT §6.6: refuse what the server will always reject.
+    final offsetMs = await readServerClockOffsetMs(db);
+    if (offsetMs != null) {
+      final p = policy.value;
+      final aheadMs = -offsetMs; // device − server
+      if (aheadMs > p.futureSkewSeconds * 1000) {
+        return RecordRefused(RecordRefusal.clockSkew,
+            'This device clock is ${_fmt(aheadMs)} ahead of the server. '
+            'Correct the date/time and try again.');
+      }
+      if (-aheadMs > p.maxEventAgeDays * Duration.millisecondsPerDay) {
+        return RecordRefused(RecordRefusal.clockSkew,
+            'This device clock is ${_fmt(-aheadMs)} behind the server. '
+            'Correct the date/time and try again.');
+      }
+    }
+
     final tz = await _safeTz();
     final local = now.isUtc ? now.toLocal() : now;
     final eventId = const Uuid().v4();
     final meta = <String, Object?>{
       ...input.metadata,
       'cache_as_of': ?asOfRaw,
+      // Evidence only (never trusted): offset known at record time.
+      'server_clock_offset_ms': ?offsetMs,
     };
 
     final outcome = await db.transaction<RecordOutcome>(() async {
@@ -347,7 +373,8 @@ class OfflineEventRecorder {
           _nullableEq(t.branchId, e.branchId) &
           _nullableEq(t.classSessionId, e.classSessionId) &
           _nullableEq(t.studioId, e.studioId) &
-          _nullableEq(t.serviceAssignmentId, e.serviceAssignmentId))
+          _nullableEq(t.serviceAssignmentId, e.serviceAssignmentId) &
+          _nullableEq(t.qrRaw, e.qrRaw))
       ..orderBy([(t) => OrderingTerm.desc(t.deviceRecordedAtMs)])
       ..limit(1);
     final tap = await q.getSingleOrNull();
@@ -383,6 +410,13 @@ class OfflineEventRecorder {
       }
     }
     return null;
+  }
+
+  static String _fmt(int ms) {
+    final d = Duration(milliseconds: ms);
+    if (d.inDays >= 1) return '${d.inDays} d ${d.inHours.remainder(24)} h';
+    if (d.inHours >= 1) return '${d.inHours} h ${d.inMinutes.remainder(60)} min';
+    return '${d.inMinutes} min';
   }
 
   Expression<bool> _nullableEq(GeneratedColumn<String> c, String? v) =>

@@ -12,7 +12,10 @@ import '../model/sync_models.dart';
 /// Implementations MUST:
 /// * throw the typed [SyncTransportException]s below (never a raw
 ///   SocketException) so the engine can decide retry vs pause;
-/// * never wipe app state or the outbox on a 401 from these endpoints.
+/// * never wipe app state or the outbox on a 401 from these endpoints;
+/// * when `asUserId` is given, send with THAT user's token or not at all
+///   (throw [SyncUserChanged]) — scope X's events/cache must never travel
+///   with another account's token (D9, PHASE1-VERIFICATION MEDIUM-4).
 abstract class SyncTransport {
   /// The profile id the transport's token belongs to, or null when signed
   /// out. The engine refuses to send scope X's events with any other
@@ -20,16 +23,16 @@ abstract class SyncTransport {
   String? get authenticatedUserId;
 
   /// `POST /api/attendance/sync`.
-  Future<SyncResponse> sync(SyncRequest request);
+  Future<SyncResponse> sync(SyncRequest request, {String? asUserId});
 
   /// `GET /api/attendance/offline/bootstrap?cursor=&limit=` (staff/coach).
-  Future<SnapshotPage> bootstrapPage({String? cursor, int? limit});
+  Future<SnapshotPage> bootstrapPage({String? cursor, int? limit, String? asUserId});
 
   /// `GET /api/attendance/offline/me` (member).
-  Future<SnapshotPage> me();
+  Future<SnapshotPage> me({String? asUserId});
 
   /// `GET /api/attendance/offline/status?device_id=`.
-  Future<OfflineStatusResponse> status({required String deviceId});
+  Future<OfflineStatusResponse> status({required String deviceId, String? asUserId});
 }
 
 // ── Typed errors ─────────────────────────────────────────────────────────
@@ -46,12 +49,24 @@ class SyncAuthRequired extends SyncTransportException {
   const SyncAuthRequired([super.message = 'authentication required']);
 }
 
-/// 403 on the envelope. [deviceRevoked] when the server says the device is
-/// revoked / bound to another user. Engine pauses either way.
+/// 403 on the envelope. Engine pauses either way, with a distinct reason
+/// per [code] (CONTRACT §6.1):
+/// * `device_revoked` → [deviceRevoked];
+/// * `device_mismatch` → [deviceMismatch] (same user, device id presented
+///   for a different gym);
+/// * anything else → plain forbidden.
 class SyncForbidden extends SyncTransportException {
-  const SyncForbidden(super.message, {this.code, this.deviceRevoked = false});
+  const SyncForbidden(super.message, {this.code});
   final String? code;
-  final bool deviceRevoked;
+  bool get deviceRevoked => code == 'device_revoked';
+  bool get deviceMismatch => deviceMismatchCodes.contains(code);
+}
+
+/// The transport is no longer signed in as the user the request was made
+/// for (account switch mid-pass). Nothing was sent; the engine aborts the
+/// pass without touching events and without a sticky pause.
+class SyncUserChanged extends SyncTransportException {
+  const SyncUserChanged([super.message = 'signed-in user changed']);
 }
 
 /// 429. Honour [retryAfter] when present.
@@ -79,9 +94,29 @@ class SyncServerError extends SyncTransportException {
 
 /// Other 4xx on the envelope (422 bad envelope, 404 endpoint not deployed…).
 class SyncRequestError extends SyncTransportException {
-  const SyncRequestError(this.statusCode, super.message, {this.code});
+  const SyncRequestError(this.statusCode, super.message, {this.code, this.body});
   final int statusCode;
   final String? code;
+  /// Decoded JSON body (422: Laravel `{message, errors:{field:[msg]}}`).
+  final Map<String, Object?>? body;
+
+  /// 422 validation errors that name specific events of the batch
+  /// (`events.<index>[.<field>]`), as index → messages. Empty when the
+  /// body doesn't single out events.
+  Map<int, List<String>> get eventErrors {
+    final errors = body?['errors'];
+    if (statusCode != 422 || errors is! Map) return const {};
+    final out = <int, List<String>>{};
+    final re = RegExp(r'^events\.(\d+)(\.|$)');
+    errors.forEach((k, v) {
+      final m = re.firstMatch(k.toString());
+      if (m == null) return;
+      final i = int.parse(m.group(1)!);
+      final msgs = v is List ? v.map((e) => e.toString()) : [v.toString()];
+      (out[i] ??= []).addAll(msgs);
+    });
+    return out;
+  }
 }
 
 /// Raw HTTP result returned by [JsonSyncTransport.send].
@@ -93,17 +128,22 @@ class TransportResponse {
   final Map<String, String> headers;
 }
 
-/// 403 error codes that mean "this device may not sync for this user".
-const deviceRevokedCodes = {
-  'device_revoked',
+/// 403 codes meaning the device id is bound elsewhere for this user.
+const deviceMismatchCodes = {
+  'device_mismatch',
   'device_bound_to_other_user',
   'device_bound_to_another_user',
-  'device_mismatch',
 };
 
 /// Convenience base: implement [send] with the app's HTTP client (adding
 /// auth + `X-*` headers) and get JSON parsing + status → typed-exception
 /// mapping for free. [send] must NOT run the app's global 401 handler.
+///
+/// User binding: before every request the base class checks, synchronously
+/// and immediately before calling [send], that [authenticatedUserId] equals
+/// `asUserId` (else [SyncUserChanged]). Implementations must therefore pick
+/// the bearer token SYNCHRONOUSLY at the start of [send] (no `await`
+/// before it), from the same binding that backs [authenticatedUserId].
 abstract class JsonSyncTransport implements SyncTransport {
   /// Performs one HTTP request. `body` is JSON-encoded by the caller.
   /// Throw anything on network failure; it is mapped here
@@ -121,28 +161,39 @@ abstract class JsonSyncTransport implements SyncTransport {
   static const statusPath = '/api/attendance/offline/status';
 
   @override
-  Future<SyncResponse> sync(SyncRequest request) async => SyncResponse.fromJson(
-      await _json('POST', syncPath, body: jsonEncode(request.toJson())));
+  Future<SyncResponse> sync(SyncRequest request, {String? asUserId}) async =>
+      SyncResponse.fromJson(await _json('POST', syncPath,
+          body: jsonEncode(request.toJson()), asUserId: asUserId));
 
   @override
-  Future<SnapshotPage> bootstrapPage({String? cursor, int? limit}) async =>
-      SnapshotPage(await _json('GET', bootstrapPath, query: {
-        'cursor': ?cursor,
-        if (limit != null) 'limit': '$limit',
-      }));
+  Future<SnapshotPage> bootstrapPage(
+          {String? cursor, int? limit, String? asUserId}) async =>
+      SnapshotPage(await _json('GET', bootstrapPath,
+          query: {
+            'cursor': ?cursor,
+            if (limit != null) 'limit': '$limit',
+          },
+          asUserId: asUserId));
 
   @override
-  Future<SnapshotPage> me() async => SnapshotPage(await _json('GET', mePath));
+  Future<SnapshotPage> me({String? asUserId}) async =>
+      SnapshotPage(await _json('GET', mePath, asUserId: asUserId));
 
   @override
-  Future<OfflineStatusResponse> status({required String deviceId}) async =>
-      OfflineStatusResponse.fromJson(
-          await _json('GET', statusPath, query: {'device_id': deviceId}));
+  Future<OfflineStatusResponse> status(
+          {required String deviceId, String? asUserId}) async =>
+      OfflineStatusResponse.fromJson(await _json('GET', statusPath,
+          query: {'device_id': deviceId}, asUserId: asUserId));
 
   Future<Map<String, Object?>> _json(String method, String path,
-      {Map<String, String>? query, String? body}) async {
+      {Map<String, String>? query, String? body, String? asUserId}) async {
     final TransportResponse r;
     try {
+      // Synchronous check → send() (which must capture its token before
+      // its first await): no gap for an account switch to slip into.
+      if (asUserId != null && authenticatedUserId != asUserId) {
+        throw const SyncUserChanged();
+      }
       r = await send(method, path,
           query: (query == null || query.isEmpty) ? null : query, body: body);
     } on SyncTransportException {
@@ -177,16 +228,13 @@ abstract class JsonSyncTransport implements SyncTransport {
       return map;
     }
     if (s == 401) throw SyncAuthRequired(msg);
-    if (s == 403) {
-      throw SyncForbidden(msg,
-          code: code, deviceRevoked: deviceRevokedCodes.contains(code));
-    }
+    if (s == 403) throw SyncForbidden(msg, code: code);
     if (s == 429) {
       final ra = int.tryParse(r.headers['retry-after'] ?? '');
       throw SyncRateLimited(retryAfter: ra == null ? null : Duration(seconds: ra));
     }
     if (s == 408) throw SyncTimeout(msg);
     if (s >= 500) throw SyncServerError(s, msg);
-    throw SyncRequestError(s, msg, code: code);
+    throw SyncRequestError(s, msg, code: code, body: map);
   }
 }

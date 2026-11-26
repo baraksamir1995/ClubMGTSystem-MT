@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cryptography/dart.dart';
 import 'package:cryptography/cryptography.dart';
+import 'package:drift/drift.dart' show StringExpressionOperators;
 import 'package:meta/meta.dart';
 
 import '../db/offline_database.dart';
@@ -44,52 +45,67 @@ class MemberPass {
   /// `clby_mp|1|<kid>|<g>|<m>|<n or empty>|<iat>|<exp>` (UTF-8).
   String get canonical => '$type|$version|$kid|$gymId|$memberId|$memberNumber|$iat|$exp';
 
-  /// Contract step 1. Returns null when [raw] isn't a well-formed v1 member
-  /// pass (any other QR, other `t`/`v`, missing / mistyped fields).
+  /// Max raw QR text length (PHASE2-CONTRACT amendment §3).
+  static const maxRawLength = 1024;
+
+  static const _keys = {'t', 'v', 'kid', 'g', 'm', 'n', 'iat', 'exp', 'sig'};
+  static final _kidRe = RegExp(r'^[A-Za-z0-9_-]{1,32}$');
+  /// Lowercase canonical UUIDs only (server rule).
+  static final _uuidRe = RegExp(
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+  /// |n| ≤ 2^53−1 (JSON-safe integer; server rule).
+  static const maxSafeInt = 9007199254740991;
+  static final _sigRe = RegExp(r'^[A-Za-z0-9_-]+$');
+
+  /// Contract step 1 with STRICT canonical parsing (amendment §3): a pass
+  /// has exactly one valid QR text. Returns null (→ `qr_invalid`) unless:
+  /// ≤ 1024 chars, no BOM, a JSON object with exactly the 9 keys, `t` ==
+  /// "clby_mp", `v` the integer 1 (not 1.0), `kid` (server pattern) / `g` /
+  /// `m` (lowercase canonical UUIDs) strings, `n` integer or null (not a
+  /// string, |n| ≤ 2^53−1), `iat`/`exp`
+  /// integers, `sig` unpadded base64url decoding to 64 bytes and
+  /// re-encoding to the same text (no `+`/`/`/`=`, no stray trailing bits).
   static MemberPass? tryParse(String raw) {
+    if (raw.isEmpty || raw.length > maxRawLength) return null;
+    if (raw.codeUnitAt(0) == 0xFEFF) return null; // BOM
     Object? j;
     try {
-      j = jsonDecode(raw.trim());
+      j = jsonDecode(raw);
     } catch (_) {
       return null;
     }
     if (j is! Map) return null;
     final Map<Object?, Object?> o = j;
-    if (o['t'] != type || o['v'] != version) return null;
-    String? str(String k) {
-      final v = o[k];
-      return (v is String && v.isNotEmpty) ? v : null;
-    }
-
-    final kid = str('kid'), g = str('g'), m = str('m'), sigRaw = str('sig');
-    final iat = o['iat'], exp = o['exp'], n = o['n'];
-    if (kid == null || g == null || m == null || sigRaw == null) return null;
+    if (o.length != _keys.length || !o.keys.every(_keys.contains)) return null;
+    final t = o['t'], v = o['v'], kid = o['kid'], g = o['g'], m = o['m'];
+    final n = o['n'], iat = o['iat'], exp = o['exp'], sig = o['sig'];
+    if (t != type) return null;
+    if (v is! int || v != version) return null;
+    if (kid is! String || !_kidRe.hasMatch(kid)) return null;
+    if (g is! String || !_uuidRe.hasMatch(g)) return null;
+    if (m is! String || !_uuidRe.hasMatch(m)) return null;
+    if (n != null && (n is! int || n.abs() > maxSafeInt)) return null;
     if (iat is! int || exp is! int) return null;
-    if (!o.containsKey('n')) return null;
-    final String nText;
-    if (n == null) {
-      nText = '';
-    } else if (n is int) {
-      nText = '$n';
-    } else if (n is String) {
-      nText = n;
-    } else {
-      return null;
-    }
-    final sig = decodeBase64Url(sigRaw);
-    if (sig == null || sig.length != 64) return null;
+    if (sig is! String || !_sigRe.hasMatch(sig)) return null;
+    final sigBytes = decodeBase64Url(sig);
+    if (sigBytes == null || sigBytes.length != 64) return null;
+    if (encodeBase64UrlNoPad(sigBytes) != sig) return null; // canonical only
     return MemberPass(
       kid: kid,
       gymId: g,
       memberId: m,
-      memberNumber: nText,
+      memberNumber: n == null ? '' : '$n',
       iat: iat,
       exp: exp,
-      signature: sig,
+      signature: sigBytes,
       raw: raw,
     );
   }
 }
+
+/// Unpadded base64url.
+String encodeBase64UrlNoPad(List<int> bytes) =>
+    base64Url.encode(bytes).replaceAll('=', '');
 
 /// base64url without (or with) padding → bytes, null if malformed.
 List<int>? decodeBase64Url(String s) {
@@ -137,6 +153,8 @@ class PassValid extends PassVerdict {
   final MemberPass pass;
   /// Cached member row (staff bootstrap) or a synthesized one built from
   /// the coach's cached assignments (coach bootstrap has no member list).
+  /// Record events with `member.gymMemberId` (canonical cached id), not the
+  /// pass's possibly differently-cased `m`.
   final CachedMember member;
   final List<CachedMembership> memberships;
   final List<CachedAssignment> assignments;
@@ -169,18 +187,30 @@ class MemberPassVerifier {
 
   static final _ed25519 = DartEd25519();
 
+  /// Steps in the amended order (§2): 1 parse → 4 gym → 2 key → 3
+  /// signature → 5 time → 6 member.
   Future<PassVerdict> verify(String raw) async {
-    // 1. parse
+    // 1. strict parse
     final pass = MemberPass.tryParse(raw);
     if (pass == null) return const PassInvalid(PassFailure.qrInvalid);
 
-    final serverNow = await serverClock.bestServerNow();
+    // 4. gym first, so another gym's pass says "wrong gym", not "refresh"
+    if (pass.gymId.toLowerCase() != gymId.toLowerCase()) {
+      return PassInvalid(PassFailure.qrWrongGym, pass: pass);
+    }
 
-    // 2. key known (active, or retired and still within valid_until)
+    final serverNow = await serverClock.bestServerNow();
+    final scanTime = serverClock.deviceNow().toUtc();
+
+    // 2. key: active, or retired within valid_until. Revoked → never
+    // (amendment §4); unknown kid / retired past grace → "refresh data".
     final key = await (db.select(db.cachedPassKeys)
           ..where((t) => t.kid.equals(pass.kid)))
         .getSingleOrNull();
-    if (key == null || !_keyUsable(key, serverNow)) {
+    if (key != null && key.status == 'revoked') {
+      return PassInvalid(PassFailure.qrInvalid, pass: pass);
+    }
+    if (key == null || !_keyUsable(key, scanTime)) {
       return PassInvalid(PassFailure.qrUnknownKey, pass: pass);
     }
 
@@ -196,29 +226,37 @@ class MemberPassVerifier {
     );
     if (!ok) return PassInvalid(PassFailure.qrInvalid, pass: pass);
 
-    // 4. gym
-    if (pass.gymId != gymId) return PassInvalid(PassFailure.qrWrongGym, pass: pass);
-
-    // 5. time (server-clock estimate, CONTRACT §6.6)
-    final nowS = serverNow.millisecondsSinceEpoch ~/ 1000;
-    if (pass.exp <= nowS) return PassInvalid(PassFailure.passExpired, pass: pass);
-    if (pass.iat > nowS + policy.value.futureSkewSeconds) {
+    // 5. time (amendment §1): iat ≤ exp; the pass must predate the scan
+    // (iat ≤ scan time + skew, and ≤ estimated server now + skew); then
+    // exp > scan time — like the server, which judges expiry and retired-key
+    // grace at the scan (`device_recorded_at`). A device clock far enough
+    // off to matter is refused at record time (recorder clockSkew rule).
+    final skew = policy.value.futureSkewSeconds;
+    int secs(DateTime t) => t.millisecondsSinceEpoch ~/ 1000;
+    if (pass.iat > pass.exp ||
+        pass.iat > secs(scanTime) + skew ||
+        pass.iat > secs(serverNow) + skew) {
       return PassInvalid(PassFailure.qrInvalid, pass: pass);
     }
+    if (pass.exp <= secs(scanTime)) {
+      return PassInvalid(PassFailure.passExpired, pass: pass);
+    }
 
-    // 6. member in cache
+    // 6. member in cache (UUIDs compare case-insensitively, as on the
+    // server; record with the cached row's id — see [PassValid.member]).
+    final mid = pass.memberId.toLowerCase();
     final member = await (db.select(db.cachedMembers)
-          ..where((t) => t.gymMemberId.equals(pass.memberId)))
+          ..where((t) => t.gymMemberId.lower().equals(mid)))
         .getSingleOrNull();
     final assignments = await (db.select(db.cachedAssignments)
-          ..where((t) => t.gymMemberId.equals(pass.memberId)))
+          ..where((t) => t.gymMemberId.lower().equals(mid)))
         .get();
     CachedMember? shown = member;
     if (shown == null && assignments.isNotEmpty) {
       final a = assignments.first;
       final name = a.memberName ?? '';
       shown = CachedMember(
-        gymMemberId: pass.memberId,
+        gymMemberId: a.gymMemberId,
         memberNumber: a.memberNumber,
         fullName: name,
         searchText: name.toLowerCase(),
@@ -227,7 +265,7 @@ class MemberPassVerifier {
     }
     if (shown == null) return PassInvalid(PassFailure.memberNotFound, pass: pass);
     final memberships = await (db.select(db.cachedMemberships)
-          ..where((t) => t.gymMemberId.equals(pass.memberId)))
+          ..where((t) => t.gymMemberId.equals(shown!.gymMemberId)))
         .get();
     final asOfRaw = await db.readMeta(SyncMetaKeys.asOf);
     return PassValid(

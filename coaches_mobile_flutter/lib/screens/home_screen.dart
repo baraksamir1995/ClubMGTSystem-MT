@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text.dart';
 import '../features/coach/coach_app_state.dart';
+import '../features/coach/load_error.dart';
 import '../features/coach/screens/attendance_screen.dart';
 import '../features/coach/screens/members_screen.dart';
 import '../features/coach/screens/qr_screen.dart';
 import '../features/coach/widgets/bottom_nav.dart';
 import '../features/offline/coach_offline_controller.dart';
 import '../features/offline/offline_home.dart';
+import '../features/offline/offline_strings.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/c_button.dart';
 
@@ -27,12 +29,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
   bool _kickedOff = false;
-  bool _offlineTried = false;
+  /// The current load failure has been acted on (offline attempt, sign-in
+  /// redirect, or engine pause). Reset by [_retryOnline].
+  bool _errorHandled = false;
 
-  /// Retry the online load (profile + roster); a fresh failure may enter
-  /// offline mode again.
+  /// Retry the online load (profile + roster); a fresh network failure may
+  /// enter offline mode again.
   void _retryOnline() {
-    _offlineTried = false;
+    _errorHandled = false;
     final auth = context.read<AuthProvider>();
     if (auth.profile == null) auth.refreshProfile();
     context.read<CoachAppState>().load();
@@ -59,19 +63,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstLoad = state.identity == null && state.isLoading;
     final hardError = state.identity == null && state.error != null;
 
-    // Offline cold start: instead of blocking on "CAN'T REACH THE GYM",
-    // try to reopen the SAME coach's offline store (token + user in secure
+    final action = hardError ? homeErrorAction(state.errorKind) : null;
+
+    // Only a NETWORK failure (no connection / timeout / 5xx) may open
+    // offline mode: reopen the SAME coach's store (token + user in secure
     // storage, store opens with its own key, has cached data).
-    if (hardError && !offline.offlineMode && !_offlineTried) {
-      _offlineTried = true;
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => context.read<CoachOfflineController>().tryEnterOfflineMode());
+    // 401 → normal sign-in flow. 403 (access revoked, inactive trainer
+    // profile) → blocked screen + engine paused, never offline mode.
+    if (!_errorHandled && action != null) {
+      _errorHandled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final ctl = context.read<CoachOfflineController>();
+        switch (action) {
+          case HomeErrorAction.tryOfflineMode:
+            if (!ctl.offlineMode) ctl.tryEnterOfflineMode();
+          case HomeErrorAction.signIn:
+            _signOut(context);
+          case HomeErrorAction.blocked:
+            ctl.onAccessForbidden(state.error ?? 'forbidden');
+          case HomeErrorAction.showError:
+            break;
+        }
+      });
     }
     if (state.identity != null && offline.offlineMode) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => context.read<CoachOfflineController>().leaveOfflineMode());
     }
-    if (hardError && offline.offlineMode) {
+    if (action == HomeErrorAction.tryOfflineMode && offline.offlineMode) {
       return Scaffold(
         backgroundColor: AppColors.bg,
         body: OfflineHome(
@@ -86,11 +106,19 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: firstLoad || (hardError && offline.checkingEntry)
+            child: firstLoad ||
+                    (action == HomeErrorAction.tryOfflineMode && offline.checkingEntry) ||
+                    action == HomeErrorAction.signIn
                 ? const _ShellLoading()
                 : hardError
                     ? _ShellError(
                         message: state.error!,
+                        // Network failure but offline mode was refused:
+                        // say exactly why.
+                        detail: action == HomeErrorAction.tryOfflineMode &&
+                                offline.entryBlock != null
+                            ? OfflineStrings.current().entryBlocked(offline.entryBlock!)
+                            : null,
                         onRetry: _retryOnline,
                         onSignOut: () => _signOut(context),
                       )
@@ -154,11 +182,13 @@ class _ShellLoading extends StatelessWidget {
 
 class _ShellError extends StatelessWidget {
   final String message;
+  final String? detail;
   final VoidCallback onRetry;
   final VoidCallback onSignOut;
 
   const _ShellError({
     required this.message,
+    this.detail,
     required this.onRetry,
     required this.onSignOut,
   });
@@ -203,6 +233,21 @@ class _ShellError extends StatelessWidget {
                 height: 1.4,
               ),
             ),
+            if (detail != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                detail!,
+                key: const Key('offline-entry-blocked'),
+                textAlign: TextAlign.center,
+                textDirection: OfflineStrings.current().direction,
+                style: AppText.body(
+                  size: 12.5,
+                  color: AppColors.warn,
+                  letterSpacing: -0.1,
+                  height: 1.4,
+                ),
+              ),
+            ],
             const SizedBox(height: 22),
             CButton(
               label: 'Retry',

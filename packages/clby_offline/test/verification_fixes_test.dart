@@ -298,6 +298,27 @@ void main() {
     });
   });
 
+  group('Phase 2 MEDIUM-4: app-initiated pause (403 elsewhere)', () {
+    test('pause() keeps events untouched, sends nothing, resumeAfterAuth lifts it', () async {
+      final t = FakeTransport();
+      final store = await memoryStore(transport: t);
+      final id = await recordManual(store);
+      store.engine.pause(SyncPauseReason.forbidden, message: 'coach access revoked');
+      final r = await store.engine.syncNow();
+      expect(r.skipped, isTrue);
+      expect(t.requests, isEmpty);
+      final s = store.engine.state;
+      expect(s.pause, SyncPauseReason.forbidden);
+      expect(s.lastError, 'coach access revoked');
+      final e = (await store.event(id))!;
+      expect(e.syncStatus, 'pending');
+      expect(e.syncAttempts, 0);
+      await store.engine.resumeAfterAuth();
+      expect((await store.event(id))!.syncStatus, 'synced');
+      await store.close();
+    });
+  });
+
   group('LOW-1: date-only fields (§6.4)', () {
     test('CalendarDate parses strict YYYY-MM-DD, never as an instant', () {
       final d = CalendarDate.tryParse('2027-07-26')!;

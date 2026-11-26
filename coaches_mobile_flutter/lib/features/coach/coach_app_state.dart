@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../services/api_service.dart';
+import 'load_error.dart';
 import 'models.dart';
 
 /// Top-level coach state for the authenticated specialist.
@@ -25,17 +26,21 @@ class CoachAppState extends ChangeNotifier {
 
   bool _loading = false;
   String? _error;
+  LoadErrorKind? _errorKind;
 
   CoachIdentity? get identity => _identity;
   List<CoachAssignment> get assignments => _assignments;
   List<TodayLogEntry> get todayLog => _todayLog;
   bool get isLoading => _loading;
   String? get error => _error;
+  /// Why the last [load] failed (null when it didn't).
+  LoadErrorKind? get errorKind => _errorKind;
 
   /// First/repeat load — pulls identity + roster + today in parallel.
   Future<void> load() async {
     _loading = true;
     _error = null;
+    _errorKind = null;
     notifyListeners();
     try {
       final results = await Future.wait<dynamic>([
@@ -48,8 +53,10 @@ class CoachAppState extends ChangeNotifier {
       _todayLog = results[2] as List<TodayLogEntry>;
     } on ApiException catch (e) {
       _error = e.message;
+      _errorKind = classifyLoadError(e);
     } catch (e) {
       _error = 'Could not reach the gym server.';
+      _errorKind = classifyLoadError(e);
     } finally {
       _loading = false;
       notifyListeners();
@@ -194,6 +201,7 @@ class CoachAppState extends ChangeNotifier {
     _todayLog = const [];
     _loading = false;
     _error = null;
+    _errorKind = null;
     notifyListeners();
   }
 }

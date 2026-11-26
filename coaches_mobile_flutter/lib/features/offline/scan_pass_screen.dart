@@ -190,7 +190,7 @@ class _Valid extends StatelessWidget {
               ? null
               : () => context.pushReplacement('/offline-log',
                   extra: OfflineLogArgs(
-                      memberId: verdict.pass.memberId, qrRaw: verdict.pass.raw, source: 'qr')),
+                      memberId: verdict.member.gymMemberId, qrRaw: verdict.pass.raw, source: 'qr')),
         ),
         const SizedBox(height: 8),
         CButton(label: t.scanAgain, variant: CButtonVariant.ghost, onTap: onAgain),

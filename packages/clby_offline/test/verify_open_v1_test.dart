@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 // VERIFY-ONLY (throwaway): open a real encrypted v1 file with the current
 // package. Skipped unless V1DIR is set.
 import 'dart:convert';

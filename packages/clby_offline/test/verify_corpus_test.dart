@@ -43,15 +43,25 @@ void main() {
     final verdicts = <String, String>{};
     final rows = <String>[];
     for (final cs in (c['cases'] as List).cast<Map<String, dynamic>>()) {
+      // Server clock stays anchored at now_ms; the device wall clock (scan
+      // time) is the case's scan_ms when given (corpus v2).
+      final scanMs = (cs['scan_ms'] as int?) ?? nowMs;
+      clock.now = DateTime.fromMillisecondsSinceEpoch(scanMs, isUtc: true);
       final v = await store.passVerifier.verify(cs['raw'] as String);
-      final d = v is PassValid ? 'ok' : (v as PassInvalid).reason.code;
+      // qr_unknown_key is a client-only code; the server says qr_invalid
+      // (PHASE2-CONTRACT step 2).
+      final raw = v is PassValid ? 'ok' : (v as PassInvalid).reason.code;
+      final d = raw == 'qr_unknown_key' ? 'qr_invalid' : raw;
       verdicts[cs['name'] as String] = d;
       final s = cs['server'] as String;
       if (d != s) rows.add('${cs['name']}\tdart=$d\tserver=$s');
     }
-    File(out!).writeAsStringSync(const JsonEncoder.withIndent(' ').convert(verdicts));
+    if (out != null) {
+      File(out).writeAsStringSync(const JsonEncoder.withIndent(' ').convert(verdicts));
+    }
     // ignore: avoid_print
     print('TOTAL ${verdicts.length} DISAGREE ${rows.length}\n${rows.join('\n')}');
     await store.close();
+    expect(rows, isEmpty, reason: 'every verdict must match the server');
   });
 }

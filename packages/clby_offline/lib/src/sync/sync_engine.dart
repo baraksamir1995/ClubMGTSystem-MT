@@ -143,6 +143,16 @@ class SyncEngine {
     return _trigger(SyncTrigger.manual, force: force);
   }
 
+  /// Pauses the engine WITHOUT touching events — e.g. the app learned from
+  /// another endpoint that the user's access was revoked (403). Lifted by
+  /// [resumeAfterAuth] or a new engine after re-login. A running pass
+  /// stops before its next batch.
+  void pause(SyncPauseReason reason, {String? message}) {
+    if (_disposed) return;
+    _retryTimer?.cancel();
+    _emit(_state.copyWith(pause: reason, lastError: message ?? _state.lastError));
+  }
+
   /// Clears any pause (after the SAME user signed in again, or the device
   /// was re-approved) and syncs. The apps call it on every successful
   /// login/session restore of the store's user.
@@ -266,6 +276,10 @@ class SyncEngine {
         // an account switch mid-pass aborts the pass.
         if (!_userStillBound()) {
           result = result + const SyncRunResult(aborted: true);
+          break;
+        }
+        if (_state.pause != null) {
+          result = result + SyncRunResult(pause: _state.pause);
           break;
         }
         final batch = await _selectBatch(force: force, exclude: attempted);

@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:clby_offline/clby_offline.dart' show OfflineEntryBlock;
 import 'package:flutter/widgets.dart';
 
 /// English + Arabic strings for the offline-attendance screens.
@@ -90,6 +91,9 @@ class OfflineStrings {
   String get duplicateTap => _t('duplicateTap');
   String get clockSkew => _t('clockSkew');
 
+  /// Why offline mode couldn't be opened on this cold start.
+  String entryBlocked(OfflineEntryBlock b) => _t('block_${b.name}');
+
   // Pass verdicts
   String get passInvalid => _t('passInvalid');
   String get passUnknownKey => _t('passUnknownKey');
@@ -155,9 +159,15 @@ class OfflineStrings {
     'recentlyLogged': 'Already logged in the last 30 minutes — try again in {m} min.',
     'duplicateTap': 'Already saved a moment ago.',
     'clockSkew': 'This device\'s date/time is wrong. Fix it and try again.',
+    'block_notSignedIn': 'Offline mode isn\'t available: you\'re not signed in on this device.',
+    'block_noPreviousSession': 'Offline mode isn\'t available: sign in online once on this device first.',
+    'block_differentUser': 'Offline mode isn\'t available: the saved data belongs to another account.',
+    'block_differentApi': 'Offline mode isn\'t available: the saved data is for a different server.',
+    'block_storeUnavailable': 'Offline mode isn\'t available: this device\'s offline storage can\'t be opened right now.',
+    'block_noCachedData': 'Offline mode isn\'t available: no offline data has been downloaded yet.',
     'passInvalid': 'Not a valid CLBY member pass.',
     'passUnknownKey': 'Unknown pass key — refresh offline data while online.',
-    'passWrongGym': 'This pass belongs to another gym.',
+    'passWrongGym': 'This pass belongs to another gym',
     'passExpired': 'This pass has expired — ask the member to open the app online.',
     'passMemberNotFound': 'Member not in this device\'s data — refresh offline data.',
     'passNeedsData': 'Pass checking needs offline data — connect once to download it.',
@@ -220,6 +230,12 @@ class OfflineStrings {
     'recentlyLogged': 'سُجّلت جلسة خلال آخر 30 دقيقة — حاول بعد {m} دقيقة.',
     'duplicateTap': 'تم الحفظ قبل لحظات.',
     'clockSkew': 'تاريخ/وقت هذا الجهاز غير صحيح. صحّحه وحاول مجددًا.',
+    'block_notSignedIn': 'وضع عدم الاتصال غير متاح: لم تسجّل الدخول على هذا الجهاز.',
+    'block_noPreviousSession': 'وضع عدم الاتصال غير متاح: سجّل الدخول مرة واحدة على هذا الجهاز وأنت متصل أولًا.',
+    'block_differentUser': 'وضع عدم الاتصال غير متاح: البيانات المحفوظة تخص حسابًا آخر.',
+    'block_differentApi': 'وضع عدم الاتصال غير متاح: البيانات المحفوظة لخادم مختلف.',
+    'block_storeUnavailable': 'وضع عدم الاتصال غير متاح: تعذّر فتح التخزين دون اتصال على هذا الجهاز حاليًا.',
+    'block_noCachedData': 'وضع عدم الاتصال غير متاح: لم يتم تنزيل بيانات للعمل دون اتصال بعد.',
     'passInvalid': 'ليست بطاقة عضوية CLBY صالحة.',
     'passUnknownKey': 'مفتاح البطاقة غير معروف — حدّث البيانات المحفوظة أثناء الاتصال.',
     'passWrongGym': 'هذه البطاقة تخص ناديًا آخر.',

@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 // VERIFY-ONLY (throwaway): coach service_session with a member pass against
 // a live clby-api. Skipped unless CLBY_VERIFY_LIVE=1.
 // Env: CLBY_API, CLBY_COACH_TOKEN, CLBY_PASS_BARAK, CLBY_PASS_OTHER.

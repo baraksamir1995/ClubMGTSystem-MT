@@ -132,6 +132,15 @@ class CoachOfflineController extends ChangeNotifier {
     }
   }
 
+  /// The coach endpoints answered 403 (access revoked / trainer profile
+  /// inactive): leave offline mode and pause the engine WITHOUT touching
+  /// queued events — they stay for this coach if access is restored.
+  void onAccessForbidden(String message) {
+    _offlineMode = false;
+    store?.engine.pause(SyncPauseReason.forbidden, message: message);
+    notifyListeners();
+  }
+
   /// Back online (roster loaded) — the normal shell takes over.
   void leaveOfflineMode() {
     if (!_offlineMode) return;

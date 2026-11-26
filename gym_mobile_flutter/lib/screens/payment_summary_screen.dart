@@ -137,6 +137,8 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         userPhone:      profile?.phone,
         userName:       profile?.fullName,
         specialistName: item.specialistName,
+        promoCodeId:    _promoApplied ? _promoCodeId : null,
+        offerId:        item.type == 'offer' ? item.id : null,
       );
 
       if (!mounted) return;

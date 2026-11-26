@@ -65,6 +65,32 @@ class PaymobController extends Controller
     }
 
     /**
+     * A usable promo code for this member, or ['error' => message].
+     * Mirrors validate_promo_code: active, in its window, under max_uses
+     * and under the member's per_member_limit.
+     *
+     * @return array{row: object}|array{error: string}
+     */
+    private function resolvePromo(string $gymId, string $promoId, string $userId): array
+    {
+        $promo = DB::table('promo_codes')
+            ->where('id', $promoId)->where('gym_id', $gymId)->where('is_active', true)
+            ->first();
+        if (! $promo) return ['error' => 'Invalid promo code'];
+        if ($promo->valid_from && now()->lt($promo->valid_from)) return ['error' => 'Promo code is not yet active'];
+        if ($promo->valid_until && now()->gt($promo->valid_until)) return ['error' => 'Promo code has expired'];
+        if ($promo->max_uses !== null && (int) $promo->uses_count >= (int) $promo->max_uses) {
+            return ['error' => 'Promo code has reached its usage limit'];
+        }
+        $mine = DB::table('promo_code_redemptions')
+            ->where('promo_code_id', $promo->id)->where('member_id', $userId)->count();
+        if ($promo->per_member_limit !== null && $mine >= (int) $promo->per_member_limit) {
+            return ['error' => 'You have already used this promo code'];
+        }
+        return ['row' => $promo];
+    }
+
+    /**
      * Create a payment intention (mobile app initiates payment).
      */
     public function intention(Request $request): JsonResponse
@@ -92,6 +118,10 @@ class PaymobController extends Controller
             // Paid events (item_type=event): plan_id = event id. Required
             // when the event defines options.
             'event_configuration_id' => 'nullable|uuid',
+            // Discounts for memberships / service packages. The server
+            // re-prices with them; the client total must then match.
+            'promo_code_id' => 'nullable|uuid',
+            'offer_id' => 'nullable|uuid',
         ]);
 
         $user = $request->user();
@@ -170,6 +200,44 @@ class PaymobController extends Controller
             return response()->json(['error' => 'Item not available for purchase'], 404);
         }
         $amountCents = $catalog['price_cents'];
+
+        // Offers and promo codes (memberships / service packages only).
+        // Same rules the app shows the member: an active, unexpired offer
+        // linked to this plan/package replaces the price, then a valid promo
+        // code is taken off that (validate_promo_code semantics).
+        $listCents = $amountCents;
+        $promoCodeId = null;
+        if (in_array($catalog['type'], ['membership', 'service_package'], true)) {
+            if (! empty($validated['offer_id'])) {
+                $offer = DB::table('gym_offers')
+                    ->where('id', $validated['offer_id'])
+                    ->where('gym_id', $gymId)
+                    ->where('status', 'active')
+                    ->where('expires_at', '>', now())
+                    ->whereNotNull('offer_price')
+                    ->where(fn ($q) => $q->where('linked_plan_id', $validated['plan_id'])
+                        ->orWhere('linked_package_id', $validated['plan_id']))
+                    ->first();
+                if (! $offer) {
+                    return response()->json(['error' => 'This offer is no longer available.', 'code' => 'offer_unavailable'], 422);
+                }
+                $amountCents = (int) round((float) $offer->offer_price * 100);
+            }
+            if (! empty($validated['promo_code_id'])) {
+                $promo = $this->resolvePromo($gymId, $validated['promo_code_id'], $user->id);
+                if (isset($promo['error'])) {
+                    return response()->json(['error' => $promo['error'], 'code' => 'promo_invalid'], 422);
+                }
+                $promoRow = $promo['row'];
+                $discount = $promoRow->discount_type === 'percent'
+                    ? (int) round($amountCents * (float) $promoRow->discount_value / 100)
+                    : min((int) round((float) $promoRow->discount_value * 100), $amountCents);
+                $amountCents = max(0, $amountCents - $discount);
+                $promoCodeId = $promoRow->id;
+            }
+        }
+        $discountCents = max(0, $listCents - $amountCents);
+
         if ($amountCents < 100) {
             return response()->json(['error' => 'Item price is below the minimum chargeable amount'], 422);
         }
@@ -216,7 +284,7 @@ class PaymobController extends Controller
         // instead of creating duplicates).
         try {
             [$payment, $entitlementId] = DB::transaction(function () use (
-                $validated, $gymId, $catalog, $amountCents, $user
+                $validated, $gymId, $catalog, $amountCents, $user, $listCents, $discountCents, $promoCodeId
             ) {
                 $catRow            = $catalog['row'];
                 $membershipId      = null;
@@ -260,8 +328,8 @@ class PaymobController extends Controller
                         'sessions_total' => $catRow->session_count,
                         'sessions_used' => 0,
                         'sessions_remaining' => $catRow->session_count,
-                        'original_price' => $amountCents / 100,
-                        'discount_amount' => 0,
+                        'original_price' => $listCents / 100,
+                        'discount_amount' => $discountCents / 100,
                         'final_price' => $amountCents / 100,
                         'invitations_remaining' => $catRow->invitations_enabled
                             ? ($catRow->invitations_per_cycle ?? 0)
@@ -297,7 +365,9 @@ class PaymobController extends Controller
                     'membership_id' => $membershipId,
                     'service_assignment_id' => $serviceAssignment,
                     'amount' => number_format($amountCents / 100, 2, '.', ''),
-                    'original_amount' => number_format($amountCents / 100, 2, '.', ''),
+                    'original_amount' => number_format($listCents / 100, 2, '.', ''),
+                    'discount_amount' => number_format($discountCents / 100, 2, '.', ''),
+                    'promo_code_id' => $promoCodeId,
                     'currency' => $validated['currency'] ?? 'EGP',
                     'payment_method' => ($validated['payment_method'] ?? 'card') === 'valu' ? 'valu' : 'card',
                     'status' => 'pending',
@@ -635,6 +705,24 @@ class PaymobController extends Controller
                     ->update([
                         'status' => 'active',
                     ]);
+            }
+
+            // Promo used on this payment: record the redemption once, now
+            // that the money is captured (counts toward max_uses and the
+            // per-member limit).
+            if ($target->promo_code_id) {
+                $memberUserId = DB::table('gym_members')->where('id', $target->gym_member_id)->value('user_id');
+                if ($memberUserId) {
+                    DB::table('promo_code_redemptions')->insert([
+                        'id' => (string) Str::uuid(),
+                        'promo_code_id' => $target->promo_code_id,
+                        'member_id' => $memberUserId,
+                        'membership_id' => $target->membership_id,
+                        'discount_applied' => (float) ($target->discount_amount ?? 0),
+                        'redeemed_at' => now(),
+                    ]);
+                    DB::table('promo_codes')->where('id', $target->promo_code_id)->increment('uses_count');
+                }
             }
 
             // Confirm a paid event registration. Money was captured, so the

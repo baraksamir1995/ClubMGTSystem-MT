@@ -67,6 +67,8 @@ class PaymobService {
     int? quantity,
     String? purchaseNote,
     String? eventConfigurationId,
+    String? promoCodeId,
+    String? offerId,
   }) async {
     final amountCents = amountEgp != null ? (amountEgp * 100).round() : null;
 
@@ -91,6 +93,9 @@ class PaymobService {
         if (purchaseNote != null && purchaseNote.trim().isNotEmpty)
           'purchase_note': purchaseNote.trim(),
         'event_configuration_id': ?eventConfigurationId,
+        // The server re-prices with these and checks our total matches.
+        'promo_code_id': ?promoCodeId,
+        'offer_id': ?offerId,
       }),
     ).timeout(
       const Duration(seconds: 30),

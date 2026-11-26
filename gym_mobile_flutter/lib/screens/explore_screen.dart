@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../models/app_layout.dart';
 import '../models/checkout_item.dart';
 import '../models/trainer_profile_model.dart';
 import '../providers/auth_provider.dart';
@@ -98,7 +99,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _onRefresh() async {
     _belowFoldLoaded = false;
     setState(() => _loadingAboveFold = true);
-    await _loadAll();
+    await Future.wait([
+      _loadAll(),
+      // Picks up App Layout changes made in the dashboard.
+      context.read<AuthProvider>().refreshGym(),
+    ]);
   }
 
   void _toggleSearch() {
@@ -181,40 +186,49 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final gymName =
         context.read<AuthProvider>().gym?.name ?? context.l10n.exploreOurGym;
 
+    // Order + visibility come from the gym's App Layout (admin Settings).
+    // Sections with no data still hide themselves.
+    final layout =
+        context.watch<AuthProvider>().gym?.appLayout ?? AppLayout.defaults;
+
     final sections = <Widget>[];
-
-    if (_plans.isNotEmpty) {
-      sections.add(_MembershipsSection(
-        plans: _plans,
-        gymName: gymName,
-        primary: primary,
-      ));
-    }
-
-    if (_offers.isNotEmpty) {
-      sections.add(_CurrentOffersSection(offers: _offers, primary: primary));
-    }
-
-    if (_trainers.isNotEmpty) {
-      sections.add(_TrainersSection(trainers: _trainers, primary: primary));
-    }
-
-    // Services section (PT / Physio / Nutrition) — hide types with 0 packages
-    if (_belowFoldLoaded) {
-      sections.add(ServicesSection(packageCounts: _servicePackageCounts));
-    }
-
-    if (_programs.isNotEmpty) {
-      sections.add(_ProgramsSection(programs: _programs, primary: primary));
-    }
-
-    if (_sessionPackages.isNotEmpty) {
-      sections.add(
-          _SessionPackagesSection(packages: _sessionPackages, primary: primary));
-    }
-
-    if (_partners.isNotEmpty) {
-      sections.add(_PartnersSection(partners: _partners));
+    for (final key in layout.explore) {
+      switch (key) {
+        case 'memberships':
+          if (_plans.isNotEmpty) {
+            sections.add(_MembershipsSection(
+              plans: _plans,
+              gymName: gymName,
+              primary: primary,
+            ));
+          }
+        case 'offers':
+          if (_offers.isNotEmpty) {
+            sections.add(_CurrentOffersSection(offers: _offers, primary: primary));
+          }
+        case 'trainers':
+          if (_trainers.isNotEmpty) {
+            sections.add(_TrainersSection(trainers: _trainers, primary: primary));
+          }
+        case 'services':
+          // PT / Physio / Nutrition — hides types with 0 packages itself.
+          if (_belowFoldLoaded) {
+            sections.add(ServicesSection(packageCounts: _servicePackageCounts));
+          }
+        case 'programs':
+          if (_programs.isNotEmpty) {
+            sections.add(_ProgramsSection(programs: _programs, primary: primary));
+          }
+        case 'session_packages':
+          if (_sessionPackages.isNotEmpty) {
+            sections.add(_SessionPackagesSection(
+                packages: _sessionPackages, primary: primary));
+          }
+        case 'partners':
+          if (_partners.isNotEmpty) {
+            sections.add(_PartnersSection(partners: _partners));
+          }
+      }
     }
 
     if (sections.isEmpty) return const SizedBox.shrink();

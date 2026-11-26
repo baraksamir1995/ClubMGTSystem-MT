@@ -1,3 +1,5 @@
+import 'app_layout.dart';
+
 class Gym {
   final String id;
   final String name;
@@ -9,6 +11,8 @@ class Gym {
   // profile screen hides the "Share sessions" entry point. Defaults true
   // so a not-yet-loaded gym keeps the current behaviour (fail-open).
   final bool sessionTransferEnabled;
+  // Home / Explore section order + visibility (admin Settings → App Layout).
+  final AppLayout appLayout;
 
   const Gym({
     required this.id,
@@ -18,6 +22,7 @@ class Gym {
     this.secondaryColor,
     this.mobilePaymentsEnabled = true,
     this.sessionTransferEnabled = true,
+    this.appLayout = AppLayout.defaults,
   });
 
   factory Gym.fromJson(Map<String, dynamic> json) {
@@ -31,6 +36,7 @@ class Gym {
       secondaryColor: branding?['secondary_color'] as String? ?? json['secondary_color'] as String?,
       mobilePaymentsEnabled: json['mobile_payments_enabled'] as bool? ?? true,
       sessionTransferEnabled: json['session_transfer_enabled'] as bool? ?? true,
+      appLayout: AppLayout.fromJson(json['app_layout']),
     );
   }
 
@@ -45,6 +51,7 @@ class Gym {
       },
       'mobile_payments_enabled': mobilePaymentsEnabled,
       'session_transfer_enabled': sessionTransferEnabled,
+      'app_layout': appLayout.toJson(),
     };
   }
 }

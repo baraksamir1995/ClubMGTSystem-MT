@@ -17,6 +17,7 @@ export interface GymSettings {
   capacity_feature_enabled: boolean;
   max_capacity: number | null;
   branding_config: BrandingConfig | null;
+  app_layout: unknown;
 }
 
 export interface DayHours {

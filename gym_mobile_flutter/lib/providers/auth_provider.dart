@@ -220,16 +220,30 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _profile?.gymId != null) {
-      _refreshGym();
+      refreshGym();
     }
   }
 
-  Future<void> _refreshGym() async {
-    if (_profile?.gymId == null) return;
-    try {
-      _gym = await _service.getGymInfo(_profile!.gymId!);
-      notifyListeners();
-    } catch (_) {}
+  /// Re-fetch the gym (branding, feature flags, app layout). Called on app
+  /// resume and from Home/Explore pull-to-refresh.
+  Future<void> refreshGym() async {
+    final gymId = _currentGymId;
+    if (gymId == null) return;
+    final gym = await _service.getGymInfo(gymId);
+    // getGymInfo returns null on any failure — keep the gym we have rather
+    // than wiping branding + layout on an offline refresh. Also drop the
+    // result if the session changed mid-flight (sign-out, exit guest mode,
+    // account switch) so a stale gym can't be restored.
+    if (gym == null || _currentGymId != gymId) return;
+    _gym = gym;
+    notifyListeners();
+  }
+
+  /// Gym for the current session: the member's gym, or the build's GYM_ID
+  /// in guest mode.
+  String? get _currentGymId {
+    final id = _profile?.gymId ?? (_isGuest ? Env.gymId : null);
+    return (id == null || id.isEmpty) ? null : id;
   }
 
   Future<void> refreshProfile() async {

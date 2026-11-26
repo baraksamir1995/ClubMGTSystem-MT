@@ -6,7 +6,8 @@
     "appBranding": "App Branding",
     "mobileApp": "Mobile App & Payments",
     "branchesOps": "Branches & Operations",
-    "contractTerms": "Contract Terms"
+    "contractTerms": "Contract Terms",
+    "appLayout": "App Layout"
   },
   "profile": {
     "logoUsage": "Used in the member app and splash screen",
@@ -159,5 +160,77 @@
     "required": "Terms content cannot be empty",
     "versionNote": "Publishing creates a new version. Invoices already issued keep the version they were issued under.",
     "charCount": "{count} characters"
+  },
+  "layout": {
+    "description": "Choose which sections members see on the app's Home and Explore screens, and in what order. Drag rows or use the arrows to reorder.",
+    "home": "Home",
+    "explore": "Explore",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "hide": "Hide section",
+    "show": "Show section",
+    "save": "Save layout",
+    "saved": "App layout saved",
+    "reset": "Reset to default",
+    "membershipHiddenWarning": "Members won't see their membership status on Home. They can still open it from their profile.",
+    "emptyNote": "Visible sections with no content (e.g. no offers, or a single branch) stay hidden automatically. Changes apply the next time members open or refresh the app (requires the latest app version).",
+    "sections": {
+      "home": {
+        "banners": {
+          "title": "Banners",
+          "hint": "Promotional banner carousel"
+        },
+        "membership": {
+          "title": "Your membership",
+          "hint": "Member's active plan and remaining sessions"
+        },
+        "todays_classes": {
+          "title": "Today's classes",
+          "hint": "Classes scheduled for today"
+        },
+        "activity": {
+          "title": "Your activity",
+          "hint": "Visits and progress stats"
+        },
+        "quick_access": {
+          "title": "Quick access",
+          "hint": "Shortcuts to bookings, attendance, and more"
+        },
+        "locations": {
+          "title": "Our locations",
+          "hint": "Branches carousel (only with 2+ branches)"
+        }
+      },
+      "explore": {
+        "memberships": {
+          "title": "Memberships",
+          "hint": "Membership plans for sale"
+        },
+        "offers": {
+          "title": "Current offers",
+          "hint": "Active promotions"
+        },
+        "trainers": {
+          "title": "Trainers",
+          "hint": "Your coaching team"
+        },
+        "services": {
+          "title": "Services",
+          "hint": "PT, physio, and nutrition"
+        },
+        "programs": {
+          "title": "Programs",
+          "hint": "Training programs"
+        },
+        "session_packages": {
+          "title": "Session packages",
+          "hint": "Session bundles for sale"
+        },
+        "partners": {
+          "title": "Partners",
+          "hint": "Partner brands and perks"
+        }
+      }
+    }
   }
 }

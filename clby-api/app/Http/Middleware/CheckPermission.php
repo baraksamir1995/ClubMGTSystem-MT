@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Services\StaffPermission;
 
 /**
  * Enforces module-level permissions from staff_role_permissions.
@@ -50,19 +50,9 @@ class CheckPermission
         //   2. staff_members.status must be 'active' (deactivated staff
         //      can keep a valid token until expiry).
         //   3. staff_members.deleted_at must be null (already enforced).
-        $hasPermission = DB::table('staff_members')
-            ->join('staff_member_roles', 'staff_member_roles.staff_id', '=', 'staff_members.id')
-            ->join('staff_roles', function ($join) {
-                $join->on('staff_roles.id', '=', 'staff_member_roles.role_id')
-                     ->whereColumn('staff_roles.gym_id', '=', 'staff_members.gym_id');
-            })
-            ->join('staff_role_permissions', 'staff_role_permissions.role_id', '=', 'staff_roles.id')
-            ->where('staff_members.user_id', $user->id)
-            ->where('staff_members.gym_id', $user->gym_id)
-            ->where('staff_members.status', 'active')
-            ->whereNull('staff_members.deleted_at')
-            ->whereIn('staff_role_permissions.module', explode('|', $module))
-            ->exists();
+        // The query lives in StaffPermission so per-item checks (offline
+        // attendance sync) share it.
+        $hasPermission = StaffPermission::has($user, explode('|', $module));
 
         if (! $hasPermission) {
             return response()->json([

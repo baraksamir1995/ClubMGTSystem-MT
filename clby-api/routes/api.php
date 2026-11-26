@@ -10,6 +10,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AnnouncementAdminController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceOfflineController;
 use App\Http\Controllers\BillingReminderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
@@ -198,6 +199,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
     Route::post('/access/branch', [AccessController::class, 'validateBranch']);
     Route::post('/access/studio', [AccessController::class, 'validateStudio']);
     Route::post('/attendance/qr', [AttendanceController::class, 'logByQr']);
+
+    // Offline attendance (docs/offline-attendance/CONTRACT.md). Members,
+    // staff and coaches all sync through one endpoint, so permission is
+    // checked per event / per role inside the controller, not by route.
+    Route::post('/attendance/sync', [AttendanceOfflineController::class, 'sync'])->middleware('throttle:attendance-sync');
+    Route::get('/attendance/offline/status', [AttendanceOfflineController::class, 'status']);
+    Route::get('/attendance/offline/bootstrap', [AttendanceOfflineController::class, 'bootstrap']);
+    Route::get('/attendance/offline/me', [AttendanceOfflineController::class, 'me']);
 
     // Specialist QR — member scans a specialist's static code to decrement
     // their own session pack with that specialist (mirror of the coach

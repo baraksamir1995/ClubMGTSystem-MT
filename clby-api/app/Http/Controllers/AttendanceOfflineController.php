@@ -57,19 +57,23 @@ class AttendanceOfflineController extends Controller
     }
 
     /**
-     * Bind the device to (user, gym) on first sight; refuse a device bound
-     * to someone else or revoked. Returns a 403 response or null.
+     * CONTRACT §6.1: register the (device_id, user) pair on first sight. A
+     * device may be shared by several accounts; each pair is independent.
+     * 403 device_mismatch only when the same user presents the device for a
+     * different gym; 403 device_revoked when that pair was revoked.
      */
     private function bindDevice(Request $request, string $deviceId): ?JsonResponse
     {
         $user = $request->user();
         $now = Carbon::now('UTC')->toIso8601String();
         $platform = $request->header('X-App-Platform');
+        $pair = fn () => DB::table('attendance_devices')->where('device_id', $deviceId)->where('user_id', $user->id)->first();
 
-        $device = DB::table('attendance_devices')->where('id', $deviceId)->first();
+        $device = $pair();
         if (! $device) {
             DB::table('attendance_devices')->insertOrIgnore([
-                'id' => $deviceId,
+                'id' => (string) Str::uuid(),
+                'device_id' => $deviceId,
                 'gym_id' => $user->gym_id,
                 'user_id' => $user->id,
                 'app' => $request->input('app'),
@@ -80,14 +84,13 @@ class AttendanceOfflineController extends Controller
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
-            // Re-read: a concurrent first sync by another user may have won.
-            $device = DB::table('attendance_devices')->where('id', $deviceId)->first();
+            // Re-read: a concurrent first sync of the same pair may have won.
+            $device = $pair();
         }
 
-        if (strtolower((string) $device->user_id) !== strtolower((string) $user->id)
-            || strtolower((string) $device->gym_id) !== strtolower((string) $user->gym_id)) {
+        if (strtolower((string) $device->gym_id) !== strtolower((string) $user->gym_id)) {
             return response()->json([
-                'error' => 'This device is registered to another account.',
+                'error' => 'This device is registered to this account for a different gym.',
                 'code' => 'device_mismatch',
             ], 403);
         }
@@ -98,7 +101,7 @@ class AttendanceOfflineController extends Controller
             ], 403);
         }
 
-        DB::table('attendance_devices')->where('id', $deviceId)->update(array_filter([
+        DB::table('attendance_devices')->where('id', $device->id)->update(array_filter([
             'app' => $request->input('app'),
             'platform' => $platform ? Str::limit($platform, 16, '') : null,
             'app_version' => $request->input('app_version'),
@@ -122,7 +125,7 @@ class AttendanceOfflineController extends Controller
         if ($deviceId = $request->query('device_id') ?? $request->header('X-Device-Id')) {
             if (Str::isUuid($deviceId)) {
                 $device = DB::table('attendance_devices')
-                    ->where('id', strtolower($deviceId))
+                    ->where('device_id', strtolower($deviceId))
                     ->where('user_id', $user->id)
                     ->where('gym_id', $user->gym_id)
                     ->first(['revoked_at']);
@@ -213,8 +216,22 @@ class AttendanceOfflineController extends Controller
             'phone_last4' => self::last4($r->phone),
             'photo_url' => $r->photo_url,
             'status' => $r->status,
-            'buckets' => ($buckets[$r->id] ?? collect())->map(fn ($b) => $this->bucketShape($b))->values(),
+            'buckets' => ($buckets[$r->id] ?? collect())->map(fn ($b) => $this->bucketShape($b, $gym['timezone']))->values(),
         ])->values();
+
+        $payload = [
+            'server_time' => $asOf,
+            'as_of' => $asOf,
+            'gym' => $gym,
+            'policy' => self::policy(),
+            'members' => $members,
+            'next_cursor' => $nextCursor,
+        ];
+        if ($cursor !== null) {
+            // Later pages carry members only; branches / class_sessions /
+            // recent_attendance are sent once, on the first page.
+            return response()->json($payload);
+        }
 
         // Class sessions yesterday → +7 days (gym-local dates).
         $tz = $gym['timezone'];
@@ -264,7 +281,9 @@ class AttendanceOfflineController extends Controller
         $cursor = $request->query('cursor') ? strtolower($request->query('cursor')) : null;
         $asOf = $this->now();
 
+        // Scoped to this coach (not the whole table).
         $lastSessionSub = DB::table('service_session_logs')
+            ->where('trainer_id', $coach->id)
             ->select('assignment_id', DB::raw('MAX(delivered_at) AS last_at'))
             ->groupBy('assignment_id');
 
@@ -302,6 +321,18 @@ class AttendanceOfflineController extends Controller
             'expires_at' => $this->isoOrNull($r->expires_at),
             'last_session_at' => $this->isoOrNull($r->last_at),
         ])->values();
+
+        $base = [
+            'server_time' => $asOf,
+            'as_of' => $asOf,
+            'gym' => $this->gym($user->gym_id),
+            'policy' => self::policy(),
+            'assignments' => $assignments,
+        ];
+        if ($cursor !== null) {
+            // Later pages carry assignments only (recent_service_logs: first page).
+            return response()->json($base + ['next_cursor' => $nextCursor]);
+        }
 
         $recent = DB::table('service_session_logs')
             ->where('gym_id', $user->gym_id)
@@ -349,6 +380,7 @@ class AttendanceOfflineController extends Controller
         }
 
         $asOf = $this->now();
+        $gym = $this->gym($user->gym_id);
         $recent = DB::table('attendance_logs')
             ->where('gym_id', $user->gym_id)
             ->where('gym_member_id', $member->id)
@@ -360,14 +392,14 @@ class AttendanceOfflineController extends Controller
         return response()->json([
             'server_time' => $asOf,
             'as_of' => $asOf,
-            'gym' => $this->gym($user->gym_id),
+            'gym' => $gym,
             'policy' => self::policy(),
             'member' => [
                 'gym_member_id' => $member->id,
                 'member_number' => $member->member_number !== null ? (int) $member->member_number : null,
                 'full_name' => $member->full_name,
             ],
-            'buckets' => $this->buckets([$member->id])->map(fn ($b) => $this->bucketShape($b))->values(),
+            'buckets' => $this->buckets([$member->id])->map(fn ($b) => $this->bucketShape($b, $gym['timezone']))->values(),
             'branches' => $this->branches($user->gym_id),
             'recent_attendance' => $recent,
         ]);
@@ -392,6 +424,7 @@ class AttendanceOfflineController extends Controller
             'expired_cache_policy' => (string) $c['expired_cache_policy'],
             'retry_base_seconds' => (int) $c['retry_base_seconds'],
             'retry_max_seconds' => (int) $c['retry_max_seconds'],
+            'online_grace_seconds' => (int) $c['online_grace_seconds'],
         ];
     }
 
@@ -414,7 +447,8 @@ class AttendanceOfflineController extends Controller
             ]);
     }
 
-    private function bucketShape(object $b): array
+    /** CONTRACT §6.4: start_date / end_date are gym-local YYYY-MM-DD dates. */
+    private function bucketShape(object $b, string $tz): array
     {
         $allowed = AttendanceCheckInService::pgArray($b->allowed_branch_ids);
         return [
@@ -423,8 +457,8 @@ class AttendanceOfflineController extends Controller
             'source_type' => $b->source_type,
             'status' => $b->status,
             'payment_status' => $b->payment_status,
-            'start_date' => $this->isoOrNull($b->start_date),
-            'end_date' => $this->isoOrNull($b->end_date),
+            'start_date' => $this->localDate($b->start_date, $tz),
+            'end_date' => $this->localDate($b->end_date, $tz),
             'sessions_remaining' => $b->sessions_remaining !== null ? (int) $b->sessions_remaining : null,
             'sessions_total' => $b->sessions_total !== null ? (int) $b->sessions_total : null,
             'freeze_status' => $b->freeze_status,
@@ -481,6 +515,16 @@ class AttendanceOfflineController extends Controller
         if ($v === null || $v === '') return null;
         try {
             return AttendanceSyncService::iso(Carbon::parse($v));
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function localDate(mixed $v, string $tz): ?string
+    {
+        if ($v === null || $v === '') return null;
+        try {
+            return Carbon::parse($v)->setTimezone($tz)->toDateString();
         } catch (\Throwable) {
             return null;
         }

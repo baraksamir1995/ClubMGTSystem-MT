@@ -417,32 +417,41 @@ class AttendanceSyncTest extends OfflineSyncTestCase
         $this->assertSame(0, DB::table('attendance_events')->count());
     }
 
-    public function test_disabled_offline_still_processes_events(): void
+    /** CONTRACT §6.1: a shared device works for every account; each (device, user) pair is independent. */
+    public function test_shared_device_is_bound_per_user_and_revoked_per_pair(): void
     {
-        config(['attendance_offline.enabled' => false]);
         $gym = $this->makeGym();
         [, $mid] = $this->makeMember($gym);
         $this->makeMembership($gym, $mid, 'duration');
-        $r = $this->syncOne($this->makeAdmin($gym), $this->attendanceEvent($gym, ['member_id' => $mid]));
-        $this->assertSame('accepted', $r['status']);
+        $joe = $this->makeAdmin($gym);
+        $aya = $this->makeStaff($gym);
+        [$member, $own] = $this->makeMember($gym);
+        $this->makeMembership($gym, $own, 'duration');
+        [, $token] = $this->makeBranch($gym);
+
+        $this->assertSame('accepted', $this->syncOne($joe, $this->attendanceEvent($gym, ['member_id' => $mid]))['status']);
+        $this->assertSame('accepted', $this->syncOne($aya, $this->attendanceEvent($gym, ['member_id' => $mid]))['status']);
+        $this->assertSame('accepted', $this->syncOne($member, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => $token]]), null, 'member')['status']);
+        $this->assertSame(3, DB::table('attendance_devices')->where('device_id', $this->deviceId)->count());
+
+        // Revoking joe's pair leaves aya's untouched.
+        DB::table('attendance_devices')->where('device_id', $this->deviceId)->where('user_id', $joe->id)->update(['revoked_at' => now()]);
+        $this->sync($joe, [$this->attendanceEvent($gym, ['member_id' => $mid])])->assertStatus(403)->assertJsonPath('code', 'device_revoked');
+        $this->assertSame('accepted', $this->syncOne($aya, $this->attendanceEvent($gym, ['member_id' => $mid]))['status']);
+        $this->assertSame(4, DB::table('attendance_logs')->count());
     }
 
-    public function test_device_bound_to_another_user_or_revoked_is_refused(): void
+    public function test_device_mismatch_only_for_same_user_in_another_gym(): void
     {
         $gym = $this->makeGym();
-        [, $mid] = $this->makeMember($gym);
-        $this->makeMembership($gym, $mid, 'duration');
-        $first = $this->makeAdmin($gym);
-        $this->syncOne($first, $this->attendanceEvent($gym, ['member_id' => $mid]));
-        $this->assertSame($first->id, DB::table('attendance_devices')->where('id', $this->deviceId)->value('user_id'));
+        $other = $this->makeGym();
+        $admin = $this->makeAdmin($gym);
+        $this->sync($admin, [$this->attendanceEvent($gym)])->assertOk();
 
-        $res = $this->sync($this->makeStaff($gym), [$this->attendanceEvent($gym, ['member_id' => $mid])]);
-        $res->assertStatus(403)->assertJsonPath('code', 'device_mismatch');
-
-        DB::table('attendance_devices')->where('id', $this->deviceId)->update(['revoked_at' => now()]);
-        $this->sync($first, [$this->attendanceEvent($gym, ['member_id' => $mid])])
-            ->assertStatus(403)->assertJsonPath('code', 'device_revoked');
-        $this->assertSame(1, DB::table('attendance_logs')->count());
+        // The same account later belongs to another gym (account/gym switch).
+        $admin->forceFill(['gym_id' => $other])->save();
+        $this->sync($admin->fresh(), [$this->attendanceEvent($other)])
+            ->assertStatus(403)->assertJsonPath('code', 'device_mismatch');
     }
 
     public function test_unexpected_exception_is_retryable_and_reprocessed_on_resend(): void
@@ -476,15 +485,58 @@ class AttendanceSyncTest extends OfflineSyncTestCase
         $this->assertSame(2, (int) DB::table('attendance_events')->value('attempts'));
     }
 
-    public function test_rate_limiter_is_applied(): void
+    public function test_rate_limiter_is_keyed_by_user_not_device(): void
     {
         config(['attendance_offline.sync_rate_per_minute' => 2]);
         $gym = $this->makeGym();
         $admin = $this->makeAdmin($gym);
-        $this->sync($admin, [$this->attendanceEvent($gym)])->assertOk();
-        $this->sync($admin, [$this->attendanceEvent($gym)])->assertOk();
-        $this->sync($admin, [$this->attendanceEvent($gym)])->assertStatus(429);
-        // Another device of the same user has its own bucket.
         $this->sync($admin, [$this->attendanceEvent($gym)], (string) Str::uuid())->assertOk();
+        $this->sync($admin, [$this->attendanceEvent($gym)], (string) Str::uuid())->assertOk();
+        // Rotating device ids buys no extra quota.
+        $this->sync($admin, [$this->attendanceEvent($gym)], (string) Str::uuid())->assertStatus(429);
+        // Another user has their own bucket.
+        $this->sync($this->makeStaff($gym), [$this->attendanceEvent($gym)])->assertOk();
+    }
+
+    /** CONTRACT §6.3 */
+    public function test_conflicting_event_ids_are_audited_without_touching_the_original(): void
+    {
+        $gymA = $this->makeGym();
+        $gymB = $this->makeGym();
+        [, $midA] = $this->makeMember($gymA);
+        [, $otherA] = $this->makeMember($gymA);
+        $this->makeMembership($gymA, $midA, 'duration');
+        $adminA = $this->makeAdmin($gymA);
+        $adminB = $this->makeAdmin($gymB);
+        $event = $this->attendanceEvent($gymA, ['member_id' => $midA]);
+        $this->syncOne($adminA, $event);
+        $original = (array) DB::table('attendance_events')->first();
+
+        $this->assertSame('event_id_reused', $this->syncOne($adminA, array_merge($event, ['member_id' => $otherA]))['code']);
+        $deviceB = (string) Str::uuid();
+        $this->assertSame('event_id_conflict', $this->syncOne($adminB, $this->attendanceEvent($gymB, ['event_id' => $event['event_id']]), $deviceB)['code']);
+
+        $this->assertSame($original, (array) DB::table('attendance_events')->first(), 'original row unchanged');
+        $rows = DB::table('attendance_event_conflicts')->orderBy('reason_code', 'desc')->get();
+        $this->assertCount(2, $rows);
+        $this->assertSame(['event_id_reused', $adminA->id, $gymA, $this->deviceId], [$rows[0]->reason_code, $rows[0]->actor_user_id, $rows[0]->gym_id, $rows[0]->device_id]);
+        $this->assertSame(['event_id_conflict', $adminB->id, $gymB, $deviceB], [$rows[1]->reason_code, $rows[1]->actor_user_id, $rows[1]->gym_id, $rows[1]->device_id]);
+        $this->assertSame($event['event_id'], $rows[1]->event_id);
+        $this->assertSame(64, strlen($rows[1]->payload_hash));
+        $this->assertNotSame($original['payload_hash'], $rows[0]->payload_hash);
+    }
+
+    public function test_impossible_dates_are_invalid_payload(): void
+    {
+        $gym = $this->makeGym();
+        [, $mid] = $this->makeMember($gym);
+        $this->makeMembership($gym, $mid, 'duration');
+        $feb30 = Carbon::now()->subDay()->format('Y') . '-02-30T10:00:00Z';
+        $results = $this->sync($this->makeAdmin($gym), [
+            $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => $feb30]),
+            $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => Carbon::now()->format('Y-m-d') . 'T25:00:00Z']),
+            $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => Carbon::now()->subMinute()->format('Y-m-d\TH:i:s') . '+15:00']),
+        ])->assertOk()->json('results');
+        $this->assertSame(['invalid_payload', 'invalid_payload', 'invalid_payload'], array_column($results, 'code'));
     }
 }

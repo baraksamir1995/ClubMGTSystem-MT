@@ -15,6 +15,13 @@ abstract class OfflineSyncTestCase extends AttendanceTestCase
     {
         parent::setUp();
         $this->deviceId = (string) Str::uuid();
+        // Most tests replay events recorded minutes ago (i.e. "offline"), so
+        // the offline gate (CONTRACT §6.2) is opened here; the gate itself is
+        // covered by OfflineGateTest.
+        config([
+            'attendance_offline.enabled' => true,
+            'attendance_offline.allow_member_qr_offline' => true,
+        ]);
     }
 
     protected static function at(Carbon $t): string

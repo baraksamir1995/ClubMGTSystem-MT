@@ -25,7 +25,8 @@ use Illuminate\Support\Str;
  *     → duplicate/event_replayed; rejected/duplicate → unchanged); other
  *     actor/gym → event_id_conflict; same actor, other hash →
  *     event_id_reused. A stored `error` is re-processed.
- *  4. Server-derived tenant + per-event permission matrix + clock rules.
+ *  4. Server-derived tenant + clock rules + offline gate (CONTRACT §6.2) +
+ *     per-event permission matrix.
  *  5. Official write through AttendanceCheckInService / ServiceSessionService
  *     (the same rules as the online endpoints), stamped with
  *     source_event_id (UNIQUE) so one event can never yield two rows.
@@ -66,13 +67,16 @@ class AttendanceSyncService
         'event_too_old' => 'The event is too old to sync automatically; staff must record it manually.',
         'event_id_conflict' => 'This event id cannot be used.',
         'event_id_reused' => 'This event id was already used for a different event.',
+        'offline_disabled' => 'Offline recording of this kind of attendance is disabled.',
         'server_error' => 'Temporary server error; the event will be retried.',
     ];
 
     /** ServiceSessionService error code → sync result code. */
     private const SERVICE_CODES = [
         'not_found' => 'assignment_not_found',
-        'forbidden' => 'permission_denied',
+        // Another coach's assignment is reported exactly like a missing one so
+        // the sync path is no existence oracle for assignment ids.
+        'forbidden' => 'assignment_not_found',
         'not_active' => 'assignment_not_active',
         'exhausted' => 'assignment_not_active', // unreachable in sync mode (D2 accepts + flags)
         'expired' => 'pack_expired',
@@ -167,10 +171,12 @@ class AttendanceSyncService
         if (strtolower((string) $existing->actor_user_id) !== strtolower((string) $ctx['actor']->id)
             || strtolower((string) $existing->gym_id) !== strtolower($ctx['gym_id'])) {
             // No details: the id belongs to someone else (maybe another tenant).
+            $this->recordConflict($ctx, (string) $existing->event_id, $hash, 'event_id_conflict');
             return $this->result($existing->event_id, 'rejected', 'event_id_conflict', self::MESSAGES['event_id_conflict'],
                 null, null, [], $ctx['received_at'], Carbon::now('UTC'));
         }
         if (! hash_equals((string) $existing->payload_hash, $hash)) {
+            $this->recordConflict($ctx, (string) $existing->event_id, $hash, 'event_id_reused');
             return $this->result($existing->event_id, 'rejected', 'event_id_reused', self::MESSAGES['event_id_reused'],
                 null, null, [], $ctx['received_at'], Carbon::now('UTC'));
         }
@@ -192,6 +198,34 @@ class AttendanceSyncService
         return $this->result($existing->event_id, $status, $code, $message,
             $existing->attendance_log_id, $existing->service_log_id, $flags,
             Carbon::parse($existing->server_received_at), $existing->processed_at ? Carbon::parse($existing->processed_at) : null);
+    }
+
+    /**
+     * CONTRACT §6.3: audit an attempt that reuses an existing event_id. The
+     * original attendance_events row is never touched. Best effort: a failed
+     * audit insert (own savepoint) never fails the sync.
+     */
+    private function recordConflict(array $ctx, string $eventId, string $hash, string $code): void
+    {
+        try {
+            DB::transaction(fn () => DB::table('attendance_event_conflicts')->insert([
+                'id' => (string) Str::uuid(),
+                'event_id' => $eventId,
+                'reason_code' => $code,
+                'gym_id' => $ctx['gym_id'],
+                'actor_user_id' => $ctx['actor']->id,
+                'actor_type' => Str::limit((string) $ctx['actor']->role, 16, ''),
+                'device_id' => $ctx['device_id'],
+                'app' => $ctx['app'],
+                'app_version' => $ctx['app_version'] !== null ? Str::limit((string) $ctx['app_version'], 32, '') : null,
+                'payload_hash' => $hash,
+                'server_received_at' => self::isoWithOffset($ctx['received_at']),
+                'ip_address' => request()?->ip(),
+                'created_at' => Carbon::now('UTC')->toIso8601String(),
+            ]));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /* ── evaluation ─────────────────────────────────────────────── */
@@ -234,6 +268,9 @@ class AttendanceSyncService
         }
 
         try {
+            if (! self::isRealTimestamp($event['device_recorded_at'])) {
+                throw new \InvalidArgumentException('impossible date');
+            }
             $recordedAt = Carbon::parse($event['device_recorded_at'])->utc();
         } catch (\Throwable) {
             return $this->reject('invalid_payload', $derived, 'device_recorded_at is not a valid timestamp.');
@@ -253,6 +290,13 @@ class AttendanceSyncService
             return $this->reject('event_too_old', $derived);
         }
 
+        // CONTRACT §6.2 offline gate. Near-real-time events (within the
+        // grace) are online-equivalent and always processed.
+        $isOffline = $recordedAt->lt($received->copy()->subSeconds((int) config('attendance_offline.online_grace_seconds', 120)));
+        if ($isOffline && ! $this->offlineAllowed($derived)) {
+            return $this->reject('offline_disabled', $derived);
+        }
+
         if ($derived['kind'] === 'service_session') {
             return $this->evaluateServiceSession($ctx, $event, $eventId, $derived, $recordedAt);
         }
@@ -260,6 +304,20 @@ class AttendanceSyncService
             return $this->evaluateMemberQr($ctx, $event, $eventId, $derived, $recordedAt);
         }
         return $this->evaluateStaffCheckIn($ctx, $event, $eventId, $derived, $recordedAt);
+    }
+
+    private function offlineAllowed(array $derived): bool
+    {
+        if (! config('attendance_offline.enabled')) {
+            return false;
+        }
+        $flag = match (true) {
+            $derived['kind'] === 'service_session' => 'allow_service_session_offline',
+            $derived['method'] === 'member_qr' => 'allow_member_qr_offline',
+            $derived['method'] === 'staff_qr' => 'allow_staff_qr_offline',
+            default => 'allow_manual_offline',
+        };
+        return (bool) config('attendance_offline.' . $flag);
     }
 
     /** kind=attendance, method manual | staff_qr (staff / admin / trainer with the attendance module). */
@@ -412,7 +470,9 @@ class AttendanceSyncService
         }
         $derived['service_assignment_id'] = $assignment->id;
         if ($assignment->trainer_id !== $coach->id) {
-            return $this->reject('permission_denied', $derived, 'This assignment belongs to a different coach.');
+            // Same code + message as a missing assignment (no existence oracle).
+            unset($derived['service_assignment_id']);
+            return $this->reject('assignment_not_found', $derived);
         }
         if (! empty($event['member_id']) && strtolower($event['member_id']) !== strtolower($assignment->gym_member_id)) {
             return $this->reject('invalid_payload', $derived, 'member_id does not match the assignment.');
@@ -427,7 +487,7 @@ class AttendanceSyncService
         ]);
         if (isset($r['error'])) {
             $code = self::SERVICE_CODES[$r['error']['code']] ?? 'assignment_not_active';
-            return $this->reject($code, $derived, $r['error']['message']);
+            return $this->reject($code, $derived, $code === 'assignment_not_found' ? null : $r['error']['message']);
         }
 
         $logId = $r['data']['log_id'];
@@ -624,6 +684,28 @@ class AttendanceSyncService
             return [null, 'json_unsupported'];
         }
         return [null, 'unsupported'];
+    }
+
+    /**
+     * Rejects calendar-impossible values the regex lets through (e.g.
+     * 2026-02-30, 25:00, offset +15:00) instead of letting Carbon roll them
+     * over into another day.
+     */
+    public static function isRealTimestamp(string $value): bool
+    {
+        if (! preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,6})?(?:[Zz]|([+-])(\d{2}):(\d{2}))$/', $value, $m)) {
+            return false;
+        }
+        if (! checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
+            return false;
+        }
+        if ((int) $m[4] > 23 || (int) $m[5] > 59 || (int) $m[6] > 59) {
+            return false;
+        }
+        if (isset($m[8]) && $m[8] !== '' && ((int) $m[8] > 14 || (int) $m[9] > 59)) {
+            return false;
+        }
+        return true;
     }
 
     /** sha256 input: recursively key-sorted JSON of the client event. */

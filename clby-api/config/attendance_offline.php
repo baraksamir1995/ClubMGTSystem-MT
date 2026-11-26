@@ -5,11 +5,10 @@
 | Offline attendance policy (global; per-gym overrides may come later)
 |--------------------------------------------------------------------------
 |
-| Served verbatim as the `policy` object by GET /api/attendance/offline/*
-| (docs/offline-attendance/CONTRACT.md §4). `enabled` only tells clients
-| whether they may CREATE new offline events — POST /api/attendance/sync
-| keeps processing already-recorded events when it is false, so data on a
-| device is never stranded.
+| Served as the `policy` object by GET /api/attendance/offline/*
+| (docs/offline-attendance/CONTRACT.md §4, §6.2). `enabled` and the allow_*
+| flags are enforced server-side for OFFLINE events (device_recorded_at older
+| than `online_grace_seconds`); near-real-time events are always processed.
 |
 */
 
@@ -30,7 +29,12 @@ return [
     'expired_cache_policy' => env('ATTENDANCE_OFFLINE_EXPIRED_CACHE_POLICY', 'warn'), // warn | block
     'retry_base_seconds' => (int) env('ATTENDANCE_OFFLINE_RETRY_BASE_SECONDS', 5),
     'retry_max_seconds' => (int) env('ATTENDANCE_OFFLINE_RETRY_MAX_SECONDS', 900),
+    // CONTRACT §6.2: an event is "offline" when device_recorded_at is older
+    // than server receipt minus this grace. Offline events are rejected
+    // `offline_disabled` when `enabled` or the per-kind/method allow_* flag
+    // is false; events within the grace are always processed (online-equivalent).
+    'online_grace_seconds' => (int) env('ATTENDANCE_OFFLINE_ONLINE_GRACE_SECONDS', 120),
 
     // Server-side only (not part of the policy object).
-    'sync_rate_per_minute' => (int) env('ATTENDANCE_OFFLINE_SYNC_RATE_PER_MINUTE', 30),
+    'sync_rate_per_minute' => (int) env('ATTENDANCE_OFFLINE_SYNC_RATE_PER_MINUTE', 30), // per user
 ];

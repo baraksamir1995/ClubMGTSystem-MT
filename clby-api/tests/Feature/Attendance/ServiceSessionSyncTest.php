@@ -103,9 +103,12 @@ class ServiceSessionSyncTest extends OfflineSyncTestCase
         ], null, 'coach')->assertOk()->json('results');
 
         $this->assertSame(
-            ['permission_denied', 'assignment_not_found', 'assignment_not_active', 'pack_expired', 'invalid_payload', 'invalid_payload'],
+            ['assignment_not_found', 'assignment_not_found', 'assignment_not_active', 'pack_expired', 'invalid_payload', 'invalid_payload'],
             array_column($results, 'code')
         );
+        // Another coach's assignment is indistinguishable from a missing one.
+        $this->assertSame($results[1]['message'], $results[0]['message']);
+        $this->assertSame('Assignment not found.', $results[0]['message']);
         $this->assertSame(0, DB::table('service_session_logs')->count());
     }
 

@@ -26,6 +26,8 @@ abstract class AttendanceTestCase extends TestCase
         '2026_11_26_200100_create_attendance_events_table.php',
         '2026_11_26_200200_add_offline_columns_to_attendance_logs.php',
         '2026_11_26_200300_add_offline_columns_to_service_session_logs.php',
+        '2026_11_26_200400_attendance_devices_per_user.php',
+        '2026_11_26_200500_create_attendance_event_conflicts_table.php',
     ];
 
     protected function setUp(): void

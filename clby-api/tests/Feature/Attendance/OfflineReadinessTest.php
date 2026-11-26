@@ -12,27 +12,29 @@ class OfflineReadinessTest extends OfflineSyncTestCase
     private const POLICY_KEYS = [
         'enabled', 'max_batch', 'max_data_age_hours', 'max_event_age_days', 'future_skew_seconds',
         'allow_manual_offline', 'allow_staff_qr_offline', 'allow_member_qr_offline',
-        'allow_service_session_offline', 'expired_cache_policy', 'retry_base_seconds', 'retry_max_seconds',
+        'allow_service_session_offline', 'expired_cache_policy', 'retry_base_seconds', 'retry_max_seconds', 'online_grace_seconds',
     ];
 
     public function test_status_reports_policy_and_device(): void
     {
+        config(['attendance_offline.enabled' => false, 'attendance_offline.allow_member_qr_offline' => false]);
         $gym = $this->makeGym();
         [$member, $mid] = $this->makeMember($gym);
         $this->actingAsUser($member);
 
         $res = $this->getJson('/api/attendance/offline/status?device_id=' . $this->deviceId)->assertOk();
+        $this->assertSame(120, $res->json('policy.online_grace_seconds'));
         $this->assertSame(self::POLICY_KEYS, array_keys($res->json('policy')));
         $this->assertFalse($res->json('enabled'));
         $this->assertFalse($res->json('policy.allow_member_qr_offline'));
         $this->assertSame(50, $res->json('policy.max_batch'));
         $this->assertSame(['registered' => false, 'revoked' => false], $res->json('device'));
 
-        $this->syncOne($member, $this->attendanceEvent($gym), null, 'member'); // registers the device
+        $this->syncOne($member, $this->attendanceEvent($gym), null, 'member'); // registers the (device, user) pair
         $this->getJson('/api/attendance/offline/status?device_id=' . $this->deviceId)
             ->assertJsonPath('device.registered', true)->assertJsonPath('device.revoked', false);
 
-        // Another user's view of the same device id: not theirs.
+        // Another user on the same device id: their own pair isn't registered yet.
         $this->actingAsUser($this->makeAdmin($gym));
         $this->getJson('/api/attendance/offline/status?device_id=' . $this->deviceId)->assertJsonPath('device.registered', false);
     }
@@ -63,6 +65,8 @@ class OfflineReadinessTest extends OfflineSyncTestCase
         $this->assertCount(1, $page1->json('recent_attendance'));
 
         $page2 = $this->getJson('/api/attendance/offline/bootstrap?limit=1&cursor=' . $page1->json('next_cursor'))->assertOk();
+        // Later pages: members only (branches / class_sessions / recent_attendance on page 1).
+        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'members', 'next_cursor'], array_keys($page2->json()));
         $this->assertCount(1, $page2->json('members'));
         $this->assertNull($page2->json('next_cursor'));
 
@@ -75,6 +79,9 @@ class OfflineReadinessTest extends OfflineSyncTestCase
             array_keys($members[$b]['buckets'][0])
         );
         $this->assertSame(5, $members[$b]['buckets'][0]['sessions_remaining']);
+        // CONTRACT §6.4: date-only bucket fields, gym-local.
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $members[$b]['buckets'][0]['start_date']);
+        $this->assertSame(Carbon::now('Africa/Cairo')->addDays(20)->toDateString(), $members[$a]['buckets'][0]['end_date']);
     }
 
     public function test_bootstrap_permissions(): void

@@ -30,12 +30,11 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
-        // Offline attendance sync: per user + device (CONTRACT §2). The
-        // device id comes from the body, falling back to X-Device-Id.
+        // Offline attendance sync (CONTRACT §6.1): keyed by USER only, so
+        // rotating client device ids buys no extra quota.
         RateLimiter::for('attendance-sync', function (Request $request) {
-            $device = (string) ($request->input('device_id') ?? $request->header('X-Device-Id') ?? '');
             return Limit::perMinute((int) config('attendance_offline.sync_rate_per_minute', 30))
-                ->by('attendance-sync:' . ($request->user()?->id ?? $request->ip()) . '|' . strtolower(substr($device, 0, 64)));
+                ->by('attendance-sync:' . ($request->user()?->id ?? $request->ip()));
         });
 
         // Public gym self-onboarding. Submissions arrive through the landing

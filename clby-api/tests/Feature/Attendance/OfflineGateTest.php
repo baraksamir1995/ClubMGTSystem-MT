@@ -50,7 +50,7 @@ class OfflineGateTest extends OfflineSyncTestCase
 
         $codes = array_column($this->sync($admin, [
             $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => $old]),
-            $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'device_recorded_at' => $old]),
+            $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'qr' => ['raw' => $this->passQr($gym, $mid)], 'device_recorded_at' => $old]),
             $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => self::at(Carbon::now()->subSeconds(30))]),
         ])->assertOk()->json('results'), 'code');
         $this->assertSame(['offline_disabled', 'offline_disabled', 'created'], $codes);
@@ -76,7 +76,7 @@ class OfflineGateTest extends OfflineSyncTestCase
 
         $codes = array_column($this->sync($this->makeAdmin($gym), [
             $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => $old]),
-            $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'device_recorded_at' => $old]),
+            $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'qr' => ['raw' => $this->passQr($gym, $mid)], 'device_recorded_at' => $old]),
         ])->assertOk()->json('results'), 'code');
         $this->assertSame(['offline_disabled', 'created'], $codes);
 

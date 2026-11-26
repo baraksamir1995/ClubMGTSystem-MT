@@ -24,6 +24,7 @@ use App\Http\Controllers\ContractTermsController;
 use App\Http\Controllers\GymController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberPassController;
 use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MembershipPlanController;
 use App\Http\Controllers\NotificationController;
@@ -207,6 +208,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
     Route::get('/attendance/offline/status', [AttendanceOfflineController::class, 'status']);
     Route::get('/attendance/offline/bootstrap', [AttendanceOfflineController::class, 'bootstrap']);
     Route::get('/attendance/offline/me', [AttendanceOfflineController::class, 'me']);
+    Route::get('/me/member-pass', [MemberPassController::class, 'mine']);
 
     // Specialist QR — member scans a specialist's static code to decrement
     // their own session pack with that specialist (mirror of the coach
@@ -342,6 +344,10 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Attendance management
     Route::post('/attendance', [AttendanceController::class, 'store'])->middleware('permission:attendance,create');
+    // Offline attendance review (PHASE2-CONTRACT): synced events, read-only.
+    Route::get('/attendance/offline/events', [AttendanceOfflineController::class, 'events'])->middleware('permission:attendance,view');
+    // Signed member pass for a member card (PHASE2-CONTRACT).
+    Route::get('/members/{id}/member-pass', [MemberPassController::class, 'forMember'])->middleware('permission:members,view');
 
     // Access management
     Route::post('/access/qr/regenerate', [AccessController::class, 'regenerateQr'])->middleware('permission:settings,edit');

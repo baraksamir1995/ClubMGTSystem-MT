@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AttendanceCheckInService;
 use App\Services\AttendanceSyncService;
+use App\Services\MemberPassService;
 use App\Services\StaffPermission;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -270,6 +271,7 @@ class AttendanceOfflineController extends Controller
             'members' => $members,
             'class_sessions' => $sessions,
             'recent_attendance' => $recent,
+            'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
             'next_cursor' => $nextCursor,
         ]);
     }
@@ -353,8 +355,119 @@ class AttendanceOfflineController extends Controller
             'policy' => self::policy(),
             'assignments' => $assignments,
             'recent_service_logs' => $recent,
+            'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
             'next_cursor' => $nextCursor,
         ]);
+    }
+
+    /* ── GET /api/attendance/offline/events (staff review, read-only) ── */
+
+    /**
+     * PHASE2-CONTRACT "Staff review endpoints": the gym's synced events,
+     * newest first, keyset-paged on (server_received_at, event_id).
+     * Route: admin group + permission:attendance,view. Gym-scoped.
+     */
+    public function events(Request $request): JsonResponse
+    {
+        $request->validate([
+            'result' => 'nullable|in:accepted,rejected,duplicate,error',
+            'needs_review' => 'nullable|in:0,1,true,false',
+            'cursor' => 'nullable|string|max:200',
+            'limit' => 'nullable|integer|min:1|max:200',
+        ]);
+        $gymId = $request->user()->gym_id;
+        $limit = (int) ($request->query('limit') ?? 50);
+
+        $after = null;
+        if ($cursor = $request->query('cursor')) {
+            $decoded = base64_decode(strtr($cursor, '-_', '+/'), true);
+            $parts = $decoded ? explode('|', $decoded, 2) : [];
+            if (count($parts) !== 2 || ! Str::isUuid($parts[1])) {
+                return response()->json(['message' => 'Invalid cursor.', 'errors' => ['cursor' => ['Invalid cursor.']]], 422);
+            }
+            try {
+                $after = [AttendanceSyncService::isoWithOffset(Carbon::parse($parts[0])), strtolower($parts[1])];
+            } catch (\Throwable) {
+                return response()->json(['message' => 'Invalid cursor.', 'errors' => ['cursor' => ['Invalid cursor.']]], 422);
+            }
+        }
+
+        $rows = DB::table('attendance_events as ae')
+            ->leftJoin('gym_members as gm', 'gm.id', '=', 'ae.gym_member_id')
+            ->leftJoin('profiles as pm', 'pm.id', '=', 'gm.user_id')
+            ->leftJoin('profiles as pa', 'pa.id', '=', 'ae.actor_user_id')
+            ->leftJoin('attendance_devices as d', function ($j) {
+                $j->on('d.device_id', '=', 'ae.device_id')->on('d.user_id', '=', 'ae.actor_user_id');
+            })
+            ->where('ae.gym_id', $gymId)
+            ->when($request->query('result'), fn ($q, $r) => $q->where('ae.result', $r))
+            ->when(in_array($request->query('needs_review'), ['1', 'true'], true), fn ($q) => $q->where('ae.needs_review', true))
+            ->when($after, fn ($q) => $q->where(function ($w) use ($after) {
+                $w->where('ae.server_received_at', '<', $after[0])
+                  ->orWhere(fn ($x) => $x->where('ae.server_received_at', '=', $after[0])->where('ae.event_id', '<', $after[1]));
+            }))
+            ->orderByDesc('ae.server_received_at')
+            ->orderByDesc('ae.event_id')
+            ->limit($limit + 1)
+            ->get([
+                'ae.event_id', 'ae.kind', 'ae.method', 'ae.result', 'ae.reason_code', 'ae.reason_message', 'ae.flags',
+                'ae.needs_review', 'ae.attendance_log_id', 'ae.service_log_id', 'ae.attempts',
+                'ae.device_recorded_at', 'ae.device_timezone', 'ae.server_received_at', 'ae.processed_at',
+                'ae.gym_member_id', 'ae.branch_id', 'ae.class_session_id', 'ae.studio_id', 'ae.service_assignment_id',
+                'gm.member_number', 'pm.full_name as member_name',
+                'ae.actor_user_id', 'ae.actor_type', 'pa.full_name as actor_name',
+                'ae.device_id', 'd.label as device_label', 'd.platform as device_platform', 'ae.app', 'ae.app_version',
+            ]);
+
+        $next = null;
+        if ($rows->count() > $limit) {
+            $rows = $rows->slice(0, $limit)->values();
+            $last = $rows->last();
+            $next = rtrim(strtr(base64_encode(
+                AttendanceSyncService::iso(Carbon::parse($last->server_received_at)) . '|' . $last->event_id
+            ), '+/', '-_'), '=');
+        }
+
+        $data = $rows->map(function ($r) {
+            $flags = is_string($r->flags) ? (json_decode($r->flags, true) ?: []) : [];
+            return [
+                'event_id' => $r->event_id,
+                'kind' => $r->kind,
+                'method' => $r->method,
+                'result' => $r->result,
+                'code' => $r->reason_code,
+                'message' => $r->reason_message,
+                'flags' => array_values($flags),
+                'needs_review' => (bool) $r->needs_review,
+                'attendance_id' => $r->attendance_log_id,
+                'service_log_id' => $r->service_log_id,
+                'attempts' => (int) $r->attempts,
+                'device_recorded_at' => $this->isoOrNull($r->device_recorded_at),
+                'device_timezone' => $r->device_timezone,
+                'server_received_at' => $this->isoOrNull($r->server_received_at),
+                'processed_at' => $this->isoOrNull($r->processed_at),
+                'member' => $r->gym_member_id ? [
+                    'gym_member_id' => $r->gym_member_id,
+                    'member_number' => $r->member_number !== null ? (int) $r->member_number : null,
+                    'full_name' => $r->member_name,
+                ] : null,
+                'actor' => ['user_id' => $r->actor_user_id, 'type' => $r->actor_type, 'full_name' => $r->actor_name],
+                'device' => [
+                    'device_id' => $r->device_id,
+                    'label' => $r->device_label
+                        ?? trim(implode(' ', array_filter([$r->app, $r->device_platform, $r->app_version]))) ?: null,
+                    'platform' => $r->device_platform,
+                    'app' => $r->app,
+                    'app_version' => $r->app_version,
+                ],
+                'branch_id' => $r->branch_id,
+                'class_session_id' => $r->class_session_id,
+                'studio_id' => $r->studio_id,
+                'service_assignment_id' => $r->service_assignment_id,
+            ];
+        })->values();
+
+        return response()->json(['data' => $data, 'next_cursor' => $next]);
     }
 
     /* ── GET /api/attendance/offline/me ─────────────────────────── */
@@ -402,6 +515,7 @@ class AttendanceOfflineController extends Controller
             'buckets' => $this->buckets([$member->id])->map(fn ($b) => $this->bucketShape($b, $gym['timezone']))->values(),
             'branches' => $this->branches($user->gym_id),
             'recent_attendance' => $recent,
+            'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
         ]);
     }
 

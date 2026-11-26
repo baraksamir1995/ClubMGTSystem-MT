@@ -35,6 +35,12 @@ return [
     // is false; events within the grace are always processed (online-equivalent).
     'online_grace_seconds' => (int) env('ATTENDANCE_OFFLINE_ONLINE_GRACE_SECONDS', 120),
 
+    // Phase 2 member pass (PHASE2-CONTRACT): exp = iat + this many days.
+    // Retired signing keys are still accepted until retired_at + this TTL.
+    'member_pass_ttl_days' => (int) env('ATTENDANCE_MEMBER_PASS_TTL_DAYS', 30),
+    // Issued passes are reused for this long to avoid churn (≥ 1 h per contract).
+    'member_pass_cache_minutes' => (int) env('ATTENDANCE_MEMBER_PASS_CACHE_MINUTES', 60),
+
     // Server-side only (not part of the policy object).
     'sync_rate_per_minute' => (int) env('ATTENDANCE_OFFLINE_SYNC_RATE_PER_MINUTE', 30), // per user
 ];

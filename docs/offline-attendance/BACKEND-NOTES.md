@@ -1,4 +1,65 @@
-# Offline Attendance — Phase 1 backend notes (clby-api)
+# Offline Attendance — backend notes (clby-api)
+
+## Phase 2
+
+Implements `PHASE2-CONTRACT.md` (server side: member pass, pass verification on sync, review endpoint).
+
+### Contract deviations / clarifications (Phase 2)
+
+1. **`GET /api/me/member-pass` is not limited to role `member`.** Any user with a `gym_members` row in their gym gets their own pass, so a staff member who also trains can use one. Users without a row get 404 `{code: member_not_found}`.
+   - The route sits in the members group, so members need a verified email (`verified_member`).
+2. **One cached pass per member, shared by both pass endpoints.** `/me/member-pass` and `/members/{id}/member-pass` return the same cached pass for 60 min (`ATTENDANCE_MEMBER_PASS_CACHE_MINUTES`, minimum 60).
+   - The cache key includes the `kid`, so rotating the key issues a new pass at once.
+3. **Server verification details:**
+   - **Unknown kid:** server-side it is `qr_invalid`, as the contract says.
+   - **Foreign signing key:** a key that belongs to a gym other than the pass's `g` → `qr_invalid`. Without this, one gym's key could sign passes claiming another gym.
+   - **Expiry and retired-key grace** are judged at the scan time (`device_recorded_at` for sync), per the coordinator's D2 note. A pass that was valid when scanned is accepted even if it has expired since.
+   - **`iat`:** must be ≤ server now + `future_skew_seconds`, and `iat` > `exp` → `qr_invalid`.
+4. **`staff_qr` is now strict.** It requires `qr.raw` to be a valid pass naming `member_id`. A missing or non-pass `qr` → `qr_invalid` (in Phase 1, `staff_qr` without a QR was accepted). Results are `qr_invalid`, `qr_wrong_gym`, `pass_expired`, `member_not_found` or `qr_member_mismatch`.
+   - The check runs after the permission check and the offline gate.
+   - For a rejected pass, `attendance_events.gym_member_id` stays null, because the server stores only verified ids. The claimed id is in `metadata.claimed`.
+   - `qr_meta` stores `{format:"clby_mp", v, kid, iat, exp, m}`, never the signature.
+5. **Coach `service_session` with `metadata.source == "qr"` and a `qr.raw`:** verified the same way. The pass `m` must equal the **assignment's** member, otherwise `qr_member_mismatch` (an event `member_id` must already match the assignment).
+   - `source:"qr"` without `qr.raw`, or manual sessions, are unchanged.
+6. **`pass_keys`:**
+   - Shape: `[{kid, public_key (base64url of 32 bytes), status, valid_until}]`.
+   - The active key comes first; retired keys are listed only while `valid_until` (`retired_at + member_pass_ttl_days`) is in the future.
+   - Sent on the admin and coach bootstrap first page (the key sits just before `next_cursor`) and in `/offline/me`.
+   - The first request that needs a key creates it.
+7. **Key rotation** exists only as `MemberPassService::rotate($gymId)`. There is no HTTP endpoint or artisan command yet; that is an open item if staff need to rotate.
+8. **`GET /api/attendance/offline/events`** (admin group, `permission:attendance,view`, gym-scoped, read-only):
+   - **Query params:**
+     - `result` accepts `accepted|rejected|duplicate|error`;
+     - `needs_review=1|true`;
+     - `limit` 1–200, default 50;
+     - `cursor` is opaque (base64url of `received|event_id`); an invalid one gets 422.
+   - **Ordering:** newest first, `server_received_at DESC, event_id DESC`, keyset-paged.
+   - **Row shape:**
+     - `{event_id, kind, method, result, code, message, flags, needs_review, attendance_id, service_log_id, attempts, device_recorded_at, device_timezone, server_received_at, processed_at}`
+     - `member: {gym_member_id, member_number, full_name} | null`
+     - `actor: {user_id, type, full_name}`
+     - `device: {device_id, label, platform, app, app_version}`
+     - `branch_id`, `class_session_id`, `studio_id`, `service_assignment_id`
+   - **Device label:** `attendance_devices.label` if set, otherwise `"<app> <platform> <app_version>"`.
+   - **Response:** `{data, next_cursor}`.
+   - Conflict-audit rows (`attendance_event_conflicts`) are not listed here.
+
+### Files
+
+- `app/Services/MemberPassService.php`
+- `app/Http/Controllers/MemberPassController.php`
+- `AttendanceOfflineController::events` and `pass_keys` in bootstrap and me
+- `AttendanceSyncService` (`checkPass`, new codes)
+- `config/attendance_offline.php` (`member_pass_ttl_days`, `member_pass_cache_minutes`)
+- `routes/api.php`
+- Migration `2026_11_27_100000_create_gym_signing_keys_table.php`:
+  - columns: `kid` PK, `gym_id`, `purpose`, `public_key`, `secret_key_enc` (Crypt), `status`, `created_at`, `retired_at`;
+  - a partial unique index allowing one active key per (gym, purpose).
+- Tests: `MemberPassTest`, `StaffQrSyncTest`.
+
+---
+
+# Phase 1
 
 Implements `CONTRACT.md` including the §6 amendments (2026-11-26, post-verification). Everything below is either a contract deviation (kept minimal) or a detail the contract left open that client agents need.
 

@@ -5,6 +5,8 @@ namespace Tests\Feature\Attendance;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Services\MemberPassService;
 
 /** Helpers for POST /api/attendance/sync tests. */
 abstract class OfflineSyncTestCase extends AttendanceTestCase
@@ -47,6 +49,13 @@ abstract class OfflineSyncTestCase extends AttendanceTestCase
             'note' => null,
             'metadata' => ['screen' => 'test'],
         ], $overrides);
+    }
+
+    /** A valid signed member pass (QR text) for a gym member. */
+    protected function passQr(string $gymId, string $memberId, ?Carbon $at = null): string
+    {
+        $n = DB::table('gym_members')->where('id', $memberId)->value('member_number');
+        return app(MemberPassService::class)->issue($gymId, $memberId, $n !== null ? (int) $n : null, null, $at)['qr'];
     }
 
     protected function serviceEvent(string $gymId, string $assignmentId, array $overrides = []): array

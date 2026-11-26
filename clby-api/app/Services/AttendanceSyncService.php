@@ -56,6 +56,8 @@ class AttendanceSyncService
         'not_self' => 'Members can only record their own attendance.',
         'qr_invalid' => 'The scanned QR code is not a valid gym QR code.',
         'qr_wrong_gym' => 'The scanned QR code belongs to another gym.',
+        'pass_expired' => 'The member pass had expired when it was scanned.',
+        'qr_member_mismatch' => 'The scanned member pass belongs to a different member.',
         'branch_inactive' => 'This branch is inactive.',
         'not_a_member' => 'Not a member of this gym.',
         'membership_frozen' => 'Membership is frozen.',
@@ -86,6 +88,7 @@ class AttendanceSyncService
     public function __construct(
         private AttendanceCheckInService $checkIns,
         private ServiceSessionService $sessions,
+        private MemberPassService $passes,
     ) {}
 
     /**
@@ -306,6 +309,29 @@ class AttendanceSyncService
         return $this->evaluateStaffCheckIn($ctx, $event, $eventId, $derived, $recordedAt);
     }
 
+    /**
+     * Verify the member pass in qr.raw; null when valid and naming
+     * $memberId, else the rejection. Records non-secret pass metadata in
+     * qr_meta (never the signature).
+     */
+    private function checkPass(array $event, string $gymId, Carbon $scannedAt, string $memberId, array &$derived): ?array
+    {
+        $raw = $event['qr']['raw'] ?? null;
+        $r = $this->passes->verify(is_string($raw) ? $raw : null, $gymId, $scannedAt, Carbon::now('UTC'));
+        $p = MemberPassService::parse(is_string($raw) ? $raw : null);
+        $derived['qr_meta'] = $p
+            ? ['format' => 'clby_mp', 'v' => 1, 'kid' => $p['kid'], 'iat' => $p['iat'], 'exp' => $p['exp'], 'm' => $p['m']]
+            : ['format' => $raw === null || $raw === '' ? 'empty' : 'unsupported'];
+
+        if (! $r['ok']) {
+            return $this->reject($r['code'], $derived);
+        }
+        if (strtolower($r['pass']['m']) !== $memberId) {
+            return $this->reject('qr_member_mismatch', $derived);
+        }
+        return null;
+    }
+
     private function offlineAllowed(array $derived): bool
     {
         if (! config('attendance_offline.enabled')) {
@@ -328,6 +354,14 @@ class AttendanceSyncService
 
         if (! in_array($actor->role, self::ADMIN_ROLES, true) || ! StaffPermission::has($actor, 'attendance')) {
             return $this->reject('permission_denied', $derived);
+        }
+
+        // PHASE2-CONTRACT: staff_qr must carry a valid signed member pass
+        // (steps 1–6, expiry as of the scan), naming the same member.
+        if ($derived['method'] === 'staff_qr') {
+            if ($fail = $this->checkPass($event, $gymId, $recordedAt, strtolower($event['member_id']), $derived)) {
+                return $fail;
+            }
         }
 
         $memberId = strtolower($event['member_id']);
@@ -478,6 +512,15 @@ class AttendanceSyncService
             return $this->reject('invalid_payload', $derived, 'member_id does not match the assignment.');
         }
         $derived['gym_member_id'] = $assignment->gym_member_id;
+
+        // PHASE2-CONTRACT (D5): a coach who picked the member by scanning a
+        // pass sends metadata.source="qr" + qr.raw — verified like staff_qr.
+        // Manual service sessions (no qr.raw) are unchanged.
+        if (($event['metadata']['source'] ?? null) === 'qr' && ! empty($event['qr']['raw'])) {
+            if ($fail = $this->checkPass($event, $gymId, $recordedAt, strtolower($assignment->gym_member_id), $derived)) {
+                return $fail;
+            }
+        }
 
         $this->advisoryLock('attendance-member:' . $assignment->gym_member_id);
 

@@ -214,7 +214,7 @@ class AttendanceSyncTest extends OfflineSyncTestCase
         $this->assertSame('permission_denied', $r['code']);
 
         [$trainer] = $this->makeCoach($gym, ['attendance']);
-        $r = $this->syncOne($trainer, $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr']), (string) Str::uuid());
+        $r = $this->syncOne($trainer, $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'qr' => ['raw' => $this->passQr($gym, $mid)]]), (string) Str::uuid());
         $this->assertSame('accepted', $r['status']);
         $this->assertSame('qr', DB::table('attendance_logs')->value('method'), 'D6: staff_qr stored as qr');
         $this->assertSame('staff_qr', DB::table('attendance_events')->where('result', 'accepted')->value('method'));

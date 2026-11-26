@@ -64,7 +64,7 @@ void main() {
     });
   });
 
-  group('MEDIUM-2: clock skew vs server offset (§6.6)', () {
+  group('MEDIUM-2: clock skew vs server time (§6.6)', () {
     late FakeTransport t;
     late TestClock clock;
     late OfflineStore store;
@@ -78,51 +78,81 @@ void main() {
     NewOfflineEvent ev() => NewOfflineEvent.attendance(
         method: AttendanceMethod.manual, memberId: uid());
 
-    Future<void> setOffset(Duration deviceAhead) =>
-        recordServerClockOffset(store.db,
-            clock.now.subtract(deviceAhead).toUtc().toIso8601String(), clock.now);
+    /// Server answers with its time = device wall − [deviceAhead].
+    Future<void> measure(Duration deviceAhead) => store.serverClock
+        .record(clock.now.subtract(deviceAhead).toUtc().toIso8601String());
 
-    test('no known offset → records (cannot judge)', () async {
-      expect(await store.recorder.record(ev()), isA<RecordSaved>());
+    Future<RecordRefusal?> refusal() async {
+      final o = await store.recorder.record(ev());
+      return o is RecordRefused ? o.reason : null;
+    }
+
+    test('never measured → records (cannot judge)', () async {
+      expect(await refusal(), isNull);
     });
 
-    test('device 1 h fast → clockSkew refused, nothing written', () async {
-      await setOffset(const Duration(hours: 1));
+    test('device already 1 h fast when measured → refused, nothing written', () async {
+      await measure(const Duration(hours: 1));
       final o = await store.recorder.record(ev());
       expect((o as RecordRefused).reason, RecordRefusal.clockSkew);
       expect(o.message, contains('ahead'));
       expect(await store.outbox(), isEmpty);
     });
 
-    test('device 8 days slow → clockSkew refused', () async {
-      await setOffset(const Duration(days: -8));
+    test('clock changed AFTER measurement: +1 h and −8 d are refused', () async {
+      await measure(Duration.zero); // in sync at measurement
+      expect(await refusal(), isNull);
+      clock.now = clock.now.add(const Duration(hours: 1)); // user sets clock +1 h
+      expect(await refusal(), RecordRefusal.clockSkew);
+      clock.now = clock.now.subtract(const Duration(hours: 1, days: 8)); // −8 d
       final o = await store.recorder.record(ev());
       expect((o as RecordRefused).reason, RecordRefusal.clockSkew);
       expect(o.message, contains('behind'));
     });
 
-    test('within the window (4 min fast, 6 days slow) → saved with offset evidence', () async {
-      await setOffset(const Duration(minutes: 4));
+    test('real time passing (wall + monotonic) is not skew', () async {
+      await measure(Duration.zero);
+      clock.advance(const Duration(days: 9));
+      expect(await refusal(), isNull);
+    });
+
+    test('margins: 4 min fast / 6 days slow are fine; 30 s margin applied', () async {
+      await measure(const Duration(minutes: 4));
       final a = await store.recorder.record(ev()) as RecordSaved;
       expect(a.event.metadata, contains('"server_clock_offset_ms":-240000'));
-      await setOffset(const Duration(days: -6));
-      expect(await store.recorder.record(ev()), isA<RecordSaved>());
+      await measure(const Duration(days: -6));
+      expect(await refusal(), isNull);
+      await measure(const Duration(seconds: 285)); // > 300 s − 30 s margin
+      expect(await refusal(), RecordRefusal.clockSkew);
     });
 
     test('thresholds follow the server policy', () async {
       await store.policy.applyServerPolicy({...enabledPolicy, 'future_skew_seconds': 60});
-      await setOffset(const Duration(minutes: 2));
-      expect(((await store.recorder.record(ev())) as RecordRefused).reason,
-          RecordRefusal.clockSkew);
+      await measure(const Duration(minutes: 2));
+      expect(await refusal(), RecordRefusal.clockSkew);
     });
 
-    test('offset is updated from status and sync responses', () async {
+    test('after an app restart (no monotonic anchor) the persisted offset is used', () async {
+      await measure(const Duration(hours: 1)); // device 1 h fast, persisted
+      final restarted = ServerClock(store.db, now: clock.call, monotonic: () => Duration.zero);
+      expect(restarted.hasAnchor, isFalse);
+      expect(await restarted.deviceAheadMs(), const Duration(hours: 1).inMilliseconds);
+      // Documented limitation: a clock change while the app was not running
+      // is invisible until the next measurement (status/bootstrap/sync).
+      clock.now = clock.now.subtract(const Duration(hours: 1));
+      expect(await restarted.deviceAheadMs(), const Duration(hours: 1).inMilliseconds);
+      await restarted.record(clock.now.toUtc().toIso8601String());
+      expect(await restarted.deviceAheadMs(), 0);
+    });
+
+    test('server time is updated from status and sync responses', () async {
       t.statusResponse = OfflineStatusResponse.fromJson({
         'server_time': clock.now.add(const Duration(minutes: 10)).toUtc().toIso8601String(),
         'enabled': true, 'policy': enabledPolicy, 'device': {},
       });
       await store.refreshStatus();
       expect(await readServerClockOffsetMs(store.db), 600000);
+      expect(await store.serverClock.deviceAheadMs(), -600000);
       await recordManual(store);
       t.enqueue((r) => SyncResponse.fromJson({
             'server_time': clock.now.subtract(const Duration(seconds: 30)).toUtc().toIso8601String(),
@@ -130,6 +160,7 @@ void main() {
           }));
       await store.engine.syncNow();
       expect(await readServerClockOffsetMs(store.db), -30000);
+      expect(await store.serverClock.deviceAheadMs(), 30000);
     });
   });
 

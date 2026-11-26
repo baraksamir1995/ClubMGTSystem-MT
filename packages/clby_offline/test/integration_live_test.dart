@@ -325,7 +325,7 @@ void main() {
     await s.close();
   });
 
-  test('E/F coach: 401 and 403 device_mismatch keep events, no loop', () async {
+  test('E/F coach: 401 keeps events; another user on a bound device syncs', () async {
     final clock = Clock(realNow.subtract(const Duration(hours: 1)));
     final t = LiveTransport(
         token: 'garbage|token', app: 'coach', deviceId: coachDevice, userId: coachUser);
@@ -334,49 +334,45 @@ void main() {
         clock: clock, dir: dir, ks: ks, memory: true);
     await s.policy.applyServerPolicy({'enabled': true});
     final o = await s.recorder.record(NewOfflineEvent.serviceSession(
-        memberId: barakGm, serviceAssignmentId: assignment, note: 'never-sent'));
+        memberId: barakGm, serviceAssignmentId: assignment, note: 'ef'));
     final e = (o as RecordSaved).event.eventId;
-    created['event_ids']!.add('$e (never accepted: 401/403 only)');
+    created['event_ids']!.add(e);
+
+    // 401: paused auth_required, event untouched, error visible.
     final r = await s.engine.syncNow();
     final row = (await s.event(e))!;
-    say('401: pause=${r.pause} state=${s.engine.state.pause} row=${row.syncStatus} attempts=${row.syncAttempts} body=${t.bodies[JsonSyncTransport.syncPath]?.last}');
+    say('401: pause=${r.pause} state=${s.engine.state.pause} row=${row.syncStatus} '
+        'attempts=${row.syncAttempts} lastError=${s.engine.state.lastError}');
     expect(s.engine.state.pause, SyncPauseReason.authRequired);
     expect(row.syncStatus, 'pending');
+    expect(row.syncAttempts, 0);
+    expect(s.engine.state.lastError, isNotNull);
+    final n401 = t.requests;
+    await s.engine.syncNow();
+    await s.engine.onAppResumed();
+    expect(t.requests, n401, reason: 'paused engine sends nothing');
 
-    // 403: real token, device bound to barak
+    // CONTRACT §6.1: binding is per (device, user). A device already bound
+    // to barak (member) is used by the coach → accepted, no device_mismatch.
+    // (Same user + different gym → device_mismatch can't be built from the
+    // shared dev data — one gym per user — so it is covered by the fake-
+    // transport unit tests in verification_fixes_test.dart.)
     t.token = coachToken;
     t.deviceId = barakBoundDevice;
-    // engine.deviceId is fixed per store, so rebuild an engine on the same DB
     final eng = SyncEngine(
         db: s.db, transport: t, scope: s.scope, deviceId: barakBoundDevice,
         app: OfflineApp.coach, appVersion: '9.9.9', policy: s.policy,
-        now: clock.call, autoRetry: true);
-    final before = t.requests;
+        now: clock.call, autoRetry: false);
     final r3 = await eng.syncNow();
-    final r4 = await eng.syncNow();
-    final r5 = await eng.onAppResumed();
     final row3 = (await s.event(e))!;
-    say('403: run=${r3.pause} then ${r4.skipped}/${r5.skipped} state=${eng.state.pause} '
-        'lastError=${eng.state.lastError} requests=${t.requests - before} row=${row3.syncStatus} '
-        'retryTimer=${eng.retryTimer} body=${t.bodies[JsonSyncTransport.syncPath]!.last}');
-    expect(row3.syncStatus, 'pending');
-    expect(t.requests - before, 1);
-    // CONTRACT §6.1: mismatch and revocation are distinct pause reasons,
-    // and the error stays visible.
-    final bodyCode = jsonDecode(t.bodies[JsonSyncTransport.syncPath]!.last
-        .substring(4))['code'];
-    expect(eng.state.pause, bodyCode == 'device_revoked'
-        ? SyncPauseReason.deviceRevoked
-        : bodyCode == 'device_mismatch'
-            ? SyncPauseReason.deviceMismatch
-            : SyncPauseReason.forbidden);
-    expect(eng.state.lastError, isNotNull);
-    // resumeAfterAuth: what the app would do on re-login
-    final r6 = await eng.resumeAfterAuth();
-    say('403 after resumeAfterAuth: pause=${r6.pause} requests=${t.requests - before}');
-    final ev = await psql("select count(*) from attendance_events where event_id='$e'");
-    say('attendance_events rows for 403 event: ${ev[0][0]}');
-    expect(ev[0][0], '0');
+    say('other user on bound device: pause=${r3.pause} row=${row3.syncStatus} '
+        '${row3.resultStatus}/${row3.resultCode} body=${t.bodies[JsonSyncTransport.syncPath]!.last}');
+    expect(eng.state.pause, isNull);
+    expect(row3.syncStatus, 'synced');
+    expect(await sslCount(e), 1);
+    final log = await psql("select id from service_session_logs where source_event_id='$e'");
+    expect(row3.officialId, log[0][0]);
+    created['service_session_logs']!.add(log[0][0]);
     await eng.dispose();
     await s.close();
   });

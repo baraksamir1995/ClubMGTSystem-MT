@@ -12,12 +12,20 @@ final gymA = uid();
 final userA = uid();
 final memberA = uid();
 
-/// Mutable test clock.
+/// Test clock with independent WALL and MONOTONIC time.
+/// * [advance] = real time passing (both move);
+/// * assigning [now] = the user changing the device clock (wall only);
+/// * [restart] = app restart (monotonic origin resets).
 class TestClock {
   TestClock([DateTime? start]) : now = start ?? DateTime(2026, 11, 26, 8, 0, 0);
   DateTime now;
+  Duration mono = const Duration(hours: 1);
   DateTime call() => now;
-  void advance(Duration d) => now = now.add(d);
+  Duration monotonic() => mono;
+  void advance(Duration d) {
+    now = now.add(d);
+    mono += d;
+  }
 }
 
 typedef SyncHandler = FutureOr<SyncResponse> Function(SyncRequest req);
@@ -146,6 +154,7 @@ Future<OfflineStore> memoryStore({
     database: db ?? openInMemoryOfflineDatabase(),
     timezone: () async => 'Africa/Cairo',
     now: c.call,
+    monotonic: c.monotonic,
     random: () => random,
     autoRetry: false,
     autoSyncOnRecord: autoSyncOnRecord,

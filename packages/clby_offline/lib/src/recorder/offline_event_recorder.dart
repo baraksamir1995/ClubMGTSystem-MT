@@ -159,17 +159,25 @@ class OfflineEventRecorder {
     required this.app,
     required this.deviceId,
     required this.policy,
+    ServerClock? serverClock,
     TimezoneResolver? timezone,
     DateTime Function()? now,
     this.antiDoubleTapWindow = defaultAntiDoubleTapWindow,
     this.onRecorded,
   })  : _tz = timezone ?? resolveDeviceTimezone,
-        _now = now ?? DateTime.now;
+        _now = now ?? DateTime.now,
+        serverClock = serverClock ?? ServerClock(db, now: now);
+
+  /// Server-time estimate (monotonic anchor; persisted offset fallback).
+  final ServerClock serverClock;
 
   static const defaultAntiDoubleTapWindow = Duration(seconds: 10);
   static const maxNoteLength = 500;
   static const maxMetadataBytes = 4096;
   static const maxQrLength = 4096;
+  /// Safety margin (30 s) inside the server's accept window, for latency
+  /// and estimate error.
+  static const clockSkewMarginMs = 30000;
 
   final OfflineDatabase db;
   final OfflineScope scope;
@@ -203,17 +211,19 @@ class OfflineEventRecorder {
           'Offline data is out of date — connect to refresh.');
     }
 
-    // CONTRACT §6.6: refuse what the server will always reject.
-    final offsetMs = await readServerClockOffsetMs(db);
-    if (offsetMs != null) {
+    // CONTRACT §6.6: refuse what the server will always reject. The
+    // estimate is anchored to a monotonic clock, so a wall-clock change
+    // after the last measurement is caught too (see [ServerClock]).
+    final aheadMs = await serverClock.deviceAheadMs();
+    if (aheadMs != null) {
       final p = policy.value;
-      final aheadMs = -offsetMs; // device − server
-      if (aheadMs > p.futureSkewSeconds * 1000) {
+      const marginMs = clockSkewMarginMs;
+      if (aheadMs > p.futureSkewSeconds * 1000 - marginMs) {
         return RecordRefused(RecordRefusal.clockSkew,
             'This device clock is ${_fmt(aheadMs)} ahead of the server. '
             'Correct the date/time and try again.');
       }
-      if (-aheadMs > p.maxEventAgeDays * Duration.millisecondsPerDay) {
+      if (-aheadMs > p.maxEventAgeDays * Duration.millisecondsPerDay - marginMs) {
         return RecordRefused(RecordRefusal.clockSkew,
             'This device clock is ${_fmt(-aheadMs)} behind the server. '
             'Correct the date/time and try again.');
@@ -227,7 +237,7 @@ class OfflineEventRecorder {
       ...input.metadata,
       'cache_as_of': ?asOfRaw,
       // Evidence only (never trusted): offset known at record time.
-      'server_clock_offset_ms': ?offsetMs,
+      'server_clock_offset_ms': ?(aheadMs == null ? null : -aheadMs),
     };
 
     final outcome = await db.transaction<RecordOutcome>(() async {

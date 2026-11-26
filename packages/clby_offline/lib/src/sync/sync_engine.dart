@@ -43,13 +43,15 @@ class SyncEngine {
     required this.app,
     required this.appVersion,
     required this.policy,
+    ServerClock? serverClock,
     DateTime Function()? now,
     double Function()? random,
     this.autoRetry = true,
     this.maxBatchesPerRun = 200,
     this.maxEnvelopeFailures = 3,
   })  : _now = now ?? DateTime.now,
-        _random = random;
+        _random = random,
+        serverClock = serverClock ?? ServerClock(db, now: now);
 
   final OfflineDatabase db;
   final SyncTransport transport;
@@ -58,6 +60,8 @@ class SyncEngine {
   final OfflineApp app;
   final String appVersion;
   final PolicyHolder policy;
+  /// Server-time estimate, updated from every sync response.
+  final ServerClock serverClock;
   /// Schedule a timer for the earliest backed-off event.
   final bool autoRetry;
   final int maxBatchesPerRun;
@@ -377,7 +381,7 @@ class SyncEngine {
     _envelopeFailures = 0;
     await db.writeMeta(SyncMetaKeys.lastSuccessfulSyncAt,
         _now().toUtc().toIso8601String());
-    await recordServerClockOffset(db, response.serverTime, _now());
+    await serverClock.record(response.serverTime);
     return _applyResults(batch, response);
   }
 

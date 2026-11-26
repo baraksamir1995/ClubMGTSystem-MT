@@ -39,10 +39,11 @@ class OfflineStore {
     required this.bootstrap,
     required this.transport,
     required this.deviceId,
-    required DateTime Function() now,
-  }) : _now = now;
+    required this.serverClock,
+  });
 
-  final DateTime Function() _now;
+  /// Shared server-time estimate (status / bootstrap / sync / recorder).
+  final ServerClock serverClock;
 
   static final Map<String, OfflineStore> _open = {};
 
@@ -61,6 +62,7 @@ class OfflineStore {
     OfflineDatabase? database,
     TimezoneResolver? timezone,
     DateTime Function()? now,
+    MonotonicClock? monotonic,
     double Function()? random,
     bool autoRetry = true,
     /// Kick the engine after each local record (tests turn this off).
@@ -80,6 +82,7 @@ class OfflineStore {
     try {
       final policy = PolicyHolder(db);
       await policy.load();
+      final serverClock = ServerClock(db, now: now, monotonic: monotonic);
       final engine = SyncEngine(
         db: db,
         transport: transport,
@@ -88,6 +91,7 @@ class OfflineStore {
         app: app,
         appVersion: appVersion,
         policy: policy,
+        serverClock: serverClock,
         now: now,
         random: random,
         autoRetry: autoRetry,
@@ -98,6 +102,7 @@ class OfflineStore {
         app: app,
         deviceId: deviceId,
         policy: policy,
+        serverClock: serverClock,
         timezone: timezone,
         now: now,
         antiDoubleTapWindow: antiDoubleTapWindow,
@@ -111,6 +116,7 @@ class OfflineStore {
           app: app,
           policy: policy,
           asUserId: scope.userId,
+          serverClock: serverClock,
           now: now);
       // Crash recovery before anyone can read the outbox.
       await engine.start();
@@ -124,7 +130,7 @@ class OfflineStore {
         bootstrap: bootstrap,
         transport: transport,
         deviceId: deviceId,
-        now: now ?? DateTime.now,
+        serverClock: serverClock,
       );
       _open[scope.key] = store;
       return store;
@@ -155,7 +161,7 @@ class OfflineStore {
   /// itself (a revoked device is paused by the sync endpoint's 403).
   Future<OfflineStatusResponse> refreshStatus() async {
     final s = await transport.status(deviceId: deviceId, asUserId: scope.userId);
-    await recordServerClockOffset(db, s.serverTime, _now());
+    await serverClock.record(s.serverTime);
     await policy.applyServerPolicy(s.policy.isEmpty ? null : s.policy,
         enabledOverride: s.enabled);
     await db.writeMeta(SyncMetaKeys.enabled, '${s.enabled}');

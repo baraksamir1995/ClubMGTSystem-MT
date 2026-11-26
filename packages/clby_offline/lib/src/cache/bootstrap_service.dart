@@ -65,10 +65,15 @@ class BootstrapService {
     required this.app,
     required this.policy,
     this.asUserId,
+    ServerClock? serverClock,
     DateTime Function()? now,
     this.pageLimit = 500,
     this.maxPages = 1000,
-  }) : _now = now ?? DateTime.now;
+  })  : _now = now ?? DateTime.now,
+        serverClock = serverClock ?? ServerClock(db, now: now);
+
+  /// Server-time estimate, updated from every page.
+  final ServerClock serverClock;
 
   final OfflineDatabase db;
   final SyncTransport transport;
@@ -304,7 +309,7 @@ class BootstrapService {
   }
 
   Future<void> _recordOffset(String? serverTime) =>
-      recordServerClockOffset(db, serverTime, _now());
+      serverClock.record(serverTime);
 
   static String? _s(Object? v) {
     if (v == null) return null;

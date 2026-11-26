@@ -7,6 +7,11 @@ import 'package:provider/provider.dart';
 
 import '../models/app_layout.dart';
 import '../models/checkout_item.dart';
+import '../models/event_model.dart';
+import '../models/product_model.dart';
+import '../features/store_events/events_provider.dart';
+import '../widgets/event_card.dart';
+import '../widgets/product_card.dart';
 import '../models/trainer_profile_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -40,6 +45,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<Map<String, dynamic>> _sessionPackages = [];
   List<Map<String, dynamic>> _partners = [];
   Map<String, int> _servicePackageCounts = {};
+  List<Product> _products = [];
   bool _belowFoldLoaded = false;
 
   // Search
@@ -71,6 +77,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return;
     }
 
+    // Events live in the shared EventsProvider (Home uses them too).
+    final eventsLoad = context.read<EventsProvider>().load(force: true);
+
     final results = await Future.wait([
       _service.getMembershipPlansForExplore(gymId),
       _service.getCurrentOffers(gymId),
@@ -79,6 +88,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _service.getSessionPackagesForExplore(gymId),
       _service.getPartnersForExplore(gymId),
       _service.getServicePackageCounts(gymId),
+      _loadStorePreview(),
+      eventsLoad,
     ]);
 
     if (mounted) {
@@ -90,9 +101,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _sessionPackages = results[4] as List<Map<String, dynamic>>;
         _partners        = results[5] as List<Map<String, dynamic>>;
         _servicePackageCounts = results[6] as Map<String, int>;
+        _products = (results[7] as ProductPage).items;
         _loadingAboveFold = false;
         _belowFoldLoaded  = true;
       });
+    }
+  }
+
+  /// First page of the store for the Explore rail. Errors → empty (the
+  /// section hides itself, like every other Explore section).
+  Future<ProductPage> _loadStorePreview() async {
+    try {
+      return await _service.getStoreProducts(perPage: 10);
+    } catch (_) {
+      return const ProductPage(items: []);
     }
   }
 
@@ -224,6 +246,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
             sections.add(_SessionPackagesSection(
                 packages: _sessionPackages, primary: primary));
           }
+        case 'store':
+          if (_products.isNotEmpty) {
+            sections.add(_StoreSection(
+              products: _products,
+              primary: primary,
+            ));
+          }
+        case 'events':
+          sections.add(_EventsSection(primary: primary));
         case 'partners':
           if (_partners.isNotEmpty) {
             sections.add(_PartnersSection(partners: _partners));
@@ -1464,6 +1495,87 @@ class _SearchResultTile extends StatelessWidget {
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Store rail
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _StoreSection extends StatelessWidget {
+  final List<Product> products;
+  final Color primary;
+
+  const _StoreSection({required this.products, required this.primary});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: context.l10n.storeTitle,
+          // Always offered: the full store screen also has search.
+          actionLabel: context.l10n.commonSeeAll,
+          onAction: () => context.push('/products'),
+          primary: primary,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 230,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: products.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, i) =>
+                ProductCard(product: products[i], width: 160),
+          ),
+        ),
+        const SizedBox(height: 28),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Events rail (shared EventsProvider) — hides itself when there are none
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EventsSection extends StatelessWidget {
+  final Color primary;
+
+  const _EventsSection({required this.primary});
+
+  @override
+  Widget build(BuildContext context) {
+    final events = context.select<EventsProvider, List<GymEvent>>((p) => p.events);
+    if (events.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: context.l10n.eventsTitle,
+          actionLabel: context.l10n.commonSeeAll,
+          onAction: () => context.push('/events'),
+          primary: primary,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 220,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: events.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, i) => EventCard(event: events[i]),
+          ),
+        ),
+        const SizedBox(height: 28),
+      ],
     );
   }
 }

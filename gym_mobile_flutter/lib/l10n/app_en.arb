@@ -1920,5 +1920,135 @@
   "contractTermsEmptyTitle": "No terms available",
   "contractTermsEmptyBody": "Your gym hasn't published contract terms and conditions yet.",
   "contractTermsErrorTitle": "Couldn't load terms",
-  "contractTermsErrorBody": "Check your connection and try again."
+  "contractTermsErrorBody": "Check your connection and try again.",
+  "storeTitle": "Store",
+  "storeSearchHint": "Search products",
+  "storeEmpty": "No products available right now.",
+  "storeLoadProductFailed": "Couldn't load this product.",
+  "storeOutOfStock": "Out of stock",
+  "storePriceFrom": "From {price}",
+  "@storePriceFrom": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "storeOnlyLeft": "{count, plural, one{Only {count} left} other{Only {count} left}}",
+  "@storeOnlyLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storeOptions": "Options",
+  "storeQuantity": "Quantity",
+  "storeNoteTitle": "Add a note",
+  "storeNoteSubtitle": "Optional — anything the gym should know about this order.",
+  "storeNoteHint": "e.g. size preference, pick-up time…",
+  "storeDescription": "Description",
+  "storeTotal": "Total",
+  "storeBuyNow": "Buy now",
+  "storeBuyAtFrontDesk": "In-app purchases are off for this gym. Ask at the front desk to buy this item.",
+  "storeOrderPlacedTitle": "Order placed!",
+  "storeOrderPlacedBody": "Thanks — your payment went through. Pick up your order at the gym's front desk.",
+  "storeErrOutOfStock": "Sorry, this item just sold out (or there isn't enough stock for that quantity).",
+  "storeErrVariantRequired": "Please choose an option first.",
+  "storeErrProductUnavailable": "This product is no longer available.",
+  "storeErrPriceChanged": "The price has changed. Please refresh and try again.",
+  "eventsTitle": "Events",
+  "eventsUpcoming": "Upcoming events",
+  "eventsPast": "Past events",
+  "eventsMyEvents": "My events",
+  "eventsProfileLabel": "EVENTS",
+  "eventsEmpty": "No upcoming events right now.",
+  "eventsMyEmpty": "You haven't registered for any events yet.",
+  "eventsNotFound": "This event is no longer available.",
+  "eventsFree": "Free",
+  "eventsRequired": "Required",
+  "eventsOptionDefaultLabel": "Option",
+  "eventsChooseOptionFirst": "Please choose a {label} first.",
+  "@eventsChooseOptionFirst": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsEndsAt": "Ends {date}",
+  "@eventsEndsAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsRegisterBy": "Register by {date}",
+  "@eventsRegisterBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsSeatsUnlimited": "Open to everyone",
+  "eventsSeatsLeft": "{count, plural, one{{count} seat left} other{{count} seats left}}",
+  "@eventsSeatsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventsFull": "Event full",
+  "eventsRegistrationClosed": "Registration closed",
+  "eventsRegister": "Register",
+  "eventsPayAndRegister": "Pay & register · {price}",
+  "@eventsPayAndRegister": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsPayAtFrontDesk": "In-app payments are off for this gym. Contact the front desk to register.",
+  "eventsCompletePayment": "Complete payment",
+  "eventsStatusRegistered": "Registered",
+  "eventsStatusPaymentProcessing": "Payment processing",
+  "eventsYoureRegistered": "You're registered",
+  "eventsPaymentProcessingHint": "If you've paid, this confirms within a few seconds — pull down to refresh. Unpaid seats are released after 30 minutes.",
+  "eventsRegisteredToast": "You're registered for {title}",
+  "@eventsRegisteredToast": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsPaymentReceived": "Payment received — confirming your registration…",
+  "eventsCancelRegistration": "Cancel registration",
+  "eventsKeepRegistration": "Keep it",
+  "eventsCancelConfirmTitle": "Cancel registration?",
+  "eventsCancelConfirmBody": "You'll lose your seat for {title}.",
+  "@eventsCancelConfirmBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsCancelledToast": "Registration cancelled",
+  "eventsPaidCancelNote": "This registration is paid. To cancel, please contact the gym.",
+  "eventsAttended": "Attended",
+  "eventsEnded": "Ended",
+  "eventsErrFull": "Sorry, this event is full.",
+  "eventsErrRegistrationClosed": "Registration for this event is closed.",
+  "eventsErrPast": "This event has already taken place.",
+  "eventsErrAlreadyRegistered": "You're already registered for this event.",
+  "eventsErrConfigurationRequired": "Please choose an option before registering.",
+  "eventsErrConfigurationInvalid": "That option is no longer available. Please choose another.",
+  "eventsErrPlanRequired": "This event is only open to members on specific plans.",
+  "eventsErrPaymentRequired": "This event requires payment.",
+  "eventsErrPaidRegistration": "This registration is paid. Please contact the gym to cancel and get a refund."
 }

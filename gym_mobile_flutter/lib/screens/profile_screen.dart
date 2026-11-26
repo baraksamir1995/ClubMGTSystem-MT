@@ -230,6 +230,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         children: [
                           _row(
+                            iconBox: const Icon(Icons.confirmation_number_outlined, size: 16, color: _kInk),
+                            label: context.l10n.eventsProfileLabel,
+                            value: context.l10n.eventsMyEvents,
+                            onTap: () => context.push('/my-events'),
+                          ),
+                          _row(
                             iconBox: const Icon(Icons.language, size: 16, color: _kInk),
                             label: context.l10n.commonLanguage.toUpperCase(),
                             value: _localeLabel(context.watch<LocaleProvider>().locale),

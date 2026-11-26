@@ -9,6 +9,7 @@ import 'features/billing/billing_provider.dart';
 import 'features/branches/branch_provider.dart';
 import 'features/popups/popup_provider.dart';
 import 'features/rating/rating_reminder_provider.dart';
+import 'features/store_events/events_provider.dart';
 import 'services/api_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/fresh_install_guard.dart';
@@ -78,6 +79,9 @@ class GymApp extends StatelessWidget {
         ChangeNotifierProvider<LocaleProvider>(
           create: (_) => LocaleProvider(),
         ),
+        ChangeNotifierProvider<EventsProvider>(
+          create: (_) => EventsProvider(apiService),
+        ),
       ],
       child: const _AppRoot(),
     );
@@ -121,7 +125,9 @@ class _AppRootState extends State<_AppRoot> {
       final branch = context.read<BranchProvider>();
       final popup  = context.read<PopupProvider>();
       final rating = context.read<RatingReminderProvider>();
+      final events = context.read<EventsProvider>();
       _signOutFanOut = () {
+        events.clear();
         member.clear();
         banner.clear();
         branch.clear();

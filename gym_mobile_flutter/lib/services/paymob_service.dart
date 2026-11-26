@@ -45,8 +45,14 @@ class PaymobService {
   /// [userEmail]      -- billed to (optional, falls back to auth email)
   /// [userPhone]      -- billed to (optional)
   /// [userName]       -- billed to (optional)
+  ///
+  /// Store / events: pass [itemType] `product` (+ [variantId], [quantity],
+  /// [purchaseNote]) or `event` (+ [eventConfigurationId]) and leave
+  /// [amountEgp] null — the server prices those itself and `amount_cents`
+  /// is then omitted. Failures throw [ApiException] carrying the server's
+  /// `code` (`out_of_stock`, `event_full`, …).
   Future<PaymobIntention> createIntention({
-    required double amountEgp,
+    required double? amountEgp,
     required String gymId,
     required String planId,
     required String memberId,
@@ -57,16 +63,20 @@ class PaymobService {
     String? userPhone,
     String? userName,
     String? specialistName,
+    String? variantId,
+    int? quantity,
+    String? purchaseNote,
+    String? eventConfigurationId,
   }) async {
-    final amountCents = (amountEgp * 100).round();
+    final amountCents = amountEgp != null ? (amountEgp * 100).round() : null;
 
     final uri = Uri.parse('$_baseUrl/api/paymob/intention');
     final response = await http.post(
       uri,
       headers: await _headers,
       body: jsonEncode({
-        'amount_cents':   amountCents,
-        'currency':       'EGP',
+        'amount_cents':   ?amountCents,
+        if (amountCents != null) 'currency': 'EGP',
         'plan_id':        planId,
         'member_id':      memberId,
         'item_type':      itemType,
@@ -76,6 +86,11 @@ class PaymobService {
         if (userPhone != null)      'user_phone':      userPhone,
         if (userName  != null)      'user_name':       userName,
         if (specialistName != null) 'specialist_name': specialistName,
+        'variant_id':     ?variantId,
+        'quantity':       ?quantity,
+        if (purchaseNote != null && purchaseNote.trim().isNotEmpty)
+          'purchase_note': purchaseNote.trim(),
+        'event_configuration_id': ?eventConfigurationId,
       }),
     ).timeout(
       const Duration(seconds: 30),
@@ -83,20 +98,32 @@ class PaymobService {
     );
 
     if (response.statusCode >= 400) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>?;
+      Map<String, dynamic>? body;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) body = decoded;
+      } catch (_) {}
       final msg = body?['message'] ?? body?['error'] ?? 'Failed to create payment intention';
       AnalyticsService.instance.logPaymentFailed(
         paymentId: '',
         reason: msg.toString(),
       );
-      throw Exception(msg);
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: msg.toString(),
+        code: body?['code']?.toString(),
+      );
     }
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    // The API wraps the intention in `data`; accept the bare shape too.
+    final data = decoded['data'] is Map<String, dynamic>
+        ? decoded['data'] as Map<String, dynamic>
+        : decoded;
     final paymentId = data['payment_id'] as String? ?? '';
     AnalyticsService.instance.logPaymentStarted(
       paymentId: paymentId,
-      amount: amountEgp,
+      amount: amountEgp ?? 0,
       currency: 'EGP',
     );
     return PaymobIntention(

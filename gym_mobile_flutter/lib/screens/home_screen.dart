@@ -27,6 +27,9 @@ import '../widgets/shimmer_loader.dart';
 import '../models/capacity_model.dart';
 import '../features/rating/rating_reminder_provider.dart';
 import '../services/api_service.dart';
+import '../features/store_events/events_provider.dart';
+import '../models/event_model.dart';
+import '../widgets/event_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -141,6 +144,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (gymId == null) return; // wait for auth to populate profile.gymId
     _initialLoadFired = true;
 
+    // Events strip — independent of bootstrap, never blocks the home load.
+    context.read<EventsProvider>().load();
     await _loadData();
     if (!mounted) return;
 
@@ -222,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       memberProvider.refreshMembership();
       memberProvider.loadCapacity(gymId);
       bannerProvider.loadBanners(gymId, force: true);
+      context.read<EventsProvider>().load(force: true);
     }
   }
 
@@ -276,6 +282,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         memberProvider.loadSessions(gymId, force: true),
         // Picks up App Layout changes made in the dashboard.
         authProvider.refreshGym(),
+        context.read<EventsProvider>().load(force: true),
       ]);
     }
   }
@@ -424,6 +431,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const _QuickAccessGrid(),
             const SizedBox(height: 24),
           ],
+        );
+
+      case 'events':
+        // Next few upcoming events; hidden when the gym has none.
+        return Selector<EventsProvider, List<GymEvent>>(
+          key: const ValueKey('home-events'),
+          selector: (_, ep) => ep.events,
+          builder: (_, events, _) {
+            if (events.isEmpty) return const SizedBox.shrink();
+            final shown = events.take(3).toList();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  title: context.l10n.eventsUpcoming,
+                  actionLabel: events.length > shown.length
+                      ? context.l10n.commonSeeAll
+                      : null,
+                  onAction: () => context.push('/events'),
+                  actionColor: primary,
+                ),
+                const SizedBox(height: 12),
+                for (var i = 0; i < shown.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 10),
+                  EventListTile(event: shown[i]),
+                ],
+                const SizedBox(height: 24),
+              ],
+            );
+          },
         );
 
       case 'locations':

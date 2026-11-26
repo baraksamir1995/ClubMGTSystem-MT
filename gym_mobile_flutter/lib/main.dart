@@ -1,3 +1,4 @@
+import 'package:clby_offline/clby_offline.dart' show ClientInfo, OfflineApp;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
@@ -13,6 +14,7 @@ import 'services/api_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/fresh_install_guard.dart';
 import 'services/notification_service.dart';
+import 'services/offline_attendance.dart';
 import 'router.dart';
 import 'utils/env.dart';
 import 'utils/theme.dart';
@@ -28,6 +30,11 @@ Future<void> main() async {
   // launch so a reinstall behaves like a clean slate (auth token,
   // onboarding flag, cached gym branding).
   await FreshInstallGuard.runOnFirstInstall();
+
+  // X-Device-Id / X-App / X-App-Version / X-App-Build / X-App-Platform on
+  // every API call. Must run AFTER FreshInstallGuard (the device id lives
+  // in the keychain). Bounded + never throws.
+  await ClientInfo.init(app: OfflineApp.member);
 
   await NotificationService().initFirebase();
   await NotificationService().init();
@@ -121,7 +128,9 @@ class _AppRootState extends State<_AppRoot> {
       final branch = context.read<BranchProvider>();
       final popup  = context.read<PopupProvider>();
       final rating = context.read<RatingReminderProvider>();
+      final offline = OfflineAttendance.instance;
       _signOutFanOut = () {
+        offline.onSignedOut();
         member.clear();
         banner.clear();
         branch.clear();
@@ -129,6 +138,14 @@ class _AppRootState extends State<_AppRoot> {
         rating.clear();
       };
       _auth!.addSignOutCallback(_signOutFanOut!);
+
+      // Offline attendance store (Phase 1: storage + sync only, no UI).
+      // The profile may already have loaded before this post-frame hook.
+      auth.onSessionReady = offline.onSessionReady;
+      final uid = auth.userId, gid = auth.profile?.gymId;
+      if (uid != null && gid != null && gid.isNotEmpty && !auth.isGuest) {
+        offline.onSessionReady(uid, gid);
+      }
     });
   }
 

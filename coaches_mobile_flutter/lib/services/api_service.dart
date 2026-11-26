@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:clby_offline/clby_offline.dart'
+    show ClientInfo, TransportResponse;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../features/coach/models.dart';
@@ -38,6 +40,8 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      // X-Device-Id / X-App / X-App-Version / X-App-Build / X-App-Platform
+      ...ClientInfo.headers,
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
@@ -63,9 +67,10 @@ class ApiService {
   Future<dynamic> _getPublic(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
     return _withRetry(() => _runWithTimeout(() async {
-          final response = await _http.get(uri, headers: const {
+          final response = await _http.get(uri, headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            ...ClientInfo.headers,
           });
           if (response.body.isEmpty) return <String, dynamic>{};
           final body = jsonDecode(response.body);
@@ -104,6 +109,27 @@ class ApiService {
       );
       return _parse(response);
     });
+  }
+
+  /// Raw authenticated request for the offline sync transport
+  /// (`CoachSyncTransport`). Deliberately bypasses [_parse]: a 401 from
+  /// the sync endpoints must not wipe the session here, and it never
+  /// touches the offline outbox — the engine just pauses. Network errors
+  /// propagate for the transport to map.
+  Future<TransportResponse> rawRequest(
+    String method,
+    String path, {
+    Map<String, String>? query,
+    String? body,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: query);
+    final request = http.Request(method, uri)..headers.addAll(await _headers);
+    if (body != null) request.body = body;
+    final streamed = await _http.send(request).timeout(timeout);
+    final response = await http.Response.fromStream(streamed).timeout(timeout);
+    return TransportResponse(response.statusCode, response.body,
+        headers: response.headers);
   }
 
   Future<T> _runWithTimeout<T>(Future<T> Function() op) =>

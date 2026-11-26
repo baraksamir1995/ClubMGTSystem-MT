@@ -36,6 +36,11 @@ dependencies:
   firebase_crashlytics: ^5.2.2
   qr_flutter: ^4.1.0
 
+  # Offline-first attendance core (encrypted outbox + sync engine), shared
+  # with gym_mobile_flutter.
+  clby_offline:
+    path: ../packages/clby_offline
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -43,3 +48,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+# package:sqlite3 (via clby_offline/drift) bundles SQLite through a build
+# hook. Select the SQLite3MultipleCiphers build so the offline DB is
+# encrypted — clby_offline refuses to open (fails closed) without it.
+# user_defines are only read from the ROOT app pubspec. The hook downloads
+# hash-pinned binaries from GitHub at build time.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc

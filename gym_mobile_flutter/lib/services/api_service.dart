@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:clby_offline/clby_offline.dart'
+    show ClientInfo, TransportResponse;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/logger.dart';
@@ -126,8 +128,31 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      // X-Device-Id / X-App / X-App-Version / X-App-Build / X-App-Platform
+      ...ClientInfo.headers,
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  /// Raw authenticated request for the offline sync transport
+  /// (`MemberSyncTransport`). Deliberately bypasses [_parse]/[_handle401]:
+  /// a 401 from the offline endpoints must never wipe the session or the
+  /// offline outbox — the sync engine just pauses. Network errors propagate
+  /// for the transport to map.
+  Future<TransportResponse> rawRequest(
+    String method,
+    String path, {
+    Map<String, String>? query,
+    String? body,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: query);
+    final request = http.Request(method, uri)..headers.addAll(await _headers);
+    if (body != null) request.body = body;
+    final streamed = await _http.send(request).timeout(timeout);
+    final response = await http.Response.fromStream(streamed).timeout(timeout);
+    return TransportResponse(response.statusCode, response.body,
+        headers: response.headers);
   }
 
   // ── HTTP helpers ────────────────────────────────────────────────────────────
@@ -1209,6 +1234,7 @@ class ApiService {
       request.headers['Authorization'] = 'Bearer $token';
     }
     request.headers['Accept'] = 'application/json';
+    request.headers.addAll(ClientInfo.headers);
     request.fields['type'] = 'avatar';
     request.files.add(http.MultipartFile.fromBytes(
       'file',

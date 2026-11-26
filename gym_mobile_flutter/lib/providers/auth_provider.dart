@@ -40,6 +40,19 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     _signOutCallbacks.remove(cb);
   }
 
+  /// Invoked once a signed-in session has a user + gym (login or cold-start
+  /// restore). main.dart opens the scoped offline store here. Sign-out /
+  /// revocation reuse the sign-out callbacks above.
+  void Function(String userId, String gymId)? onSessionReady;
+
+  void _notifySessionReady() {
+    final uid = _userId, gid = _profile?.gymId;
+    if (uid == null || gid == null || gid.isEmpty || _isGuest) return;
+    try {
+      onSessionReady?.call(uid, gid);
+    } catch (_) {/* offline support is best-effort */}
+  }
+
   void _runSignOutCallbacks() {
     for (final cb in List<VoidCallback>.from(_signOutCallbacks)) {
       try { cb(); } catch (_) { /* one provider's failure shouldn't block others */ }
@@ -122,6 +135,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
           }
         }
       }
+
+      _notifySessionReady();
 
       if (_profile?.gymId != null) {
         _gym = await _service.getGymInfo(_profile!.gymId!);

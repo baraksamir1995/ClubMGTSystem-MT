@@ -13,12 +13,21 @@ class AuthProvider extends ChangeNotifier {
   /// BrandingProvider hooks this to (re)fetch the gym's dashboard branding.
   final void Function(String? gymId)? onGymResolved;
 
+  /// Invoked once the session has a user + gym (login or cold-start
+  /// restore) — main.dart opens the scoped offline store here.
+  final void Function(String userId, String gymId)? onSessionReady;
+
+  /// Invoked when the session ends (sign-out or a 401 on /api/me) — main.dart
+  /// closes the offline store (cache wiped, pending events kept).
+  final void Function()? onSignedOut;
+
   String? _userId;
   CoachProfile? _profile;
   bool _isLoading = false;
   String? _error;
 
-  AuthProvider(this._service, {this.onGymResolved}) {
+  AuthProvider(this._service,
+      {this.onGymResolved, this.onSessionReady, this.onSignedOut}) {
     _init();
   }
 
@@ -55,12 +64,17 @@ class AuthProvider extends ChangeNotifier {
     try {
       _profile = await _service.getProfile();
       if (_profile?.gymId != null) onGymResolved?.call(_profile!.gymId);
+      final uid = _userId, gid = _profile?.gymId;
+      if (uid != null && gid != null && gid.isNotEmpty) {
+        onSessionReady?.call(uid, gid);
+      }
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         // Token expired/revoked server-side. ApiService already cleared
         // storage; drop local state so the router routes to /login.
         _userId = null;
         _profile = null;
+        onSignedOut?.call();
       } else {
         _error = friendlyError(e);
       }
@@ -100,6 +114,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    onSignedOut?.call();
     await _service.signOut();
     _userId = null;
     _profile = null;

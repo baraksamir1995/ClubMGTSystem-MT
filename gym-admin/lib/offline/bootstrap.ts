@@ -27,6 +27,7 @@ import {
   type CachedMembership,
   type OfflinePolicy,
   type OfflineStatusResponse,
+  type PassKey,
   type RecentAttendance,
 } from './types';
 
@@ -128,6 +129,7 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
   const sessions = new Map<string, CachedClassSession>();
   const recent = new Map<string, RecentAttendance>();
   let first: AdminBootstrapPage | null = null;
+  let passKeys: PassKey[] | null = null;
   let cursor: string | null = null;
   let pages = 0;
   const monoNow = opts.monoNow ?? defaultMonoNow;
@@ -168,6 +170,7 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
         });
       }
     }
+    if (!passKeys && Array.isArray(page.pass_keys) && page.pass_keys.length > 0) passKeys = page.pass_keys;
     for (const b of page.branches ?? []) branches.set(b.id, b);
     for (const s of page.class_sessions ?? []) sessions.set(s.id, s);
     for (const a of page.recent_attendance ?? []) recent.set(a.attendance_id, a);
@@ -188,6 +191,7 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
       policy: first.policy ?? DEFAULT_POLICY,
       snapshot_stored_at: now(),
       bootstrap_cursor: null,
+      pass_keys: passKeys ?? [],
     },
   });
   if (clockReading) {

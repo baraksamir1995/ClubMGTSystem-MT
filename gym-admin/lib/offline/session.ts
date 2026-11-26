@@ -94,7 +94,7 @@ export async function openOfflineSession(
   const engine = createSyncEngine({ db, deviceId, ...engineOverrides });
   await engine.refresh();
 
-  return {
+  const session: OfflineSession = {
     identity,
     deviceId,
     db,
@@ -110,8 +110,11 @@ export async function openOfflineSession(
     close() {
       engine.dispose();
       db.close();
+      // a closed session must never be handed out again
+      if (active === session) active = null;
     },
   };
+  return session;
 }
 
 // ── module-level active session (one per tab) ───────────────────────────────
@@ -158,13 +161,13 @@ export interface LogoutReport {
  */
 export async function logoutOffline(
   session: OfflineSession,
-  opts: { syncTimeoutMs?: number } = {},
+  opts: { syncTimeoutMs?: number; skipSync?: boolean } = {},
 ): Promise<LogoutReport> {
   const timeoutMs = opts.syncTimeoutMs ?? 5_000;
   let syncTimedOut = false;
   let syncAttempted = false;
   const before = await countOutbox(session.db);
-  if (before.pending > 0) {
+  if (before.pending > 0 && !opts.skipSync) {
     syncAttempted = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<'timeout'>((resolve) => {

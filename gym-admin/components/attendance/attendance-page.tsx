@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Radio, ClipboardList, HeartPulse, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock } from 'lucide-react';
+import { Radio, ClipboardList, HeartPulse, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock, MonitorSmartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations, useLocale } from 'next-intl';
 import { dateLocale } from '@/lib/date-locale';
@@ -200,6 +200,13 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={() => setShowQR(true)} leftIcon={<QrCode className="w-4 h-4" />}>
               {t('gymQrCode')}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => router.push('/dashboard/attendance/front-desk')}
+              leftIcon={<MonitorSmartphone className="w-4 h-4" />}
+            >
+              {t('frontDesk.openFrontDesk')}
             </Button>
             {can(permissions, 'attendance', 'create') && (
               <Button variant="primary" onClick={() => setShowManual(true)} leftIcon={<Plus className="w-4 h-4" />}>

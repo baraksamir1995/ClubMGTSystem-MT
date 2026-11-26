@@ -3,13 +3,19 @@
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { LogOut } from 'lucide-react';
+import { signOutWithOfflineCleanup } from '@/lib/offline/sign-out';
 
 export default function SignOutButton() {
   const router = useRouter();
   const t = useTranslations('layout');
 
   const handleSignOut = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    // Offline attendance logout policy runs first (needs the cookie): sync,
+    // warn about unsynced records, wipe cached member data, keep the outbox.
+    const outcome = await signOutWithOfflineCleanup({
+      confirmPending: (count) => window.confirm(t('offlinePendingConfirm', { count })),
+    });
+    if (outcome === 'cancelled') return;
     router.push('/login');
   };
 

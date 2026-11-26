@@ -9,6 +9,8 @@ vi.mock('next/headers', () => ({
 import { POST as syncPost } from '@/app/api/attendance/sync/route';
 import { GET as bootstrapGet } from '@/app/api/attendance/offline/bootstrap/route';
 import { GET as statusGet } from '@/app/api/attendance/offline/status/route';
+import { GET as eventsGet } from '@/app/api/attendance/offline/events/route';
+import { GET as memberPassGet } from '@/app/api/members/[id]/member-pass/route';
 import { middleware } from '@/middleware';
 import { resolveGymId } from '@/lib/api-gym-id';
 
@@ -206,6 +208,45 @@ describe('offline attendance proxies', () => {
     vi.stubGlobal('fetch', fetchMock);
     await statusGet(new NextRequest('http://t/api/attendance/offline/status?device_id=dev-7'));
     expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/status?device_id=dev-7');
+  });
+
+  it('GET /offline/events forwards only known filters (PHASE2 review endpoint)', async () => {
+    login();
+    const fetchMock = backend(() => json({ data: [], next_cursor: null }));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await eventsGet(
+      new NextRequest('http://t/api/attendance/offline/events?result=rejected&needs_review=1&cursor=c1&gym_id=evil&result2=x'),
+    );
+    expect(res.status).toBe(200);
+    expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events?result=rejected&needs_review=1&cursor=c1');
+  });
+
+  it('GET /offline/events drops an unknown result value', async () => {
+    login();
+    const fetchMock = backend(() => json({ data: [], next_cursor: null }));
+    vi.stubGlobal('fetch', fetchMock);
+    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?result=everything'));
+    expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events');
+  });
+
+  it('GET /api/members/{id}/member-pass returns only {qr, expires_at, kid}', async () => {
+    login();
+    const id = '11111111-2222-3333-4444-555555555555';
+    const fetchMock = backend(() => json({ qr: '{"t":"clby_mp"}', expires_at: '2026-12-26T00:00:00Z', kid: 'k1', extra: 'nope' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await memberPassGet(new Request(`http://t/api/members/${id}/member-pass`), { params: { id } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ qr: '{"t":"clby_mp"}', expires_at: '2026-12-26T00:00:00Z', kid: 'k1' });
+    expect(upstreamCall(fetchMock).url).toBe(`http://backend.test/api/members/${id}/member-pass`);
+  });
+
+  it('GET /api/members/{id}/member-pass rejects a non-uuid id and passes upstream 403', async () => {
+    login();
+    const fetchMock = backend(() => json({ error: 'Forbidden' }, 403));
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await memberPassGet(new Request('http://t/x'), { params: { id: '../../me' } })).status).toBe(404);
+    const id = '11111111-2222-3333-4444-555555555555';
+    expect((await memberPassGet(new Request('http://t/x'), { params: { id } })).status).toBe(403);
   });
 
   it('GET /offline/* without cookie → JSON 401', async () => {

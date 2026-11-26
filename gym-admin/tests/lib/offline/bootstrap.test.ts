@@ -11,7 +11,7 @@ import {
   type BootstrapFetcher,
   type FetchOutcome,
 } from '@/lib/offline/bootstrap';
-import { getMeta, getMemberMemberships, type OfflineDB } from '@/lib/offline/db';
+import { getMeta, getMemberMemberships, wipeCache, type OfflineDB } from '@/lib/offline/db';
 import { DEFAULT_POLICY, type AdminBootstrapPage, type BootstrapMember } from '@/lib/offline/types';
 
 function bm(id: string, buckets = 1): BootstrapMember {
@@ -209,5 +209,23 @@ describe('bootstrap', () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
     await fetchOfflineStatus(db, 'dev-1', { fetchImpl, now: () => Date.parse('2026-11-26T11:00:00.000Z') });
     expect(await getMeta(db, 'server_clock_offset_ms')).toBe(-3_600_000); // device 1 h fast
+  });
+
+  it('stores pass_keys from the first page (PHASE2) and logout wipe removes them', async () => {
+    const keys = [{ kid: 'k1', public_key: 'AAAA', status: 'active' as const, valid_until: null }];
+    const { fetcher } = fetcherFrom({
+      first: { ok: true, data: page([bm('m1')], 'c2', { pass_keys: keys }) },
+      c2: { ok: true, data: page([bm('m2')], null) },
+    });
+    await runBootstrap(db, { gymId: GYM, fetcher });
+    expect(await getMeta(db, 'pass_keys')).toEqual(keys);
+    await wipeCache(db);
+    expect(await getMeta(db, 'pass_keys')).toBeUndefined();
+  });
+
+  it('a bootstrap without pass_keys stores an empty list (scans then say "refresh")', async () => {
+    const { fetcher } = fetcherFrom({ first: { ok: true, data: page([bm('m1')], null) } });
+    await runBootstrap(db, { gymId: GYM, fetcher });
+    expect(await getMeta(db, 'pass_keys')).toEqual([]);
   });
 });

@@ -25,8 +25,13 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   // SECURITY: HIGH-2 — Control referrer information
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // SECURITY: HIGH-2 — Restrict browser features
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // SECURITY: HIGH-2 — Restrict browser features.
+  // camera=(self): the offline front desk scans member passes. `self` only lets
+  // this origin's own top-level pages ask; third-party frames get nothing (and
+  // X-Frame-Options DENY / frame-ancestors 'none' stop anyone framing us). The
+  // browser still shows its own per-site permission prompt, and video frames
+  // are decoded locally — nothing is uploaded. Microphone/geolocation stay off.
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
   // SECURITY: HIGH-2 — Content Security Policy
   {
     key: 'Content-Security-Policy',

@@ -62,8 +62,10 @@ class MemberPassService
     }
 
     /**
-     * Public keys clients may verify with: the active key plus retired keys
-     * still inside their grace. Shape: [{kid, public_key, status, valid_until|null}].
+     * Keys for client-side verification: the active key, retired keys still
+     * inside their grace, and REVOKED keys (status "revoked", so clients
+     * reject passes signed with them offline; valid_until = revoked_at).
+     * Shape: [{kid, public_key, status, valid_until|null}].
      */
     public function passKeys(string $gymId): array
     {
@@ -72,11 +74,15 @@ class MemberPassService
 
         return DB::table('gym_signing_keys')
             ->where('gym_id', $gymId)->where('purpose', self::PURPOSE)
-            ->orderByRaw("CASE status WHEN 'active' THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'retired' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
-            ->get(['kid', 'public_key', 'status', 'retired_at'])
+            ->get(['kid', 'public_key', 'status', 'retired_at', 'revoked_at'])
             ->map(function ($k) {
-                $validUntil = $k->status === 'active' ? null : $this->graceEnd($k);
+                $validUntil = match ($k->status) {
+                    'active' => null,
+                    'revoked' => $k->revoked_at ? Carbon::parse($k->revoked_at) : Carbon::now('UTC'),
+                    default => $this->graceEnd($k),
+                };
                 return [
                     'kid' => $k->kid,
                     'public_key' => $k->public_key,
@@ -84,9 +90,33 @@ class MemberPassService
                     'valid_until' => $validUntil ? AttendanceSyncService::iso($validUntil) : null,
                 ];
             })
-            ->filter(fn ($k) => $k['valid_until'] === null || Carbon::parse($k['valid_until'])->gt($now))
+            ->filter(fn ($k) => $k['status'] !== 'retired' || ($k['valid_until'] !== null && Carbon::parse($k['valid_until'])->gt($now)))
             ->values()
             ->all();
+    }
+
+    /**
+     * Revoke a key of this gym: never accepted again, no grace. Refuses to
+     * revoke the ACTIVE key (the gym would have no signing key) — rotate first.
+     *
+     * @return string|null error message, null on success
+     */
+    public function revoke(string $gymId, string $kid): ?string
+    {
+        $key = DB::table('gym_signing_keys')->where('kid', $kid)->where('purpose', self::PURPOSE)->first();
+        if (! $key || strtolower((string) $key->gym_id) !== strtolower($gymId)) {
+            return "No member-pass key {$kid} for gym {$gymId}.";
+        }
+        if ($key->status === 'active') {
+            return "Key {$kid} is the active key; rotate first (--rotate) so the gym has a replacement.";
+        }
+        if ($key->status !== 'revoked') {
+            DB::table('gym_signing_keys')->where('kid', $kid)->update([
+                'status' => 'revoked',
+                'revoked_at' => Carbon::now('UTC')->toIso8601String(),
+            ]);
+        }
+        return null;
     }
 
     /* ── issue ──────────────────────────────────────────────────── */
@@ -148,53 +178,59 @@ class MemberPassService
     /* ── verify ─────────────────────────────────────────────────── */
 
     /**
-     * Server-side verification steps 1–6. `$at` is when the pass was
-     * scanned (device_recorded_at for sync) — expiry and key grace are judged
-     * then; `iat` may not be later than server now + future skew.
+     * Server-side verification, in the amended order (PHASE2-CONTRACT
+     * amendments §1–§3): 1 parse (strict, canonical) → 4 gym → 2 key →
+     * 3 signature → 5 time → 6 member.
+     *
+     * `$at` is the scan time (device_recorded_at for sync): expiry and
+     * retired-key grace are judged then, and the pass must predate it
+     * (iat ≤ at + skew) as well as server now (iat ≤ now + skew).
      *
      * @return array{ok: true, pass: array}|array{ok: false, code: string}
      *   codes: qr_invalid | qr_wrong_gym | pass_expired | member_not_found
-     *   (an unknown/out-of-grace kid is reported as qr_invalid server-side)
+     *   (unknown / revoked / out-of-grace kid → qr_invalid server-side)
      */
     public function verify(?string $raw, string $gymId, ?CarbonInterface $at = null, ?CarbonInterface $now = null): array
     {
         $now = Carbon::instance($now ?? Carbon::now('UTC'));
         $at = Carbon::instance($at ?? $now);
 
-        // 1. shape
+        // 1. strict parse
         $p = self::parse($raw);
         if ($p === null) {
             return ['ok' => false, 'code' => 'qr_invalid'];
         }
 
-        // 2. key known (active, or retired within grace at scan time)
+        // 4. gym (before the key, so a foreign gym's pass reads "wrong gym")
+        if ($p['g'] !== strtolower($gymId)) {
+            return ['ok' => false, 'code' => 'qr_wrong_gym'];
+        }
+
+        // 2. key: this gym's, not revoked, active or retired within grace at scan time
         $key = DB::table('gym_signing_keys')->where('kid', $p['kid'])->where('purpose', self::PURPOSE)->first();
-        if (! $key || strtolower((string) $key->gym_id) !== strtolower($p['g'])) {
+        if (! $key || strtolower((string) $key->gym_id) !== $p['g'] || $key->status === 'revoked') {
             return ['ok' => false, 'code' => 'qr_invalid'];
         }
         if ($key->status !== 'active') {
             $end = $this->graceEnd($key);
-            if (! $end || $at->gte($end)) {
+            if ($key->status !== 'retired' || ! $end || $at->gte($end)) {
                 return ['ok' => false, 'code' => 'qr_invalid'];
             }
         }
 
         // 3. signature
-        $sig = self::b64urlDecode($p['sig']);
-        $pk = self::b64urlDecode($key->public_key);
-        if (strlen((string) $sig) !== SODIUM_CRYPTO_SIGN_BYTES || strlen((string) $pk) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES
+        $pk = self::b64urlDecodeStrict($key->public_key, SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES);
+        $sig = self::b64urlDecodeStrict($p['sig'], SODIUM_CRYPTO_SIGN_BYTES);
+        if ($pk === null || $sig === null
             || ! sodium_crypto_sign_verify_detached($sig, self::canonical($p['kid'], $p['g'], $p['m'], $p['n'], $p['iat'], $p['exp']), $pk)) {
             return ['ok' => false, 'code' => 'qr_invalid'];
         }
 
-        // 4. gym
-        if (strtolower($p['g']) !== strtolower($gymId)) {
-            return ['ok' => false, 'code' => 'qr_wrong_gym'];
-        }
-
         // 5. time
         $skew = (int) config('attendance_offline.future_skew_seconds', 300);
-        if ($p['iat'] > $now->getTimestamp() + $skew || $p['iat'] > $p['exp']) {
+        if ($p['iat'] > $p['exp']
+            || $p['iat'] > $now->getTimestamp() + $skew
+            || $p['iat'] > $at->getTimestamp() + $skew) {
             return ['ok' => false, 'code' => 'qr_invalid'];
         }
         if ($p['exp'] <= $at->getTimestamp()) {
@@ -210,24 +246,46 @@ class MemberPassService
         return ['ok' => true, 'pass' => $p];
     }
 
-    /** Step 1: parse + type-check; null when not a v1 member pass. */
+    /**
+     * Step 1 — strict canonical parse (amendment §3); null = qr_invalid.
+     *  - ≤ 1024 chars, no BOM, a JSON object with exactly the 9 keys;
+     *  - t === "clby_mp", v === 1 (integer, not 1.0);
+     *  - kid: 1–32 of [A-Za-z0-9_-]; g, m: lowercase canonical UUIDs (as issued);
+     *  - n: integer (|n| ≤ 2^53−1, so every client can represent it) or null;
+     *  - iat, exp: integers (no fraction / exponent);
+     *  - sig: base64url, no padding, decodes to exactly 64 bytes and
+     *    re-encodes to the identical string (no non-canonical trailing bits).
+     */
     public static function parse(?string $raw): ?array
     {
-        if (! is_string($raw) || $raw === '' || strlen($raw) > 2048) return null;
-        $p = json_decode($raw, true);
-        if (! is_array($p)) return null;
-        if (($p['t'] ?? null) !== 'clby_mp' || ($p['v'] ?? null) !== 1) return null;
-        foreach (['kid', 'g', 'm', 'iat', 'exp', 'sig'] as $k) {
-            if (! array_key_exists($k, $p)) return null;
-        }
-        if (! array_key_exists('n', $p)) return null;
+        if (! is_string($raw) || $raw === '' || strlen($raw) > 1024) return null;
+        if (str_starts_with($raw, "\xEF\xBB\xBF")) return null;
+        $p = json_decode($raw, true, 4, JSON_BIGINT_AS_STRING);
+        if (! is_array($p) || array_is_list($p)) return null;
+        $keys = ['t', 'v', 'kid', 'g', 'm', 'n', 'iat', 'exp', 'sig'];
+        if (count($p) !== 9 || array_diff($keys, array_keys($p)) !== []) return null;
+
+        $uuid = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
+        if ($p['t'] !== 'clby_mp' || $p['v'] !== 1) return null;
         if (! is_string($p['kid']) || ! preg_match('/^[A-Za-z0-9_-]{1,32}$/', $p['kid'])) return null;
-        if (! is_string($p['g']) || ! Str::isUuid($p['g'])) return null;
-        if (! is_string($p['m']) || ! Str::isUuid($p['m'])) return null;
-        if ($p['n'] !== null && ! is_int($p['n'])) return null;
+        if (! is_string($p['g']) || ! preg_match($uuid, $p['g'])) return null;
+        if (! is_string($p['m']) || ! preg_match($uuid, $p['m'])) return null;
+        if ($p['n'] !== null && (! is_int($p['n']) || abs($p['n']) > 9007199254740991)) return null;
         if (! is_int($p['iat']) || ! is_int($p['exp'])) return null;
-        if (! is_string($p['sig']) || ! preg_match('/^[A-Za-z0-9_-]+$/', $p['sig'])) return null;
+        if (! is_string($p['sig']) || self::b64urlDecodeStrict($p['sig'], SODIUM_CRYPTO_SIGN_BYTES) === null) return null;
         return $p;
+    }
+
+    /**
+     * Canonical base64url (no padding) → bytes of exactly $len, or null.
+     * Rejects '+', '/', '=', whitespace and non-canonical trailing bits.
+     */
+    public static function b64urlDecodeStrict(string $txt, int $len): ?string
+    {
+        if (! preg_match('/^[A-Za-z0-9_-]+$/', $txt)) return null;
+        $bin = self::b64urlDecode($txt);
+        if ($bin === false || strlen($bin) !== $len || self::b64url($bin) !== $txt) return null;
+        return $bin;
     }
 
     public static function canonical(string $kid, string $g, string $m, ?int $n, int $iat, int $exp): string

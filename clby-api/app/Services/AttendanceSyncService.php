@@ -311,24 +311,27 @@ class AttendanceSyncService
 
     /**
      * Verify the member pass in qr.raw; null when valid and naming
-     * $memberId, else the rejection. Records non-secret pass metadata in
-     * qr_meta (never the signature).
+     * $memberId, else the rejection. qr_meta: verified pass fields (never
+     * the signature), or only {verified:false, reason} for a rejected pass.
      */
     private function checkPass(array $event, string $gymId, Carbon $scannedAt, string $memberId, array &$derived): ?array
     {
         $raw = $event['qr']['raw'] ?? null;
         $r = $this->passes->verify(is_string($raw) ? $raw : null, $gymId, $scannedAt, Carbon::now('UTC'));
-        $p = MemberPassService::parse(is_string($raw) ? $raw : null);
-        $derived['qr_meta'] = $p
-            ? ['format' => 'clby_mp', 'v' => 1, 'kid' => $p['kid'], 'iat' => $p['iat'], 'exp' => $p['exp'], 'm' => $p['m']]
-            : ['format' => $raw === null || $raw === '' ? 'empty' : 'unsupported'];
 
+        // Amendment §5: pass fields are recorded only once verified — a
+        // rejected pass's claimed member/kid/times are never stored as if trusted.
         if (! $r['ok']) {
+            $derived['qr_meta'] = ['verified' => false, 'reason' => $r['code']];
             return $this->reject($r['code'], $derived);
         }
         if (strtolower($r['pass']['m']) !== $memberId) {
+            $derived['qr_meta'] = ['verified' => false, 'reason' => 'qr_member_mismatch'];
             return $this->reject('qr_member_mismatch', $derived);
         }
+        $p = $r['pass'];
+        $derived['qr_meta'] = ['verified' => true, 'format' => 'clby_mp', 'v' => 1, 'kid' => $p['kid'],
+            'iat' => $p['iat'], 'exp' => $p['exp'], 'm' => $p['m']];
         return null;
     }
 

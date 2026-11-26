@@ -436,7 +436,10 @@ class AttendanceOfflineController extends Controller
                 'method' => $r->method,
                 'result' => $r->result,
                 'code' => $r->reason_code,
-                'message' => $r->reason_message,
+                // Amendment §6: never expose exception text from `error` rows.
+                'message' => $r->result === 'error'
+                    ? 'Temporary server error; the event will be retried.'
+                    : $r->reason_message,
                 'flags' => array_values($flags),
                 'needs_review' => (bool) $r->needs_review,
                 'attendance_id' => $r->attendance_log_id,

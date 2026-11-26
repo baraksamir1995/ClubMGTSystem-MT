@@ -10,23 +10,48 @@ Implements `PHASE2-CONTRACT.md` (server side: member pass, pass verification on 
    - The route sits in the members group, so members need a verified email (`verified_member`).
 2. **One cached pass per member, shared by both pass endpoints.** `/me/member-pass` and `/members/{id}/member-pass` return the same cached pass for 60 min (`ATTENDANCE_MEMBER_PASS_CACHE_MINUTES`, minimum 60).
    - The cache key includes the `kid`, so rotating the key issues a new pass at once.
-3. **Server verification details:**
-   - **Unknown kid:** server-side it is `qr_invalid`, as the contract says.
-   - **Foreign signing key:** a key that belongs to a gym other than the pass's `g` → `qr_invalid`. Without this, one gym's key could sign passes claiming another gym.
-   - **Expiry and retired-key grace** are judged at the scan time (`device_recorded_at` for sync), per the coordinator's D2 note. A pass that was valid when scanned is accepted even if it has expired since.
-   - **`iat`:** must be ≤ server now + `future_skew_seconds`, and `iat` > `exp` → `qr_invalid`.
+3. **Server verification** (after the Phase 2 verification amendments §1–§4):
+   - **Order:** 1 strict parse → 4 gym (`qr_wrong_gym`, before any key lookup) → 2 key → 3 signature → 5 time → 6 member.
+   - **Key step:** an unknown kid, a **revoked** key (any time), a retired key past its grace at scan time, or a key belonging to a gym other than `g` all give `qr_invalid`.
+   - **Time step:**
+     - `iat > exp` → `qr_invalid`;
+     - `iat > device_recorded_at + future_skew_seconds` (pass issued after the scan) → `qr_invalid`;
+     - `iat > server now + skew` → `qr_invalid`;
+     - `exp ≤ device_recorded_at` → `pass_expired`.
+   - Expiry and retired-key grace are judged at the scan time (D2): a pass valid when scanned is accepted even if it has expired since. Because `iat` must predate the scan, a pass minted later can no longer label a backdated event as QR-verified (verification MEDIUM-1).
+   - **Strict parse (§3)**, anything else → `qr_invalid`:
+     - ≤ 1024 characters, no BOM;
+     - a JSON object with exactly the 9 keys;
+     - `t === "clby_mp"`, `v === 1` (an integer; `1.0` and `true` rejected);
+     - `kid` matches `[A-Za-z0-9_-]{1,32}`;
+     - `n` is an integer or null, `iat`/`exp` are integers (no `.0`, no exponent);
+     - `sig` is base64url without padding, decodes to exactly 64 bytes and re-encodes to the identical string. This rejects `+`, `/`, `=`, extra or short characters, and non-canonical trailing bits.
+   - **Two tightenings beyond the enumerated list (deviation):**
+     - `g` and `m` must be **lowercase** canonical UUIDs, as issued. An uppercase `m`, even if validly signed, → `qr_invalid`; clients currently say `member_not_found`, so both reject.
+     - `|n| ≤ 2^53−1`, so every client can represent it exactly (JS already rejected larger values).
+   - **Still accepted by all three implementations:** JSON whitespace, key order, `\u` escapes and duplicate keys (last wins). The signature binds the decoded values, so these re-encodings are harmless. They are not rejected because §3 doesn't list them; tighten all three together if wanted.
 4. **`staff_qr` is now strict.** It requires `qr.raw` to be a valid pass naming `member_id`. A missing or non-pass `qr` → `qr_invalid` (in Phase 1, `staff_qr` without a QR was accepted). Results are `qr_invalid`, `qr_wrong_gym`, `pass_expired`, `member_not_found` or `qr_member_mismatch`.
    - The check runs after the permission check and the offline gate.
    - For a rejected pass, `attendance_events.gym_member_id` stays null, because the server stores only verified ids. The claimed id is in `metadata.claimed`.
-   - `qr_meta` stores `{format:"clby_mp", v, kid, iat, exp, m}`, never the signature.
+   - `qr_meta` (§5):
+     - verified passes store `{verified:true, format:"clby_mp", v, kid, iat, exp, m}`, never the signature;
+     - rejected passes (including `qr_member_mismatch`) store only `{verified:false, reason}`.
 5. **Coach `service_session` with `metadata.source == "qr"` and a `qr.raw`:** verified the same way. The pass `m` must equal the **assignment's** member, otherwise `qr_member_mismatch` (an event `member_id` must already match the assignment).
    - `source:"qr"` without `qr.raw`, or manual sessions, are unchanged.
 6. **`pass_keys`:**
    - Shape: `[{kid, public_key (base64url of 32 bytes), status, valid_until}]`.
-   - The active key comes first; retired keys are listed only while `valid_until` (`retired_at + member_pass_ttl_days`) is in the future.
+   - Order: active key first, then retired keys (listed only while `valid_until`, i.e. `retired_at + member_pass_ttl_days`, is in the future), then **revoked** keys.
+   - Revoked keys are always listed with `status:"revoked"` and `valid_until = revoked_at` (already past), so clients reject them offline even if they only compare `valid_until`.
    - Sent on the admin and coach bootstrap first page (the key sits just before `next_cursor`) and in `/offline/me`.
    - The first request that needs a key creates it.
-7. **Key rotation** exists only as `MemberPassService::rotate($gymId)`. There is no HTTP endpoint or artisan command yet; that is an open item if staff need to rotate.
+7. **Key management (§4):** `php artisan attendance:pass-key {gym_id} [--rotate] [--revoke=KID]`.
+   - **No options:** lists keys (kid, status, valid_until, public key).
+   - **`--rotate`:** new active key; the old one becomes `retired` with grace.
+   - **`--revoke=KID`:**
+     - revokes a retired key immediately (`status='revoked'`, `revoked_at`);
+     - **refuses to revoke the active key** unless `--rotate` is given too. In that case it rotates first (printing `New active kid: …`) and then revokes.
+   - Never prints secret material. On a gym with no key yet, the listing creates one, as for any first use.
+   - New migration `2026_11_27_100100_add_revoked_at_to_gym_signing_keys.php` (additive).
 8. **`GET /api/attendance/offline/events`** (admin group, `permission:attendance,view`, gym-scoped, read-only):
    - **Query params:**
      - `result` accepts `accepted|rejected|duplicate|error`;
@@ -43,6 +68,7 @@ Implements `PHASE2-CONTRACT.md` (server side: member pass, pass verification on 
    - **Device label:** `attendance_devices.label` if set, otherwise `"<app> <platform> <app_version>"`.
    - **Response:** `{data, next_cursor}`.
    - Conflict-audit rows (`attendance_event_conflicts`) are not listed here.
+   - Rows with `result = error` return the generic message "Temporary server error; the event will be retried." The stored exception text is never exposed (§6).
 
 ### Files
 
@@ -55,7 +81,11 @@ Implements `PHASE2-CONTRACT.md` (server side: member pass, pass verification on 
 - Migration `2026_11_27_100000_create_gym_signing_keys_table.php`:
   - columns: `kid` PK, `gym_id`, `purpose`, `public_key`, `secret_key_enc` (Crypt), `status`, `created_at`, `retired_at`;
   - a partial unique index allowing one active key per (gym, purpose).
-- Tests: `MemberPassTest`, `StaffQrSyncTest`.
+- Tests: `MemberPassTest`, `StaffQrSyncTest`, `MemberPassHardeningTest` (amendments).
+- `app/Console/Commands/AttendancePassKey.php` (artisan `attendance:pass-key`).
+- **Shared cross-implementation corpus:** the generator `scratchpad/verify/p2/gen_corpus.php` writes `corpus.json` (version 2, 66 cases), with the server verdicts produced against Postgres (writes rolled back).
+  - Cases may carry an optional **`scan_ms`**: the scan time used for `iat`-after-scan, expiry and grace. Clients must use `scan_ms ?? now_ms` as the scan time; `now_ms` stays the server clock.
+  - `pass_keys` in the corpus now includes a `revoked` key.
 
 ---
 

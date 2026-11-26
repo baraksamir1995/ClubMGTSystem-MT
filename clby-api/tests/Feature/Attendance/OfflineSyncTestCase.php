@@ -55,7 +55,8 @@ abstract class OfflineSyncTestCase extends AttendanceTestCase
     protected function passQr(string $gymId, string $memberId, ?Carbon $at = null): string
     {
         $n = DB::table('gym_members')->where('id', $memberId)->value('member_number');
-        return app(MemberPassService::class)->issue($gymId, $memberId, $n !== null ? (int) $n : null, null, $at)['qr'];
+        // Default: issued an hour ago, so it predates the (minutes-old) scans in tests.
+        return app(MemberPassService::class)->issue($gymId, $memberId, $n !== null ? (int) $n : null, null, $at ?? Carbon::now()->subHour())['qr'];
     }
 
     protected function serviceEvent(string $gymId, string $assignmentId, array $overrides = []): array

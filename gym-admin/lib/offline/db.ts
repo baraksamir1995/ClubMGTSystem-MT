@@ -80,7 +80,16 @@ export const CACHE_STORES = [
 export type CacheStore = (typeof CACHE_STORES)[number];
 
 /** meta keys describing the cached snapshot (wiped together with CACHE_STORES). */
-export const SNAPSHOT_META_KEYS: MetaKey[] = ['as_of', 'snapshot_stored_at', 'bootstrap_cursor', 'gym', 'pass_keys', 'permissions_snapshot'];
+export const SNAPSHOT_META_KEYS: MetaKey[] = [
+  'as_of',
+  'snapshot_stored_at',
+  'bootstrap_cursor',
+  'gym',
+  'pass_keys',
+  'permissions_snapshot',
+  'branch_qrs',
+  'qr_branches',
+];
 
 export function dbNameFor(gymId: string, userId: string): string {
   if (!gymId || !userId) throw new Error('offline db: gymId and userId are required');

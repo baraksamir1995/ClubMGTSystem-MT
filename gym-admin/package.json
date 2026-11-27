@@ -12,13 +12,11 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@noble/ed25519": "^3.2.0",
     "@sentry/nextjs": "^10.53.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase-admin": "^13.7.0",
     "idb": "^8.0.4",
-    "jsqr": "^1.4.0",
     "lucide-react": "^0.400.0",
     "next": "14.2.5",
     "next-intl": "^4.12.0",

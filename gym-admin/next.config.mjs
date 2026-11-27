@@ -25,8 +25,7 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   // SECURITY: HIGH-2 — Control referrer information
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // SECURITY: HIGH-2 — Restrict browser features. The camera is re-enabled
-  // ONLY for the front-desk scanner route (see FRONT_DESK_PATH in headers()).
+  // SECURITY: HIGH-2 — Restrict browser features
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   // SECURITY: HIGH-2 — Content Security Policy
   {
@@ -119,15 +118,6 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: securityHeaders,
-      },
-      // Offline front desk scans member passes: camera=(self) on this one
-      // route only (later rule wins for the same key). `self` lets only this
-      // origin's top-level page ask — framing is blocked by X-Frame-Options
-      // DENY / frame-ancestors 'none'; the browser still prompts per site, and
-      // frames are decoded locally (nothing uploaded). Mic/geolocation stay off.
-      {
-        source: '/dashboard/attendance/front-desk',
-        headers: [{ key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' }],
       },
     ];
   },

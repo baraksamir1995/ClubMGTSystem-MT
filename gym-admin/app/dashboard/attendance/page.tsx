@@ -153,6 +153,7 @@ export default async function AttendanceRoute() {
       gymId={gymId}
       branches={branches}
       permissions={permissions}
+      currentUser={me?.id && me?.role ? { id: String(me.id), role: String(me.role) } : null}
     />
   );
 }

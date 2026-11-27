@@ -1,20 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { accepted, enablePolicy, fakeTransport, freshIndexedDb, noLock, seedMembers } from './helpers';
-import { makeKey, passKey, signPass, type TestKey } from './pass-helpers';
 import {
   accessPointLabel,
-  confirmScan,
   indicatorFor,
   itemState,
+  manualCheckinPath,
   permissionGate,
+  pillFor,
   recordingPath,
   revalidateAttendancePermission,
-  scanMemberPass,
+  searchCachedMemberOptions,
   submitAttendance,
+  toMemberOption,
+  unacknowledgedRejections,
   type SubmitDeps,
-} from '@/lib/offline/front-desk';
-import { getOutboxRow, listOutbox, setMeta } from '@/lib/offline/db';
-import { recordServerTime } from '@/lib/offline/server-clock';
+} from '@/lib/offline/manual-checkin';
+import { countOutbox, getOutboxRow, listOutbox } from '@/lib/offline/db';
 import { openOfflineSession, type OfflineSession } from '@/lib/offline/session';
 import { DEFAULT_POLICY, type OfflinePolicy } from '@/lib/offline/types';
 
@@ -27,7 +28,7 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 }
 
-describe('front desk: path selection (PHASE2 "Online vs offline path")', () => {
+describe('manual check-in: path selection (PHASE2 "Online vs offline path")', () => {
   it('enabled → outbox, disabled / unknown → online', () => {
     expect(recordingPath({ ...DEFAULT_POLICY, enabled: true })).toBe('outbox');
     expect(recordingPath({ ...DEFAULT_POLICY, enabled: false })).toBe('online');
@@ -93,7 +94,7 @@ describe('front desk: path selection (PHASE2 "Online vs offline path")', () => {
   });
 });
 
-describe('front desk: permission snapshot gate', () => {
+describe('manual check-in: permission snapshot gate', () => {
   const H = 3_600_000;
   it('ok / stale / denied / unknown', () => {
     expect(permissionGate({ attendance: true, checked_at: 0 }, 1 * H, 24 * H)).toBe('ok');
@@ -115,7 +116,7 @@ describe('front desk: permission snapshot gate', () => {
   });
 });
 
-describe('front desk: indicator + item states', () => {
+describe('manual check-in: indicator + item states', () => {
   it('maps engine state to the contract indicator, pauses first', () => {
     expect(indicatorFor({ status: 'online', paused: null })).toBe('online');
     expect(indicatorFor({ status: 'pending', paused: null })).toBe('pending');
@@ -136,81 +137,73 @@ describe('front desk: indicator + item states', () => {
   });
 });
 
-describe('front desk: staff QR → confirm → record', () => {
-  let session: OfflineSession;
-  let key: TestKey;
-  let policy: OfflinePolicy;
+describe('manual check-in: path on the Attendance page (Amendment 4)', () => {
+  const on = { ...DEFAULT_POLICY, enabled: true };
+  it('online + policy off → legacy endpoint; policy on or offline → outbox', () => {
+    expect(manualCheckinPath('online', DEFAULT_POLICY)).toBe('legacy');
+    expect(manualCheckinPath('online', on)).toBe('outbox');
+    expect(manualCheckinPath('offline', DEFAULT_POLICY)).toBe('outbox');
+    expect(manualCheckinPath('offline', on)).toBe('outbox');
+    expect(manualCheckinPath('reconnecting', on)).toBe('outbox');
+  });
 
+  it('status pill: connectivity first, pending count, syncing / login required', () => {
+    const eng = (p: number, extra: object = {}) => ({ running: false, paused: null, counts: { pending: p, syncing: 0, synced: 0, rejected: 0 }, ...extra });
+    expect(pillFor('online', null)).toEqual({ key: 'online', pending: 0 });
+    expect(pillFor('offline', eng(2))).toEqual({ key: 'offline', pending: 2 });
+    expect(pillFor('reconnecting', eng(1))).toEqual({ key: 'reconnecting', pending: 1 });
+    expect(pillFor('online', eng(1, { running: true }))).toEqual({ key: 'syncing', pending: 1 });
+    expect(pillFor('online', eng(1, { paused: 'auth_required' }))).toEqual({ key: 'loginRequired', pending: 1 });
+  });
+
+  it('rejection notices skip dismissed rows', () => {
+    const r = (id: string, status: 'rejected' | 'synced') => ({ event_id: id, sync_status: status }) as never;
+    expect(unacknowledgedRejections([r('a', 'rejected'), r('b', 'rejected'), r('c', 'synced')], ['b']).map((x: { event_id: string }) => x.event_id)).toEqual(['a']);
+  });
+});
+
+describe('manual check-in: offline path end to end (cached search → outbox → sync on reconnect)', () => {
+  let session: OfflineSession;
+  let online = false;
   beforeEach(async () => {
     freshIndexedDb();
-    key = await makeKey('k1');
+    online = false;
     const t = fakeTransport((req) => ({
       type: 'ok',
       response: { server_time: new Date().toISOString(), results: req.events.map((e) => accepted(e.event_id)) },
     }));
-    session = await openOfflineSession({ userId: 'staff-1', gymId: GYM, role: 'staff' }, { transport: t, lock: noLock, broadcast: false, isOnline: () => true });
-    policy = await enablePolicy(session.db);
-    await seedMembers(session.db, [M1]);
-    await setMeta(session.db, 'pass_keys', [passKey(key)]);
-    await setMeta(session.db, 'as_of', '2026-11-26T07:00:00.000Z');
-    await session.db.put('memberships', {
-      membership_id: 'ms1', gym_member_id: M1, plan_type: 'duration', source_type: 'subscription', status: 'active', payment_status: 'paid',
-      start_date: '2026-11-01', end_date: '2026-12-01', sessions_remaining: null, sessions_total: null, freeze_status: null, allowed_branch_ids: null,
-    });
+    session = await openOfflineSession(
+      { userId: 'staff-1', gymId: 'gym-1', role: 'staff' },
+      { transport: t, lock: noLock, broadcast: false, isOnline: () => online },
+    );
+    await enablePolicy(session.db);
+    await seedMembers(session.db, ['m1', 'm2']);
   });
-
-  const deps = (): SubmitDeps => ({ policy, record: session.record, syncNow: () => session.engine.syncNow() });
-
-  it('valid pass → candidate with cached member, memberships and as_of; nothing recorded before confirm', async () => {
-    const raw = await signPass(key, { g: GYM, m: M1, n: 1, iat: nowS - 60, exp: nowS + 86_400 });
-    const res = await scanMemberPass(session.db, GYM, raw);
-    expect(res.ok).toBe(true);
-    if (!res.ok) return;
-    expect(res.candidate.member.gym_member_id).toBe(M1);
-    expect(res.candidate.memberships.map((m) => m.membership_id)).toEqual(['ms1']);
-    expect(res.candidate.asOf).toBe('2026-11-26T07:00:00.000Z');
-    expect(await listOutbox(session.db)).toHaveLength(0);
-  });
-
-  it('confirm → one staff_qr event carrying qr.raw, then synced', async () => {
-    const raw = await signPass(key, { g: GYM, m: M1, n: 1, iat: nowS - 60, exp: nowS + 86_400 });
-    const res = await scanMemberPass(session.db, GYM, raw);
-    if (!res.ok) throw new Error('scan failed');
-    const out = await confirmScan(deps(), res.candidate, { branch_id: 'b1' });
-    expect(out.path).toBe('outbox');
-    if (out.path !== 'outbox' || !out.result.ok) throw new Error('record failed');
-    expect(out.result.event).toMatchObject({ attendance_method: 'staff_qr', qr: { raw }, member_id: M1, branch_id: 'b1', actor_user_id: 'staff-1' });
-    await vi.waitFor(async () => expect((await getOutboxRow(session.db, out.result.ok ? out.result.event.event_id : ''))?.sync_status).toBe('synced'));
-  });
-
-  it('unknown key → qr_unknown_key (UI offers "refresh offline data"); wrong gym → qr_wrong_gym', async () => {
-    const other = await makeKey('k-rotated');
-    expect(await scanMemberPass(session.db, GYM, await signPass(other, { g: GYM, m: M1, iat: nowS, exp: nowS + 100 }))).toEqual({
-      ok: false, code: 'qr_unknown_key',
-    });
-    expect(await scanMemberPass(session.db, GYM, await signPass(key, { g: '99999999-9999-4999-8999-999999999999', m: M1, iat: nowS, exp: nowS + 100 }))).toEqual({
-      ok: false, code: 'qr_wrong_gym',
-    });
-  });
-
-  it('expiry uses the estimated server clock, not a changed device clock', async () => {
-    const raw = await signPass(key, { g: GYM, m: M1, iat: nowS - 3600, exp: nowS + 600 });
-    await recordServerTime(session.db, new Date(NOW).toISOString(), { wall: Date.now(), mono: 0 });
-    // monotonic clock says 1 h passed on the server → expired, even though wall time didn't move
-    const time = { wallNow: () => Date.now(), monoNow: () => 3_600_000 };
-    expect(await scanMemberPass(session.db, GYM, raw, { time })).toEqual({ ok: false, code: 'pass_expired' });
-  });
-
-  it('disabled policy: confirm uses the online endpoint (scan still verified offline)', async () => {
-    const raw = await signPass(key, { g: GYM, m: M1, iat: nowS - 60, exp: nowS + 86_400 });
-    const res = await scanMemberPass(session.db, GYM, raw);
-    if (!res.ok) throw new Error('scan failed');
-    const fetchImpl = vi.fn().mockResolvedValue(json({ id: 'att-9' }));
-    const out = await confirmScan({ ...deps(), policy: { ...policy, enabled: false }, fetchImpl }, res.candidate);
-    expect(out).toEqual({ path: 'online', ok: true, attendanceId: 'att-9' });
-    expect(JSON.parse(String((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body)).method).toBe('qr');
-    expect(await listOutbox(session.db)).toHaveLength(0);
-  });
-
   afterEach(() => session.close());
+
+  it('searches the cached member list in the modal shape', async () => {
+    const res = await searchCachedMemberOptions(session.db, 'member m1');
+    expect(res).toEqual([{ id: 'm1', member_number: '1', full_name: 'Member m1', plan_type: null }]);
+    expect(toMemberOption({ gym_member_id: 'x', member_number: 7, full_name: null, phone_last4: null, photo_url: null, status: 'active', name_lc: '' })).toMatchObject({ member_number: '7', full_name: null });
+  });
+
+  it('offline: records a pending gym-entry manual event; reconnect syncs it', async () => {
+    const r = await session.record({ member_id: 'm1', attendance_method: 'manual', branch_id: 'b1', class_session_id: null });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.event).toMatchObject({ kind: 'attendance', attendance_method: 'manual', class_session_id: null, branch_id: 'b1', sync_status: 'pending' });
+    // still offline: nothing is sent
+    expect(await session.engine.syncNow()).toMatchObject({ ran: false, skipped: 'offline' });
+    expect(await countOutbox(session.db)).toMatchObject({ pending: 1 });
+    // back online → synced
+    online = true;
+    await session.engine.syncNow({ ignoreBackoff: true });
+    expect(await getOutboxRow(session.db, r.event.event_id)).toMatchObject({ sync_status: 'synced', official_id: `att-${r.event.event_id}` });
+  });
+
+  it('offline with the gym policy off: refused (offline_disabled), nothing stored', async () => {
+    await enablePolicy(session.db, { enabled: false });
+    expect(await session.record({ member_id: 'm1', attendance_method: 'manual' })).toEqual({ ok: false, reason: 'offline_disabled' });
+    expect(await listOutbox(session.db)).toHaveLength(0);
+  });
 });

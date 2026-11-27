@@ -538,16 +538,5 @@
       "verified": "Email verified",
       "failed": "Failed to verify email"
     }
-  },
-
-  "memberPass": {
-    "button": "Member pass",
-    "title": "Member pass",
-    "loading": "Loading…",
-    "number": "No. {number}",
-    "validUntil": "Valid until {date}",
-    "hint": "Staff can scan this pass at the front desk, even offline. It expires automatically; print a new one when needed.",
-    "close": "Close",
-    "print": "Print"
   }
 }

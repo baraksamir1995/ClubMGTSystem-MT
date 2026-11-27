@@ -281,38 +281,6 @@ export interface AdminBootstrapPage {
   next_cursor: string | null;
 }
 
-/** One row of GET /api/attendance/offline/events (AttendanceOfflineController::events). */
-export interface ReviewEvent {
-  event_id: string;
-  kind: EventKind;
-  /** attendance method (staff_qr | member_qr | manual) or null (service sessions / invalid payloads) */
-  method: AttendanceMethod | null;
-  result: ResultStatus;
-  code: string | null;
-  message: string | null;
-  flags: string[];
-  needs_review: boolean;
-  attendance_id: string | null;
-  service_log_id: string | null;
-  attempts: number;
-  device_recorded_at: string | null;
-  device_timezone: string | null;
-  server_received_at: string | null;
-  processed_at: string | null;
-  member: { gym_member_id: string; member_number: number | null; full_name: string | null } | null;
-  actor: { user_id: string | null; type: string | null; full_name: string | null } | null;
-  device: { device_id: string | null; label: string | null; platform: string | null; app: string | null; app_version: string | null } | null;
-  branch_id: string | null;
-  class_session_id: string | null;
-  studio_id: string | null;
-  service_assignment_id: string | null;
-}
-
-export interface ReviewEventsPage {
-  data: ReviewEvent[];
-  next_cursor: string | null;
-}
-
 // ── Local cache rows (IndexedDB) ────────────────────────────────────────────
 
 /** members store row: bootstrap member minus buckets, plus a lowercase search key. */
@@ -355,6 +323,20 @@ export interface MetaValues {
   pass_keys: PassKey[];
   /** server-checked attendance permission, cached for offline gating (Phase 2) */
   permissions_snapshot: { attendance: boolean; checked_at: number };
+  /** Amendment 3: each branch's fixed signed QR, saved whenever it loads online */
+  branch_qrs: Record<string, CachedBranchQr>;
+  /** Amendment 3: the branch list the Gym QR modal needs offline */
+  qr_branches: { id: string; name: string }[];
+  /** rejected outbox rows the user dismissed (event ids) */
+  dismissed_rejections: string[];
+}
+
+/** A branch's fixed signed QR as shown/printed by the Gym QR modal. */
+export interface CachedBranchQr extends StaticBranchQr {
+  branch_id: string;
+  branch_name: string | null;
+  /** device time when saved (epoch ms) */
+  saved_at: number;
 }
 export type MetaKey = keyof MetaValues;
 

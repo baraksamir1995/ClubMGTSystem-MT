@@ -9,8 +9,6 @@ vi.mock('next/headers', () => ({
 import { POST as syncPost } from '@/app/api/attendance/sync/route';
 import { GET as bootstrapGet } from '@/app/api/attendance/offline/bootstrap/route';
 import { GET as statusGet } from '@/app/api/attendance/offline/status/route';
-import { GET as eventsGet } from '@/app/api/attendance/offline/events/route';
-import { GET as memberPassGet } from '@/app/api/members/[id]/member-pass/route';
 import { middleware } from '@/middleware';
 import { resolveGymId } from '@/lib/api-gym-id';
 import { POST as attendancePost } from '@/app/api/attendance/route';
@@ -212,63 +210,6 @@ describe('offline attendance proxies', () => {
     expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/status?device_id=dev-7');
   });
 
-  it('GET /offline/events forwards only known filters (PHASE2 review endpoint)', async () => {
-    login();
-    const fetchMock = backend(() => json({ data: [], next_cursor: null }));
-    vi.stubGlobal('fetch', fetchMock);
-    const res = await eventsGet(
-      new NextRequest('http://t/api/attendance/offline/events?result=rejected&needs_review=1&cursor=c1&gym_id=evil&result2=x'),
-    );
-    expect(res.status).toBe(200);
-    expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events?result=rejected&needs_review=1&cursor=c1');
-  });
-
-  it('GET /offline/events forwards result=error and caps limit at 200', async () => {
-    login();
-    const fetchMock = backend(() => json({ data: [], next_cursor: null }));
-    vi.stubGlobal('fetch', fetchMock);
-    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?result=error&limit=999'));
-    expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events?result=error&limit=200');
-    login();
-    const f2 = backend(() => json({ data: [], next_cursor: null }));
-    vi.stubGlobal('fetch', f2);
-    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?limit=25'));
-    expect(upstreamCall(f2).url).toBe('http://backend.test/api/attendance/offline/events?limit=25');
-    login();
-    const f3 = backend(() => json({ data: [], next_cursor: null }));
-    vi.stubGlobal('fetch', f3);
-    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?limit=0&limit=abc'));
-    expect(upstreamCall(f3).url).toBe('http://backend.test/api/attendance/offline/events');
-  });
-
-  it('GET /offline/events drops an unknown result value', async () => {
-    login();
-    const fetchMock = backend(() => json({ data: [], next_cursor: null }));
-    vi.stubGlobal('fetch', fetchMock);
-    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?result=everything'));
-    expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events');
-  });
-
-  it('GET /api/members/{id}/member-pass returns only {qr, expires_at, kid}', async () => {
-    login();
-    const id = '11111111-2222-3333-4444-555555555555';
-    const fetchMock = backend(() => json({ qr: '{"t":"clby_mp"}', expires_at: '2026-12-26T00:00:00Z', kid: 'k1', extra: 'nope' }));
-    vi.stubGlobal('fetch', fetchMock);
-    const res = await memberPassGet(new Request(`http://t/api/members/${id}/member-pass`), { params: { id } });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ qr: '{"t":"clby_mp"}', expires_at: '2026-12-26T00:00:00Z', kid: 'k1' });
-    expect(upstreamCall(fetchMock).url).toBe(`http://backend.test/api/members/${id}/member-pass`);
-  });
-
-  it('GET /api/members/{id}/member-pass rejects a non-uuid id and passes upstream 403', async () => {
-    login();
-    const fetchMock = backend(() => json({ error: 'Forbidden' }, 403));
-    vi.stubGlobal('fetch', fetchMock);
-    expect((await memberPassGet(new Request('http://t/x'), { params: { id: '../../me' } })).status).toBe(404);
-    const id = '11111111-2222-3333-4444-555555555555';
-    expect((await memberPassGet(new Request('http://t/x'), { params: { id } })).status).toBe(403);
-  });
-
   it('GET /offline/* without cookie → JSON 401', async () => {
     cookieGet.mockReturnValue(undefined);
     expect((await bootstrapGet(new NextRequest('http://t/api/attendance/offline/bootstrap'))).status).toBe(401);
@@ -283,7 +224,7 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     return r;
   };
 
-  it.each(['/api/attendance/sync', '/api/attendance/offline/bootstrap', '/api/attendance/offline/status', '/api/attendance/offline/events', '/api/members/11111111-2222-3333-4444-555555555555/member-pass', '/api/branches/11111111-2222-3333-4444-555555555555/qr'])(
+  it.each(['/api/attendance/sync', '/api/attendance/offline/bootstrap', '/api/attendance/offline/status', '/api/attendance/offline/events', '/api/branches/11111111-2222-3333-4444-555555555555/qr'])(
     '%s without cookie → 401 JSON',
     async (path) => {
       const res = await middleware(req(path));
@@ -292,7 +233,7 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     },
   );
 
-  it.each(['/api/attendance', '/api/attendance/syncx', '/api/attendance/offline', '/dashboard/attendance', '/api/members', '/api/members/x', '/api/members/x/member-pass/extra', '/api/branches/x/qr-token', '/api/branches/x/qr/other', '/api/branches/x/qr/rotating-batch'])(
+  it.each(['/api/attendance', '/api/attendance/syncx', '/api/attendance/offline', '/dashboard/attendance', '/api/members', '/api/members/x', '/api/members/x/member-pass', '/api/branches/x/qr-token', '/api/branches/x/qr/other', '/api/branches/x/qr/rotating-batch'])(
     '%s without cookie still redirects to /login (unchanged)',
     async (path) => {
       const res = await middleware(req(path));

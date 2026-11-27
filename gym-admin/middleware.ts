@@ -44,12 +44,11 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-/** Exact paths only — no prefix match on /api/attendance or /api/members itself. */
+/** Exact paths only — no prefix match on /api/attendance or /api/branches itself. */
 function isOfflineAttendanceApi(pathname: string): boolean {
   return (
     pathname === '/api/attendance/sync' ||
     pathname.startsWith('/api/attendance/offline/') ||
-    /^\/api\/members\/[^/]+\/member-pass$/.test(pathname) ||
     /^\/api\/branches\/[^/]+\/qr$/.test(pathname)
   );
 }

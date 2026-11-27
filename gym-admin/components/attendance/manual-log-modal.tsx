@@ -3,10 +3,28 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import type { MemberOption, AttendanceLog, SessionOption } from '@/app/dashboard/attendance/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Avatar, Button, Input, Modal, Select } from '@/components/ui';
+import type { RecordResult } from '@/lib/offline/recorder';
+
+/**
+ * Amendment 4: the outbox path of this same modal. Used when the page is
+ * offline, or when the gym's offline policy is enabled (outbox + immediate
+ * sync). Absent / path 'legacy' → today's behaviour, unchanged.
+ */
+export interface OutboxCheckin {
+  path: 'legacy' | 'outbox';
+  isOffline: boolean;
+  policyEnabled: boolean;
+  /** snapshot time of the cached member list, null if never downloaded */
+  asOf: string | null;
+  search: (query: string) => Promise<MemberOption[]>;
+  record: (input: { member_id: string; branch_id: string | null; class_session_id: string | null }) => Promise<RecordResult>;
+  /** after a successful local save (sync kick + pending count refresh) */
+  afterRecord: () => void;
+}
 
 interface Props {
   members: MemberOption[];
@@ -16,11 +34,16 @@ interface Props {
   branches: GymBranch[];
   onClose: () => void;
   onSaved: (log: AttendanceLog) => void;
+  outbox?: OutboxCheckin | null;
 }
 
-export default function ManualLogModal({ members, accessPoints, sessionEntryPoints: initialSessionEntryPoints, sessionOptions: initialSessionOptions, branches, onClose, onSaved }: Props) {
+export default function ManualLogModal({ members, accessPoints, sessionEntryPoints: initialSessionEntryPoints, sessionOptions: initialSessionOptions, branches, onClose, onSaved, outbox }: Props) {
   const t = useTranslations('attendance');
   const tc = useTranslations('common');
+  const tOff = useTranslations('attendance.offline');
+  const format = useFormatter();
+  const useOutbox = outbox?.path === 'outbox';
+  const outboxBlocked = useOutbox && outbox!.isOffline && !outbox!.policyEnabled;
 
   const [search,      setSearch]      = useState('');
   const [selectedId,  setSelectedId]  = useState('');
@@ -102,7 +125,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
     }
   };
 
-  const filtered = useMemo(() => {
+  const filteredLegacy = useMemo(() => {
     if (!search.trim()) return members.slice(0, 20);
     const q = search.toLowerCase();
     return members.filter(m =>
@@ -111,14 +134,53 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
     ).slice(0, 20);
   }, [members, search]);
 
-  const selected = members.find(m => m.id === selectedId);
+  // Outbox path: search the cached member list (works offline)
+  const [cachedResults, setCachedResults] = useState<MemberOption[]>([]);
+  const [cachedPicked, setCachedPicked] = useState<MemberOption | null>(null);
+  useEffect(() => {
+    if (!useOutbox) return;
+    let cancelled = false;
+    const q = search.trim();
+    if (!q) { setCachedResults([]); return; }
+    const timer = setTimeout(() => {
+      outbox!.search(q).then(r => { if (!cancelled) setCachedResults(r); }).catch(() => undefined);
+    }, 150);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [useOutbox, search, outbox]);
+
+  const filtered = useOutbox ? cachedResults : filteredLegacy;
+  const selected = useOutbox
+    ? (cachedResults.find(m => m.id === selectedId) ?? (cachedPicked?.id === selectedId ? cachedPicked : undefined))
+    : members.find(m => m.id === selectedId);
 
   // Plan type restrictions for the dropdown
   const planType = selected?.plan_type ?? null;
   const canAccessGym = planType === null || planType === 'duration' || planType === 'duration_session';
   const canAccessClass = planType === null || planType === 'sessions' || planType === 'duration_session';
 
+  /** Amendment 4 outbox path: device time "now", gym entry or one of today's classes. */
+  const handleSaveOutbox = async () => {
+    if (!selectedId || !outbox) { toast.error(t('manualModal.selectMemberError')); return; }
+    setSaving(true);
+    try {
+      const res = await outbox.record({
+        member_id: selectedId,
+        branch_id: effectiveBranchId || null,
+        class_session_id: selectedSession?.id ?? null,
+      });
+      if (!res.ok) {
+        toast.error(tOff(`results.${res.reason}`));
+        return;
+      }
+      toast.success(outbox.isOffline ? tOff('savedLocal') : tOff('savedSyncing'));
+      outbox.afterRecord();
+      onClose();
+    } catch { toast.error(t('manualModal.networkError')); }
+    finally { setSaving(false); }
+  };
+
   const handleSave = async () => {
+    if (useOutbox) return handleSaveOutbox();
     if (!selectedId) { toast.error(t('manualModal.selectMemberError')); return; }
     setSaving(true);
     try {
@@ -170,6 +232,17 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
       </Modal.Header>
 
       <Modal.Body className="space-y-4">
+        {useOutbox && outboxBlocked && (
+          <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning" role="note">{tOff('policyOffOffline')}</p>
+        )}
+        {useOutbox && !outboxBlocked && !outbox!.asOf && (
+          <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning" role="note">{tOff('noCache')}</p>
+        )}
+        {useOutbox && !outboxBlocked && outbox!.asOf && (
+          <p className="text-xs text-fg-muted" role="note">
+            {tOff('cachedSearch', { time: format.dateTime(new Date(outbox!.asOf), { dateStyle: 'medium', timeStyle: 'short' }) })}
+          </p>
+        )}
         {/* Member search */}
         <div>
           <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.memberLabel')} <span className="text-danger">*</span></label>
@@ -179,12 +252,12 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
               leftIcon={<Search className="w-4 h-4" />} />
           </div>
           <div className="space-y-1 max-h-48 overflow-y-auto">
-            {filtered.length === 0 && (
+            {filtered.length === 0 && (!useOutbox || search.trim()) && (
               <p className="text-xs text-fg-faint px-2 py-1">{t('manualModal.noMembersFound')}</p>
             )}
             {filtered.map(m => (
               <button key={m.id} type="button"
-                onClick={() => setSelectedId(m.id)}
+                onClick={() => { setSelectedId(m.id); if (useOutbox) setCachedPicked(m); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-start transition-colors ${
                   selectedId === m.id ? 'bg-brand/15 border border-brand/40' : 'hover:bg-surface-3/50 border border-transparent'
                 }`}>
@@ -201,11 +274,15 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
           </div>
         </div>
 
-        {/* Date & time */}
+        {/* Date & time (outbox path: the device records "now") */}
         <div>
           <label className="block text-xs text-fg-muted mb-1.5">{t('manualModal.checkInDateTime')} <span className="text-danger">*</span></label>
-          <Input type="datetime-local" value={checkInAt} onChange={e => setCheckInAt(e.target.value)}
-            className="[color-scheme:dark]" />
+          {useOutbox ? (
+            <div className={fieldBox}>{tOff('now')}</div>
+          ) : (
+            <Input type="datetime-local" value={checkInAt} onChange={e => setCheckInAt(e.target.value)}
+              className="[color-scheme:dark]" />
+          )}
         </div>
 
         {/* Entry point */}
@@ -216,7 +293,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
               <option value={defaultGymEntry} disabled={!canAccessGym}>
                 {defaultGymEntry}{!canAccessGym ? t('manualModal.planClassOnly') : ''}
               </option>
-              {accessPoints
+              {!useOutbox && accessPoints
                 .filter(p => p !== defaultGymEntry && p !== 'Gym Main Entrance' && !dateEntryPoints.includes(p))
                 .map(p => <option key={p} value={p} disabled={!canAccessGym}>{p}</option>)}
             </optgroup>
@@ -227,7 +304,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
                 </option>)}
               </optgroup>
             )}
-            <option value="__custom__">{t('manualModal.otherCustom')}</option>
+            {!useOutbox && <option value="__custom__">{t('manualModal.otherCustom')}</option>}
           </Select>
           {accessPoint === '__custom__' && (
             <Input value={customPoint} onChange={e => setCustomPoint(e.target.value)}
@@ -265,7 +342,7 @@ export default function ManualLogModal({ members, accessPoints, sessionEntryPoin
 
       <Modal.Footer>
         <Button variant="secondary" fullWidth onClick={onClose}>{tc('cancel')}</Button>
-        <Button variant="primary" fullWidth onClick={handleSave} disabled={!selectedId} isLoading={saving}>
+        <Button variant="primary" fullWidth onClick={handleSave} disabled={!selectedId || outboxBlocked} isLoading={saving}>
           {t('manualModal.logCheckin')}
         </Button>
       </Modal.Footer>

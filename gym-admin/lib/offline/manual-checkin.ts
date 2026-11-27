@@ -1,30 +1,15 @@
 /**
- * Offline attendance — front-desk flows (dashboard, Phase 2). Framework-free so
- * the React screen stays thin and the logic is unit-testable.
+ * Offline attendance — manual check-in on the Attendance & Access page
+ * (PHASE3-CONTRACT Amendments 3 + 4). Framework-free so it is unit-testable.
  *
- * PHASE2-CONTRACT "Online vs offline path":
- *  - policy.enabled → every record goes through the outbox and is synced
- *    immediately when online (one code path; the online endpoint is NOT called);
- *  - policy disabled → the existing online `POST /api/attendance` (same body as
- *    the manual check-in modal), and offline recording is unavailable.
+ * Path selection (PHASE2-CONTRACT "Online vs offline path", Amendment 4):
+ *  - online + policy disabled → the existing `POST /api/attendance` (unchanged UI);
+ *  - policy enabled (online or offline) → the outbox, synced immediately when online;
+ *  - offline + policy disabled → refused by the recorder (`offline_disabled`).
  */
-import {
-  getMemberMemberships,
-  getMeta,
-  getCachedMember,
-  type OfflineDB,
-} from './db';
-import { verifyMemberPass, type Ed25519Verifier, type PassFailure, type MemberPass } from './member-pass';
+import { searchMembers, type OfflineDB } from './db';
 import type { RecordAttendanceInput, RecordResult } from './recorder';
-import { estimateServerNow, systemTime, type TimeSource } from './server-clock';
-import {
-  DEFAULT_POLICY,
-  type CachedMember,
-  type CachedMembership,
-  type OfflinePolicy,
-  type OutboxRow,
-  type SyncEngineState,
-} from './types';
+import type { CachedMember, OfflinePolicy, OutboxRow, SyncEngineState } from './types';
 
 export type RecordingPath = 'outbox' | 'online';
 
@@ -134,63 +119,6 @@ export async function submitAttendance(deps: SubmitDeps, input: SubmitInput): Pr
   }
 }
 
-// ── staff QR ────────────────────────────────────────────────────────────────
-
-export interface ScanCandidate {
-  pass: MemberPass;
-  raw: string;
-  member: CachedMember;
-  memberships: CachedMembership[];
-  /** snapshot as_of: the membership summary is "as of" this time, never live */
-  asOf: string | null;
-}
-
-export type ScanOutcome = { ok: true; candidate: ScanCandidate } | { ok: false; code: PassFailure };
-
-/** Steps 1–6 against the cached pass keys + member cache; the UI then asks staff to confirm. */
-export async function scanMemberPass(
-  db: OfflineDB,
-  gymId: string,
-  raw: string,
-  opts: { time?: TimeSource; verifier?: Ed25519Verifier } = {},
-): Promise<ScanOutcome> {
-  const time = opts.time ?? systemTime;
-  const [keys, policy, asOf, est] = await Promise.all([
-    getMeta(db, 'pass_keys'),
-    getMeta(db, 'policy'),
-    getMeta(db, 'as_of'),
-    estimateServerNow(db, time),
-  ]);
-  const v = await verifyMemberPass(raw, {
-    gymId,
-    passKeys: keys ?? [],
-    serverNowMs: est.serverNowMs ?? time.wallNow(),
-    futureSkewSeconds: (policy ?? DEFAULT_POLICY).future_skew_seconds,
-    findMember: (id) => getCachedMember(db, id),
-    verifier: opts.verifier,
-  });
-  if (!v.ok) return { ok: false, code: v.code };
-  const memberships = await getMemberMemberships(db, v.member.gym_member_id);
-  return { ok: true, candidate: { pass: v.pass, raw, member: v.member, memberships, asOf: asOf ?? null } };
-}
-
-/** Staff tapped "Confirm": record a staff_qr event carrying qr.raw (or the online call when disabled). */
-export function confirmScan(
-  deps: SubmitDeps,
-  candidate: ScanCandidate,
-  extra: { branch_id?: string | null; branchName?: string | null; class_session_id?: string | null; sessionName?: string | null } = {},
-): Promise<SubmitOutcome> {
-  return submitAttendance(deps, {
-    member_id: candidate.member.gym_member_id,
-    attendance_method: 'staff_qr',
-    qr: { raw: candidate.raw },
-    branch_id: extra.branch_id ?? null,
-    class_session_id: extra.class_session_id ?? null,
-    branchName: extra.branchName ?? null,
-    sessionName: extra.sessionName ?? null,
-  });
-}
-
 // ── per-item state ──────────────────────────────────────────────────────────
 
 export type ItemState = 'waiting' | 'synced' | 'rejected';
@@ -200,11 +128,6 @@ export function itemState(row: Pick<OutboxRow, 'sync_status'>): ItemState {
   if (row.sync_status === 'synced') return 'synced';
   if (row.sync_status === 'rejected') return 'rejected';
   return 'waiting';
-}
-
-/** Summary line for a member's cached buckets (UI decides wording). */
-export function activeBuckets(memberships: CachedMembership[]): CachedMembership[] {
-  return memberships.filter((b) => b.status === 'active');
 }
 
 // ── connection / sync indicator ─────────────────────────────────────────────
@@ -237,4 +160,54 @@ export function indicatorFor(state: Pick<SyncEngineState, 'status' | 'paused'>):
     default:
       return 'online';
   }
+}
+
+// ── page-level helpers (Amendment 3/4) ──────────────────────────────────────
+
+export type Connectivity = 'online' | 'offline' | 'reconnecting';
+
+/** Which path the Manual Check-in modal takes right now. */
+export type ManualPath = 'legacy' | 'outbox';
+
+export function manualCheckinPath(connectivity: Connectivity, policy: OfflinePolicy | null | undefined): ManualPath {
+  // online + policy off: exactly today's modal/endpoint; otherwise the outbox
+  // (offline + policy off is refused by the recorder with `offline_disabled`)
+  return connectivity === 'online' && !policy?.enabled ? 'legacy' : 'outbox';
+}
+
+/** The modal's member row shape, from the cached member list. */
+export interface CachedMemberOption {
+  id: string;
+  member_number: string;
+  full_name: string | null;
+  plan_type: string | null;
+}
+
+export function toMemberOption(m: CachedMember): CachedMemberOption {
+  return { id: m.gym_member_id, member_number: String(m.member_number ?? ''), full_name: m.full_name, plan_type: null };
+}
+
+/** Offline member search for the existing modal (name, number, last-4 phone). */
+export async function searchCachedMemberOptions(db: OfflineDB, query: string, limit = 20): Promise<CachedMemberOption[]> {
+  return (await searchMembers(db, query, limit)).map(toMemberOption);
+}
+
+export type PillKey = 'online' | 'offline' | 'reconnecting' | 'syncing' | 'loginRequired';
+
+/** Status pill: connectivity first; "syncing"/"login required" refine the online state. */
+export function pillFor(
+  connectivity: Connectivity,
+  engine: Pick<SyncEngineState, 'running' | 'paused' | 'counts'> | null,
+): { key: PillKey; pending: number } {
+  const pending = engine ? engine.counts.pending + engine.counts.syncing : 0;
+  if (connectivity !== 'online') return { key: connectivity, pending };
+  if (engine?.paused === 'auth_required') return { key: 'loginRequired', pending };
+  if (engine?.running) return { key: 'syncing', pending };
+  return { key: 'online', pending };
+}
+
+/** Rejected outbox rows the user hasn't dismissed yet. */
+export function unacknowledgedRejections(rows: OutboxRow[], dismissed: string[]): OutboxRow[] {
+  const d = new Set(dismissed);
+  return rows.filter((r) => r.sync_status === 'rejected' && !d.has(r.event_id));
 }

@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
  * the backend maps 1:1 are open-ended, hence the fallback.
  */
 export function useReasonText() {
-  const t = useTranslations('attendance.frontDesk.codes');
+  const t = useTranslations('attendance.offline.codes');
   return useCallback(
     (code: string | null | undefined, message?: string | null): string => {
       if (code && t.has(code)) return t(code);

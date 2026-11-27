@@ -5,7 +5,6 @@ import { ChevronLeft, User, CreditCard, CalendarDays, Mail, Phone, MapPin, Hash,
 import { getTranslations } from 'next-intl/server';
 import VerifyEmailButton from '@/components/members/verify-email-button';
 import MemberDetailActions from '@/components/members/member-detail-actions';
-import PrintMemberPassButton from '@/components/members/print-member-pass-button';
 import MemberProfileTabs from '@/components/members/member-profile-tabs';
 import OverviewLists from '@/components/members/overview-lists';
 import MemberPhoto from '@/components/members/member-photo';
@@ -190,7 +189,6 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
               </span>
             </div>
           </div>
-          <PrintMemberPassButton memberId={member.id} memberName={displayName} memberNumber={member.member_number ?? null} />
           <MemberDetailActions
             memberId={member.id}
             memberName={displayName}

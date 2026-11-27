@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Radio, ClipboardList, HeartPulse, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock, MonitorSmartphone } from 'lucide-react';
+import { Radio, ClipboardList, HeartPulse, Plus, RefreshCw, Search, X, Filter, QrCode, ChevronLeft, ChevronRight, MapPin, User as UserIcon, Calendar, Clock, CloudOff, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations, useLocale } from 'next-intl';
 import { dateLocale } from '@/lib/date-locale';
@@ -14,6 +14,11 @@ import type { AttendanceLog, MemberOption, SessionOption } from '@/app/dashboard
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { can, type Permission } from '@/lib/get-permissions';
 import { Button, Input, Select, Tabs } from '@/components/ui';
+import { manualCheckinPath, searchCachedMemberOptions } from '@/lib/offline/manual-checkin';
+import { AttendanceStatusPill } from './attendance-status-pill';
+import { useAttendanceOffline } from './use-attendance-offline';
+import { useReasonText } from './use-reason-text';
+import type { OutboxCheckin } from './manual-log-modal';
 
 interface Props {
   initialLogs: AttendanceLog[];
@@ -24,6 +29,8 @@ interface Props {
   gymId: string;
   branches: GymBranch[];
   permissions: Permission[] | null;
+  /** signed-in staff user (for the per-user offline store) */
+  currentUser?: { id: string; role: string } | null;
 }
 
 import { fmtTime12 as fmtTime, fmtDateGym as fmtDate, fmtDateTimeGym as fmtDateTime } from '@/lib/time';
@@ -32,9 +39,12 @@ import { fmtTime12 as fmtTime, fmtDateGym as fmtDate, fmtDateTimeGym as fmtDateT
 const TAB_IDS = ['live', 'logs', 'services'] as const;
 type TabId = typeof TAB_IDS[number];
 
-export default function AttendancePage({ initialLogs, members, accessPoints: initialAccessPoints, sessionEntryPoints, sessionOptions, gymId, branches, permissions }: Props) {
+export default function AttendancePage({ initialLogs, members, accessPoints: initialAccessPoints, sessionEntryPoints, sessionOptions, gymId, branches, permissions, currentUser = null }: Props) {
   const t = useTranslations('attendance');
   const tc = useTranslations('common');
+  const tOff = useTranslations('attendance.offline');
+  const reasonText = useReasonText();
+  const canCreate = can(permissions, 'attendance', 'create');
 
   const METHODS: Record<string, string> = {
     manual: t('methods.manual'),
@@ -102,6 +112,9 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
     return [...new Set(pts)];
   }, [logs, logsData, initialAccessPoints]);
 
+  // network failures from page requests feed the connectivity check
+  const reportFailureRef = useRef<() => void>(() => undefined);
+
   // ── Live Feed ──
   const fetchLive = useCallback(async (page = 1, silent = false) => {
     if (!silent) setLiveLoading(true);
@@ -117,9 +130,24 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
           setLiveTotal(data.pagination.total);
         }
       }
-    } catch {}
+    } catch {
+      reportFailureRef.current();
+    }
     finally { if (!silent) setLiveLoading(false); }
   }, []);
+
+  // ── Offline (PHASE3 Amendments 3 + 4) ──
+  const user = useMemo(() => (currentUser ? { id: currentUser.id, role: currentUser.role } : null), [currentUser?.id, currentUser?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+  const qrBranches = useMemo(() => branches.map((b) => ({ id: b.id, name: b.name })), [branches]);
+  const backOnlineRef = useRef<() => void>(() => undefined);
+  const offline = useAttendanceOffline({
+    user,
+    gymId,
+    canRecord: canCreate,
+    branches: qrBranches,
+    onBackOnline: () => backOnlineRef.current(),
+  });
+  const isOffline = offline.connectivity !== 'online';
 
   // Fetch live data on mount to get pagination metadata
   useEffect(() => {
@@ -134,7 +162,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
     let interval: ReturnType<typeof setInterval> | null = null;
 
     const start = () => {
-      if (!interval) interval = setInterval(() => fetchLive(livePage, true), 60_000);
+      if (!interval) interval = setInterval(() => { if (navigator.onLine) fetchLive(livePage, true); }, 60_000);
     };
     const stop = () => {
       if (interval) { clearInterval(interval); interval = null; }
@@ -175,6 +203,30 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
     if (activeTab === 'logs') fetchLogs(1);
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Back online (or offline check-ins just synced): re-enable + refresh everything
+  reportFailureRef.current = offline.reportFailure;
+  backOnlineRef.current = () => {
+    fetchLive(livePage, true);
+    if (activeTab === 'logs') fetchLogs(logsPage);
+    refresh();
+  };
+
+  // Manual Check-in's outbox path (Amendment 4); null without IndexedDB
+  const manualOutbox: OutboxCheckin | null = offline.session
+    ? {
+        path: manualCheckinPath(offline.connectivity, offline.policy),
+        isOffline,
+        policyEnabled: offline.policy.enabled,
+        asOf: offline.asOf,
+        search: (q) => searchCachedMemberOptions(offline.session!.db, q),
+        record: (input) => offline.session!.record({ ...input, attendance_method: 'manual' }),
+        afterRecord: () => {
+          void offline.session!.engine.syncNow().catch(() => undefined);
+          void offline.reload();
+        },
+      }
+    : null;
+
   // Client-side search within current page
   const displayedLogs = useMemo(() => {
     if (!search.trim()) return logsData;
@@ -197,24 +249,62 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
             <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
             <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <AttendanceStatusPill connectivity={offline.connectivity} engine={offline.engine} />
             <Button variant="secondary" onClick={() => setShowQR(true)} leftIcon={<QrCode className="w-4 h-4" />}>
               {t('gymQrCode')}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => router.push('/dashboard/attendance/front-desk')}
-              leftIcon={<MonitorSmartphone className="w-4 h-4" />}
-            >
-              {t('frontDesk.openFrontDesk')}
-            </Button>
-            {can(permissions, 'attendance', 'create') && (
-              <Button variant="primary" onClick={() => setShowManual(true)} leftIcon={<Plus className="w-4 h-4" />}>
+            {canCreate && (
+              <Button
+                variant="primary"
+                onClick={() => setShowManual(true)}
+                leftIcon={<Plus className="w-4 h-4" />}
+                // offline needs the outbox (cached members); without IndexedDB it can't work
+                disabled={isOffline && !manualOutbox}
+              >
                 {t('manualCheckin')}
               </Button>
             )}
           </div>
         </div>
+
+        {isOffline && (
+          <div className="flex items-start gap-2 rounded-lg bg-warning-soft px-4 py-3 text-sm text-warning" role="status">
+            <CloudOff className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+            <span>{tOff('banner')}</span>
+          </div>
+        )}
+
+        {offline.rejected.length > 0 && (
+          <div className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger space-y-2" role="alert">
+            <p className="font-medium">{tOff('rejectedTitle', { count: offline.rejected.length })}</p>
+            <ul className="space-y-1">
+              {offline.rejected.slice(0, 5).map((r) => (
+                <li key={r.event_id} className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
+                  <span className="flex-1">
+                    {tOff('rejectedItem', {
+                      name: members.find((m) => m.id === r.member_id)?.full_name ?? r.member_id,
+                      time: fmtDateTime(r.device_recorded_at),
+                      reason: reasonText(r.result_code, r.result_message),
+                    })}
+                  </span>
+                  <button type="button" onClick={() => void offline.dismissRejection(r.event_id)} className="underline text-xs">
+                    {tOff('dismiss')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Everything below is dimmed and disabled while offline (Amendment 3) */}
+        <div
+          className={isOffline ? 'space-y-5 opacity-40 pointer-events-none select-none' : 'space-y-5'}
+          aria-disabled={isOffline || undefined}
+          // React 18 doesn't know `inert` (19 does): pass it as a string attribute
+          {...(isOffline ? ({ inert: '' } as unknown as { inert: boolean }) : {})}
+        >
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => selectTab(v as TabId)}>
@@ -475,8 +565,9 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
 
         {/* ── SERVICES ATTENDANCE ── */}
         {activeTab === 'services' && (
-          <ServicesAttendanceTab canEdit={can(permissions, 'attendance', 'create')} />
+          <ServicesAttendanceTab canEdit={canCreate} />
         )}
+        </div>
 
       </div>
 
@@ -487,6 +578,7 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
           sessionEntryPoints={sessionEntryPoints}
           sessionOptions={sessionOptions}
           branches={branches}
+          outbox={manualOutbox}
           onClose={() => setShowManual(false)}
           onSaved={log => {
             if (livePage === 1) {
@@ -501,7 +593,13 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
       )}
 
       {showQR && (
-        <GymQRModal gymId={gymId} branches={branches} onClose={() => setShowQR(false)} />
+        <GymQRModal
+          gymId={gymId}
+          branches={branches}
+          db={offline.session?.db ?? null}
+          online={!isOffline}
+          onClose={() => setShowQR(false)}
+        />
       )}
     </>
   );

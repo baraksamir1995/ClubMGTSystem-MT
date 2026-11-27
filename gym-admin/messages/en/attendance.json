@@ -220,8 +220,6 @@
       "not_self": "Members can only check themselves in.",
       "qr_invalid": "Invalid or forged QR code.",
       "qr_wrong_gym": "The QR code belongs to another gym.",
-      "qr_member_mismatch": "The pass belongs to a different member.",
-      "pass_expired": "The member pass had expired.",
       "branch_inactive": "The branch is inactive.",
       "not_a_member": "No membership in this gym.",
       "membership_frozen": "The membership is frozen.",

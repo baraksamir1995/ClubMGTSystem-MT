@@ -557,11 +557,15 @@ describe('sync engine', () => {
     const stop2 = e.startSyncLifecycle({ intervalMs: 30, immediate: false });
     await vi.waitFor(() => expect(t.requests).toHaveLength(4));
     stop2();
+    // under load a run started just before stop() may still be finishing: let it settle
+    await vi.waitFor(() => expect(e.getState().running).toBe(false));
+    const sentBefore = t.requests.length;
 
     await putRows(db, [row({ event_id: 'z' })]);
     window.dispatchEvent(new Event('online'));
     await new Promise((r) => setTimeout(r, 100));
-    expect(t.requests).toHaveLength(4);
+    expect(t.requests).toHaveLength(sentBefore); // detached: nothing new is sent
+    expect(t.requests.flatMap((r) => r.events.map((x) => x.event_id))).not.toContain('z');
   });
 });
 

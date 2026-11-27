@@ -212,20 +212,27 @@ export default function AttendancePage({ initialLogs, members, accessPoints: ini
   };
 
   // Manual Check-in's outbox path (Amendment 4); null without IndexedDB
-  const manualOutbox: OutboxCheckin | null = offline.session
-    ? {
-        path: manualCheckinPath(offline.connectivity, offline.policy),
-        isOffline,
-        policyEnabled: offline.policy.enabled,
-        asOf: offline.asOf,
-        search: (q) => searchCachedMemberOptions(offline.session!.db, q),
-        record: (input) => offline.session!.record({ ...input, attendance_method: 'manual' }),
-        afterRecord: () => {
-          void offline.session!.engine.syncNow().catch(() => undefined);
-          void offline.reload();
-        },
-      }
-    : null;
+  // Memoised: the modal's cached-member search effect depends on this object;
+  // a new one per render restarted (and delayed) every search (verification L10).
+  const { session: offlineSession, connectivity: offlineConn, policy: offlinePolicy, asOf: offlineAsOf, reload: offlineReload } = offline;
+  const manualOutbox = useMemo<OutboxCheckin | null>(
+    () =>
+      offlineSession
+        ? {
+            path: manualCheckinPath(offlineConn, offlinePolicy),
+            isOffline: offlineConn !== 'online',
+            policyEnabled: offlinePolicy.enabled,
+            asOf: offlineAsOf,
+            search: (q) => searchCachedMemberOptions(offlineSession.db, q),
+            record: (input) => offlineSession.record({ ...input, attendance_method: 'manual' }),
+            afterRecord: () => {
+              void offlineSession.engine.syncNow().catch(() => undefined);
+              void offlineReload();
+            },
+          }
+        : null,
+    [offlineSession, offlineConn, offlinePolicy, offlineAsOf, offlineReload],
+  );
 
   // Client-side search within current page
   const displayedLogs = useMemo(() => {

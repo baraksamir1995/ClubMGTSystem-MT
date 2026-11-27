@@ -7,11 +7,12 @@ import {
   createFetchBootstrapper,
   fetchOfflineStatus,
   getStaleness,
+  refreshPolicyAndCache,
   runBootstrap,
   type BootstrapFetcher,
   type FetchOutcome,
 } from '@/lib/offline/bootstrap';
-import { getMeta, getMemberMemberships, wipeCache, type OfflineDB } from '@/lib/offline/db';
+import { getMeta, getMemberMemberships, setMeta, wipeCache, type OfflineDB } from '@/lib/offline/db';
 import { DEFAULT_POLICY, type AdminBootstrapPage, type BootstrapMember } from '@/lib/offline/types';
 
 function bm(id: string, buckets = 1): BootstrapMember {
@@ -211,21 +212,61 @@ describe('bootstrap', () => {
     expect(await getMeta(db, 'server_clock_offset_ms')).toBe(-3_600_000); // device 1 h fast
   });
 
-  it('stores pass_keys from the first page (PHASE2) and logout wipe removes them', async () => {
-    const keys = [{ kid: 'k1', public_key: 'AAAA', status: 'active' as const, valid_until: null }];
-    const { fetcher } = fetcherFrom({
-      first: { ok: true, data: page([bm('m1')], 'c2', { pass_keys: keys }) },
-      c2: { ok: true, data: page([bm('m2')], null) },
-    });
+  it('pass_keys in a bootstrap response are not stored (member pass removed)', async () => {
+    const keys = [{ kid: 'k1', public_key: 'AAAA', status: 'active', valid_until: null }];
+    const { fetcher } = fetcherFrom({ first: { ok: true, data: page([bm('m1')], null, { pass_keys: keys } as never) } });
     await runBootstrap(db, { gymId: GYM, fetcher });
-    expect(await getMeta(db, 'pass_keys')).toEqual(keys);
-    await wipeCache(db);
-    expect(await getMeta(db, 'pass_keys')).toBeUndefined();
+    expect(await db.get('meta', 'pass_keys' as never)).toBeUndefined();
   });
 
-  it('a bootstrap without pass_keys stores an empty list (scans then say "refresh")', async () => {
-    const { fetcher } = fetcherFrom({ first: { ok: true, data: page([bm('m1')], null) } });
-    await runBootstrap(db, { gymId: GYM, fetcher });
-    expect(await getMeta(db, 'pass_keys')).toEqual([]);
+});
+
+describe('refreshPolicyAndCache (verification L5 / L10)', () => {
+  let db: OfflineDB;
+  beforeEach(async () => {
+    freshIndexedDb();
+    db = await openTestDb();
+  });
+  const status = (enabled: boolean) =>
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ server_time: new Date().toISOString(), enabled, policy: { ...DEFAULT_POLICY, enabled }, device: { registered: true, revoked: false } }), { status: 200 }),
+    );
+
+  it('policy off: wipes cached member data, downloads nothing; keeps outbox + Gym QR copy', async () => {
+    await seedMembers(db, ['m1']);
+    await setMeta(db, 'as_of', new Date().toISOString());
+    await setMeta(db, 'branch_qrs', { b1: { qr: 'Q', mode: 'static', expires_at: null, kid: 'k', branch_id: 'b1', branch_name: 'Main', saved_at: 1 } });
+    await putRows(db, [row({ event_id: 'pending-1' })]);
+    const bootstrap = vi.fn();
+    expect(await refreshPolicyAndCache(db, 'dev', { bootstrap, fetchImpl: status(false) })).toBe('disabled');
+    expect(bootstrap).not.toHaveBeenCalled();
+    expect(await db.count('members')).toBe(0);
+    expect(await getMeta(db, 'as_of')).toBeUndefined();
+    expect(await getMeta(db, 'policy')).toMatchObject({ enabled: false });
+    expect(await db.count('outbox')).toBe(1);
+    expect((await getMeta(db, 'branch_qrs'))?.b1?.qr).toBe('Q');
+  });
+
+  it('policy on + stale/missing cache → bootstrap; fresh → no download', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true });
+    expect(await refreshPolicyAndCache(db, 'dev', { bootstrap, fetchImpl: status(true) })).toBe('refreshed');
+    expect(bootstrap).toHaveBeenCalledTimes(1);
+    await setMeta(db, 'as_of', new Date().toISOString());
+    expect(await refreshPolicyAndCache(db, 'dev', { bootstrap, fetchImpl: status(true) })).toBe('fresh');
+    expect(bootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it('status unreachable → unavailable, cache untouched', async () => {
+    await seedMembers(db, ['m1']);
+    const bootstrap = vi.fn();
+    expect(await refreshPolicyAndCache(db, 'dev', { bootstrap, fetchImpl: vi.fn().mockRejectedValue(new TypeError('offline')) })).toBe('unavailable');
+    expect(await db.count('members')).toBe(1);
+    expect(bootstrap).not.toHaveBeenCalled();
+  });
+
+  it('a policy that flips on later starts caching again', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true });
+    expect(await refreshPolicyAndCache(db, 'dev', { bootstrap, fetchImpl: status(false) })).toBe('disabled');
+    expect(await refreshPolicyAndCache(db, 'dev', { bootstrap, fetchImpl: status(true) })).toBe('refreshed');
   });
 });

@@ -85,7 +85,6 @@ export const SNAPSHOT_META_KEYS: MetaKey[] = [
   'snapshot_stored_at',
   'bootstrap_cursor',
   'gym',
-  'pass_keys',
   'permissions_snapshot',
   'branch_qrs',
   'qr_branches',
@@ -312,12 +311,31 @@ export async function replaceSnapshot(db: OfflineDB, data: SnapshotData): Promis
   await Promise.all(ops);
 }
 
+/** Meta keys written by earlier (never deployed) builds; removed whenever the cache is wiped. */
+const LEGACY_META_KEYS = ['pass_keys'];
+
 /** Wipe cached operational data (keeps outbox, device id, identity, policy). */
 export async function wipeCache(db: OfflineDB): Promise<void> {
   const tx = db.transaction([...CACHE_STORES, 'meta'], 'readwrite');
   const ops: Promise<unknown>[] = [];
   for (const name of CACHE_STORES) ops.push(tx.objectStore(name).clear());
   for (const k of SNAPSHOT_META_KEYS) ops.push(tx.objectStore('meta').delete(k));
+  for (const k of LEGACY_META_KEYS) ops.push(tx.objectStore('meta').delete(k as MetaKey));
+  ops.push(tx.done);
+  await Promise.all(ops);
+}
+
+/**
+ * Wipe cached MEMBER/attendance data only (stores + snapshot markers), e.g. when
+ * the gym's offline policy is off. Keeps the outbox, identity, policy, the
+ * permission snapshot and the Gym QR copy (gym-level, no member data).
+ */
+export async function wipeMemberData(db: OfflineDB): Promise<void> {
+  const tx = db.transaction([...CACHE_STORES, 'meta'], 'readwrite');
+  const ops: Promise<unknown>[] = [];
+  for (const name of CACHE_STORES) ops.push(tx.objectStore(name).clear());
+  for (const k of ['as_of', 'snapshot_stored_at', 'bootstrap_cursor', 'gym'] as MetaKey[]) ops.push(tx.objectStore('meta').delete(k));
+  for (const k of LEGACY_META_KEYS) ops.push(tx.objectStore('meta').delete(k as MetaKey));
   ops.push(tx.done);
   await Promise.all(ops);
 }

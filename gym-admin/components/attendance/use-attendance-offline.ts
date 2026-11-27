@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createConnectivity, type ConnectivityState } from '@/lib/offline/connectivity';
 import { saveQrBranches } from '@/lib/offline/branch-qr-cache';
-import { fetchOfflineStatus, getStaleness } from '@/lib/offline/bootstrap';
+import { refreshPolicyAndCache } from '@/lib/offline/bootstrap';
 import { getMeta, isIndexedDbAvailable, listOutboxByStatus, setMeta } from '@/lib/offline/db';
 import { unacknowledgedRejections } from '@/lib/offline/manual-checkin';
 import { getOfflineSession, type OfflineSession } from '@/lib/offline/session';
@@ -26,6 +26,8 @@ interface Options {
 }
 
 const RECORDING_ROLES = new Set(['gym_admin', 'staff', 'trainer']);
+/** policy re-check while online (verification L10) */
+const POLICY_REFRESH_MS = 5 * 60_000;
 
 export function useAttendanceOffline({ user, gymId, canRecord, branches, onBackOnline }: Options) {
   const connectivity = useMemo(() => createConnectivity(), []);
@@ -63,6 +65,15 @@ export function useAttendanceOffline({ user, gymId, canRecord, branches, onBackO
     setAsOf(a ?? null);
   }, []);
 
+  /** status → policy; off: wipe member data, cache nothing; on: bootstrap when stale */
+  const refreshPolicy = useCallback(
+    async (s: OfflineSession) => {
+      await refreshPolicyAndCache(s.db, s.deviceId, { bootstrap: () => s.bootstrap() }).catch(() => 'unavailable');
+      await reloadLocal(s).catch(() => undefined);
+    },
+    [reloadLocal],
+  );
+
   // offline session: cache, outbox, sync
   useEffect(() => {
     if (!user || !gymId || !RECORDING_ROLES.has(user.role) || !isIndexedDbAvailable()) return;
@@ -86,11 +97,7 @@ export function useAttendanceOffline({ user, gymId, canRecord, branches, onBackO
         if (lastSynced.current != null && st.counts.synced > lastSynced.current && !st.running) backOnline.current();
         lastSynced.current = st.counts.synced;
       });
-      if (navigator.onLine) {
-        await fetchOfflineStatus(s.db, s.deviceId).catch(() => null);
-        const st = await getStaleness(s.db).catch(() => null);
-        if (st?.stale && !cancelled) await s.bootstrap().catch(() => null);
-      }
+      if (navigator.onLine) await refreshPolicy(s);
       if (cancelled) return;
       await reloadLocal(s);
       stopLifecycle = s.engine.startSyncLifecycle({ intervalMs: 30_000 });
@@ -100,7 +107,21 @@ export function useAttendanceOffline({ user, gymId, canRecord, branches, onBackO
       stopLifecycle?.();
       unsubscribe?.();
     };
-  }, [user, gymId, canRecord, reloadLocal]);
+  }, [user, gymId, canRecord, reloadLocal, refreshPolicy]);
+
+  // policy: re-check on reconnect and every few minutes while online
+  useEffect(() => {
+    if (!session) return;
+    const run = () => {
+      if (navigator.onLine) void refreshPolicy(session);
+    };
+    const offReconnect = connectivity.onReconnect(run);
+    const timer = setInterval(run, POLICY_REFRESH_MS);
+    return () => {
+      offReconnect();
+      clearInterval(timer);
+    };
+  }, [session, connectivity, refreshPolicy]);
 
   // branch list for the Gym QR modal, kept for offline use
   useEffect(() => {
@@ -117,6 +138,8 @@ export function useAttendanceOffline({ user, gymId, canRecord, branches, onBackO
     [session, reloadLocal],
   );
 
+  const reload = useCallback(() => (session ? reloadLocal(session) : Promise.resolve()), [session, reloadLocal]);
+
   return {
     connectivity: conn,
     reportFailure: connectivity.reportFailure,
@@ -126,6 +149,6 @@ export function useAttendanceOffline({ user, gymId, canRecord, branches, onBackO
     rejected,
     asOf,
     dismissRejection,
-    reload: () => (session ? reloadLocal(session) : Promise.resolve()),
+    reload,
   };
 }

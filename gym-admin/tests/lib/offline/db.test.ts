@@ -147,4 +147,11 @@ describe('offline db', () => {
     ).rejects.toBeTruthy();
     expect(await db.getAllKeys('members')).toEqual(['old']);
   });
+
+  it('wipeCache also removes the legacy pass_keys meta key', async () => {
+    const db = await openTestDb();
+    await db.put('meta', [{ kid: 'k' }], 'pass_keys' as never);
+    await wipeCache(db);
+    expect(await db.get('meta', 'pass_keys' as never)).toBeUndefined();
+  });
 });

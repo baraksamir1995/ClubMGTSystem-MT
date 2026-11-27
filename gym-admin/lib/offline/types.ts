@@ -255,17 +255,6 @@ export interface RecentAttendance {
   check_in_at: string;
 }
 
-/** Member-pass verification key (PHASE2-CONTRACT "Keys"). Public key only. */
-export interface PassKey {
-  kid: string;
-  /** raw 32-byte Ed25519 public key, base64url */
-  public_key: string;
-  /** revoked keys are never accepted, no grace (PHASE2 amendment §4) */
-  status: 'active' | 'retired' | 'revoked';
-  /** retired keys are accepted until this instant (ISO); null for active keys */
-  valid_until: string | null;
-}
-
 /** Admin-class bootstrap page (GET /api/attendance/offline/bootstrap). */
 export interface AdminBootstrapPage {
   server_time: string;
@@ -276,8 +265,6 @@ export interface AdminBootstrapPage {
   members: BootstrapMember[];
   class_sessions: CachedClassSession[];
   recent_attendance: RecentAttendance[];
-  /** first page only (PHASE2-CONTRACT) */
-  pass_keys?: PassKey[];
   next_cursor: string | null;
 }
 
@@ -320,7 +307,6 @@ export interface MetaValues {
   last_sync_attempt_at: string;
   bootstrap_cursor: string | null;
   sync_lease: { owner: string; expires_at: number };
-  pass_keys: PassKey[];
   /** server-checked attendance permission, cached for offline gating (Phase 2) */
   permissions_snapshot: { attendance: boolean; checked_at: number };
   /** Amendment 3: each branch's fixed signed QR, saved whenever it loads online */

@@ -14,6 +14,7 @@ import {
   replaceSnapshot,
   setMeta,
   wipeCache,
+  wipeMemberData,
   type OfflineDB,
 } from './db';
 import { clientHeaders, type ClientInfo } from './sync-engine';
@@ -27,7 +28,6 @@ import {
   type CachedMembership,
   type OfflinePolicy,
   type OfflineStatusResponse,
-  type PassKey,
   type RecentAttendance,
 } from './types';
 
@@ -129,7 +129,6 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
   const sessions = new Map<string, CachedClassSession>();
   const recent = new Map<string, RecentAttendance>();
   let first: AdminBootstrapPage | null = null;
-  let passKeys: PassKey[] | null = null;
   let cursor: string | null = null;
   let pages = 0;
   const monoNow = opts.monoNow ?? defaultMonoNow;
@@ -170,7 +169,6 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
         });
       }
     }
-    if (!passKeys && Array.isArray(page.pass_keys) && page.pass_keys.length > 0) passKeys = page.pass_keys;
     for (const b of page.branches ?? []) branches.set(b.id, b);
     for (const s of page.class_sessions ?? []) sessions.set(s.id, s);
     for (const a of page.recent_attendance ?? []) recent.set(a.attendance_id, a);
@@ -191,7 +189,6 @@ export async function runBootstrap(db: OfflineDB, opts: BootstrapOptions): Promi
       policy: first.policy ?? DEFAULT_POLICY,
       snapshot_stored_at: now(),
       bootstrap_cursor: null,
-      pass_keys: passKeys ?? [],
     },
   });
   if (clockReading) {
@@ -299,4 +296,33 @@ export function computeStaleness(asOf: string | null | undefined, policy: Offlin
 export async function getStaleness(db: OfflineDB, nowMs: number = Date.now()): Promise<Staleness> {
   const [asOf, policy] = await Promise.all([getMeta(db, 'as_of'), getMeta(db, 'policy')]);
   return computeStaleness(asOf, policy ?? DEFAULT_POLICY, nowMs);
+}
+
+// ── policy-driven refresh (PHASE3 verification L5 / L10) ────────────────────
+
+export type PolicyRefresh = 'disabled' | 'refreshed' | 'fresh' | 'unavailable';
+
+/**
+ * Re-read the policy (status endpoint) and act on it:
+ *  - policy off → wipe any cached member/attendance data and download nothing
+ *    (the server's snapshot is empty anyway) — the page behaves as today;
+ *  - policy on → bootstrap when the cache is missing or stale.
+ * Called on page load, on reconnect, and periodically while online.
+ */
+export async function refreshPolicyAndCache(
+  db: OfflineDB,
+  deviceId: string,
+  opts: { bootstrap: () => Promise<BootstrapResult>; fetchImpl?: typeof fetch; now?: () => number },
+): Promise<PolicyRefresh> {
+  const status = await fetchOfflineStatus(db, deviceId, { fetchImpl: opts.fetchImpl, now: opts.now });
+  if (!status.ok) return 'unavailable';
+  const policy = (await getMeta(db, 'policy')) ?? DEFAULT_POLICY;
+  if (!policy.enabled) {
+    await wipeMemberData(db);
+    return 'disabled';
+  }
+  const staleness = await getStaleness(db, (opts.now ?? Date.now)());
+  if (!staleness.stale) return 'fresh';
+  const res = await opts.bootstrap();
+  return res.ok ? 'refreshed' : 'unavailable';
 }

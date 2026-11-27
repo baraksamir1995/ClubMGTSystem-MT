@@ -7,7 +7,7 @@ import 'package:meta/meta.dart';
 import '../db/offline_database.dart';
 import '../model/clock_offset.dart';
 import '../model/policy_holder.dart';
-import 'member_pass.dart';
+import 'qr_common.dart';
 
 /// A parsed (NOT yet verified) branch QR v2 — PHASE3-CONTRACT §1:
 /// `{"type":"gym_access","gym_id","branch_id","token","v":2,"mode","kid",
@@ -65,13 +65,11 @@ class BranchQr {
   /// A v2 claim that then fails strict parsing is `qr_invalid`.
   static bool claimsV2(String raw) {
     if (raw.isEmpty || raw.codeUnitAt(0) == 0xFEFF) return false;
-    try {
-      final j = jsonDecode(raw);
-      return j is Map && j['type'] == type && j['v'] is int && j['v'] == version;
-    } catch (_) {
-      return false;
-    }
+    // Same depth limit as the server's json_decode(…, 4): deeper → not v2.
+    final j = decodeJsonPhpDepth4(raw);
+    return j is Map && j['type'] == type && j['v'] is int && j['v'] == version;
   }
+
 
   /// Strict parse (PHASE3 §1 = PHASE2 amendment §3 rules): ≤ 1024 chars,
   /// no BOM, exactly the 11 keys, integer `v` 2, lowercase canonical UUIDs,

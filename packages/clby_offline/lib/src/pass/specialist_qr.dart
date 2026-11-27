@@ -7,7 +7,7 @@ import 'package:meta/meta.dart';
 import '../db/offline_database.dart';
 import '../model/clock_offset.dart';
 import '../model/policy_holder.dart';
-import 'member_pass.dart';
+import 'qr_common.dart';
 
 /// A parsed (NOT yet verified) coach QR v2 — PHASE3 Amendment 2 §C:
 /// `{"type":"specialist_session","gym_id","trainer_id","v":2,"kid","iat",
@@ -54,13 +54,11 @@ class SpecialistQr {
   /// integer `v == 2`. Otherwise today's online handling (v1).
   static bool claimsV2(String raw) {
     if (raw.isEmpty || raw.codeUnitAt(0) == 0xFEFF) return false;
-    try {
-      final j = jsonDecode(raw);
-      return j is Map && j['type'] == type && j['v'] is int && j['v'] == version;
-    } catch (_) {
-      return false;
-    }
+    // Same depth limit as the server's json_decode(…, 4): deeper → not v2.
+    final j = decodeJsonPhpDepth4(raw);
+    return j is Map && j['type'] == type && j['v'] is int && j['v'] == version;
   }
+
 
   /// Strict parse (same rules as the branch QR / member pass). Null →
   /// `qr_invalid`.

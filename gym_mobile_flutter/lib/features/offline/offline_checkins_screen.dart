@@ -23,15 +23,22 @@ class OfflineCheckinsScreen extends StatelessWidget {
         surfaceTintColor: kOffBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: kOffInk),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: kOffInk,
+          ),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/home'),
         ),
-        title: Text(l.thisPhoneCheckinsTitle,
-            style: const TextStyle(color: kOffInk, fontWeight: FontWeight.w700)),
+        title: Text(
+          l.thisPhoneCheckinsTitle,
+          style: const TextStyle(color: kOffInk, fontWeight: FontWeight.w700),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),
-            child: Center(child: OfflineSyncChip(onTap: c.syncNow)),
+            child: Center(child: OfflineSyncChip(onTap: () => _refresh(c))),
           ),
         ],
       ),
@@ -40,49 +47,111 @@ class OfflineCheckinsScreen extends StatelessWidget {
         builder: (context, snap) {
           // Gym check-ins AND coach sessions recorded on this phone.
           final items = (snap.data ?? const <OutboxEvent>[])
-              .where((e) => e.attendanceMethod == AttendanceMethod.memberQr.wire)
+              .where(
+                (e) => e.attendanceMethod == AttendanceMethod.memberQr.wire,
+              )
               .toList();
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
-            children: [
-              Text(l.thisPhoneCheckinsReadOnly,
-                  style: const TextStyle(fontSize: 12.5, color: kOffMuted)),
-              const SizedBox(height: 12),
-              if (items.isEmpty)
-                OfflineCard(
-                  child: Text(l.thisPhoneCheckinsEmpty,
-                      key: const Key('checkins-empty'),
-                      style: const TextStyle(color: kOffMuted)),
-                ),
-              for (final e in items)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: OfflineCard(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(fmtOfflineTime(context, e.deviceRecordedAtUtc),
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kOffInk)),
-                      Text(
-                          e.kind == EventKind.serviceSession.wire
-                              ? l.checkinKindSession
-                              : l.checkinKindGym,
-                          style: const TextStyle(fontSize: 13, color: kOffMuted)),
-                      const SizedBox(height: 8),
-                      CheckInStateChip(event: e),
-                    ]),
+          return RefreshIndicator(
+            // Offline mode: retry the normal load (leaves offline mode on
+            // success). Online: sync pending check-ins now.
+            onRefresh: () => _refresh(c),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
+              children: [
+                if (c.offlineMode) ...[
+                  OfflineCard(
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          size: 18,
+                          color: kOffMuted,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            syncLabel(context, c.sync),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: kOffInk,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          key: const Key('offline-retry-now'),
+                          onPressed: c.retryNow,
+                          child: Text(l.commonRetry),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  l.thisPhoneCheckinsReadOnly,
+                  style: const TextStyle(fontSize: 12.5, color: kOffMuted),
                 ),
-              if (c.sync.pendingCount > 0 && !c.offlineMode) ...[
-                const SizedBox(height: 6),
-                OutlinedButton.icon(
-                  onPressed: c.syncNow,
-                  icon: const Icon(Icons.sync_rounded),
-                  label: Text(l.syncNowAction),
-                ),
+                const SizedBox(height: 12),
+                if (items.isEmpty)
+                  OfflineCard(
+                    child: Text(
+                      l.thisPhoneCheckinsEmpty,
+                      key: const Key('checkins-empty'),
+                      style: const TextStyle(color: kOffMuted),
+                    ),
+                  ),
+                for (final e in items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: OfflineCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            fmtOfflineTime(context, e.deviceRecordedAtUtc),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: kOffInk,
+                            ),
+                          ),
+                          Text(
+                            e.kind == EventKind.serviceSession.wire
+                                ? l.checkinKindSession
+                                : l.checkinKindGym,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: kOffMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          CheckInStateChip(event: e),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (c.sync.pendingCount > 0 && !c.offlineMode) ...[
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: c.syncNow,
+                    icon: const Icon(Icons.sync_rounded),
+                    label: Text(l.syncNowAction),
+                  ),
+                ],
               ],
-            ],
+            ),
           );
         },
       ),
     );
+  }
+
+  static Future<void> _refresh(MemberOfflineController c) async {
+    if (c.offlineMode) {
+      await c.retryNow();
+    } else {
+      await c.syncNow();
+    }
   }
 }

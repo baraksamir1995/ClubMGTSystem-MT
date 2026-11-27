@@ -542,11 +542,20 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     switch (r) {
       case CheckInSaved():
         _showOfflineSaved(r);
-      case CheckInDuplicate():
-        _showGymDenyResult('already_checked_in');
+      case CheckInDuplicate(:final coachSession):
+        // Coach session → today's "already logged" coach message; gym
+        // entry → today's "already checked in".
+        coachSession
+            ? _showSpecialistDeny({'code': 'recently_logged'})
+            : _showGymDenyResult('already_checked_in');
       case CheckInSpecialistDenied(:final denial, :final serviceType):
-        // Today's specialist denial messages (offline: no server text).
-        _showSpecialistDeny({'code': denial.code, 'trainer_type': serviceType});
+        // Same texts as the online response (SpecialistScanController
+        // messages), shown through today's _showSpecialistDeny.
+        _showSpecialistDeny({
+          'code': denial.code,
+          'error': specialistDenyMessages[denial.code],
+          'trainer_type': serviceType,
+        });
       case CheckInQrRejected(:final code, :final outOfDate, :final unknownTrainer):
         if (code == 'qr_wrong_gym') {
           _showResult(_CheckInResult.error(

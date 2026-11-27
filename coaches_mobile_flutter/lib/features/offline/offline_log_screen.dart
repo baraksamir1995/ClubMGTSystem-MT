@@ -219,10 +219,6 @@ class _OfflineLogScreenState extends State<OfflineLogScreen> {
                     ]),
                   ),
                 ]),
-              if (widget.args?.source == 'qr') ...[
-                const SizedBox(height: 12),
-                OfflineNotice(text: t.confirmIdentity, icon: Icons.verified_user_outlined, tone: AppColors.primary),
-              ],
               const SizedBox(height: 18),
               Text(t.pickAssignment.toUpperCase(), style: AppText.mono(size: 11, letterSpacing: 1.4)),
               const SizedBox(height: 8),

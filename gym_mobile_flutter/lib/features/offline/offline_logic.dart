@@ -95,3 +95,12 @@ bool shouldShowStatus({
   required bool failing,
 }) =>
     policyAllows && (offlineMode || !online || pending > 0 || failing);
+
+/// The exact `error` texts the online `POST /specialists/scan` returns for
+/// these codes (SpecialistScanController), so an offline denial reads the
+/// same as an online one in `_showSpecialistDeny`.
+const specialistDenyMessages = <String, String>{
+  'no_package': "You don't have a session package with this specialist yet.",
+  'package_expired': 'Your package with this specialist has expired.',
+  'package_exhausted': "You've used all sessions in your package with this specialist.",
+};

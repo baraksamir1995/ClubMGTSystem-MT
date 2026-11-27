@@ -72,15 +72,6 @@ String indicatorLabel(SyncState s, OfflineStrings t) {
   }
 }
 
-/// User-facing text for a pass verdict failure.
-String passFailureText(PassFailure f, OfflineStrings t) => switch (f) {
-      PassFailure.qrInvalid => t.passInvalid,
-      PassFailure.qrUnknownKey => t.passUnknownKey,
-      PassFailure.qrWrongGym => t.passWrongGym,
-      PassFailure.passExpired => t.passExpired,
-      PassFailure.memberNotFound => t.passMemberNotFound,
-    };
-
 /// Per-item state label; never shows a local item as confirmed.
 String itemStateLabel(OutboxEvent e, OfflineStrings t) {
   switch (OutboxStatus.fromWire(e.syncStatus)) {

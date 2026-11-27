@@ -71,7 +71,8 @@ class OfflineSyncChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<MemberOfflineController>();
-    if (c.store == null) return const SizedBox.shrink();
+    // Policy off → no new UI anywhere (scanner app bar included).
+    if (c.store == null || !c.memberQrAllowed) return const SizedBox.shrink();
     final s = c.sync;
     final (fg, bg, icon) = switch (s.indicator) {
       SyncIndicator.online => (kOffSuccess, kOffSuccessBg, Icons.cloud_done_outlined),

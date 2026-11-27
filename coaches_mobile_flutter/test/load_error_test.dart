@@ -53,6 +53,5 @@ void main() {
       expect(ar, isNot(startsWith('block_')), reason: b.name);
       expect(en, isNot(ar));
     }
-    expect(OfflineStrings.en.passWrongGym, 'This pass belongs to another gym');
   });
 }

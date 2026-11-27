@@ -26,8 +26,18 @@ class QrScreen extends StatefulWidget {
 }
 
 class _QrScreenState extends State<QrScreen> {
+  /// Cached cache-read of the signed QR — built once per store, not on every
+  /// rebuild (a fresh future each build flashed the unsigned QR first).
+  Future<CachedSignedQr?>? _ownQr;
+  Object? _ownQrStore;
+
   @override
   Widget build(BuildContext context) {
+    final offline = context.watch<CoachOfflineController>();
+    if (_ownQr == null || !identical(_ownQrStore, offline.store)) {
+      _ownQrStore = offline.store;
+      _ownQr = offline.ownQr();
+    }
     final state = context.watch<CoachAppState>();
     final id = state.identity;
 
@@ -74,13 +84,16 @@ class _QrScreenState extends State<QrScreen> {
                       // unsigned QR (online-only for members). Both carry
                       // type/gym_id/trainer_id, so every member app reads it.
                       Center(child: FutureBuilder<CachedSignedQr?>(
-                        future: context.watch<CoachOfflineController>().ownQr(),
+                        future: _ownQr,
                         builder: (context, snap) => _QrCard(
-                          data: signedOrUnsignedCoachQr(
-                            signed: snap.data,
-                            gymId: id?.gymId,
-                            trainerId: id?.trainerProfileId,
-                          ),
+                          // Loader (data null) until the cache read is done.
+                          data: snap.connectionState == ConnectionState.done
+                              ? signedOrUnsignedCoachQr(
+                                  signed: snap.data,
+                                  gymId: id?.gymId,
+                                  trainerId: id?.trainerProfileId,
+                                )
+                              : null,
                         ),
                       )),
                       const SizedBox(height: 16),

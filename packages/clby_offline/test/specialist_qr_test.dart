@@ -90,6 +90,18 @@ void main() {
     }
   });
 
+  test('JSON nested ≥ 4 containers deep → not v2 (PHP json_decode depth 4)', () async {
+    final g = jsonDecode(await key.coachQr(gym: gymA, trainer: trainer, iat: nowS, exp: nowS + year))
+        as Map<String, dynamic>;
+    expect(await verify(jsonEncode({...g, 'jti': {'a': {'b': {'c': 1}}}})), isA<SpecialistQrNotV2>());
+    // 3 deep still claims v2 → strict parse → qr_invalid.
+    expect(reason(await verify(jsonEncode({...g, 'jti': {'a': {'b': 1}}}))), SpecialistQrFailure.qrInvalid);
+    expect(jsonContainerDepth(jsonDecode('[[[1]]]')), 3);
+    expect(decodeJsonPhpDepth4('[[[1]]]'), isNotNull);
+    expect(decodeJsonPhpDepth4('[[[[1]]]]'), isNull);
+    expect(decodeJsonPhpDepth4('{"a":[1,{"b":[2]}]}'), isNull);
+  });
+
   test('wrong gym (before key) / white-label lock', () async {
     final stranger = await Key.create('k-unknown');
     expect(reason(await verify(await stranger.coachQr(gym: uid(), trainer: trainer, iat: nowS, exp: nowS + year))),

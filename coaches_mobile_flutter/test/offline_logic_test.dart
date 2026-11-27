@@ -129,12 +129,6 @@ void main() {
       expect(OfflineStrings.en.isRtl, isFalse);
     });
 
-    test('every pass failure has text', () {
-      for (final f in PassFailure.values) {
-        expect(passFailureText(f, OfflineStrings.en), isNotEmpty);
-        expect(passFailureText(f, OfflineStrings.ar), isNotEmpty);
-      }
-    });
   });
 
   group('coach QR (Phase 3 Amendment 2)', () {

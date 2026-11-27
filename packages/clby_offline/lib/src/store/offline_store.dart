@@ -12,7 +12,6 @@ import '../db/open.dart';
 import '../errors.dart';
 import '../model/clock_offset.dart';
 import '../pass/branch_qr.dart';
-import '../pass/member_pass.dart';
 import '../pass/specialist_qr.dart';
 import '../model/enums.dart';
 import '../model/policy_holder.dart';
@@ -97,9 +96,6 @@ class OfflineStore {
   Future<List<CachedMembership>> membershipsOf(String gymMemberId) =>
       (db.select(db.cachedMemberships)..where((t) => t.gymMemberId.equals(gymMemberId))).get();
 
-  /// Offline member-pass verification (PHASE2-CONTRACT steps 1–6).
-  late final MemberPassVerifier passVerifier = MemberPassVerifier(
-      db: db, gymId: scope.gymId, serverClock: serverClock, policy: policy);
 
   static final Map<String, OfflineStore> _open = {};
 

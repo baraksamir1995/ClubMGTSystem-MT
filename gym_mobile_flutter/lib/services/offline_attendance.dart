@@ -64,9 +64,9 @@ class OfflineAttendance {
       apiBase: Env.apiUrl,
       transport: transport,
       onError: (e, _) => appLog('[offline] $e'),
-      // /offline/me also carries the member's own pass, needed offline even
-      // when offline check-in is disabled for the gym.
-      bootstrapWhenDisabled: true,
+      // Policy off → only the tiny /offline/status call; no /offline/me
+      // download (nothing offline is offered then).
+      bootstrapWhenDisabled: false,
     )..attachLifecycle();
     return OfflineAttendance._(transport, manager);
   }

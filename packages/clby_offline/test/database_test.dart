@@ -210,6 +210,17 @@ void main() {
     });
   });
 
+  test('a member_pass cached by an earlier build is removed on open', () async {
+    final ks = InMemoryKeyStore();
+    final s = scopeFor(gymA, userA);
+    var store = await openEncrypted(s, ks, FakeTransport());
+    await store.db.writeMeta('member_pass', '{"qr":"old"}');
+    await store.close();
+    store = await openEncrypted(s, ks, FakeTransport());
+    expect(await store.db.readMeta('member_pass'), isNull);
+    await store.close();
+  });
+
   group('logout policy (D9)', () {
     test('wipeCache clears cache tables, keeps outbox and last-sync', () async {
       final ks = InMemoryKeyStore();

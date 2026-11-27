@@ -71,7 +71,6 @@ class OfflineStrings {
 
   // Log flow
   String get logSession => _t('logSession');
-  String get scanPass => _t('scanPass');
   String get searchHint => _t('searchHint');
   String get pickMember => _t('pickMember');
   String get pickAssignment => _t('pickAssignment');
@@ -84,9 +83,6 @@ class OfflineStrings {
   String get syncedConfirmed => _t('syncedConfirmed');
   String get loggedOnline => _t('loggedOnline');
   String get done => _t('done');
-  String get scanAgain => _t('scanAgain');
-  String get confirmIdentity => _t('confirmIdentity');
-  String get cameraHint => _t('cameraHint');
   String recentlyLogged(int m) => _t('recentlyLogged').replaceAll('{m}', '$m');
   String get duplicateTap => _t('duplicateTap');
   String get clockSkew => _t('clockSkew');
@@ -94,13 +90,6 @@ class OfflineStrings {
   /// Why offline mode couldn't be opened on this cold start.
   String entryBlocked(OfflineEntryBlock b) => _t('block_${b.name}');
 
-  // Pass verdicts
-  String get passInvalid => _t('passInvalid');
-  String get passUnknownKey => _t('passUnknownKey');
-  String get passWrongGym => _t('passWrongGym');
-  String get passExpired => _t('passExpired');
-  String get passMemberNotFound => _t('passMemberNotFound');
-  String get passNeedsData => _t('passNeedsData');
 
   static const _en = <String, String>{
     'online': 'Online',
@@ -140,7 +129,6 @@ class OfflineStrings {
     'policyOffNote': 'Offline mode is off for this gym — sessions are logged online.',
     'policyOffOffline': 'Offline mode is off for this gym, so sessions can\'t be logged without a connection.',
     'logSession': 'Log a session',
-    'scanPass': 'Scan member pass',
     'searchHint': 'Search name or member #',
     'pickMember': 'Pick a member',
     'pickAssignment': 'Pick a package',
@@ -153,9 +141,6 @@ class OfflineStrings {
     'syncedConfirmed': 'Synced — confirmed by server',
     'loggedOnline': 'Logged — confirmed by server',
     'done': 'Done',
-    'scanAgain': 'Scan again',
-    'confirmIdentity': 'Check the photo and name before confirming.',
-    'cameraHint': 'Point the camera at the member\'s CLBY pass.',
     'recentlyLogged': 'Already logged in the last 30 minutes — try again in {m} min.',
     'duplicateTap': 'Already saved a moment ago.',
     'clockSkew': 'This device\'s date/time is wrong. Fix it and try again.',
@@ -165,12 +150,6 @@ class OfflineStrings {
     'block_differentApi': 'Offline mode isn\'t available: the saved data is for a different server.',
     'block_storeUnavailable': 'Offline mode isn\'t available: this device\'s offline storage can\'t be opened right now.',
     'block_noCachedData': 'Offline mode isn\'t available: no offline data has been downloaded yet.',
-    'passInvalid': 'Not a valid CLBY member pass.',
-    'passUnknownKey': 'Unknown pass key — refresh offline data while online.',
-    'passWrongGym': 'This pass belongs to another gym',
-    'passExpired': 'This pass has expired — ask the member to open the app online.',
-    'passMemberNotFound': 'Member not in this device\'s data — refresh offline data.',
-    'passNeedsData': 'Pass checking needs offline data — connect once to download it.',
   };
 
   static const _ar = <String, String>{
@@ -211,7 +190,6 @@ class OfflineStrings {
     'policyOffNote': 'وضع عدم الاتصال متوقف لهذا النادي — تُسجَّل الجلسات عبر الإنترنت.',
     'policyOffOffline': 'وضع عدم الاتصال متوقف لهذا النادي، لذا لا يمكن تسجيل الجلسات دون اتصال.',
     'logSession': 'تسجيل جلسة',
-    'scanPass': 'مسح بطاقة العضو',
     'searchHint': 'ابحث بالاسم أو رقم العضوية',
     'pickMember': 'اختر عضوًا',
     'pickAssignment': 'اختر الباقة',
@@ -224,9 +202,6 @@ class OfflineStrings {
     'syncedConfirmed': 'تمت المزامنة — أكدها الخادم',
     'loggedOnline': 'تم التسجيل — أكده الخادم',
     'done': 'تم',
-    'scanAgain': 'امسح مجددًا',
-    'confirmIdentity': 'تحقق من الصورة والاسم قبل التأكيد.',
-    'cameraHint': 'وجّه الكاميرا نحو بطاقة CLBY الخاصة بالعضو.',
     'recentlyLogged': 'سُجّلت جلسة خلال آخر 30 دقيقة — حاول بعد {m} دقيقة.',
     'duplicateTap': 'تم الحفظ قبل لحظات.',
     'clockSkew': 'تاريخ/وقت هذا الجهاز غير صحيح. صحّحه وحاول مجددًا.',
@@ -236,12 +211,6 @@ class OfflineStrings {
     'block_differentApi': 'وضع عدم الاتصال غير متاح: البيانات المحفوظة لخادم مختلف.',
     'block_storeUnavailable': 'وضع عدم الاتصال غير متاح: تعذّر فتح التخزين دون اتصال على هذا الجهاز حاليًا.',
     'block_noCachedData': 'وضع عدم الاتصال غير متاح: لم يتم تنزيل بيانات للعمل دون اتصال بعد.',
-    'passInvalid': 'ليست بطاقة عضوية CLBY صالحة.',
-    'passUnknownKey': 'مفتاح البطاقة غير معروف — حدّث البيانات المحفوظة أثناء الاتصال.',
-    'passWrongGym': 'هذه البطاقة تخص ناديًا آخر.',
-    'passExpired': 'انتهت صلاحية البطاقة — اطلب من العضو فتح التطبيق وهو متصل.',
-    'passMemberNotFound': 'العضو غير موجود في بيانات هذا الجهاز — حدّث البيانات المحفوظة.',
-    'passNeedsData': 'التحقق من البطاقات يحتاج إلى بيانات محفوظة — اتصل مرة لتنزيلها.',
   };
 
   /// All keys (tests check both languages are complete).

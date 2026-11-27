@@ -211,17 +211,6 @@ class ApiService {
     });
   }
 
-  Future<dynamic> _patch(String path, Map<String, dynamic> body) async {
-    final uri = Uri.parse('$_baseUrl$path');
-    return _runWithTimeout(() async {
-      final response = await _http.patch(
-        uri,
-        headers: await _headers,
-        body: jsonEncode(body),
-      );
-      return _parse(response);
-    });
-  }
 
   Future<dynamic> _delete(String path) async {
     final uri = Uri.parse('$_baseUrl$path');

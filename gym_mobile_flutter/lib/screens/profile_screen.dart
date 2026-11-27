@@ -38,9 +38,7 @@ const _kInk3 = Color(0x6B1F1A14); // 0.42
 const _kHair = Color(0x141F1A14); // 0.08
 const _kCard = Color(0xFFFFFFFF);
 const _kSuccess = Color(0xFF3F8B5C);
-const _kSuccessBg = Color(0xFFE4F0E6);
 const _kWarn = Color(0xFFB6531B);
-const _kWarnBg = Color(0xFFFBEAD6);
 const _kError = Color(0xFFC24E3D);
 const _kErrorBg = Color(0xFFFBE3DE);
 
@@ -99,6 +97,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final gym = auth.gym;
     final primary = Theme.of(context).colorScheme.primary;
     final secondary = Theme.of(context).colorScheme.secondary;
+    // Offline mode (Phase 3): Profile stays reachable; only "Check-ins on
+    // this phone" and Sign out are usable, the rest is dimmed.
+    final offline = context.watch<MemberOfflineController>();
+    final offlineDim = offline.offlineMode;
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -106,16 +108,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(primary: primary),
+            _offlineDimmed(offlineDim, _buildHeader(primary: primary)),
             Expanded(
               child: ScreenRefreshIndicator(
-                onRefresh: _loadData,
+                onRefresh: offlineDim ? () => offline.retryNow() : _loadData,
                 icon: Icons.person_outline_rounded,
                 color: primary,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 32),
-                  children: [
+                  children: _offlineWrap(offlineDim, [
                   // Identity card
                   Padding(
                     padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
@@ -318,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                ],
+                ]),
               ),
               ),
             ),
@@ -326,6 +328,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  /// Offline: dimmed + not tappable; online: unchanged.
+  Widget _offlineDimmed(bool dim, Widget child) =>
+      dim ? IgnorePointer(child: Opacity(opacity: 0.35, child: child)) : child;
+
+  /// Offline mode: a card with the two usable rows first, then the normal
+  /// Profile content dimmed. Online: exactly the normal content.
+  List<Widget> _offlineWrap(bool dim, List<Widget> items) {
+    if (!dim) return items;
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(22, 12, 22, 0),
+        child: _whiteCard(
+          child: Column(
+            children: [
+              _row(
+                iconBox: const Icon(Icons.history_rounded, size: 16, color: _kInk),
+                label: context.l10n.thisPhoneCheckinsLabel,
+                value: context.l10n.thisPhoneCheckinsTitle,
+                onTap: () => context.push('/offline-checkins'),
+              ),
+              _row(
+                iconBox: const Icon(Icons.logout_rounded, size: 16, color: _kInk),
+                label: context.l10n.profileSessionLabel,
+                value: context.l10n.profileSignOut,
+                onTap: _openSignOutSheet,
+                last: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+      _offlineDimmed(
+        true,
+        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items),
+      ),
+    ];
   }
 
   // ── Header ────────────────────────────────────────────────────────────

@@ -25,13 +25,16 @@ class _MainShellState extends State<MainShell> {
     // tabs keep their state and online looks exactly like today.
     final offline = context.watch<MemberOfflineController>();
     final dim = offline.offlineMode;
+    // Profile handles its own offline dimming (its "Check-ins on this
+    // phone" and Sign out rows stay usable), so the shell lets it through.
+    final dimBody = dim && widget.navigationShell.currentIndex != 4;
     return Scaffold(
       body: Stack(
         children: [
           IgnorePointer(
-            ignoring: dim,
+            ignoring: dimBody,
             child: Opacity(
-              opacity: dim ? 0.35 : 1,
+              opacity: dimBody ? 0.35 : 1,
               child: widget.navigationShell,
             ),
           ),
@@ -39,7 +42,10 @@ class _MainShellState extends State<MainShell> {
             PositionedDirectional(
               top: MediaQuery.of(context).padding.top + 6,
               end: 12,
-              child: const OfflineSyncChip(),
+              // Tap → "Check-ins on this phone" (Retry inside).
+              child: OfflineSyncChip(
+                onTap: () => context.push('/offline-checkins'),
+              ),
             ),
         ],
       ),
@@ -48,11 +54,14 @@ class _MainShellState extends State<MainShell> {
         offline: dim,
         onTap: (index) {
           if (dim) {
-            // Only the centre Scan button is usable offline.
+            // Offline: the centre Scan button opens the scanner; Profile
+            // stays reachable (check-ins + sign-out); the rest is disabled.
             if (index == 2) {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const QrScannerScreen()),
               );
+            } else if (index == 4) {
+              widget.navigationShell.goBranch(4);
             }
             return;
           }
@@ -72,7 +81,7 @@ class _BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  /// Offline mode: every item except the centre Scan button is dimmed.
+  /// Offline mode: every item except Scan and Profile is dimmed.
   final bool offline;
 
   const _BottomNav({
@@ -176,7 +185,7 @@ class _BottomNav extends StatelessWidget {
                   index: 4,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  disabled: offline,
+                  disabled: false,
                 ),
               ),
             ],

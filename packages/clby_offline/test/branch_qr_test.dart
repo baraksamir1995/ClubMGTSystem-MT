@@ -124,6 +124,12 @@ void main() {
     }
   });
 
+  test('JSON nested ≥ 4 containers deep → not v2 (server depth limit)', () async {
+    final g = jsonDecode(await active.branchQr(gym: gymA, branch: branch, token: token, iat: nowS, exp: nowS + day))
+        as Map<String, dynamic>;
+    expect(await verify(jsonEncode({...g, 'jti': {'a': {'b': {'c': 1}}}})), isA<BranchQrNotV2>());
+  });
+
   test('wrong gym (also before unknown key) and white-label lock', () async {
     final stranger = await Key.create('k-unknown');
     final other = await stranger.branchQr(gym: uid(), branch: branch, token: token, iat: nowS, exp: nowS + day);

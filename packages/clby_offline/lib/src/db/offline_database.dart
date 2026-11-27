@@ -110,6 +110,11 @@ class OfflineDatabase extends _$OfflineDatabase {
           }
         },
         beforeOpen: (details) async {
+          // Member pass removed (Phase 3 Amendment 2 §A): drop a pass
+          // cached by an earlier build. Idempotent and cheap.
+          if (details.versionNow <= currentSchemaVersion) {
+            await customStatement("DELETE FROM sync_meta WHERE key = 'member_pass'");
+          }
           if (details.versionNow > currentSchemaVersion) {
             // Downgrade (older app on a newer DB): refuse rather than
             // corrupt; the caller surfaces OfflineStoreUnavailable.

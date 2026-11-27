@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:clby_offline/clby_offline.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/offline_attendance.dart';
 import '../../utils/env.dart';
 import 'offline_logic.dart';
+import 'offline_retry.dart';
 
 /// Result of an offline (outbox) check-in attempt from the scanner.
 sealed class OfflineCheckIn {
@@ -25,8 +26,10 @@ class CheckInSaved extends OfflineCheckIn {
 
 /// Same scan saved moments ago — nothing new written.
 class CheckInDuplicate extends OfflineCheckIn {
-  const CheckInDuplicate(this.existingEventId);
+  const CheckInDuplicate(this.existingEventId, {this.coachSession = false});
   final String? existingEventId;
+  /// Duplicate coach-session scan (→ the coach "already logged" message).
+  final bool coachSession;
 }
 
 /// The QR failed offline verification (gym QR §2 / coach QR Amendment 2).
@@ -70,6 +73,11 @@ class MemberOfflineController extends ChangeNotifier {
     required this.api,
   }) {
     auth.addListener(_onAuth);
+    _retry = OfflineRetryScheduler(retry: _retryProfile);
+    // App resume while in offline mode → retry the normal load now.
+    _lifecycle = AppLifecycleListener(onResume: () {
+      if (_offlineMode) unawaited(_retry.retryNow());
+    });
     _storeSub = offline.manager.storeChanges.listen(_onStore);
     _onStore(offline.manager.store);
     _onAuth();
@@ -79,6 +87,8 @@ class MemberOfflineController extends ChangeNotifier {
   final OfflineAttendance offline;
   final ApiService api;
 
+  late final OfflineRetryScheduler _retry;
+  AppLifecycleListener? _lifecycle;
   StreamSubscription<OfflineStore?>? _storeSub;
   StreamSubscription<SyncState>? _stateSub;
   StreamSubscription<OfflinePolicy>? _policySub;
@@ -86,7 +96,6 @@ class MemberOfflineController extends ChangeNotifier {
   bool _offlineMode = false;
   bool _tried = false;
   bool _checking = false;
-  bool _reconnecting = false;
   OfflineEntryBlock? _entryBlock;
 
   OfflineStore? get store => offline.manager.store;
@@ -132,17 +141,15 @@ class MemberOfflineController extends ChangeNotifier {
     final cameOnline = !_sync.online && st.online;
     _sync = st;
     // Back online while in offline mode: retry the normal profile load
-    // once; success leaves offline mode (see _onAuth).
-    if (cameOnline && _offlineMode && !_reconnecting) {
-      _reconnecting = true;
-      auth.refreshProfile().whenComplete(() => _reconnecting = false);
-    }
+    // now; success leaves offline mode (see _onAuth).
+    if (cameOnline && _offlineMode) unawaited(_retry.retryNow());
     notifyListeners();
   }
 
   void _onAuth() {
     if (auth.profile != null) {
       _tried = false;
+      _retry.stop();
       if (_offlineMode) {
         _offlineMode = false;
         notifyListeners();
@@ -151,6 +158,7 @@ class MemberOfflineController extends ChangeNotifier {
     }
     if (auth.userId == null) {
       _tried = false;
+      _retry.stop();
       if (_offlineMode) {
         _offlineMode = false;
         notifyListeners();
@@ -215,6 +223,8 @@ class MemberOfflineController extends ChangeNotifier {
       _entryBlock = block;
       // The profile may have loaded meanwhile (network came back).
       _offlineMode = block == null && auth.profile == null && auth.userId != null;
+      // Keep trying the normal load with backoff while offline (M2).
+      if (_offlineMode) _retry.start();
       return _offlineMode;
     } catch (_) {
       _entryBlock = OfflineEntryBlock.storeUnavailable;
@@ -226,8 +236,15 @@ class MemberOfflineController extends ChangeNotifier {
     }
   }
 
-  /// "Try to reconnect" in offline mode.
-  Future<void> retryOnline() => auth.refreshProfile();
+  /// "Retry now" (status chip / check-ins screen / pull-to-refresh) while in
+  /// offline mode. True when back online.
+  Future<bool> retryNow() => _retry.retryNow();
+
+  Future<bool> _retryProfile() async {
+    if (auth.isLoading) return false;
+    await auth.refreshProfile();
+    return auth.profile != null;
+  }
 
   ScanPath scanPath(String code) {
     final coach = SpecialistQr.claimsV2(code);
@@ -306,7 +323,8 @@ class MemberOfflineController extends ChangeNotifier {
     return switch (o) {
       RecordSaved(:final event) => CheckInSaved(event,
           asOf: asOfRaw == null ? null : DateTime.tryParse(asOfRaw), coachSession: coachSession),
-      RecordDuplicate(:final existingEventId) => CheckInDuplicate(existingEventId),
+      RecordDuplicate(:final existingEventId) =>
+        CheckInDuplicate(existingEventId, coachSession: coachSession),
       RecordRefused(:final reason, :final message) => CheckInRefused(reason, message),
     };
   }
@@ -330,6 +348,8 @@ class MemberOfflineController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _retry.dispose();
+    _lifecycle?.dispose();
     auth.removeListener(_onAuth);
     _storeSub?.cancel();
     _stateSub?.cancel();

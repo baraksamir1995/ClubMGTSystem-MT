@@ -90,8 +90,9 @@ class AttendanceSyncService
     public function __construct(
         private AttendanceCheckInService $checkIns,
         private ServiceSessionService $sessions,
-        private MemberPassService $passes,
         private BranchQrService $branchQrs,
+        private SpecialistQrService $specialistQrs,
+        private SpecialistSessionService $specialistSessions,
     ) {}
 
     /**
@@ -246,9 +247,15 @@ class AttendanceSyncService
         $gymId = $ctx['gym_id'];
         $derived = [
             'kind' => in_array($event['kind'] ?? null, ['attendance', 'service_session'], true) ? $event['kind'] : 'invalid',
-            'method' => ($event['kind'] ?? null) === 'attendance' && in_array($event['attendance_method'] ?? null, ['staff_qr', 'member_qr', 'manual'], true)
-                ? $event['attendance_method'] : null,
+            'method' => match (true) {
+                ($event['kind'] ?? null) === 'attendance' && in_array($event['attendance_method'] ?? null, ['staff_qr', 'member_qr', 'manual'], true)
+                    => $event['attendance_method'],
+                // PHASE3 Amendment 2 §C: member scanned the coach QR.
+                ($event['kind'] ?? null) === 'service_session' && ($event['attendance_method'] ?? null) === 'member_qr' => 'member_qr',
+                default => null,
+            },
         ];
+        $coachQrScan = $derived['kind'] === 'service_session' && $derived['method'] === 'member_qr';
 
         $v = Validator::make($event, [
             'kind' => 'required|in:attendance,service_session',
@@ -258,11 +265,14 @@ class AttendanceSyncService
             'member_id' => 'nullable|uuid|required_if:attendance_method,manual,staff_qr',
             'class_session_id' => 'nullable|uuid',
             'studio_id' => 'nullable|uuid',
-            'service_assignment_id' => 'nullable|uuid|required_if:kind,service_session',
+            // Coach sessions name the assignment; a member's coach-QR scan
+            // (service_session + member_qr) names the trainer, never the pack.
+            'service_assignment_id' => $coachQrScan ? 'prohibited' : 'nullable|uuid|required_if:kind,service_session',
+            'trainer_id' => $coachQrScan ? 'required|uuid' : 'nullable|uuid',
             'device_recorded_at' => ['required', 'string', 'regex:/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|z|[+-]\d{2}:\d{2})$/'],
             'device_timezone' => 'nullable|string|max:64',
             'qr' => 'nullable|array',
-            'qr.raw' => 'nullable|string|max:4096',
+            'qr.raw' => ($coachQrScan ? 'required' : 'nullable') . '|string|max:4096',
             'note' => 'nullable|string|max:500',
             'metadata' => 'nullable|array',
         ]);
@@ -303,6 +313,13 @@ class AttendanceSyncService
             return $this->reject('offline_disabled', $derived);
         }
 
+        // PHASE3 Amendment 2 §A: the member pass is gone; no client sends staff_qr.
+        if ($derived['method'] === 'staff_qr') {
+            return $this->reject('qr_invalid', $derived, 'method not supported');
+        }
+        if ($coachQrScan) {
+            return $this->evaluateCoachQrScan($ctx, $event, $eventId, $derived, $recordedAt);
+        }
         if ($derived['kind'] === 'service_session') {
             return $this->evaluateServiceSession($ctx, $event, $eventId, $derived, $recordedAt);
         }
@@ -312,36 +329,16 @@ class AttendanceSyncService
         return $this->evaluateStaffCheckIn($ctx, $event, $eventId, $derived, $recordedAt);
     }
 
-    /**
-     * Verify the member pass in qr.raw; null when valid and naming
-     * $memberId, else the rejection. qr_meta: verified pass fields (never
-     * the signature), or only {verified:false, reason} for a rejected pass.
-     */
-    private function checkPass(array $event, string $gymId, Carbon $scannedAt, string $memberId, array &$derived): ?array
-    {
-        $raw = $event['qr']['raw'] ?? null;
-        $r = $this->passes->verify(is_string($raw) ? $raw : null, $gymId, $scannedAt, Carbon::now('UTC'));
-
-        // Amendment §5: pass fields are recorded only once verified — a
-        // rejected pass's claimed member/kid/times are never stored as if trusted.
-        if (! $r['ok']) {
-            $derived['qr_meta'] = ['verified' => false, 'reason' => $r['code']];
-            return $this->reject($r['code'], $derived);
-        }
-        if (strtolower($r['pass']['m']) !== $memberId) {
-            $derived['qr_meta'] = ['verified' => false, 'reason' => 'qr_member_mismatch'];
-            return $this->reject('qr_member_mismatch', $derived);
-        }
-        $p = $r['pass'];
-        $derived['qr_meta'] = ['verified' => true, 'format' => 'clby_mp', 'v' => 1, 'kid' => $p['kid'],
-            'iat' => $p['iat'], 'exp' => $p['exp'], 'm' => $p['m']];
-        return null;
-    }
-
     private function offlineAllowed(array $derived): bool
     {
         if (! config('attendance_offline.enabled')) {
             return false;
+        }
+        // A member's coach-QR scan is both a service session and a member QR
+        // scan: both flags must allow it (the client package gates the same way).
+        if ($derived['kind'] === 'service_session' && $derived['method'] === 'member_qr') {
+            return (bool) config('attendance_offline.allow_service_session_offline')
+                && (bool) config('attendance_offline.allow_member_qr_offline');
         }
         $flag = match (true) {
             $derived['kind'] === 'service_session' => 'allow_service_session_offline',
@@ -360,14 +357,6 @@ class AttendanceSyncService
 
         if (! in_array($actor->role, self::ADMIN_ROLES, true) || ! StaffPermission::has($actor, 'attendance')) {
             return $this->reject('permission_denied', $derived);
-        }
-
-        // PHASE2-CONTRACT: staff_qr must carry a valid signed member pass
-        // (steps 1–6, expiry as of the scan), naming the same member.
-        if ($derived['method'] === 'staff_qr') {
-            if ($fail = $this->checkPass($event, $gymId, $recordedAt, strtolower($event['member_id']), $derived)) {
-                return $fail;
-            }
         }
 
         $memberId = strtolower($event['member_id']);
@@ -558,6 +547,83 @@ class AttendanceSyncService
         return $this->accept($derived, attendanceId: $id);
     }
 
+    /**
+     * kind=service_session + method=member_qr (PHASE3 Amendment 2 §C): the
+     * MEMBER scanned the coach's QR. Actor forced to self; the QR is verified
+     * as of device_recorded_at, then the online SpecialistScanController rules
+     * run through SpecialistSessionService (shared code) as of device time.
+     */
+    private function evaluateCoachQrScan(array $ctx, array $event, string $eventId, array $derived, Carbon $recordedAt): array
+    {
+        $actor = $ctx['actor'];
+        $gymId = $ctx['gym_id'];
+
+        if (in_array($actor->role, self::ADMIN_ROLES, true)) {
+            return $this->reject('permission_denied', $derived);
+        }
+        // Self only: the client's member_id is ignored.
+        $memberId = DB::table('gym_members')
+            ->where('user_id', $actor->id)->where('gym_id', $gymId)->whereNull('deleted_at')
+            ->value('id');
+        if (! $memberId) {
+            return $this->reject('member_not_found', $derived);
+        }
+        $derived['gym_member_id'] = $memberId;
+        $trainerId = strtolower($event['trainer_id']);
+        $raw = $event['qr']['raw'];
+
+        if (SpecialistQrService::isV2($raw)) {
+            $r = $this->specialistQrs->verify($raw, $gymId, $recordedAt);
+            if (! $r['ok']) {
+                $derived['qr_meta'] = ['verified' => false, 'reason' => $r['code'], 'v' => 2];
+                return $this->reject($r['code'], $derived);
+            }
+            if ($r['qr']['trainer_id'] !== $trainerId) {
+                $derived['qr_meta'] = ['verified' => false, 'reason' => 'qr_invalid', 'v' => 2];
+                return $this->reject('qr_invalid', $derived, 'trainer_id does not match the scanned QR.');
+            }
+            $q = $r['qr'];
+            $derived['qr_meta'] = ['verified' => true, 'v' => 2, 'kid' => $q['kid'], 'jti' => $q['jti'],
+                'iat' => $q['iat'], 'exp' => $q['exp'], 'trainer_id' => $q['trainer_id']];
+        } else {
+            // Unsigned v1 coach QR: online-only, like the v1 gym QR (D3).
+            if ($this->isOffline($ctx, $recordedAt)) {
+                $derived['qr_meta'] = ['verified' => false, 'reason' => 'offline_disabled', 'v' => 1];
+                return $this->reject('offline_disabled', $derived, 'Offline coach sessions need a signed (v2) coach QR code.');
+            }
+            $v1 = json_decode($raw, true);
+            if (! is_array($v1) || ($v1['type'] ?? null) !== 'specialist_session'
+                || ! is_string($v1['trainer_id'] ?? null) || strtolower($v1['trainer_id']) !== $trainerId
+                || ! is_string($v1['gym_id'] ?? null) || strtolower($v1['gym_id']) !== strtolower($gymId)) {
+                $derived['qr_meta'] = ['verified' => false, 'reason' => 'qr_invalid', 'v' => 1];
+                return $this->reject('qr_invalid', $derived);
+            }
+            $exists = DB::table('trainer_profiles')->where('id', $trainerId)->where('gym_id', $gymId)->exists();
+            if (! $exists) {
+                return $this->reject('qr_invalid', $derived);
+            }
+            $derived['qr_meta'] = ['verified' => false, 'reason' => 'unsigned_v1_online', 'v' => 1];
+        }
+
+        $this->advisoryLock('attendance-member:' . $memberId);
+
+        $r = $this->specialistSessions->memberScan($gymId, $memberId, $trainerId, [], [
+            'at' => $recordedAt,
+            'source_event_id' => $eventId,
+        ]);
+        if (isset($r['error'])) {
+            $e = $r['error'];
+            if ($e['code'] === 'recently_logged') {
+                // Inside the 30-min guard: the visit is already recorded.
+                return ['status' => 'duplicate', 'code' => 'recently_logged', 'message' => $e['message'],
+                    'attendance_id' => null, 'service_log_id' => $e['log_id'], 'flags' => [], 'derived' => $derived];
+            }
+            return $this->reject($e['code'], $derived, $e['message']);
+        }
+        $derived['service_assignment_id'] = $r['data']['assignment_id'];
+        return $this->accept($derived, serviceLogId: $r['data']['log_id'], flags: $r['flags']);
+    }
+
     private function isOffline(array $ctx, Carbon $recordedAt): bool
     {
         return $recordedAt->lt($ctx['received_at']->copy()->subSeconds((int) config('attendance_offline.online_grace_seconds', 120)));
@@ -592,15 +658,6 @@ class AttendanceSyncService
             return $this->reject('invalid_payload', $derived, 'member_id does not match the assignment.');
         }
         $derived['gym_member_id'] = $assignment->gym_member_id;
-
-        // PHASE2-CONTRACT (D5): a coach who picked the member by scanning a
-        // pass sends metadata.source="qr" + qr.raw — verified like staff_qr.
-        // Manual service sessions (no qr.raw) are unchanged.
-        if (($event['metadata']['source'] ?? null) === 'qr' && ! empty($event['qr']['raw'])) {
-            if ($fail = $this->checkPass($event, $gymId, $recordedAt, strtolower($assignment->gym_member_id), $derived)) {
-                return $fail;
-            }
-        }
 
         $this->advisoryLock('attendance-member:' . $assignment->gym_member_id);
 

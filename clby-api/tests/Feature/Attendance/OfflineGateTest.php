@@ -50,10 +50,9 @@ class OfflineGateTest extends OfflineSyncTestCase
 
         $codes = array_column($this->sync($admin, [
             $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => $old]),
-            $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'qr' => ['raw' => $this->passQr($gym, $mid)], 'device_recorded_at' => $old]),
             $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => self::at(Carbon::now()->subSeconds(30))]),
         ])->assertOk()->json('results'), 'code');
-        $this->assertSame(['offline_disabled', 'offline_disabled', 'created'], $codes);
+        $this->assertSame(['offline_disabled', 'created'], $codes);
 
         $r = $this->syncOne($coach, $this->serviceEvent($gym, $a, ['device_recorded_at' => $old]), null, 'coach');
         $this->assertSame('offline_disabled', $r['code']);
@@ -65,7 +64,6 @@ class OfflineGateTest extends OfflineSyncTestCase
     {
         config([
             'attendance_offline.allow_manual_offline' => false,
-            'attendance_offline.allow_staff_qr_offline' => true,
             'attendance_offline.allow_service_session_offline' => false,
         ]);
         $gym = $this->makeGym();
@@ -76,7 +74,7 @@ class OfflineGateTest extends OfflineSyncTestCase
 
         $codes = array_column($this->sync($this->makeAdmin($gym), [
             $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => $old]),
-            $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'qr' => ['raw' => $this->passQr($gym, $mid)], 'device_recorded_at' => $old]),
+            $this->attendanceEvent($gym, ['member_id' => $mid, 'device_recorded_at' => self::recent()]),
         ])->assertOk()->json('results'), 'code');
         $this->assertSame(['offline_disabled', 'created'], $codes);
 

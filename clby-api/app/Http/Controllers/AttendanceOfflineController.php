@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AttendanceCheckInService;
 use App\Services\AttendanceSyncService;
 use App\Services\MemberPassService;
+use App\Services\SpecialistQrService;
 use App\Services\StaffPermission;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -356,6 +357,8 @@ class AttendanceOfflineController extends Controller
             'assignments' => $assignments,
             'recent_service_logs' => $recent,
             'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
+            // PHASE3 Amendment 2 §C: the coach's fixed signed QR, shown offline.
+            'own_qr' => app(SpecialistQrService::class)->qrFor($user->gym_id, $coach->id),
             'next_cursor' => $nextCursor,
         ]);
     }
@@ -520,10 +523,19 @@ class AttendanceOfflineController extends Controller
             'branches' => $this->branches($user->gym_id, withToken: true),
             'recent_attendance' => $recent,
             'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
-            // PHASE3 §3: the member's own pass, to show it offline.
-            'member_pass' => app(MemberPassService::class)->passFor(
-                $user->gym_id, $member->id, $member->member_number !== null ? (int) $member->member_number : null
-            ),
+            // PHASE3 Amendment 2 §C: coach-QR offline verification + local pre-check.
+            'trainers' => DB::table('trainer_profiles')->where('gym_id', $user->gym_id)->orderBy('name')
+                ->get(['id', 'name', 'trainer_type', 'is_active'])
+                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'service_type' => $t->trainer_type, 'is_active' => (bool) $t->is_active])
+                ->values(),
+            'assignments' => DB::table('member_service_assignments')
+                ->where('gym_id', $user->gym_id)->where('gym_member_id', $member->id)->where('status', 'active')
+                ->orderBy('assigned_at')
+                ->get(['id', 'trainer_id', 'service_type', 'sessions_total', 'sessions_used', 'expires_at', 'status'])
+                ->map(fn ($a) => ['id' => $a->id, 'trainer_id' => $a->trainer_id, 'service_type' => $a->service_type,
+                    'sessions_total' => (int) $a->sessions_total, 'sessions_used' => (int) $a->sessions_used,
+                    'expires_at' => $this->isoOrNull($a->expires_at), 'status' => $a->status])
+                ->values(),
         ]);
     }
 

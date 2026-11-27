@@ -4,6 +4,68 @@
 
 Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch poster endpoint, v2 `member_qr` sync with rotating replay protection, and `/offline/me` additions.
 
+### Amendment 2: no member pass; the coach QR works offline (2026-11-27)
+
+**A. Member pass removed (server)**
+- **Removed:**
+  - `GET /api/me/member-pass` and `GET /api/members/{id}/member-pass` now return 404 (`MemberPassController` deleted);
+  - `member_pass` is gone from `/offline/me`;
+  - `MemberPassService` lost `passFor`, `issue`, `verify`, `parse` and `canonical`.
+- **Kept:**
+  - `gym_signing_keys` (they sign the gym and coach QR v2);
+  - `pass_keys` in the admin/coach bootstrap and `/offline/me`;
+  - `attendance:pass-key`;
+  - `MemberPassService` itself, now only key management (active key, rotate, revoke, `pass_keys`, `verificationKey`, `withSigner`, base64url). The class name is historical.
+- **Sync, `staff_qr`:** → `rejected/qr_invalid` with message `method not supported`, after the payload, tenant, clock and offline-gate checks. No client sends it.
+- **Coach `service_session` with `metadata.source="qr"`:** the member-pass check is gone, so these are treated as manual coach sessions, which is how Phase 1 already handled them.
+
+**C. Coach (specialist) QR v2** (`SpecialistQrService`)
+- **Format and signature:** the exact 9 keys in contract order, signed with the gym key over `clby_sq|2|<kid>|<gym_id>|<trainer_id>|<iat>|<exp>|<jti>`.
+- **Fixed QR per trainer** in the new table `trainer_qr_posters` (migration `2026_11_27_220000_…`; primary key `trainer_id`; columns `gym_id`, `qr`, `kid`, `iat`, `exp`):
+  - the same text on every call;
+  - reissued only when the kid is not the gym's active key, or within 30 days of `exp`;
+  - TTL `branch_qr_static_ttl_days` (3650);
+  - concurrent first calls are safe (pg advisory lock + `FOR UPDATE` re-read + primary key).
+- **Endpoints:**
+  - `GET /api/coach/qr` (coach group) → `{qr, expires_at, kid}`;
+  - the coach bootstrap's **first page** adds `own_qr` (the same object).
+- **Verification**, as of `device_recorded_at`:
+  1. not v2 (anything that isn't an object with `type:"specialist_session"` and integer `v:2`) → `not_v2`;
+  2. strict parse (same rules as the branch QR) → `qr_invalid`;
+  3. gym → `qr_wrong_gym`;
+  4. key (unknown, revoked or out of grace) → `qr_invalid`;
+  5. signature → `qr_invalid`;
+  6. trainer exists in the gym and `is_active` → else `qr_invalid`;
+  7. time: `iat > exp` → `qr_invalid`; `iat > scan + skew` or `scan > exp` → `qr_expired` (a scan exactly at `exp` is ok).
+- **Old member apps:** `POST /specialists/scan` takes `trainer_id`, which old apps read from the v2 text; this is unchanged. `SpecialistScanController` is now a thin wrapper over `SpecialistSessionService`, with byte-identical responses (`SpecialistScanRegressionTest`).
+- **Sync event**, a member scanning the coach QR. Payload, matching the Flutter package's wire format:
+  - `kind:"service_session"`, `attendance_method:"member_qr"` (the contract text says "method"; the wire field is `attendance_method`, as for every other event);
+  - `trainer_id` (required uuid) and `qr.raw` (required);
+  - `service_assignment_id` must be absent or null (otherwise `invalid_payload`); the server picks the pack.
+- **Sync rules:**
+  - **Actor:** admin-class actor → `permission_denied`; the member is forced to self.
+  - **Offline gate:** an offline event needs `enabled` **and both** `allow_service_session_offline` and `allow_member_qr_offline`, the same as the client.
+  - **v2 QR:** verified as above. Its `trainer_id` must equal the event's, otherwise `qr_invalid` ("trainer_id does not match the scanned QR").
+  - **Unsigned v1 coach QR:** offline → `offline_disabled` (online-only, like the v1 gym QR). Near-real-time → processed if its `gym_id` and `trainer_id` match; `qr_meta={verified:false, reason:"unsigned_v1_online", v:1}`.
+  - **Pack rules:** `SpecialistSessionService::memberScan(..., at: device_recorded_at)`, the code shared with the online endpoint:
+    - no pack with this trainer → `rejected/no_package`;
+    - every pack expired **at device time** → `rejected/package_expired`;
+    - only cancelled or manually completed packs → `rejected/assignment_not_active`;
+    - another session for (member × trainer) within ±30 min of the device time → **`duplicate/recently_logged` with the original `service_log_id`**;
+    - otherwise the soonest-expiring active pack with sessions left → decrement (complete at 0) under row lock;
+    - if every pack valid at the visit is used up → D2: **accepted** with `flags:["pack_exhausted"]`, `service_session_logs.review_flag='pack_exhausted'`, and no counter change.
+  - **Log row:** `note='Member self-scan'`, `delivered_at` = device time, `source_event_id` = the event (unique).
+  - **`qr_meta`:** accepted → `{verified:true, v:2, kid, jti, iat, exp, trainer_id}`; rejected → `{verified:false, reason, v}`.
+- **`/offline/me` adds:**
+  - `trainers: [{id, name, service_type (= trainer_profiles.trainer_type), is_active}]`, all trainers of the gym;
+  - `assignments: [{id, trainer_id, service_type, sessions_total, sessions_used, expires_at (ISO), status}]`, the member's own packs with status `active` only.
+- **Dormant rotating branch QRs now have a lifetime bound:** `exp - iat > 120` → `qr_invalid` (`BranchQrService::ROTATING_MAX_LIFETIME`). **The Dart verifier must mirror this rule.**
+- **Corpora:**
+  - `scratchpad/verify/p3/gen_specialist_corpus.php` writes `specialist_corpus.json` (55 cases, with `trainers` and `pass_keys`). It covers both cross-type directions (a branch-QR signature pasted into a coach QR, a branch QR offered as a coach QR) and a member-pass signature pasted into a coach QR.
+  - `branch_corpus.json` was regenerated as **version 2** (64 cases): the 59 earlier verdicts are unchanged, plus 3 rotating-lifetime cases and 2 coach-QR cross-type cases. The v1 file is kept as `branch_corpus.v1.json`.
+- **Pre-existing bug found, not changed:** the **online** 30-minute guards (`SpecialistScanController`, and `CoachController::decrement` before it) compare `delivered_at` with a naive UTC string. On a database whose session timezone is Africa/Cairo (as `clby_offline` is), the window is effectively 2.5 h. Seen in the e2e: an online scan 2 h after a synced session got `recently_logged`. The online code is unchanged because its responses were kept byte-identical. The fix is to pass ISO-8601 with an offset; it needs separate sign-off. The sync path compares in PHP on timestamps and is not affected.
+- **Pre-existing, unchanged:** online `POST /specialists/scan` does not check `trainer_profiles.is_active`. The sync v2 path does, as the contract requires.
+
 ### Product amendment: one fixed QR per branch, no rotating codes (2026-11-27)
 
 - **Same QR every time.** `GET /api/branches/{id}/qr?mode=static` returns the **same QR text on every call**. The issued poster is stored in a new table, `branch_qr_posters`:
@@ -62,7 +124,7 @@ Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch pos
 - ~~`GET /api/branches/{id}/qr/rotating-batch`~~: **removed** by the product amendment above (404).
 - `GET /api/attendance/offline/me` adds:
   - `branches[].qr_token` (current, lowercase);
-  - `member_pass: {qr, expires_at, kid}` (the same 60-minute cached pass as `/me/member-pass`).
+  - ~~`member_pass`~~: removed by Amendment 2; `trainers` and the member's own `assignments` were added instead (see above).
 - `POST /api/attendance/qr` is unchanged and accepts a v2 poster's `token` (regression test plus Postgres e2e).
 - Config: `branch_qr_static_ttl_days` (3650), `branch_qr_reissue_before_days` (30), `rotating_grace_seconds` (30, verifier only).
 

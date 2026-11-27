@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\ServiceSessionService;
+use App\Services\SpecialistQrService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -60,6 +61,17 @@ class CoachController extends Controller
                 'qr_seed'            => 'clby-coach-'.$coach->id,
             ],
         ]);
+    }
+
+    /**
+     * GET /api/coach/qr — the coach's ONE fixed signed QR v2 (PHASE3
+     * Amendment 2 §C): {qr, expires_at, kid}. Same text on every call; old
+     * member apps keep working (they read type/gym_id/trainer_id).
+     */
+    public function qr(Request $request, SpecialistQrService $qrs): JsonResponse
+    {
+        $coach = $request->get('coach');
+        return response()->json($qrs->qrFor($coach->gym_id, $coach->id));
     }
 
     /**

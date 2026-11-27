@@ -105,7 +105,7 @@ class OfflineReadinessTest extends OfflineSyncTestCase
         $this->syncOne($coach, $this->serviceEvent($gym, $mine), null, 'coach');
 
         $res = $this->actingAsUser($coach)->getJson('/api/attendance/offline/bootstrap')->assertOk();
-        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'assignments', 'recent_service_logs', 'pass_keys', 'next_cursor'], array_keys($res->json()));
+        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'assignments', 'recent_service_logs', 'pass_keys', 'own_qr', 'next_cursor'], array_keys($res->json()));
         $this->assertCount(1, $res->json('assignments'));
         $row = $res->json('assignments.0');
         $this->assertSame($mine, $row['assignment_id']);
@@ -127,7 +127,7 @@ class OfflineReadinessTest extends OfflineSyncTestCase
         $this->syncOne($this->makeAdmin($gym), $this->attendanceEvent($gym, ['member_id' => $other]), (string) Str::uuid());
 
         $res = $this->actingAsUser($member)->getJson('/api/attendance/offline/me')->assertOk();
-        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'member', 'buckets', 'branches', 'recent_attendance', 'pass_keys', 'member_pass'], array_keys($res->json()));
+        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'member', 'buckets', 'branches', 'recent_attendance', 'pass_keys', 'trainers', 'assignments'], array_keys($res->json()));
         $this->assertSame($mid, $res->json('member.gym_member_id'));
         $this->assertCount(1, $res->json('buckets'));
         $this->assertCount(1, $res->json('recent_attendance'), 'own attendance only');

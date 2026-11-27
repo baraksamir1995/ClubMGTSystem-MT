@@ -214,10 +214,21 @@ class AttendanceSyncTest extends OfflineSyncTestCase
         $this->assertSame('permission_denied', $r['code']);
 
         [$trainer] = $this->makeCoach($gym, ['attendance']);
-        $r = $this->syncOne($trainer, $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr', 'qr' => ['raw' => $this->passQr($gym, $mid)]]), (string) Str::uuid());
+        $r = $this->syncOne($trainer, $this->attendanceEvent($gym, ['member_id' => $mid]), (string) Str::uuid());
         $this->assertSame('accepted', $r['status']);
-        $this->assertSame('qr', DB::table('attendance_logs')->value('method'), 'D6: staff_qr stored as qr');
-        $this->assertSame('staff_qr', DB::table('attendance_events')->where('result', 'accepted')->value('method'));
+        $this->assertSame('manual', DB::table('attendance_logs')->value('method'));
+    }
+
+    /** PHASE3 Amendment 2 §A: no member pass → staff_qr is no longer a supported method. */
+    public function test_staff_qr_is_rejected_as_unsupported(): void
+    {
+        $gym = $this->makeGym();
+        [, $mid] = $this->makeMember($gym);
+        $this->makeMembership($gym, $mid, 'duration');
+        $r = $this->syncOne($this->makeAdmin($gym), $this->attendanceEvent($gym, ['member_id' => $mid, 'attendance_method' => 'staff_qr',
+            'qr' => ['raw' => '{"t":"clby_mp","v":1}'], 'device_recorded_at' => self::recent()]));
+        $this->assertSame(['rejected', 'qr_invalid', 'method not supported'], [$r['status'], $r['code'], $r['message']]);
+        $this->assertSame(0, DB::table('attendance_logs')->count());
     }
 
     public function test_member_cannot_send_manual_events(): void

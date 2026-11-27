@@ -181,6 +181,9 @@ class BranchQrTest extends OfflineSyncTestCase
             'iat after scan' => [$this->signed($gym, $branch, ['iat' => $now + 301]), 'qr_expired'],
             'rotating in grace' => [$this->signed($gym, $branch, ['mode' => 'rotating', 'iat' => $now - 80, 'exp' => $now - 20]), 'ok'],
             'rotating past grace' => [$this->signed($gym, $branch, ['mode' => 'rotating', 'iat' => $now - 91, 'exp' => $now - 31]), 'qr_expired'],
+            'rotating lifetime 120 s ok' => [$this->signed($gym, $branch, ['mode' => 'rotating', 'iat' => $now - 10, 'exp' => $now + 110]), 'ok'],
+            'rotating lifetime > 120 s' => [$this->signed($gym, $branch, ['mode' => 'rotating', 'iat' => $now - 10, 'exp' => $now + 111]), 'qr_invalid'],
+            'rotating unbounded exp' => [$this->signed($gym, $branch, ['mode' => 'rotating', 'iat' => $now - 10, 'exp' => $now + 86400 * 365]), 'qr_invalid'],
             'static no grace' => [$this->signed($gym, $branch, ['iat' => $now - 80, 'exp' => $now - 20]), 'qr_expired'],
             // strictness (PHASE2 amendment §3 rules)
             'jti too short' => [$this->signed($gym, $branch, ['jti' => str_repeat('a', 15)]), 'qr_invalid'],
@@ -200,14 +203,14 @@ class BranchQrTest extends OfflineSyncTestCase
         }
     }
 
-    public function test_member_pass_signature_cannot_be_pasted_into_a_branch_qr(): void
+    public function test_coach_qr_signature_cannot_be_pasted_into_a_branch_qr(): void
     {
         $gym = $this->makeGym();
         [$branch] = $this->makeBranch($gym);
-        [, $mid] = $this->makeMember($gym);
-        $pass = json_decode(app(MemberPassService::class)->issue($gym, $mid, null)['qr'], true);
-        $q = json_decode($this->signed($gym, $branch, ['iat' => $pass['iat'], 'exp' => $pass['exp']]), true);
-        $q['sig'] = $pass['sig'];
+        [, $tp] = $this->makeCoach($gym);
+        $coach = json_decode(app(\App\Services\SpecialistQrService::class)->issue($gym, $tp), true);
+        $q = json_decode($this->signed($gym, $branch, ['iat' => $coach['iat'], 'exp' => $coach['exp'], 'jti' => $coach['jti']]), true);
+        $q['sig'] = $coach['sig'];
         $this->assertSame('qr_invalid', $this->code(json_encode($q, JSON_UNESCAPED_SLASHES), $gym));
     }
 
@@ -257,17 +260,24 @@ class BranchQrTest extends OfflineSyncTestCase
         }
     }
 
-    public function test_offline_me_adds_branch_tokens_and_member_pass(): void
+    public function test_offline_me_adds_branch_tokens_trainers_and_own_assignments(): void
     {
         $gym = $this->makeGym();
         [$branch, $token] = $this->makeBranch($gym);
         [$member, $mid] = $this->makeMember($gym);
+        [, $tp] = $this->makeCoach($gym);
+        [, $otherMid] = $this->makeMember($gym);
+        $mine = $this->makeAssignment($gym, $mid, $tp, ['sessions_used' => 2, 'expires_at' => Carbon::now()->addMonth()]);
+        $this->makeAssignment($gym, $mid, $tp, ['status' => 'completed']);
+        $this->makeAssignment($gym, $otherMid, $tp);
 
         $me = $this->actingAsUser($member)->getJson('/api/attendance/offline/me')->assertOk();
         $this->assertSame([['id' => $branch, 'name' => 'Main', 'is_active' => true, 'qr_token' => $token]], $me->json('branches'));
-        $this->assertSame(['qr', 'expires_at', 'kid'], array_keys($me->json('member_pass')));
-        $this->assertTrue(app(MemberPassService::class)->verify($me->json('member_pass.qr'), $gym)['ok']);
-        $this->assertSame($mid, json_decode($me->json('member_pass.qr'), true)['m']);
+        $this->assertArrayNotHasKey('member_pass', $me->json());
+        $this->assertSame([['id' => $tp, 'name' => 'Coach C', 'service_type' => 'personal_trainer', 'is_active' => true]], $me->json('trainers'));
+        $this->assertCount(1, $me->json('assignments'), 'own, active only');
+        $this->assertSame(['id', 'trainer_id', 'service_type', 'sessions_total', 'sessions_used', 'expires_at', 'status'], array_keys($me->json('assignments.0')));
+        $this->assertSame([$mine, $tp, 2, 'active'], [$me->json('assignments.0.id'), $me->json('assignments.0.trainer_id'), $me->json('assignments.0.sessions_used'), $me->json('assignments.0.status')]);
 
         // Staff bootstrap does not expose branch tokens.
         $boot = $this->actingAsUser($this->makeAdmin($gym))->getJson('/api/attendance/offline/bootstrap')->assertOk();

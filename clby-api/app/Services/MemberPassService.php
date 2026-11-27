@@ -5,23 +5,20 @@ namespace App\Services;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
- * Server-signed member pass (docs/offline-attendance/PHASE2-CONTRACT.md).
+ * Per-gym Ed25519 signing keys (gym_signing_keys, purpose 'member_pass' —
+ * the name is historical). PHASE3 Amendment 2 removed the member pass
+ * itself; these keys now sign and verify the gym (branch) QR v2 and the
+ * coach (specialist) QR v2.
  *
- * QR text (compact JSON, keys in this order):
- *   {"t":"clby_mp","v":1,"kid":…,"g":<gym_id>,"m":<gym_member_id>,"n":<member_number|null>,"iat":…,"exp":…,"sig":…}
- * sig = Ed25519 (libsodium) over "clby_mp|1|<kid>|<g>|<m>|<n or empty>|<iat>|<exp>",
- * base64url without padding.
- *
- * Keys: one active per gym in gym_signing_keys, created lazily. The secret
- * key is stored encrypted with Crypt (APP_KEY) and is only ever decrypted in
- * sign(); it is never logged or returned. Rotation retires the active key,
- * which stays valid for verification until retired_at + TTL.
+ * One active key per gym, created lazily. The secret is stored encrypted
+ * with Crypt (APP_KEY) and only decrypted inside withSigner(); it is never
+ * logged or returned. Rotation retires the active key (verifiable until
+ * retired_at + member_pass_ttl_days); revocation is immediate and final.
+ * pass_keys (bootstrap, /offline/me) publishes the public keys.
  */
 class MemberPassService
 {
@@ -119,151 +116,6 @@ class MemberPassService
         return null;
     }
 
-    /* ── issue ──────────────────────────────────────────────────── */
-
-    /**
-     * Pass for a gym member, reused for member_pass_cache_minutes (and only
-     * while the signing key is still active). Returns {qr, expires_at, kid}.
-     */
-    public function passFor(string $gymId, string $gymMemberId, ?int $memberNumber): array
-    {
-        $key = $this->activeKey($gymId);
-        $cacheKey = "member-pass:{$gymId}:{$gymMemberId}:{$key->kid}";
-        $minutes = max(60, (int) config('attendance_offline.member_pass_cache_minutes', 60));
-
-        $cached = Cache::get($cacheKey);
-        if (is_array($cached) && isset($cached['qr'], $cached['expires_at'])) {
-            return $cached;
-        }
-
-        $pass = $this->issue($gymId, $gymMemberId, $memberNumber, $key);
-        Cache::put($cacheKey, $pass, now()->addMinutes($minutes));
-        return $pass;
-    }
-
-    /** Always signs a fresh pass. */
-    public function issue(string $gymId, string $gymMemberId, ?int $memberNumber, ?object $key = null, ?CarbonInterface $at = null): array
-    {
-        $key ??= $this->activeKey($gymId);
-        $iat = ($at ?? Carbon::now('UTC'))->getTimestamp();
-        $exp = $iat + $this->ttlDays() * 86400;
-
-        $message = self::canonical($key->kid, $gymId, $gymMemberId, $memberNumber, $iat, $exp);
-        $sig = $this->withSigner($gymId, fn (string $kid, callable $sign) => $sign($message), $key);
-
-        $qr = json_encode([
-            't' => 'clby_mp',
-            'v' => 1,
-            'kid' => $key->kid,
-            'g' => $gymId,
-            'm' => $gymMemberId,
-            'n' => $memberNumber,
-            'iat' => $iat,
-            'exp' => $exp,
-            'sig' => $sig,
-        ], JSON_UNESCAPED_SLASHES);
-
-        return [
-            'qr' => $qr,
-            'expires_at' => AttendanceSyncService::iso(Carbon::createFromTimestampUTC($exp)),
-            'kid' => $key->kid,
-        ];
-    }
-
-    /* ── verify ─────────────────────────────────────────────────── */
-
-    /**
-     * Server-side verification, in the amended order (PHASE2-CONTRACT
-     * amendments §1–§3): 1 parse (strict, canonical) → 4 gym → 2 key →
-     * 3 signature → 5 time → 6 member.
-     *
-     * `$at` is the scan time (device_recorded_at for sync): expiry and
-     * retired-key grace are judged then, and the pass must predate it
-     * (iat ≤ at + skew) as well as server now (iat ≤ now + skew).
-     *
-     * @return array{ok: true, pass: array}|array{ok: false, code: string}
-     *   codes: qr_invalid | qr_wrong_gym | pass_expired | member_not_found
-     *   (unknown / revoked / out-of-grace kid → qr_invalid server-side)
-     */
-    public function verify(?string $raw, string $gymId, ?CarbonInterface $at = null, ?CarbonInterface $now = null): array
-    {
-        $now = Carbon::instance($now ?? Carbon::now('UTC'));
-        $at = Carbon::instance($at ?? $now);
-
-        // 1. strict parse
-        $p = self::parse($raw);
-        if ($p === null) {
-            return ['ok' => false, 'code' => 'qr_invalid'];
-        }
-
-        // 4. gym (before the key, so a foreign gym's pass reads "wrong gym")
-        if ($p['g'] !== strtolower($gymId)) {
-            return ['ok' => false, 'code' => 'qr_wrong_gym'];
-        }
-
-        // 2. key: this gym's, not revoked, active or retired within grace at scan time
-        $pk = $this->verificationKey($p['kid'], $p['g'], $at);
-        if ($pk === null) {
-            return ['ok' => false, 'code' => 'qr_invalid'];
-        }
-
-        // 3. signature
-        $sig = self::b64urlDecodeStrict($p['sig'], SODIUM_CRYPTO_SIGN_BYTES);
-        if ($sig === null
-            || ! sodium_crypto_sign_verify_detached($sig, self::canonical($p['kid'], $p['g'], $p['m'], $p['n'], $p['iat'], $p['exp']), $pk)) {
-            return ['ok' => false, 'code' => 'qr_invalid'];
-        }
-
-        // 5. time
-        $skew = (int) config('attendance_offline.future_skew_seconds', 300);
-        if ($p['iat'] > $p['exp']
-            || $p['iat'] > $now->getTimestamp() + $skew
-            || $p['iat'] > $at->getTimestamp() + $skew) {
-            return ['ok' => false, 'code' => 'qr_invalid'];
-        }
-        if ($p['exp'] <= $at->getTimestamp()) {
-            return ['ok' => false, 'code' => 'pass_expired'];
-        }
-
-        // 6. member
-        $exists = DB::table('gym_members')->where('id', $p['m'])->where('gym_id', $gymId)->whereNull('deleted_at')->exists();
-        if (! $exists) {
-            return ['ok' => false, 'code' => 'member_not_found'];
-        }
-
-        return ['ok' => true, 'pass' => $p];
-    }
-
-    /**
-     * Step 1 — strict canonical parse (amendment §3); null = qr_invalid.
-     *  - ≤ 1024 chars, no BOM, a JSON object with exactly the 9 keys;
-     *  - t === "clby_mp", v === 1 (integer, not 1.0);
-     *  - kid: 1–32 of [A-Za-z0-9_-]; g, m: lowercase canonical UUIDs (as issued);
-     *  - n: integer (|n| ≤ 2^53−1, so every client can represent it) or null;
-     *  - iat, exp: integers (no fraction / exponent);
-     *  - sig: base64url, no padding, decodes to exactly 64 bytes and
-     *    re-encodes to the identical string (no non-canonical trailing bits).
-     */
-    public static function parse(?string $raw): ?array
-    {
-        if (! is_string($raw) || $raw === '' || strlen($raw) > 1024) return null;
-        if (str_starts_with($raw, "\xEF\xBB\xBF")) return null;
-        $p = json_decode($raw, true, 4, JSON_BIGINT_AS_STRING);
-        if (! is_array($p) || array_is_list($p)) return null;
-        $keys = ['t', 'v', 'kid', 'g', 'm', 'n', 'iat', 'exp', 'sig'];
-        if (count($p) !== 9 || array_diff($keys, array_keys($p)) !== []) return null;
-
-        $uuid = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
-        if ($p['t'] !== 'clby_mp' || $p['v'] !== 1) return null;
-        if (! is_string($p['kid']) || ! preg_match('/^[A-Za-z0-9_-]{1,32}$/', $p['kid'])) return null;
-        if (! is_string($p['g']) || ! preg_match($uuid, $p['g'])) return null;
-        if (! is_string($p['m']) || ! preg_match($uuid, $p['m'])) return null;
-        if ($p['n'] !== null && (! is_int($p['n']) || abs($p['n']) > 9007199254740991)) return null;
-        if (! is_int($p['iat']) || ! is_int($p['exp'])) return null;
-        if (! is_string($p['sig']) || self::b64urlDecodeStrict($p['sig'], SODIUM_CRYPTO_SIGN_BYTES) === null) return null;
-        return $p;
-    }
-
     /**
      * Canonical base64url (no padding) → bytes of exactly $len, or null.
      * Rejects '+', '/', '=', whitespace and non-canonical trailing bits.
@@ -274,11 +126,6 @@ class MemberPassService
         $bin = self::b64urlDecode($txt);
         if ($bin === false || strlen($bin) !== $len || self::b64url($bin) !== $txt) return null;
         return $bin;
-    }
-
-    public static function canonical(string $kid, string $g, string $m, ?int $n, int $iat, int $exp): string
-    {
-        return implode('|', ['clby_mp', '1', $kid, $g, $m, $n === null ? '' : (string) $n, (string) $iat, (string) $exp]);
     }
 
     public static function b64url(string $bin): string

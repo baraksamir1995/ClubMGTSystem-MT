@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\DB;
 class BranchQrService
 {
     public const UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
+    /** Rotating QRs: exp − iat must be ≤ this, else qr_invalid. */
+    public const ROTATING_MAX_LIFETIME = 120;
 
     public function __construct(private MemberPassService $keys) {}
 
@@ -171,6 +173,11 @@ class BranchQrService
         $t = Carbon::instance($scan)->getTimestamp();
         $skew = (int) config('attendance_offline.future_skew_seconds', 300);
         if ($q['iat'] > $q['exp']) {
+            return ['ok' => false, 'code' => 'qr_invalid'];
+        }
+        // A rotating QR lives 60 s; anything claiming more than 120 s is not
+        // a rotating QR this server ever issued (bounds the dormant path).
+        if ($q['mode'] === 'rotating' && $q['exp'] - $q['iat'] > self::ROTATING_MAX_LIFETIME) {
             return ['ok' => false, 'code' => 'qr_invalid'];
         }
         $limit = $q['exp'] + ($q['mode'] === 'rotating' ? $this->rotatingGrace() : 0);

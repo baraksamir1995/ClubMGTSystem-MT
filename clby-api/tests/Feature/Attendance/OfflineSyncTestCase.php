@@ -51,14 +51,6 @@ abstract class OfflineSyncTestCase extends AttendanceTestCase
         ], $overrides);
     }
 
-    /** A valid signed member pass (QR text) for a gym member. */
-    protected function passQr(string $gymId, string $memberId, ?Carbon $at = null): string
-    {
-        $n = DB::table('gym_members')->where('id', $memberId)->value('member_number');
-        // Default: issued an hour ago, so it predates the (minutes-old) scans in tests.
-        return app(MemberPassService::class)->issue($gymId, $memberId, $n !== null ? (int) $n : null, null, $at ?? Carbon::now()->subHour())['qr'];
-    }
-
     /** Near-real-time device time (within online_grace_seconds): online-equivalent. */
     protected static function recent(): string
     {

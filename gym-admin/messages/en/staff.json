@@ -69,6 +69,8 @@
     "notifications": "Communications",
     "analytics": "Analytics",
     "invitations": "Invitations",
+    "events": "Events",
+    "store": "Store",
     "settings": "Settings",
     "staff": "Staff & Roles"
   },

@@ -19,6 +19,8 @@ import '../models/booking_record_model.dart';
 import '../models/trainer_profile_model.dart';
 import '../models/invitation_model.dart';
 import '../models/service_assignment_model.dart';
+import '../models/product_model.dart';
+import '../models/event_model.dart';
 import '../utils/env.dart';
 import '../features/terms/models/contract_terms_model.dart';
 
@@ -221,8 +223,11 @@ class ApiService {
     final body = jsonDecode(response.body);
     if (response.statusCode >= 400) {
       if (response.statusCode == 401) await _handle401(response, body);
-      final msg = body is Map ? (body['message']?.toString() ?? 'Unknown error') : 'Unknown error';
-      throw ApiException(statusCode: response.statusCode, message: msg);
+      final msg = body is Map
+          ? (body['message']?.toString() ?? body['error']?.toString() ?? 'Unknown error')
+          : 'Unknown error';
+      final code = body is Map ? body['code']?.toString() : null;
+      throw ApiException(statusCode: response.statusCode, message: msg, code: code);
     }
     return body;
   }
@@ -1697,6 +1702,58 @@ class ApiService {
     }
   }
 
+  // ── Store (member) ────────────────────────────────────────────────────────
+
+  /// Active products of the caller's gym (paginated). Purchase goes through
+  /// `PaymobService.createIntention(itemType: 'product')`.
+  Future<ProductPage> getStoreProducts({
+    String? search,
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final data = await _get('/api/store/products', queryParams: {
+      if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      'page': '$page',
+      'per_page': '$perPage',
+    });
+    return ProductPage.fromJson(data);
+  }
+
+  // ── Events (member) ───────────────────────────────────────────────────────
+
+  /// Published, not-yet-finished events (plan-targeted ones filtered
+  /// server-side), each with `my_registration` for the caller.
+  Future<List<GymEvent>> getEvents() async {
+    final data = await _get('/api/events');
+    return _extractList(data).map(GymEvent.fromJson).toList();
+  }
+
+  /// Registers the caller for a FREE event. Paid events go through Paymob.
+  /// Returns the new registration.
+  Future<MyEventRegistration> registerForEvent(
+    String eventId, {
+    String? configurationId,
+  }) async {
+    final data = await _post('/api/events/$eventId/register', {
+      'event_configuration_id': ?configurationId,
+    });
+    final row = data is Map ? data['data'] : null;
+    return MyEventRegistration.fromJson(
+      row is Map ? Map<String, dynamic>.from(row) : const {},
+    );
+  }
+
+  Future<List<EventRegistrationSummary>> getMyEventRegistrations() async {
+    final data = await _get('/api/me/event-registrations');
+    return _extractList(data).map(EventRegistrationSummary.fromJson).toList();
+  }
+
+  /// Cancels the caller's own unpaid/free registration. 422
+  /// `paid_registration` when it's already paid.
+  Future<void> cancelEventRegistration(String registrationId) async {
+    await _post('/api/event-registrations/$registrationId/cancel');
+  }
+
   // ── Helper ────────────────────────────────────────────────────────────────
 
   List<Map<String, dynamic>> _extractList(dynamic data) {
@@ -1727,7 +1784,11 @@ class AuthResult {
 class ApiException implements Exception {
   final int statusCode;
   final String message;
-  const ApiException({required this.statusCode, required this.message});
+
+  /// Machine-readable error code from `{ error, code }` responses
+  /// (e.g. `out_of_stock`, `event_full`). Null for most endpoints.
+  final String? code;
+  const ApiException({required this.statusCode, required this.message, this.code});
 
   @override
   String toString() => 'ApiException($statusCode): $message';

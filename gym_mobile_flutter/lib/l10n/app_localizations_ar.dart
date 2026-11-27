@@ -3486,4 +3486,250 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get contractTermsErrorBody => 'تحقق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get storeTitle => 'المتجر';
+
+  @override
+  String get storeSearchHint => 'ابحث عن منتج';
+
+  @override
+  String get storeEmpty => 'لا توجد منتجات متاحة حاليًا.';
+
+  @override
+  String get storeLoadProductFailed => 'تعذر تحميل هذا المنتج.';
+
+  @override
+  String get storeOutOfStock => 'نفد المخزون';
+
+  @override
+  String storePriceFrom(String price) {
+    return 'ابتداءً من $price';
+  }
+
+  @override
+  String storeOnlyLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'متبقٍ $count فقط',
+      one: 'متبقٍ $count فقط',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storeOptions => 'الخيارات';
+
+  @override
+  String get storeQuantity => 'الكمية';
+
+  @override
+  String get storeNoteTitle => 'أضف ملاحظة';
+
+  @override
+  String get storeNoteSubtitle =>
+      'اختياري — أي شيء يجب أن تعرفه الصالة عن هذا الطلب.';
+
+  @override
+  String get storeNoteHint => 'مثال: المقاس المفضل، موعد الاستلام…';
+
+  @override
+  String get storeDescription => 'الوصف';
+
+  @override
+  String get storeTotal => 'الإجمالي';
+
+  @override
+  String get storeBuyNow => 'اشترِ الآن';
+
+  @override
+  String get storeBuyAtFrontDesk =>
+      'الشراء من التطبيق غير متاح في هذه الصالة. اطلب هذا المنتج من مكتب الاستقبال.';
+
+  @override
+  String get storeOrderPlacedTitle => 'تم تأكيد الطلب!';
+
+  @override
+  String get storeOrderPlacedBody =>
+      'شكرًا — تم الدفع بنجاح. استلم طلبك من مكتب الاستقبال في الصالة.';
+
+  @override
+  String get storeErrOutOfStock =>
+      'عذرًا، نفد هذا المنتج (أو الكمية المطلوبة غير متوفرة).';
+
+  @override
+  String get storeErrVariantRequired => 'يرجى اختيار أحد الخيارات أولًا.';
+
+  @override
+  String get storeErrProductUnavailable => 'هذا المنتج لم يعد متاحًا.';
+
+  @override
+  String get storeErrPriceChanged =>
+      'تغيّر السعر. يرجى التحديث والمحاولة مرة أخرى.';
+
+  @override
+  String get homeEventsTitle => 'قريبًا في النادي';
+
+  @override
+  String get eventsTitle => 'الفعاليات';
+
+  @override
+  String get eventsUpcoming => 'الفعاليات القادمة';
+
+  @override
+  String get eventsPast => 'الفعاليات السابقة';
+
+  @override
+  String get eventsMyEvents => 'فعالياتي';
+
+  @override
+  String get eventsProfileLabel => 'الفعاليات';
+
+  @override
+  String get eventsEmpty => 'لا توجد فعاليات قادمة حاليًا.';
+
+  @override
+  String get eventsMyEmpty => 'لم تسجّل في أي فعالية بعد.';
+
+  @override
+  String get eventsNotFound => 'هذه الفعالية لم تعد متاحة.';
+
+  @override
+  String get eventsFree => 'مجانية';
+
+  @override
+  String get eventsRequired => 'مطلوب';
+
+  @override
+  String get eventsOptionDefaultLabel => 'خيار';
+
+  @override
+  String eventsChooseOptionFirst(String label) {
+    return 'يرجى اختيار $label أولًا.';
+  }
+
+  @override
+  String eventsEndsAt(String date) {
+    return 'تنتهي $date';
+  }
+
+  @override
+  String eventsRegisterBy(String date) {
+    return 'التسجيل حتى $date';
+  }
+
+  @override
+  String get eventsSeatsUnlimited => 'مفتوحة للجميع';
+
+  @override
+  String eventsSeatsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مقاعد متبقية',
+      one: 'مقعد واحد متبقٍ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get eventsFull => 'اكتمل العدد';
+
+  @override
+  String get eventsRegistrationClosed => 'التسجيل مغلق';
+
+  @override
+  String get eventsRegister => 'سجّل';
+
+  @override
+  String eventsPayAndRegister(String price) {
+    return 'ادفع وسجّل · $price';
+  }
+
+  @override
+  String get eventsPayAtFrontDesk =>
+      'الدفع من التطبيق غير متاح في هذه الصالة. تواصل مع مكتب الاستقبال للتسجيل.';
+
+  @override
+  String get eventsCompletePayment => 'أكمل الدفع';
+
+  @override
+  String get eventsStatusRegistered => 'مسجّل';
+
+  @override
+  String get eventsStatusPaymentProcessing => 'جارٍ تأكيد الدفع';
+
+  @override
+  String get eventsYoureRegistered => 'أنت مسجّل';
+
+  @override
+  String get eventsPaymentProcessingHint =>
+      'إذا دفعت، سيتم التأكيد خلال ثوانٍ — اسحب للأسفل للتحديث. تُلغى المقاعد غير المدفوعة بعد 30 دقيقة.';
+
+  @override
+  String eventsRegisteredToast(String title) {
+    return 'تم تسجيلك في $title';
+  }
+
+  @override
+  String get eventsPaymentReceived => 'تم استلام الدفع — جارٍ تأكيد تسجيلك…';
+
+  @override
+  String get eventsCancelRegistration => 'إلغاء التسجيل';
+
+  @override
+  String get eventsKeepRegistration => 'الإبقاء';
+
+  @override
+  String get eventsCancelConfirmTitle => 'إلغاء التسجيل؟';
+
+  @override
+  String eventsCancelConfirmBody(String title) {
+    return 'ستفقد مقعدك في $title.';
+  }
+
+  @override
+  String get eventsCancelledToast => 'تم إلغاء التسجيل';
+
+  @override
+  String get eventsPaidCancelNote =>
+      'هذا التسجيل مدفوع. للإلغاء، يرجى التواصل مع الصالة.';
+
+  @override
+  String get eventsAttended => 'حضرت';
+
+  @override
+  String get eventsEnded => 'انتهت';
+
+  @override
+  String get eventsErrFull => 'عذرًا، اكتمل عدد هذه الفعالية.';
+
+  @override
+  String get eventsErrRegistrationClosed => 'التسجيل في هذه الفعالية مغلق.';
+
+  @override
+  String get eventsErrPast => 'هذه الفعالية انتهت بالفعل.';
+
+  @override
+  String get eventsErrAlreadyRegistered => 'أنت مسجّل بالفعل في هذه الفعالية.';
+
+  @override
+  String get eventsErrConfigurationRequired =>
+      'يرجى اختيار أحد الخيارات قبل التسجيل.';
+
+  @override
+  String get eventsErrConfigurationInvalid =>
+      'هذا الخيار لم يعد متاحًا. يرجى اختيار خيار آخر.';
+
+  @override
+  String get eventsErrPlanRequired =>
+      'هذه الفعالية متاحة فقط لأعضاء باقات محددة.';
+
+  @override
+  String get eventsErrPaymentRequired => 'هذه الفعالية تتطلب الدفع.';
+
+  @override
+  String get eventsErrPaidRegistration =>
+      'هذا التسجيل مدفوع. يرجى التواصل مع الصالة للإلغاء واسترداد المبلغ.';
 }

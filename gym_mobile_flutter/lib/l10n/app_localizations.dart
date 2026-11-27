@@ -6078,6 +6078,414 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check your connection and try again.'**
   String get contractTermsErrorBody;
+
+  /// No description provided for @storeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Store'**
+  String get storeTitle;
+
+  /// No description provided for @storeSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search products'**
+  String get storeSearchHint;
+
+  /// No description provided for @storeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No products available right now.'**
+  String get storeEmpty;
+
+  /// No description provided for @storeLoadProductFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this product.'**
+  String get storeLoadProductFailed;
+
+  /// No description provided for @storeOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get storeOutOfStock;
+
+  /// No description provided for @storePriceFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From {price}'**
+  String storePriceFrom(String price);
+
+  /// No description provided for @storeOnlyLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Only {count} left} other{Only {count} left}}'**
+  String storeOnlyLeft(int count);
+
+  /// No description provided for @storeOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get storeOptions;
+
+  /// No description provided for @storeQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get storeQuantity;
+
+  /// No description provided for @storeNoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note'**
+  String get storeNoteTitle;
+
+  /// No description provided for @storeNoteSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — anything the gym should know about this order.'**
+  String get storeNoteSubtitle;
+
+  /// No description provided for @storeNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. size preference, pick-up time…'**
+  String get storeNoteHint;
+
+  /// No description provided for @storeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get storeDescription;
+
+  /// No description provided for @storeTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get storeTotal;
+
+  /// No description provided for @storeBuyNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy now'**
+  String get storeBuyNow;
+
+  /// No description provided for @storeBuyAtFrontDesk.
+  ///
+  /// In en, this message translates to:
+  /// **'In-app purchases are off for this gym. Ask at the front desk to buy this item.'**
+  String get storeBuyAtFrontDesk;
+
+  /// No description provided for @storeOrderPlacedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order placed!'**
+  String get storeOrderPlacedTitle;
+
+  /// No description provided for @storeOrderPlacedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks — your payment went through. Pick up your order at the gym\'s front desk.'**
+  String get storeOrderPlacedBody;
+
+  /// No description provided for @storeErrOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorry, this item just sold out (or there isn\'t enough stock for that quantity).'**
+  String get storeErrOutOfStock;
+
+  /// No description provided for @storeErrVariantRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose an option first.'**
+  String get storeErrVariantRequired;
+
+  /// No description provided for @storeErrProductUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This product is no longer available.'**
+  String get storeErrProductUnavailable;
+
+  /// No description provided for @storeErrPriceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The price has changed. Please refresh and try again.'**
+  String get storeErrPriceChanged;
+
+  /// No description provided for @homeEventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming up'**
+  String get homeEventsTitle;
+
+  /// No description provided for @eventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get eventsTitle;
+
+  /// No description provided for @eventsUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming events'**
+  String get eventsUpcoming;
+
+  /// No description provided for @eventsPast.
+  ///
+  /// In en, this message translates to:
+  /// **'Past events'**
+  String get eventsPast;
+
+  /// No description provided for @eventsMyEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'My events'**
+  String get eventsMyEvents;
+
+  /// No description provided for @eventsProfileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'EVENTS'**
+  String get eventsProfileLabel;
+
+  /// No description provided for @eventsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming events right now.'**
+  String get eventsEmpty;
+
+  /// No description provided for @eventsMyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t registered for any events yet.'**
+  String get eventsMyEmpty;
+
+  /// No description provided for @eventsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This event is no longer available.'**
+  String get eventsNotFound;
+
+  /// No description provided for @eventsFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get eventsFree;
+
+  /// No description provided for @eventsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get eventsRequired;
+
+  /// No description provided for @eventsOptionDefaultLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Option'**
+  String get eventsOptionDefaultLabel;
+
+  /// No description provided for @eventsChooseOptionFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a {label} first.'**
+  String eventsChooseOptionFirst(String label);
+
+  /// No description provided for @eventsEndsAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends {date}'**
+  String eventsEndsAt(String date);
+
+  /// No description provided for @eventsRegisterBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Register by {date}'**
+  String eventsRegisterBy(String date);
+
+  /// No description provided for @eventsSeatsUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Open to everyone'**
+  String get eventsSeatsUnlimited;
+
+  /// No description provided for @eventsSeatsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} seat left} other{{count} seats left}}'**
+  String eventsSeatsLeft(int count);
+
+  /// No description provided for @eventsFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Event full'**
+  String get eventsFull;
+
+  /// No description provided for @eventsRegistrationClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration closed'**
+  String get eventsRegistrationClosed;
+
+  /// No description provided for @eventsRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get eventsRegister;
+
+  /// No description provided for @eventsPayAndRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay & register · {price}'**
+  String eventsPayAndRegister(String price);
+
+  /// No description provided for @eventsPayAtFrontDesk.
+  ///
+  /// In en, this message translates to:
+  /// **'In-app payments are off for this gym. Contact the front desk to register.'**
+  String get eventsPayAtFrontDesk;
+
+  /// No description provided for @eventsCompletePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete payment'**
+  String get eventsCompletePayment;
+
+  /// No description provided for @eventsStatusRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered'**
+  String get eventsStatusRegistered;
+
+  /// No description provided for @eventsStatusPaymentProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment processing'**
+  String get eventsStatusPaymentProcessing;
+
+  /// No description provided for @eventsYoureRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re registered'**
+  String get eventsYoureRegistered;
+
+  /// No description provided for @eventsPaymentProcessingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If you\'ve paid, this confirms within a few seconds — pull down to refresh. Unpaid seats are released after 30 minutes.'**
+  String get eventsPaymentProcessingHint;
+
+  /// No description provided for @eventsRegisteredToast.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re registered for {title}'**
+  String eventsRegisteredToast(String title);
+
+  /// No description provided for @eventsPaymentReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received — confirming your registration…'**
+  String get eventsPaymentReceived;
+
+  /// No description provided for @eventsCancelRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel registration'**
+  String get eventsCancelRegistration;
+
+  /// No description provided for @eventsKeepRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it'**
+  String get eventsKeepRegistration;
+
+  /// No description provided for @eventsCancelConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel registration?'**
+  String get eventsCancelConfirmTitle;
+
+  /// No description provided for @eventsCancelConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll lose your seat for {title}.'**
+  String eventsCancelConfirmBody(String title);
+
+  /// No description provided for @eventsCancelledToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration cancelled'**
+  String get eventsCancelledToast;
+
+  /// No description provided for @eventsPaidCancelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This registration is paid. To cancel, please contact the gym.'**
+  String get eventsPaidCancelNote;
+
+  /// No description provided for @eventsAttended.
+  ///
+  /// In en, this message translates to:
+  /// **'Attended'**
+  String get eventsAttended;
+
+  /// No description provided for @eventsEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get eventsEnded;
+
+  /// No description provided for @eventsErrFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Sorry, this event is full.'**
+  String get eventsErrFull;
+
+  /// No description provided for @eventsErrRegistrationClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration for this event is closed.'**
+  String get eventsErrRegistrationClosed;
+
+  /// No description provided for @eventsErrPast.
+  ///
+  /// In en, this message translates to:
+  /// **'This event has already taken place.'**
+  String get eventsErrPast;
+
+  /// No description provided for @eventsErrAlreadyRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re already registered for this event.'**
+  String get eventsErrAlreadyRegistered;
+
+  /// No description provided for @eventsErrConfigurationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose an option before registering.'**
+  String get eventsErrConfigurationRequired;
+
+  /// No description provided for @eventsErrConfigurationInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'That option is no longer available. Please choose another.'**
+  String get eventsErrConfigurationInvalid;
+
+  /// No description provided for @eventsErrPlanRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This event is only open to members on specific plans.'**
+  String get eventsErrPlanRequired;
+
+  /// No description provided for @eventsErrPaymentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This event requires payment.'**
+  String get eventsErrPaymentRequired;
+
+  /// No description provided for @eventsErrPaidRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'This registration is paid. Please contact the gym to cancel and get a refund.'**
+  String get eventsErrPaidRegistration;
 }
 
 class _AppLocalizationsDelegate

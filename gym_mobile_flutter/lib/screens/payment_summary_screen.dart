@@ -137,6 +137,8 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         userPhone:      profile?.phone,
         userName:       profile?.fullName,
         specialistName: item.specialistName,
+        promoCodeId:    _promoApplied ? _promoCodeId : null,
+        offerId:        item.type == 'offer' ? item.id : null,
       );
 
       if (!mounted) return;
@@ -184,9 +186,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
           String? paymentId;
           // When a promo is applied, pass the pre-promo total so the RPC can
           // correctly record the discount amount in the redemption.
-          final prePromoTotal = _promoApplied
-              ? _subtotalBeforePromo + (_subtotalBeforePromo * 0.14)
-              : null;
+          final prePromoTotal = _promoApplied ? _subtotalBeforePromo : null;
 
           if (item.type == 'membership' || item.type == 'session_package') {
             paymentId = await _service.purchaseMembership(
@@ -367,9 +367,9 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
   double get _subtotal => _subtotalBeforePromo - _promoDiscount;
 
-  double get _vat => _subtotal * 0.14;
-
-  double get _total => _subtotal + _vat;
+  // No VAT: the total is the subtotal, which is also what the server
+  // charges (it prices the item itself and rejects a different amount).
+  double get _total => _subtotal;
 
   // ── Formatting helpers ────────────────────────────────────────────────────
 
@@ -460,7 +460,6 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                   promoDiscountType: _promoDiscountType,
                   promoDiscountValue: _promoDiscountValue,
                   subtotal: _subtotal,
-                  vat: _vat,
                   total: _total,
                   fmt: _fmt,
                   theme: theme,
@@ -772,7 +771,6 @@ class _PriceBreakdown extends StatelessWidget {
   final String? promoDiscountType;
   final double? promoDiscountValue;
   final double subtotal;
-  final double vat;
   final double total;
   final String Function(double) fmt;
   final ThemeData theme;
@@ -788,7 +786,6 @@ class _PriceBreakdown extends StatelessWidget {
     this.promoDiscountType,
     this.promoDiscountValue,
     required this.subtotal,
-    required this.vat,
     required this.total,
     required this.fmt,
     required this.theme,
@@ -846,10 +843,6 @@ class _PriceBreakdown extends StatelessWidget {
               theme: theme,
             ),
           ],
-          const SizedBox(height: 8),
-          _Row(label: context.l10n.paymentSubtotal, value: context.l10n.paymentAmountEgp(fmt(subtotal)), theme: theme),
-          const SizedBox(height: 8),
-          _Row(label: context.l10n.paymentVat, value: context.l10n.paymentAmountEgp(fmt(vat)), theme: theme),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Divider(

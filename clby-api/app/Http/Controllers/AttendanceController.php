@@ -321,6 +321,17 @@ class AttendanceController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
+        // Server-side gate. log_gym_attendance_by_token only checks that the
+        // token exists and inserts with the BRANCH's gym, and the membership
+        // rules lived only in the mobile app — so a direct API call could
+        // log attendance in another gym, or with a frozen / non-gym plan.
+        // These checks mirror the app's existing rules exactly
+        // (qr_scanner_screen.dart) and reuse the reason codes it already
+        // maps to messages, so behaviour for normal app users is unchanged.
+        if ($denied = $this->gymEntryDenial($resolved, $validated['token'])) {
+            return response()->json(['data' => ['status' => 'denied', 'reason' => $denied]]);
+        }
+
         $result = DB::select('SELECT log_gym_attendance_by_token(?, ?) AS data', [
             $resolved,
             $validated['token'],
@@ -329,5 +340,71 @@ class AttendanceController extends Controller
         return response()->json([
             'data' => json_decode($result[0]->data, true),
         ]);
+    }
+
+    /**
+     * Why a member may not enter via a branch QR token, or null when allowed.
+     * Unknown / inactive tokens are left to log_gym_attendance_by_token so
+     * its existing responses are unchanged.
+     */
+    private function gymEntryDenial(string $gymMemberId, string $token): ?string
+    {
+        $branch = DB::table('branches')->where('qr_token', $token)->first(['id', 'gym_id']);
+        if (! $branch) {
+            return null;
+        }
+
+        $member = DB::table('gym_members')
+            ->where('id', $gymMemberId)->whereNull('deleted_at')->first(['gym_id']);
+        // A member can only check in at their own gym's branches.
+        if (! $member || $member->gym_id !== $branch->gym_id) {
+            return 'not_a_member';
+        }
+
+        // The single active paid subscription (enforced by
+        // idx_one_active_subscription_per_member) — same row the app uses.
+        $current = DB::table('member_memberships as mm')
+            ->leftJoin('membership_plans as mp', 'mp.id', '=', 'mm.plan_id')
+            ->where('mm.gym_member_id', $gymMemberId)
+            ->where('mm.gym_id', $member->gym_id)
+            ->where('mm.source_type', 'subscription')
+            ->where('mm.status', 'active')
+            ->where('mm.payment_status', 'paid')
+            ->first(['mm.freeze_status', 'mm.allowed_branch_ids', 'mp.plan_type']);
+
+        if ($current) {
+            if ($current->freeze_status === 'frozen') {
+                return 'membership_frozen';
+            }
+            if (! in_array($current->plan_type, ['monthly', 'annual', 'duration', 'duration_session'], true)) {
+                return 'gym_access_not_included';
+            }
+            $allowed = $this->pgArray($current->allowed_branch_ids);
+            if (! empty($allowed) && ! in_array($branch->id, $allowed, true)) {
+                return 'branch_not_included';
+            }
+            return null;
+        }
+
+        // No subscription: transferred sessions are studio-only.
+        $hasTransfer = DB::table('member_memberships')
+            ->where('gym_member_id', $gymMemberId)
+            ->where('gym_id', $member->gym_id)
+            ->where('source_type', 'transfer')
+            ->where('status', 'active')
+            ->exists();
+
+        return $hasTransfer ? 'gym_access_not_included' : null;
+    }
+
+    /** Postgres text[] ("{a,b}") or array → list of strings. */
+    private function pgArray(mixed $value): array
+    {
+        if (is_array($value)) return array_values(array_map('strval', $value));
+        if (! is_string($value) || $value === '' || $value === '{}') return [];
+        return array_values(array_filter(array_map(
+            fn ($v) => trim($v, '" '),
+            explode(',', trim($value, '{}'))
+        ), fn ($v) => $v !== ''));
     }
 }

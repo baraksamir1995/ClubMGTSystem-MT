@@ -4,6 +4,7 @@
 
   "recordPayment": "Record Payment",
   "createPayment": "Create Payment",
+  "walkIn": "Walk-in customer",
   "sendReminders": "Send Reminders",
 
   "summary": {
@@ -27,6 +28,8 @@
 
   "method": {
     "cash": "Cash",
+    "instapay": "InstaPay",
+    "wallet": "Mobile Wallet",
     "bankTransfer": "Bank Transfer",
     "card": "Card",
     "other": "Other",
@@ -46,6 +49,7 @@
     "clearAll": "Clear all",
     "allSpecialists": "All Specialists",
     "allServices": "All Services",
+    "allTypes": "All Types",
     "allBranches": "All Branches",
     "branches": "{count} Branch",
     "branchesPlural": "{count} Branches",
@@ -172,7 +176,40 @@
     "paymentRecorded": "Payment recorded",
     "failedToRecord": "Failed to record payment",
     "failedToGenerateLink": "Failed to generate link",
-    "whatsAppMessage": "Hi! Here is your payment link to complete your payment:\n\n{link}"
+    "whatsAppMessage": "Hi! Here is your payment link to complete your payment:\n\n{link}",
+    "productsGroup": "Store products",
+    "eventsGroup": "Events",
+    "clearItem": "Clear selected item",
+    "variant": "Option / size",
+    "selectVariant": "— Choose an option —",
+    "outOfStock": "out of stock",
+    "quantity": "Quantity",
+    "inStock": "{count} in stock",
+    "eventOption": "Option",
+    "selectEventOption": "— Choose an option —",
+    "seatsLeft": "{count, plural, =0 {No seats left} one {# seat left} other {# seats left}} · the member is registered when you save",
+    "registersMember": "The member is registered for this event when you save",
+    "currency": "Currency",
+    "itemPaidOnly": "(products and events are recorded as paid)",
+    "itemErrors": {
+      "product_unavailable": "This product is no longer available.",
+      "variant_required": "Choose an option (size) for this product.",
+      "out_of_stock": "Not enough stock for this quantity.",
+      "product_required": "Choose a product.",
+      "event_unavailable": "This event is no longer available.",
+      "event_not_priced": "This event is free — register the member from the event roster.",
+      "event_required": "Choose an event.",
+      "plan_required": "Not eligible — the event is limited to specific plans",
+      "registration_closed": "Registration is closed",
+      "event_past": "This event has already taken place",
+      "already_registered": "Already registered",
+      "event_full": "Event is full",
+      "configuration_required": "Choose an option for this event.",
+      "configuration_invalid": "The selected event option is no longer available.",
+      "status_must_be_paid": "Products and events can only be recorded as paid.",
+      "member_not_found": "This member was not found in your gym.",
+      "branch_not_found": "This branch was not found."
+    }
   },
 
   "serviceTypes": {
@@ -180,7 +217,9 @@
     "session_package": "Session Package",
     "program": "Programme",
     "offer": "Offer",
-    "other": "Other"
+    "other": "Other",
+    "product": "Store Product",
+    "event": "Event"
   },
 
   "trainerTypes": {

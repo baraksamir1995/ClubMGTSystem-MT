@@ -67,6 +67,13 @@ class SpecialistScanController extends Controller
             ], 404);
         }
 
+        if (! $trainer->is_active) {
+            return response()->json([
+                'error' => 'This specialist is no longer active at your gym.',
+                'code'  => 'specialist_not_found',
+            ], 404);
+        }
+
         $trainerInfo = [
             'trainer_id'   => $trainer->id,
             'trainer_name' => $trainer->name,
@@ -141,7 +148,10 @@ class SpecialistScanController extends Controller
                 $lastLog = DB::table('service_session_logs')
                     ->where('gym_member_id', $ownMemberId)
                     ->where('trainer_id', $trainerId)
-                    ->where('delivered_at', '>', $guardCutoff)
+                    // ISO-8601 with offset: a bare Carbon renders as a naive
+                    // 'Y-m-d H:i:s' that Postgres reads in the session
+                    // timezone, stretching the 30-min window by hours.
+                    ->where('delivered_at', '>', $guardCutoff->toIso8601String())
                     ->orderByDesc('delivered_at')
                     ->first();
                 if ($lastLog) {

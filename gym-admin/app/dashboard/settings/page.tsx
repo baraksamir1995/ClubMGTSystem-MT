@@ -56,6 +56,7 @@ export default async function SettingsRoute() {
     capacity_feature_enabled: gym?.capacity_feature_enabled ?? false,
     max_capacity:             gym?.max_capacity             ?? null,
     branding_config:          gym?.branding_config          ?? null,
+    app_layout:               gym?.app_layout               ?? null,
   };
 
   const branches = (branchesData?.data ?? branchesData ?? []) as GymBranch[];

@@ -28,6 +28,8 @@ export const namespaces = [
   'classes',
   'promotions',
   'services',
+  'store',
+  'events',
   'attendance',
   'invitations',
   'content',

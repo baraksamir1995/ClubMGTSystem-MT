@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ResolvesMemberScope;
 use App\Mail\InvoiceMail;
 use App\Models\Payment;
+use App\Support\DeskSales;
+use App\Support\EventConfigurations;
+use App\Support\EventRegistrationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,11 +65,20 @@ class PaymentController extends Controller
                 ->orderBy('p.created_at', 'desc')
                 ->select([
                     'p.*',
-                    DB::raw('COALESCE(mm.start_date::timestamptz, msa.assigned_at) as period_start'),
-                    DB::raw('COALESCE(mm.end_date::timestamptz,   msa.expires_at)  as period_end'),
+                    DB::raw('COALESCE(CAST(mm.start_date AS timestamptz), msa.assigned_at) as period_start'),
+                    DB::raw('COALESCE(CAST(mm.end_date AS timestamptz),   msa.expires_at)  as period_end'),
                 ])
                 ->get()
-                ->map(fn ($r) => (array) $r)
+                ->map(function ($r) {
+                    $r = (array) $r;
+                    foreach (['amount', 'original_amount', 'discount_amount', 'refund_amount', 'refunded_amount'] as $col) {
+                        if (isset($r[$col])) $r[$col] = (float) $r[$col];
+                    }
+                    // Readable line for the member app's history: the stored
+                    // service name ("Club Tee — M ×2", "Open Day"), else the type.
+                    $r['title'] = self::paymentTitle($r['service_type'] ?? null, $r['service_name'] ?? null);
+                    return $r;
+                })
                 ->toArray();
 
             return response()->json(['data' => $results]);
@@ -221,12 +233,23 @@ class PaymentController extends Controller
             // with MembershipController::assign).
             'plan_id' => 'nullable|uuid',
             'start_date' => 'nullable|date',
+            // Store product / event seat (service_type = product | event).
+            // Fulfilled in the same transaction as the payment — see DeskSales.
+            'product_id' => 'nullable|uuid',
+            'variant_id' => 'nullable|uuid',
+            'quantity' => 'nullable|integer|min:1|max:100',
+            'event_id' => 'nullable|uuid',
+            'event_configuration_id' => 'nullable|uuid',
         ]);
 
         $gymId = $request->user()->gym_id;
 
         if (!$gymId) {
             return response()->json(['message' => 'No gym association found.'], 403);
+        }
+
+        if (in_array($validated['service_type'] ?? null, ['product', 'event'], true)) {
+            return $this->storeItemSale($request, $validated, $gymId);
         }
 
         // Resolve session-package + trainer for assignment creation.
@@ -495,6 +518,168 @@ class PaymentController extends Controller
     }
 
     /**
+     * Record Payment for a store product or an event seat: creates the paid
+     * payment AND fulfils it (takes stock / confirms the registration) in one
+     * transaction, through the same DeskSales code as the Store desk sale.
+     * Errors come back as { error, code } with 404 (unknown / other gym) or
+     * 422 (rule failures).
+     */
+    private function storeItemSale(Request $request, array $v, string $gymId): JsonResponse
+    {
+        $type = $v['service_type'];
+        $fail = fn (string $msg, string $code, int $status = 422) =>
+            response()->json(['error' => $msg, 'code' => $code], $status);
+
+        // Fulfilment happens now, so the payment must be settled now.
+        if (($v['status'] ?? 'paid') !== 'paid') {
+            return $fail('Product and event payments must be recorded as paid.', 'status_must_be_paid');
+        }
+        if ($type === 'product' && empty($v['product_id'])) {
+            return $fail('Choose a product.', 'product_required');
+        }
+        if ($type === 'event' && empty($v['event_id'])) {
+            return $fail('Choose an event.', 'event_required');
+        }
+        $memberInGym = DB::table('gym_members')
+            ->where('id', $v['gym_member_id'])->where('gym_id', $gymId)->whereNull('deleted_at')->exists();
+        if (! $memberInGym) {
+            return $fail('Member not found.', 'member_not_found', 404);
+        }
+        if (! empty($v['branch_id']) && ! DB::table('branches')
+                ->where('id', $v['branch_id'])->where('gym_id', $gymId)->exists()) {
+            return $fail('Branch not found.', 'branch_not_found', 404);
+        }
+
+        $attrs = [
+            'gym_member_id' => $v['gym_member_id'],
+            'branch_id' => $v['branch_id'] ?? null,
+            'payment_method' => $v['payment_method'] ?? 'cash',
+            'notes' => $v['notes'] ?? null,
+            'paid_at' => $v['paid_at'] ?? now(),
+            'amount' => $v['amount'],
+            'promo_code_id' => $v['promo_code_id'] ?? null,
+        ];
+        $actorId = $request->user()->id;
+
+        $result = DB::transaction(fn () => $type === 'product'
+            ? DeskSales::sellProduct($gymId, $v['product_id'], $v['variant_id'] ?? null, (int) ($v['quantity'] ?? 1), $attrs, $actorId)
+            : DeskSales::registerForEvent($gymId, $v['event_id'], $v['gym_member_id'], $v['event_configuration_id'] ?? null, $attrs, $actorId));
+
+        if (isset($result['error'])) {
+            return $fail($result['error'], $result['code'], $result['status']);
+        }
+        $payment = $result['payment'];
+
+        return response()->json([
+            'data' => [
+                'id' => $payment->id,
+                'service_type' => $payment->service_type,
+                'service_name' => $payment->service_name,
+                'event_registration_id' => $payment->event_registration_id,
+            ],
+        ], 201);
+    }
+
+    /**
+     * Store products and events the Record Payment modal can sell.
+     *
+     *  products: active, with at least one unit available (untracked stock
+     *            counts as available). Variant products list their active
+     *            variants; sold-out variants stay listed with stock 0 so the
+     *            modal can show them disabled.
+     *  events:   published, paid, not yet finished. With ?gym_member_id each
+     *            carries `unavailable_reason` (EventRegistrationRules code:
+     *            plan_required | registration_closed | already_registered |
+     *            event_full) or null when the member can be registered.
+     */
+    public function catalog(Request $request): JsonResponse
+    {
+        $gymId = $request->user()->gym_id;
+        $memberId = $this->scopedMemberId($request, $request->query('gym_member_id'));
+
+        $products = DB::table('products')
+            ->where('gym_id', $gymId)->where('is_active', true)->whereNull('deleted_at')
+            ->orderBy('display_order')->orderBy('name')
+            ->get(['id', 'name', 'image_url', 'price', 'currency', 'stock']);
+        $variants = DB::table('product_variants')
+            ->whereIn('product_id', $products->pluck('id'))
+            ->where('gym_id', $gymId)->where('is_active', true)->whereNull('deleted_at')
+            ->orderBy('display_order')->orderBy('name')
+            ->get(['id', 'product_id', 'name', 'price', 'stock'])
+            ->groupBy('product_id');
+
+        $productData = [];
+        foreach ($products as $p) {
+            $vs = ($variants[$p->id] ?? collect())->map(fn ($v) => [
+                'id' => $v->id,
+                'name' => $v->name,
+                'price' => (float) $v->price,
+                'stock' => $v->stock !== null ? (int) $v->stock : null,
+            ])->values()->all();
+            $available = $vs
+                ? collect($vs)->contains(fn ($v) => $v['stock'] === null || $v['stock'] > 0)
+                : ($p->stock === null || (int) $p->stock > 0);
+            if (! $available) continue;
+            $productData[] = [
+                'id' => $p->id,
+                'name' => $p->name,
+                'image_url' => $p->image_url,
+                'price' => (float) $p->price,
+                'currency' => $p->currency ?? 'EGP',
+                'stock' => $p->stock !== null ? (int) $p->stock : null,
+                'variants' => $vs,
+            ];
+        }
+
+        $events = DB::table('events')
+            ->where('gym_id', $gymId)->where('is_published', true)
+            ->where('is_paid', true)->where('price_cents', '>', 0)
+            ->where(function ($q) {
+                $q->where('ends_at', '>=', now())
+                  ->orWhere(fn ($q2) => $q2->whereNull('ends_at')->where('starts_at', '>=', now()));
+            })
+            ->orderBy('starts_at')
+            ->get();
+        $configs = EventConfigurations::forEvents($events->pluck('id')->all());
+
+        $eventData = [];
+        foreach ($events as $e) {
+            if ($memberId) {
+                $reason = EventRegistrationRules::check($e, $memberId)['code'] ?? null;
+            } else {
+                $full = $e->capacity !== null && EventRegistrationRules::seatsTaken($e->id) >= (int) $e->capacity;
+                $reason = $full ? 'event_full' : null;
+            }
+            $eventData[] = [
+                'id' => $e->id,
+                'title' => $e->title,
+                'starts_at' => \Illuminate\Support\Carbon::parse($e->starts_at)->toIso8601String(),
+                'price' => ((int) $e->price_cents) / 100,
+                'currency' => $e->currency ?? 'EGP',
+                'seats_left' => $e->capacity === null
+                    ? null
+                    : max(0, (int) $e->capacity - EventRegistrationRules::seatsTaken($e->id, $memberId)),
+                'configuration_label' => $e->configuration_label,
+                'configurations' => array_map(
+                    fn ($c) => ['id' => $c['id'], 'name' => $c['name']],
+                    $configs[$e->id] ?? []
+                ),
+                'unavailable_reason' => $reason,
+            ];
+        }
+
+        return response()->json(['data' => ['products' => $productData, 'events' => $eventData]]);
+    }
+
+    /** Human-readable label for a payment row (member app history). */
+    private static function paymentTitle(?string $type, ?string $name): string
+    {
+        if ($name !== null && trim($name) !== '') return $name;
+        if (! $type) return 'Payment';
+        return ucwords(str_replace('_', ' ', $type));
+    }
+
+    /**
      * Assign the next sequential member_number if the member doesn't have
      * one yet. Must run inside a transaction (uses row + advisory locks).
      */
@@ -528,7 +713,19 @@ class PaymentController extends Controller
             return response()->json(['message' => 'No gym association found.'], 403);
         }
 
-        DB::select('SELECT delete_payment(?, ?)', [$id, $gymId]);
+        DB::transaction(function () use ($id, $gymId) {
+            $payment = Payment::where('id', $id)->where('gym_id', $gymId)->lockForUpdate()->first();
+            if (! $payment) return; // same as before: deleting a missing row is a no-op
+
+            // A product sale puts its stock back, an event payment cancels the
+            // registration it paid for — same undo as a full refund.
+            DeskSales::reverse($payment, 'unpaid');
+
+            // Equivalent of the legacy delete_payment(id, gym_id) SQL
+            // function (a plain scoped DELETE), done here so it shares the
+            // transaction and runs on any driver.
+            DB::table('payments')->where('id', $id)->where('gym_id', $gymId)->delete();
+        });
 
         return response()->json(['message' => 'Payment deleted successfully']);
     }

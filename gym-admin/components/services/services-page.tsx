@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Layers, Percent, Dumbbell, PersonStanding, Leaf, ClipboardList } from 'lucide-react';
+import { Layers, Percent, Dumbbell, PersonStanding, Leaf, ClipboardList, PartyPopper, ShoppingBag } from 'lucide-react';
 import ProgramsPage from '@/components/programs/programs-page';
 import OffersPage from '@/components/offers/offers-page';
 import SessionServiceTab, { type SessionPackage } from './session-service-tab';
 import ServicesLogTab from './services-log-tab';
+import EventsPage from '@/components/events/events-page';
+import StorePage from '@/components/store/store-page';
+import { can } from '@/lib/get-permissions';
+import type { GymEvent, GymProduct, PlanOption } from '@/lib/types/store-events';
 import { Tabs } from '@/components/ui';
 import type { GymProgram } from '@/app/dashboard/services/page';
 import type { GymOffer } from '@/app/dashboard/content/page';
@@ -14,7 +18,8 @@ import type { TrainerProfile } from '@/components/trainers/trainer-modal';
 import type { Permission } from '@/lib/get-permissions';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 
-type Tab = 'pt' | 'physio' | 'nutrition' | 'programs' | 'offers' | 'log';
+type Tab = 'pt' | 'physio' | 'nutrition' | 'programs' | 'offers' | 'log' | 'events' | 'store';
+const TABS: Tab[] = ['pt', 'physio', 'nutrition', 'programs', 'offers', 'log', 'events', 'store'];
 
 interface Props {
   initialPrograms: GymProgram[];
@@ -24,14 +29,37 @@ interface Props {
   permissions: Permission[] | null;
   gymId: string;
   branches?: GymBranch[];
+  /** `?view=` sub-tab to open (e.g. events, store). */
+  initialView?: string;
+  /** Null when the caller has no access to the module (tab hidden). */
+  events?: { initialEvents: GymEvent[]; plans: PlanOption[] } | null;
+  store?: { initialProducts: GymProduct[] } | null;
 }
 
 export default function ServicesPage({
   initialPrograms, initialOffers, initialTrainers, initialPackages,
-  permissions, gymId, branches = [],
+  permissions, gymId, branches = [], initialView, events = null, store = null,
 }: Props) {
   const t = useTranslations('services');
-  const [activeTab, setActiveTab] = useState<Tab>('pt');
+  // The session-service / programmes / offers tabs ride on the classes grant
+  // (as the whole page used to); Events and Store have their own modules.
+  const canClasses = can(permissions, 'classes');
+  const available = TABS.filter(id =>
+    id === 'events' ? !!events : id === 'store' ? !!store : canClasses);
+  const [activeTab, setActiveTabState] = useState<Tab>(() => {
+    const wanted = initialView as Tab | undefined;
+    if (wanted && available.includes(wanted)) return wanted;
+    return available[0] ?? 'pt';
+  });
+  // Keep ?view= in sync (sub-tab convention) without a server round-trip.
+  const setActiveTab = (tab: Tab) => {
+    setActiveTabState(tab);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', tab);
+      window.history.replaceState(null, '', url.toString());
+    } catch { /* non-browser */ }
+  };
 
   type ServiceTabDef = {
     id: Tab;
@@ -66,18 +94,29 @@ export default function ServicesPage({
 
         {/* Tab bar */}
         <Tabs.List>
-          {SERVICE_TABS.map(tab => (
-            <Tabs.Trigger key={tab.id} value={tab.id} icon={tab.icon}>{tab.label}</Tabs.Trigger>
-          ))}
-          <Tabs.Divider />
-          <Tabs.Trigger value="programs" icon={Layers}>{t('tabs.programs')}</Tabs.Trigger>
-          <Tabs.Trigger value="offers"   icon={Percent}>{t('tabs.offers')}</Tabs.Trigger>
-          <Tabs.Divider />
-          <Tabs.Trigger value="log"      icon={ClipboardList}>{t('tabs.log')}</Tabs.Trigger>
+          {canClasses && (
+            <>
+              {SERVICE_TABS.map(tab => (
+                <Tabs.Trigger key={tab.id} value={tab.id} icon={tab.icon}>{tab.label}</Tabs.Trigger>
+              ))}
+              <Tabs.Divider />
+              <Tabs.Trigger value="programs" icon={Layers}>{t('tabs.programs')}</Tabs.Trigger>
+              <Tabs.Trigger value="offers"   icon={Percent}>{t('tabs.offers')}</Tabs.Trigger>
+            </>
+          )}
+          {(events || store) && canClasses && <Tabs.Divider />}
+          {events && <Tabs.Trigger value="events" icon={PartyPopper}>{t('tabs.events')}</Tabs.Trigger>}
+          {store  && <Tabs.Trigger value="store"  icon={ShoppingBag}>{t('tabs.store')}</Tabs.Trigger>}
+          {canClasses && (
+            <>
+              <Tabs.Divider />
+              <Tabs.Trigger value="log" icon={ClipboardList}>{t('tabs.log')}</Tabs.Trigger>
+            </>
+          )}
         </Tabs.List>
 
       {/* Service sub-tabs */}
-      {activeServiceTab && (
+      {activeServiceTab && canClasses && (
         <SessionServiceTab
           key={activeTab}
           serviceType={activeServiceTab.serviceType}
@@ -95,6 +134,12 @@ export default function ServicesPage({
       )}
       {activeTab === 'offers' && (
         <OffersPage initialOffers={initialOffers as any} permissions={permissions} gymId={gymId} />
+      )}
+      {activeTab === 'events' && events && (
+        <EventsPage initialEvents={events.initialEvents} plans={events.plans} branches={branches} permissions={permissions} embedded />
+      )}
+      {activeTab === 'store' && store && (
+        <StorePage initialProducts={store.initialProducts} permissions={permissions} embedded />
       )}
       {activeTab === 'log' && (
         <ServicesLogTab trainers={initialTrainers} branches={branches} />

@@ -23,7 +23,7 @@ class Gym extends Model
         'mobile_payments_enabled', 'session_transfer_enabled', 'operating_hours', 'max_branches',
         'price_per_branch', 'capacity_feature_enabled', 'max_capacity',
         'category', 'latitude', 'longitude', 'services', 'is_listed',
-        'cover_image_url',
+        'cover_image_url', 'app_layout',
     ];
 
     protected function casts(): array
@@ -36,6 +36,7 @@ class Gym extends Model
             'is_listed' => 'boolean',
             'branding_config' => 'array',
             'operating_hours' => 'array',
+            'app_layout' => 'array',
             'services' => PostgresArray::class,
             'latitude' => 'float',
             'longitude' => 'float',

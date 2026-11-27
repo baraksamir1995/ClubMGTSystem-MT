@@ -21,6 +21,8 @@ export interface MemberPayment {
   created_at: string;
   source: string;
   item_name: string | null;
+  /** membership | session_package | product | event | … */
+  service_type?: string | null;
   specialist_name: string | null;
 }
 
@@ -42,6 +44,10 @@ const fmt = (amount: number, currency?: string | null) => {
 export default function PaymentHistoryTab({ payments, memberName, memberNumber }: Props) {
   const t = useTranslations('members.payments');
   const tc = useTranslations('common');
+  const tp = useTranslations('payments');
+  // Store products and events get their type spelled out next to the item.
+  const itemTypeLabel = (type?: string | null) =>
+    type === 'product' || type === 'event' ? tp(`serviceTypes.${type}`) : null;
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate]     = useState('');
   const [page, setPage]         = useState(1);
@@ -82,7 +88,7 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
       ],
       ...filtered.map(p => [
         new Date(p.created_at).toLocaleDateString('en-GB'),
-        p.item_name ?? '',
+        itemTypeLabel(p.service_type) && p.item_name ? `${itemTypeLabel(p.service_type)}: ${p.item_name}` : p.item_name ?? '',
         p.specialist_name ?? '',
         t(`method.${p.payment_method}` as any) ?? p.payment_method,
         p.amount.toString(),
@@ -208,6 +214,9 @@ export default function PaymentHistoryTab({ payments, memberName, memberNumber }
                           <span className="text-fg font-medium">{p.item_name}</span>
                         ) : (
                           <span className="text-fg-faint">—</span>
+                        )}
+                        {itemTypeLabel(p.service_type) && (
+                          <p className="text-xs text-fg-faint mt-0.5">{itemTypeLabel(p.service_type)}</p>
                         )}
                         {p.specialist_name && (
                           <p className="text-xs text-fg-muted mt-0.5">{p.specialist_name}</p>

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import ServicesPage from '@/components/services/services-page';
 import type { GymOffer } from '@/app/dashboard/content/page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
+import { can } from '@/lib/get-permissions';
+import { normalizeEvents, type GymProduct, type PlanOption } from '@/lib/types/store-events';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +42,11 @@ async function fetchApi(path: string, token: string) {
     return null;
   }
 }
-export default async function ServicesRoute() {
+interface PageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function ServicesRoute({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const token = decodeURIComponent(cookieStore.get('auth_token')?.value ?? '');
   if (!token) redirect('/login');
@@ -53,12 +59,20 @@ export default async function ServicesRoute() {
   const { getStaffPermissions } = await import('@/lib/get-permissions');
   const permissions = await getStaffPermissions(token);
 
-  const [programsData, offersData, trainersData, packagesData, branchesData] = await Promise.all([
+  // Store + Events live here as sub-tabs; only load what the caller may see.
+  const canEvents = can(permissions, 'events');
+  const canStore  = can(permissions, 'store');
+  const { view } = await searchParams;
+
+  const [programsData, offersData, trainersData, packagesData, branchesData, eventsData, plansData, productsData] = await Promise.all([
     fetchApi('/programs', token),
     fetchApi('/offers', token),
     fetchApi('/trainers', token),
     fetchApi('/service-packages?include_inactive=1', token),
     fetchApi('/branches', token),
+    canEvents ? fetchApi('/admin/events', token) : null,
+    canEvents ? fetchApi('/plans', token) : null,
+    canStore ? fetchApi('/products', token) : null,
   ]);
 
   const programs = (programsData?.data ?? programsData ?? []) as GymProgram[];
@@ -88,6 +102,20 @@ export default async function ServicesRoute() {
 
   const branches: GymBranch[] = (branchesData?.data ?? branchesData ?? []) as GymBranch[];
 
+  const events = canEvents ? normalizeEvents(eventsData?.data ?? eventsData ?? []) : [];
+  const rawPlans = plansData?.data ?? plansData ?? [];
+  const plans: PlanOption[] = Array.isArray(rawPlans)
+    ? rawPlans
+        .filter((p: { deleted_at?: string | null }) => !p.deleted_at)
+        .map((p: { id: string; name: string; is_active?: boolean }) => ({
+          id: p.id, name: p.name, is_active: p.is_active !== false,
+        }))
+    : [];
+  const rawProducts = productsData?.data ?? productsData ?? [];
+  const products: GymProduct[] = Array.isArray(rawProducts)
+    ? rawProducts.map((p: GymProduct) => ({ ...p, variants: p.variants ?? [] }))
+    : [];
+
   return (
     <ServicesPage
       initialPrograms={programs}
@@ -97,6 +125,9 @@ export default async function ServicesRoute() {
       permissions={permissions}
       gymId={gymId}
       branches={branches}
+      initialView={view}
+      events={canEvents ? { initialEvents: events, plans } : null}
+      store={canStore ? { initialProducts: products } : null}
     />
   );
 }

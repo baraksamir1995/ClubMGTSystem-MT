@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../models/app_layout.dart';
 import '../core/widgets/banner_carousel.dart';
 import '../features/banners/banner_provider.dart';
 import '../features/popups/popup_provider.dart';
@@ -26,6 +27,9 @@ import '../widgets/shimmer_loader.dart';
 import '../models/capacity_model.dart';
 import '../features/rating/rating_reminder_provider.dart';
 import '../services/api_service.dart';
+import '../features/store_events/events_provider.dart';
+import '../features/store_events/home_events_carousel.dart';
+import '../models/event_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -140,6 +144,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (gymId == null) return; // wait for auth to populate profile.gymId
     _initialLoadFired = true;
 
+    // Events strip — independent of bootstrap, never blocks the home load.
+    context.read<EventsProvider>().load();
     await _loadData();
     if (!mounted) return;
 
@@ -221,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       memberProvider.refreshMembership();
       memberProvider.loadCapacity(gymId);
       bannerProvider.loadBanners(gymId, force: true);
+      context.read<EventsProvider>().load(force: true);
     }
   }
 
@@ -273,6 +280,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         bannerProvider.loadBanners(gymId, force: true),
         branchProvider.loadBranches(gymId, force: true),
         memberProvider.loadSessions(gymId, force: true),
+        // Picks up App Layout changes made in the dashboard.
+        authProvider.refreshGym(),
+        context.read<EventsProvider>().load(force: true),
       ]);
     }
   }
@@ -311,103 +321,170 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            // Order + visibility come from the gym's App Layout (admin
+            // Settings). Each builder owns its trailing spacing so hidden
+            // sections leave no gap.
             children: [
-              // ── Banner carousel ──────────────────────────────────────
-              Consumer<BannerProvider>(
-                builder: (_, bp, _) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BannerCarousel(banners: bp.banners, isLoading: bp.isLoading),
-                    if (bp.hasBanners || bp.isLoading) const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-
-              // ── Your membership ──────────────────────────────────────
-              _SectionHeader(
-                title: context.l10n.homeYourMembership,
-                actionLabel: context.l10n.homeViewPlan,
-                onAction: () => context.push('/membership'),
-                actionColor: primary,
-              ),
-              const SizedBox(height: 12),
-              if (memberProvider.isLoadingMember)
-                BrandedSkeletonCard.fromContext(context, height: 170)
-              else if (memberProvider.membershipSummary != null
-                  && memberProvider.membershipSummary!.buckets.isNotEmpty)
-                MembershipCardUnified(
-                  summary: memberProvider.membershipSummary!,
-                  subscription: memberProvider.currentMembership,
-                  primary: primary,
-                  secondary: Theme.of(context).colorScheme.secondary,
-                )
-              else
-                _NoMembershipCard(primary: primary),
-              const SizedBox(height: 24),
-
-              // ── Today's classes ──────────────────────────────────────
-              _SectionHeader(
-                title: context.l10n.homeTodaysClasses,
-                actionLabel: context.l10n.commonSeeAll,
-                onAction: () => context.go('/schedule'),
-                actionColor: primary,
-              ),
-              const SizedBox(height: 12),
-              _TodaysClassesRow(
-                sessions: memberProvider.sessions,
-                isLoading: memberProvider.isLoadingSessions,
-                primary: primary,
-                onTap: _openDetail,
-              ),
-              const SizedBox(height: 24),
-
-              // ── Your activity ────────────────────────────────────────
-              _SectionHeader(title: context.l10n.homeYourActivity),
-              const SizedBox(height: 12),
-              _ProgressGrid(
-                memberProvider: memberProvider,
-                primary: primary,
-              ),
-              const SizedBox(height: 24),
-
-              // ── Quick access ─────────────────────────────────────────
-              _SectionHeader(
-                title: context.l10n.homeQuickAccess,
-                subtitle: context.l10n.homeQuickAccessSubtitle,
-              ),
-              const SizedBox(height: 12),
-              const _QuickAccessGrid(),
-              const SizedBox(height: 24),
-
-              // ── Our locations ────────────────────────────────────────
-              Selector<BranchProvider, List<BranchModel>>(
-                selector: (_, bp) => bp.branches,
-                builder: (_, branches, _) {
-                  if (branches.length < 2) return const SizedBox.shrink();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionHeader(
-                        title: context.l10n.homeOurLocations,
-                        actionLabel: context.l10n.commonSeeAll,
-                        onAction: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const LocationsScreen()),
-                        ),
-                        actionColor: primary,
-                      ),
-                      const SizedBox(height: 12),
-                      _LocationsCarousel(branches: branches),
-                      const SizedBox(height: 24),
-                    ],
-                  );
-                },
-              ),
-
+              for (final key in (gym?.appLayout ?? AppLayout.defaults).home)
+                ?_buildSection(context, key, memberProvider, primary),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget? _buildSection(
+    BuildContext context,
+    String key,
+    MemberProvider memberProvider,
+    Color primary,
+  ) {
+    switch (key) {
+      case 'banners':
+        return Consumer<BannerProvider>(
+          key: const ValueKey('home-banners'),
+          builder: (_, bp, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BannerCarousel(banners: bp.banners, isLoading: bp.isLoading),
+              if (bp.hasBanners || bp.isLoading) const SizedBox(height: 24),
+            ],
+          ),
+        );
+
+      case 'membership':
+        return Column(
+          key: const ValueKey('home-membership'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(
+              title: context.l10n.homeYourMembership,
+              actionLabel: context.l10n.homeViewPlan,
+              onAction: () => context.push('/membership'),
+              actionColor: primary,
+            ),
+            const SizedBox(height: 12),
+            if (memberProvider.isLoadingMember)
+              BrandedSkeletonCard.fromContext(context, height: 170)
+            else if (memberProvider.membershipSummary != null
+                && memberProvider.membershipSummary!.buckets.isNotEmpty)
+              MembershipCardUnified(
+                summary: memberProvider.membershipSummary!,
+                subscription: memberProvider.currentMembership,
+                primary: primary,
+                secondary: Theme.of(context).colorScheme.secondary,
+              )
+            else
+              _NoMembershipCard(primary: primary),
+            const SizedBox(height: 24),
+          ],
+        );
+
+      case 'todays_classes':
+        return Column(
+          key: const ValueKey('home-todays-classes'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(
+              title: context.l10n.homeTodaysClasses,
+              actionLabel: context.l10n.commonSeeAll,
+              onAction: () => context.go('/schedule'),
+              actionColor: primary,
+            ),
+            const SizedBox(height: 12),
+            _TodaysClassesRow(
+              sessions: memberProvider.sessions,
+              isLoading: memberProvider.isLoadingSessions,
+              primary: primary,
+              onTap: _openDetail,
+            ),
+            const SizedBox(height: 24),
+          ],
+        );
+
+      case 'activity':
+        return Column(
+          key: const ValueKey('home-activity'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(title: context.l10n.homeYourActivity),
+            const SizedBox(height: 12),
+            _ProgressGrid(
+              memberProvider: memberProvider,
+              primary: primary,
+            ),
+            const SizedBox(height: 24),
+          ],
+        );
+
+      case 'quick_access':
+        return Column(
+          key: const ValueKey('home-quick-access'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader(
+              title: context.l10n.homeQuickAccess,
+              subtitle: context.l10n.homeQuickAccessSubtitle,
+            ),
+            const SizedBox(height: 12),
+            const _QuickAccessGrid(),
+            const SizedBox(height: 24),
+          ],
+        );
+
+      case 'events':
+        // Upcoming events as a cover carousel; collapses (no header, no
+        // gap) when the gym has none.
+        return Selector<EventsProvider, List<GymEvent>>(
+          key: const ValueKey('home-events'),
+          selector: (_, ep) => ep.events,
+          builder: (_, events, _) {
+            if (events.isEmpty) return const SizedBox.shrink();
+            final shown = events.take(HomeEventsCarousel.maxItems).toList();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  title: context.l10n.homeEventsTitle,
+                  actionLabel: context.l10n.commonSeeAll,
+                  onAction: () => context.push('/events'),
+                  actionColor: primary,
+                ),
+                const SizedBox(height: 12),
+                HomeEventsCarousel(events: shown),
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+        );
+
+      case 'locations':
+        return Selector<BranchProvider, List<BranchModel>>(
+          key: const ValueKey('home-locations'),
+          selector: (_, bp) => bp.branches,
+          builder: (_, branches, _) {
+            if (branches.length < 2) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  title: context.l10n.homeOurLocations,
+                  actionLabel: context.l10n.commonSeeAll,
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LocationsScreen()),
+                  ),
+                  actionColor: primary,
+                ),
+                const SizedBox(height: 12),
+                _LocationsCarousel(branches: branches),
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+        );
+    }
+    return null;
   }
 }
 

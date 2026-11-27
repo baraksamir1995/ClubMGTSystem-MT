@@ -41,6 +41,12 @@ import 'screens/service_packages_screen.dart';
 import 'screens/package_detail_screen.dart';
 import 'screens/program_detail_screen.dart';
 import 'screens/payment_summary_screen.dart';
+import 'screens/products_screen.dart';
+import 'screens/product_detail_screen.dart';
+import 'screens/event_detail_screen.dart';
+import 'screens/events_screen.dart';
+import 'models/product_model.dart';
+import 'models/event_model.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/reset_password_screen.dart';
 import 'screens/transfer_sessions_screen.dart';
@@ -506,6 +512,38 @@ GoRouter buildRouter(BuildContext context) {
           );
         },
       ),
+      // ── Store + Events ─────────────────────────────────────────────────────
+      GoRoute(
+        path: '/products',
+        name: 'products',
+        pageBuilder: (context, state) => _slidePage(const ProductsScreen()),
+      ),
+      GoRoute(
+        path: '/products/:id',
+        name: 'product-detail',
+        pageBuilder: (context, state) => _slidePage(ProductDetailLoader(
+          productId: state.pathParameters['id']!,
+          initial: state.extra is Product ? state.extra as Product : null,
+        )),
+      ),
+      GoRoute(
+        path: '/events',
+        name: 'events',
+        pageBuilder: (context, state) => _slidePage(const EventsScreen()),
+      ),
+      GoRoute(
+        path: '/events/:id',
+        name: 'event-detail',
+        pageBuilder: (context, state) => _slidePage(EventDetailScreen(
+          eventId: state.pathParameters['id']!,
+          initial: state.extra is GymEvent ? state.extra as GymEvent : null,
+        )),
+      ),
+      GoRoute(
+        path: '/my-events',
+        name: 'my-events',
+        pageBuilder: (context, state) => _slidePage(const MyEventsScreen()),
+      ),
       // Notifications — standalone push screen (accessed via bell icon)
       GoRoute(
         path: '/notifications',
@@ -668,3 +706,14 @@ class _GuestLockedPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
 }
+
+/// Right-to-left slide used by the pushed detail/list routes.
+CustomTransitionPage<void> _slidePage(Widget child) => CustomTransitionPage<void>(
+      child: child,
+      transitionsBuilder: (context, animation, _, child) => SlideTransition(
+        position: Tween(begin: const Offset(1, 0), end: Offset.zero)
+            .animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic)),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 300),
+    );

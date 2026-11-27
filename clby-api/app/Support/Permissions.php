@@ -24,6 +24,7 @@ class Permissions
     public const ALLOWLIST = [
         'attendance'  => ['view', 'create'],
         'classes'     => ['view', 'create', 'edit', 'delete'],
+        'events'      => ['view', 'create', 'edit', 'delete'],
         'content'     => ['view', 'create', 'edit', 'delete'],
         'invitations' => ['view', 'edit'],
         'members'     => ['view', 'create', 'edit', 'delete'],
@@ -34,6 +35,7 @@ class Permissions
         'sales'       => ['view', 'create', 'edit', 'delete'],
         'settings'    => ['view', 'create', 'edit', 'delete'],
         'staff'       => ['view', 'create', 'edit', 'delete'],
+        'store'       => ['view', 'create', 'edit', 'delete'],
     ];
 
     /**

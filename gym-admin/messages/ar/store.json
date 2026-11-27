@@ -1,0 +1,90 @@
+{
+  "title": "المتجر",
+  "subtitle": "بيع المنتجات والمكملات من الاستقبال وعبر التطبيق.",
+  "addProduct": "إضافة منتج",
+  "searchPlaceholder": "ابحث في المنتجات أو الأنواع…",
+  "variantCount": "{count, plural, one {نوع واحد} two {نوعان} few {# أنواع} many {# نوعًا} other {# نوع}}",
+  "activate": "تفعيل",
+  "deactivate": "إيقاف",
+  "col": {
+    "product": "المنتج",
+    "price": "السعر",
+    "stock": "المخزون"
+  },
+  "stock": {
+    "untracked": "غير متتبَّع",
+    "out": "نفد المخزون",
+    "low": "مخزون منخفض"
+  },
+  "stats": {
+    "total": "المنتجات",
+    "active": "النشطة",
+    "low": "مخزون منخفض",
+    "out": "نفد المخزون"
+  },
+  "filter": {
+    "all": "كل المنتجات",
+    "active": "النشطة فقط",
+    "inactive": "غير النشطة فقط"
+  },
+  "empty": {
+    "title": "لا توجد منتجات بعد",
+    "description": "أضف أول منتج لتبدأ البيع من الاستقبال وفي تطبيق الأعضاء.",
+    "noMatch": "لا توجد منتجات مطابقة لبحثك"
+  },
+  "toast": {
+    "activated": "تم تفعيل المنتج",
+    "deactivated": "تم إيقاف المنتج",
+    "deleted": "تم حذف المنتج"
+  },
+  "delete": {
+    "title": "حذف المنتج؟",
+    "body": "سيتم حذف \"{name}\" من المتجر. تبقى المبيعات السابقة في المدفوعات."
+  },
+  "modal": {
+    "addTitle": "منتج جديد",
+    "editTitle": "تعديل المنتج",
+    "create": "إنشاء المنتج",
+    "created": "تم إنشاء المنتج",
+    "updated": "تم تحديث المنتج",
+    "active": "نشط",
+    "activeHint": "يظهر في تطبيق الأعضاء ومتاح للبيع.",
+    "inactiveHint": "مخفي من التطبيق ولا يمكن بيعه.",
+    "image": "الصورة",
+    "noImage": "لا توجد صورة",
+    "uploadImage": "رفع",
+    "replaceImage": "استبدال",
+    "removeImage": "إزالة الصورة",
+    "imageBadType": "استخدم صورة JPG أو PNG أو WebP أو GIF.",
+    "imageTooBig": "يجب ألا يتجاوز حجم الصورة 5 ميجابايت.",
+    "name": "الاسم",
+    "namePlaceholder": "مثال: تيشيرت النادي",
+    "descriptionPlaceholder": "تفاصيل اختيارية تظهر في التطبيق",
+    "price": "السعر",
+    "priceVariantsHint": "يُستخدم أرخص نوع افتراضيًا",
+    "beforePrice": "السعر قبل الخصم",
+    "beforePriceHint": "يظهر مشطوبًا",
+    "displayOrder": "ترتيب العرض",
+    "stock": "المخزون",
+    "stockHint": "اتركه فارغًا لعدم تتبّع المخزون (غير محدود).",
+    "stockVariantsHint": "يُتتبّع المخزون لكل نوع بالأسفل.",
+    "untrackedPlaceholder": "غير متتبَّع",
+    "variants": "الأنواع",
+    "variantsHint": "مقاسات أو نكهات أو ألوان. عند وجود أنواع يجب على المشتري اختيار أحدها.",
+    "addVariant": "إضافة نوع",
+    "variantName": "اسم النوع",
+    "variantNamePlaceholder": "مثال: M، شوكولاتة",
+    "variantActive": "نشط",
+    "removeVariant": "حذف النوع",
+    "moveUp": "تحريك لأعلى",
+    "moveDown": "تحريك لأسفل",
+    "nameRequired": "أدخل اسم المنتج.",
+    "priceRequired": "أدخل سعرًا صحيحًا.",
+    "invalidBeforePrice": "يجب أن يكون السعر قبل الخصم 0 أو أكثر.",
+    "invalidStock": "يجب أن يكون المخزون عددًا صحيحًا 0 أو أكثر.",
+    "variantNameRequired": "النوع رقم {row} يحتاج إلى اسم.",
+    "variantPriceRequired": "النوع رقم {row} يحتاج إلى سعر صحيح.",
+    "variantNamesUnique": "يجب أن تكون أسماء الأنواع مختلفة."
+  },
+  "sellViaPayments": "لبيع منتج، استخدم «تسجيل دفعة» في صفحة المدفوعات — يُخصم المخزون وتُسجَّل عملية البيع على العضو."
+}

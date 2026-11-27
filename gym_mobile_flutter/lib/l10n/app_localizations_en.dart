@@ -3477,4 +3477,254 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contractTermsErrorBody => 'Check your connection and try again.';
+
+  @override
+  String get storeTitle => 'Store';
+
+  @override
+  String get storeSearchHint => 'Search products';
+
+  @override
+  String get storeEmpty => 'No products available right now.';
+
+  @override
+  String get storeLoadProductFailed => 'Couldn\'t load this product.';
+
+  @override
+  String get storeOutOfStock => 'Out of stock';
+
+  @override
+  String storePriceFrom(String price) {
+    return 'From $price';
+  }
+
+  @override
+  String storeOnlyLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Only $count left',
+      one: 'Only $count left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storeOptions => 'Options';
+
+  @override
+  String get storeQuantity => 'Quantity';
+
+  @override
+  String get storeNoteTitle => 'Add a note';
+
+  @override
+  String get storeNoteSubtitle =>
+      'Optional — anything the gym should know about this order.';
+
+  @override
+  String get storeNoteHint => 'e.g. size preference, pick-up time…';
+
+  @override
+  String get storeDescription => 'Description';
+
+  @override
+  String get storeTotal => 'Total';
+
+  @override
+  String get storeBuyNow => 'Buy now';
+
+  @override
+  String get storeBuyAtFrontDesk =>
+      'In-app purchases are off for this gym. Ask at the front desk to buy this item.';
+
+  @override
+  String get storeOrderPlacedTitle => 'Order placed!';
+
+  @override
+  String get storeOrderPlacedBody =>
+      'Thanks — your payment went through. Pick up your order at the gym\'s front desk.';
+
+  @override
+  String get storeErrOutOfStock =>
+      'Sorry, this item just sold out (or there isn\'t enough stock for that quantity).';
+
+  @override
+  String get storeErrVariantRequired => 'Please choose an option first.';
+
+  @override
+  String get storeErrProductUnavailable =>
+      'This product is no longer available.';
+
+  @override
+  String get storeErrPriceChanged =>
+      'The price has changed. Please refresh and try again.';
+
+  @override
+  String get homeEventsTitle => 'Coming up';
+
+  @override
+  String get eventsTitle => 'Events';
+
+  @override
+  String get eventsUpcoming => 'Upcoming events';
+
+  @override
+  String get eventsPast => 'Past events';
+
+  @override
+  String get eventsMyEvents => 'My events';
+
+  @override
+  String get eventsProfileLabel => 'EVENTS';
+
+  @override
+  String get eventsEmpty => 'No upcoming events right now.';
+
+  @override
+  String get eventsMyEmpty => 'You haven\'t registered for any events yet.';
+
+  @override
+  String get eventsNotFound => 'This event is no longer available.';
+
+  @override
+  String get eventsFree => 'Free';
+
+  @override
+  String get eventsRequired => 'Required';
+
+  @override
+  String get eventsOptionDefaultLabel => 'Option';
+
+  @override
+  String eventsChooseOptionFirst(String label) {
+    return 'Please choose a $label first.';
+  }
+
+  @override
+  String eventsEndsAt(String date) {
+    return 'Ends $date';
+  }
+
+  @override
+  String eventsRegisterBy(String date) {
+    return 'Register by $date';
+  }
+
+  @override
+  String get eventsSeatsUnlimited => 'Open to everyone';
+
+  @override
+  String eventsSeatsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seats left',
+      one: '$count seat left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get eventsFull => 'Event full';
+
+  @override
+  String get eventsRegistrationClosed => 'Registration closed';
+
+  @override
+  String get eventsRegister => 'Register';
+
+  @override
+  String eventsPayAndRegister(String price) {
+    return 'Pay & register · $price';
+  }
+
+  @override
+  String get eventsPayAtFrontDesk =>
+      'In-app payments are off for this gym. Contact the front desk to register.';
+
+  @override
+  String get eventsCompletePayment => 'Complete payment';
+
+  @override
+  String get eventsStatusRegistered => 'Registered';
+
+  @override
+  String get eventsStatusPaymentProcessing => 'Payment processing';
+
+  @override
+  String get eventsYoureRegistered => 'You\'re registered';
+
+  @override
+  String get eventsPaymentProcessingHint =>
+      'If you\'ve paid, this confirms within a few seconds — pull down to refresh. Unpaid seats are released after 30 minutes.';
+
+  @override
+  String eventsRegisteredToast(String title) {
+    return 'You\'re registered for $title';
+  }
+
+  @override
+  String get eventsPaymentReceived =>
+      'Payment received — confirming your registration…';
+
+  @override
+  String get eventsCancelRegistration => 'Cancel registration';
+
+  @override
+  String get eventsKeepRegistration => 'Keep it';
+
+  @override
+  String get eventsCancelConfirmTitle => 'Cancel registration?';
+
+  @override
+  String eventsCancelConfirmBody(String title) {
+    return 'You\'ll lose your seat for $title.';
+  }
+
+  @override
+  String get eventsCancelledToast => 'Registration cancelled';
+
+  @override
+  String get eventsPaidCancelNote =>
+      'This registration is paid. To cancel, please contact the gym.';
+
+  @override
+  String get eventsAttended => 'Attended';
+
+  @override
+  String get eventsEnded => 'Ended';
+
+  @override
+  String get eventsErrFull => 'Sorry, this event is full.';
+
+  @override
+  String get eventsErrRegistrationClosed =>
+      'Registration for this event is closed.';
+
+  @override
+  String get eventsErrPast => 'This event has already taken place.';
+
+  @override
+  String get eventsErrAlreadyRegistered =>
+      'You\'re already registered for this event.';
+
+  @override
+  String get eventsErrConfigurationRequired =>
+      'Please choose an option before registering.';
+
+  @override
+  String get eventsErrConfigurationInvalid =>
+      'That option is no longer available. Please choose another.';
+
+  @override
+  String get eventsErrPlanRequired =>
+      'This event is only open to members on specific plans.';
+
+  @override
+  String get eventsErrPaymentRequired => 'This event requires payment.';
+
+  @override
+  String get eventsErrPaidRegistration =>
+      'This registration is paid. Please contact the gym to cancel and get a refund.';
 }

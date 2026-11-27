@@ -43,7 +43,7 @@ interface OverviewData {
 const MODULE_KEYS = [
   'overview', 'members', 'plans', 'payments', 'sales', 'classes',
   'promotions', 'attendance', 'invitations', 'content',
-  'settings', 'staff',
+  'events', 'store', 'settings', 'staff',
 ] as const;
 
 /* ─── helpers ────────────────────────────────────────────────────────── */

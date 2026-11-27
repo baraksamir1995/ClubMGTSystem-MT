@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Clock, Upload, Loader2, Check, Dumbbell, Smartphone, GitBranch, Users, ChevronDown, CreditCard, ShieldCheck, Eye, EyeOff, Palette, FileText } from 'lucide-react';
+import { Building2, Clock, Upload, Loader2, Check, Dumbbell, Smartphone, GitBranch, Users, ChevronDown, CreditCard, ShieldCheck, Eye, EyeOff, Palette, FileText, LayoutList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import type { GymSettings, OperatingHours, DayHours } from '@/lib/settings-types';
 import { DEFAULT_HOURS } from '@/lib/settings-types';
 import { can, type Permission } from '@/lib/get-permissions';
+import AppLayoutSection from '@/components/settings/app-layout-section';
 import BranchesPage from '@/components/branches/branches-page';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import type { GymStudio } from '@/app/dashboard/classes/page';
@@ -23,7 +24,7 @@ interface Props {
   gymId: string;
 }
 
-const ALL_SECTIONS = ['profile', 'branding', 'app', 'contractTerms', 'operations'] as const;
+const ALL_SECTIONS = ['profile', 'branding', 'app', 'layout', 'contractTerms', 'operations'] as const;
 type SectionKey = typeof ALL_SECTIONS[number];
 
 export default function SettingsPage({ gym, permissions, initialBranches, initialStudios, maxBranches, pricePerBranch, gymId }: Props) {
@@ -31,7 +32,7 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
   const tc = useTranslations('common');
 
   const [open, setOpen] = useState<Record<SectionKey, boolean>>({
-    profile: false, branding: false, app: false, contractTerms: false, operations: false,
+    profile: false, branding: false, app: false, layout: false, contractTerms: false, operations: false,
   });
 
   const toggle = (key: SectionKey) => setOpen(prev => ({ ...prev, [key]: !prev[key] }));
@@ -647,6 +648,19 @@ export default function SettingsPage({ gym, permissions, initialBranches, initia
             )}
           </div>
         )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION: APP LAYOUT (Home / Explore section order + visibility)
+         ══════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-surface-2 border border-line rounded-xl p-6">
+        <SectionHeader sectionKey="layout" icon={<LayoutList className="w-4 h-4 text-brand" />} title={t('sections.appLayout')} />
+        {/* Kept mounted (hidden) when collapsed so saved / unsaved edits
+            survive collapse — remounting would re-seed from the page-load
+            snapshot and a later save could revert an earlier one. */}
+        <div className={open.layout ? '' : 'hidden'}>
+          <AppLayoutSection initialLayout={gym.app_layout} canEdit={can(permissions, 'settings', 'edit')} />
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

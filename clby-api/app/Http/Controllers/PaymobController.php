@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Services\PaymobService;
+use App\Support\EventConfigurations;
+use App\Support\EventRegistrationRules;
+use App\Support\DeskSales;
+use App\Support\ProductStock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +66,32 @@ class PaymobController extends Controller
     }
 
     /**
+     * A usable promo code for this member, or ['error' => message].
+     * Mirrors validate_promo_code: active, in its window, under max_uses
+     * and under the member's per_member_limit.
+     *
+     * @return array{row: object}|array{error: string}
+     */
+    private function resolvePromo(string $gymId, string $promoId, string $userId): array
+    {
+        $promo = DB::table('promo_codes')
+            ->where('id', $promoId)->where('gym_id', $gymId)->where('is_active', true)
+            ->first();
+        if (! $promo) return ['error' => 'Invalid promo code'];
+        if ($promo->valid_from && now()->lt($promo->valid_from)) return ['error' => 'Promo code is not yet active'];
+        if ($promo->valid_until && now()->gt($promo->valid_until)) return ['error' => 'Promo code has expired'];
+        if ($promo->max_uses !== null && (int) $promo->uses_count >= (int) $promo->max_uses) {
+            return ['error' => 'Promo code has reached its usage limit'];
+        }
+        $mine = DB::table('promo_code_redemptions')
+            ->where('promo_code_id', $promo->id)->where('member_id', $userId)->count();
+        if ($promo->per_member_limit !== null && $mine >= (int) $promo->per_member_limit) {
+            return ['error' => 'You have already used this promo code'];
+        }
+        return ['row' => $promo];
+    }
+
+    /**
      * Create a payment intention (mobile app initiates payment).
      */
     public function intention(Request $request): JsonResponse
@@ -81,6 +111,18 @@ class PaymobController extends Controller
             'user_phone' => 'nullable|string|max:20',
             'user_name' => 'nullable|string|max:255',
             'specialist_name' => 'nullable|string|max:255',
+            // Store products (item_type=product): plan_id = product id. A
+            // variant is required when the product has active variants.
+            'variant_id' => 'nullable|uuid',
+            'quantity' => 'nullable|integer|min:1|max:10',
+            'purchase_note' => 'nullable|string|max:500',
+            // Paid events (item_type=event): plan_id = event id. Required
+            // when the event defines options.
+            'event_configuration_id' => 'nullable|uuid',
+            // Discounts for memberships / service packages. The server
+            // re-prices with them; the client total must then match.
+            'promo_code_id' => 'nullable|uuid',
+            'offer_id' => 'nullable|uuid',
         ]);
 
         $user = $request->user();
@@ -107,7 +149,49 @@ class PaymobController extends Controller
         }
 
         // Server-derived price. The client never sets the amount.
-        $catalog = $this->resolveCatalogPrice($gymId, $validated['plan_id']);
+        $itemType = $validated['item_type'] ?? null;
+        if ($itemType === 'product') {
+            $line = ProductStock::resolveLine(
+                $gymId, $validated['plan_id'], $validated['variant_id'] ?? null,
+                (int) ($validated['quantity'] ?? 1),
+            );
+            if (isset($line['error'])) {
+                return response()->json(['error' => $line['error'], 'code' => $line['code']], $line['status']);
+            }
+            $catalog = [
+                'type' => 'product',
+                'name' => $line['name'],
+                'price_cents' => $line['amount_cents'],
+                'currency' => $line['product']->currency ?? 'EGP',
+                'row' => $line['product'],
+                'meta' => $line['meta'],
+            ];
+        } elseif ($itemType === 'event') {
+            $event = DB::table('events')
+                ->where('id', $validated['plan_id'])->where('gym_id', $gymId)
+                ->where('is_published', true)->first();
+            if (! $event || ! $event->is_paid || $event->price_cents === null) {
+                return response()->json(['error' => 'Item not available for purchase'], 404);
+            }
+            if ($err = EventRegistrationRules::check($event, $validated['member_id'])) {
+                return response()->json(['error' => $err['error'], 'code' => $err['code']], $err['status']);
+            }
+            $eventConfig = EventConfigurations::resolveSelection($event->id, $validated['event_configuration_id'] ?? null);
+            if (isset($eventConfig['error'])) {
+                return response()->json(['error' => $eventConfig['error'], 'code' => $eventConfig['code']], 422);
+            }
+            $catalog = [
+                'type' => 'event',
+                'name' => $eventConfig['name'] !== null ? "{$event->title} — {$eventConfig['name']}" : $event->title,
+                'price_cents' => (int) $event->price_cents,
+                'currency' => $event->currency ?? 'EGP',
+                'row' => $event,
+                'config' => $eventConfig,
+                'meta' => ['event_id' => $event->id],
+            ];
+        } else {
+            $catalog = $this->resolveCatalogPrice($gymId, $validated['plan_id']);
+        }
         if (! $catalog) {
             Log::warning('Paymob intention: plan/package not found in caller gym', [
                 'gym_id' => $gymId,
@@ -117,6 +201,44 @@ class PaymobController extends Controller
             return response()->json(['error' => 'Item not available for purchase'], 404);
         }
         $amountCents = $catalog['price_cents'];
+
+        // Offers and promo codes (memberships / service packages only).
+        // Same rules the app shows the member: an active, unexpired offer
+        // linked to this plan/package replaces the price, then a valid promo
+        // code is taken off that (validate_promo_code semantics).
+        $listCents = $amountCents;
+        $promoCodeId = null;
+        if (in_array($catalog['type'], ['membership', 'service_package'], true)) {
+            if (! empty($validated['offer_id'])) {
+                $offer = DB::table('gym_offers')
+                    ->where('id', $validated['offer_id'])
+                    ->where('gym_id', $gymId)
+                    ->where('status', 'active')
+                    ->where('expires_at', '>', now())
+                    ->whereNotNull('offer_price')
+                    ->where(fn ($q) => $q->where('linked_plan_id', $validated['plan_id'])
+                        ->orWhere('linked_package_id', $validated['plan_id']))
+                    ->first();
+                if (! $offer) {
+                    return response()->json(['error' => 'This offer is no longer available.', 'code' => 'offer_unavailable'], 422);
+                }
+                $amountCents = (int) round((float) $offer->offer_price * 100);
+            }
+            if (! empty($validated['promo_code_id'])) {
+                $promo = $this->resolvePromo($gymId, $validated['promo_code_id'], $user->id);
+                if (isset($promo['error'])) {
+                    return response()->json(['error' => $promo['error'], 'code' => 'promo_invalid'], 422);
+                }
+                $promoRow = $promo['row'];
+                $discount = $promoRow->discount_type === 'percent'
+                    ? (int) round($amountCents * (float) $promoRow->discount_value / 100)
+                    : min((int) round((float) $promoRow->discount_value * 100), $amountCents);
+                $amountCents = max(0, $amountCents - $discount);
+                $promoCodeId = $promoRow->id;
+            }
+        }
+        $discountCents = max(0, $listCents - $amountCents);
+
         if ($amountCents < 100) {
             return response()->json(['error' => 'Item price is below the minimum chargeable amount'], 422);
         }
@@ -135,6 +257,10 @@ class PaymobController extends Controller
                 'error' => 'Price has changed. Please refresh and try again.',
                 'code' => 'price_mismatch',
             ], 409);
+        }
+
+        if (isset($catalog['currency'])) {
+            $validated['currency'] = $catalog['currency'];
         }
 
         $creds = $this->paymob->resolveCredentials($gymId);
@@ -159,12 +285,28 @@ class PaymobController extends Controller
         // instead of creating duplicates).
         try {
             [$payment, $entitlementId] = DB::transaction(function () use (
-                $validated, $gymId, $catalog, $amountCents
+                $validated, $gymId, $catalog, $amountCents, $user, $listCents, $discountCents, $promoCodeId
             ) {
                 $catRow            = $catalog['row'];
                 $membershipId      = null;
                 $serviceAssignment = null;
                 $entitlementId     = null;
+                $eventRegistrationId = null;
+
+                if ($catalog['type'] === 'event') {
+                    // Re-check under the event row lock so concurrent
+                    // checkouts can't overfill it, then hold the seat with a
+                    // pending_payment registration the webhook confirms.
+                    $event = DB::table('events')->where('id', $catRow->id)->lockForUpdate()->first();
+                    if ($err = EventRegistrationRules::check($event, $validated['member_id'])) {
+                        throw new \App\Exceptions\CheckoutRejected($err['error'], $err['code']);
+                    }
+                    $eventRegistrationId = EventRegistrationRules::upsert(
+                        $event, $validated['member_id'], $user->id,
+                        'pending_payment', 'unpaid', $catalog['config'],
+                    );
+                    $entitlementId = $eventRegistrationId;
+                }
 
                 if ($catalog['type'] === 'membership') {
                     $startDate = now()->toDateString();
@@ -187,8 +329,8 @@ class PaymobController extends Controller
                         'sessions_total' => $catRow->session_count,
                         'sessions_used' => 0,
                         'sessions_remaining' => $catRow->session_count,
-                        'original_price' => $amountCents / 100,
-                        'discount_amount' => 0,
+                        'original_price' => $listCents / 100,
+                        'discount_amount' => $discountCents / 100,
                         'final_price' => $amountCents / 100,
                         'invitations_remaining' => $catRow->invitations_enabled
                             ? ($catRow->invitations_per_cycle ?? 0)
@@ -224,7 +366,9 @@ class PaymobController extends Controller
                     'membership_id' => $membershipId,
                     'service_assignment_id' => $serviceAssignment,
                     'amount' => number_format($amountCents / 100, 2, '.', ''),
-                    'original_amount' => number_format($amountCents / 100, 2, '.', ''),
+                    'original_amount' => number_format($listCents / 100, 2, '.', ''),
+                    'discount_amount' => number_format($discountCents / 100, 2, '.', ''),
+                    'promo_code_id' => $promoCodeId,
                     'currency' => $validated['currency'] ?? 'EGP',
                     'payment_method' => ($validated['payment_method'] ?? 'card') === 'valu' ? 'valu' : 'card',
                     'status' => 'pending',
@@ -232,6 +376,12 @@ class PaymobController extends Controller
                     'service_type' => $catalog['type'],
                     'service_name' => $catalog['name'],
                     'specialist_name' => $validated['specialist_name'] ?? null,
+                    'event_registration_id' => $eventRegistrationId,
+                    'metadata' => $catalog['meta'] ?? null,
+                    // Customer's note on a store purchase ("size M please").
+                    'notes' => ($catalog['type'] === 'product' && trim((string) ($validated['purchase_note'] ?? '')) !== '')
+                        ? 'Customer note: ' . trim($validated['purchase_note'])
+                        : null,
                 ]);
 
                 return [$payment, $entitlementId];
@@ -254,6 +404,8 @@ class PaymobController extends Controller
                     'entitlement_id' => $entitlementId,
                 ],
             ]);
+        } catch (\App\Exceptions\CheckoutRejected $e) {
+            return response()->json(['error' => $e->getMessage(), 'code' => $e->errorCode], 422);
         } catch (\Throwable $e) {
             Log::error('Paymob intention failed', [
                 'error' => $e->getMessage(),
@@ -367,12 +519,22 @@ class PaymobController extends Controller
         $appendedNotes = trim(($payment->notes ? $payment->notes . "\n" : '') . $newNote);
 
         DB::transaction(function () use ($payment, $newStatus, $newRefundedCents, $appendedNotes) {
-            $payment->update([
+            $updates = [
                 'status' => $newStatus,
                 'refunded_amount' => number_format($newRefundedCents / 100, 2, '.', ''),
                 'refunded_at' => now(),
                 'notes' => $appendedNotes,
-            ]);
+            ];
+
+            if ($newStatus === 'refunded') {
+                // Full refund of a store sale puts the stock back (once); of
+                // an event payment, frees the seat. Shared with delete.
+                if ($meta = DeskSales::reverse($payment)) {
+                    $updates['metadata'] = $meta;
+                }
+            }
+
+            $payment->update($updates);
         });
 
         return response()->json([
@@ -535,6 +697,50 @@ class PaymobController extends Controller
                     ->update([
                         'status' => 'active',
                     ]);
+            }
+
+            // Promo used on this payment: record the redemption once, now
+            // that the money is captured (counts toward max_uses and the
+            // per-member limit).
+            if ($target->promo_code_id) {
+                $memberUserId = DB::table('gym_members')->where('id', $target->gym_member_id)->value('user_id');
+                if ($memberUserId) {
+                    DB::table('promo_code_redemptions')->insert([
+                        'id' => (string) Str::uuid(),
+                        'promo_code_id' => $target->promo_code_id,
+                        'member_id' => $memberUserId,
+                        'membership_id' => $target->membership_id,
+                        'discount_applied' => (float) ($target->discount_amount ?? 0),
+                        'redeemed_at' => now(),
+                    ]);
+                    DB::table('promo_codes')->where('id', $target->promo_code_id)->increment('uses_count');
+                }
+            }
+
+            // Confirm a paid event registration. Money was captured, so the
+            // seat is confirmed even if the hold lapsed meanwhile.
+            if ($target->event_registration_id) {
+                DB::table('event_registrations')
+                    ->where('id', $target->event_registration_id)
+                    ->where('gym_id', $gymId)
+                    ->update(['status' => 'confirmed', 'payment_status' => 'paid', 'updated_at' => now()]);
+            }
+
+            // Store purchase: take stock now that the payment is captured
+            // (never at intention — abandoned checkouts must not consume it).
+            $meta = $target->metadata ?? [];
+            if ($target->service_type === 'product' && ! empty($meta['product_id'])
+                && empty($meta['stock_decremented']) && empty($meta['stock_error'])) {
+                if (ProductStock::take($meta)) {
+                    $meta['stock_decremented'] = true;
+                } else {
+                    // Sold out between checkout and payment: keep the money
+                    // record, flag it for staff (refund or restock), never
+                    // let stock go negative.
+                    $meta['stock_error'] = 'insufficient_stock';
+                    Log::warning('Store purchase paid without stock', ['payment_id' => $target->id]);
+                }
+                $target->update(['metadata' => $meta]);
             }
         });
 

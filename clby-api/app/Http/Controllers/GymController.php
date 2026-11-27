@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Gym;
 use App\Services\StorageService;
+use App\Support\AppLayout;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -60,6 +61,7 @@ class GymController extends Controller
             'services' => $gym->services,
             'mobile_payments_enabled' => $gym->mobile_payments_enabled,
             'session_transfer_enabled' => $gym->session_transfer_enabled,
+            'app_layout' => AppLayout::normalize($gym->app_layout),
         ]);
     }
 
@@ -90,7 +92,16 @@ class GymController extends Controller
             'longitude' => 'nullable|numeric',
             'services' => 'nullable|array',
             'is_listed' => 'sometimes|boolean',
+            'app_layout' => 'nullable|array',
+            'app_layout.home' => 'sometimes|array|max:20',
+            'app_layout.explore' => 'sometimes|array|max:20',
+            'app_layout.*.*.key' => 'required|string|max:50',
+            'app_layout.*.*.visible' => 'required|boolean',
         ]);
+
+        if (array_key_exists('app_layout', $validated)) {
+            $validated['app_layout'] = AppLayout::normalize($validated['app_layout']);
+        }
 
         $gym->update($validated);
 

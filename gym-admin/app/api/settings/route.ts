@@ -41,6 +41,7 @@ export async function PATCH(req: NextRequest) {
   if (body.session_transfer_enabled !== undefined) payload.session_transfer_enabled = body.session_transfer_enabled;
   if (body.capacityEnabled !== undefined) payload.capacity_feature_enabled = body.capacityEnabled;
   if (body.capacity_feature_enabled !== undefined) payload.capacity_feature_enabled = body.capacity_feature_enabled;
+  if (body.app_layout !== undefined) payload.app_layout = body.app_layout;
   if (body.maxCapacity !== undefined) payload.max_capacity = body.maxCapacity;
   if (body.max_capacity !== undefined) payload.max_capacity = body.max_capacity;
 

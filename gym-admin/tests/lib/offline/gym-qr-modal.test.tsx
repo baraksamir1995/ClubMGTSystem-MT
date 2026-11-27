@@ -4,8 +4,6 @@ import { NextIntlClientProvider } from 'next-intl';
 import enAttendance from '@/messages/en/attendance.json';
 import enCommon from '@/messages/en/common.json';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
-
 import GymQRModal from '@/components/attendance/gym-qr-modal';
 
 const BRANCH = { id: 'b0b0b0b0-1111-4222-8333-444444444444', name: 'Downtown' } as never;
@@ -33,7 +31,18 @@ describe('GymQRModal (PHASE3 §5)', () => {
     expect(screen.getByText(/Signed QR/)).toBeInTheDocument();
     expect(screen.queryByText(/Couldn't load the signed QR/)).toBeNull();
     expect(fetchMock.mock.calls.map((c) => String(c[0]))).toEqual([`/api/branches/${(BRANCH as { id: string }).id}/qr?mode=static`]);
-    expect(screen.getByText('Open kiosk screen')).toBeInTheDocument();
+    expect(screen.queryByText(/kiosk/i)).toBeNull();
+  });
+
+  it('a fixed QR valid for years says it stays the same until Regenerate (no "Valid until")', async () => {
+    const tenYears = new Date(Date.now() + 3650 * 86_400_000).toISOString();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ qr: '{"type":"gym_access","v":2}', mode: 'static', expires_at: tenYears, kid: 'k1' }), { status: 200 })),
+    );
+    setup();
+    expect(await screen.findByText(/stays the same until you press Regenerate/)).toBeInTheDocument();
+    expect(screen.queryByText(/Valid until/)).toBeNull();
   });
 
   it('falls back to the v1 QR with a note when the signed endpoint fails', async () => {

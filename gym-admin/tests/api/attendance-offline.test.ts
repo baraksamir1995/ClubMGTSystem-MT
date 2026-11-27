@@ -15,7 +15,6 @@ import { middleware } from '@/middleware';
 import { resolveGymId } from '@/lib/api-gym-id';
 import { POST as attendancePost } from '@/app/api/attendance/route';
 import { GET as branchQrGet } from '@/app/api/branches/[id]/qr/route';
-import { GET as rotatingGet } from '@/app/api/branches/[id]/qr/rotating-batch/route';
 
 const ME = { id: 'u1', gym_id: 'gym-1', role: 'staff' };
 
@@ -284,7 +283,7 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     return r;
   };
 
-  it.each(['/api/attendance/sync', '/api/attendance/offline/bootstrap', '/api/attendance/offline/status', '/api/attendance/offline/events', '/api/members/11111111-2222-3333-4444-555555555555/member-pass', '/api/branches/11111111-2222-3333-4444-555555555555/qr', '/api/branches/11111111-2222-3333-4444-555555555555/qr/rotating-batch'])(
+  it.each(['/api/attendance/sync', '/api/attendance/offline/bootstrap', '/api/attendance/offline/status', '/api/attendance/offline/events', '/api/members/11111111-2222-3333-4444-555555555555/member-pass', '/api/branches/11111111-2222-3333-4444-555555555555/qr'])(
     '%s without cookie → 401 JSON',
     async (path) => {
       const res = await middleware(req(path));
@@ -293,7 +292,7 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     },
   );
 
-  it.each(['/api/attendance', '/api/attendance/syncx', '/api/attendance/offline', '/dashboard/attendance', '/api/members', '/api/members/x', '/api/members/x/member-pass/extra', '/api/branches/x/qr-token', '/api/branches/x/qr/other'])(
+  it.each(['/api/attendance', '/api/attendance/syncx', '/api/attendance/offline', '/dashboard/attendance', '/api/members', '/api/members/x', '/api/members/x/member-pass/extra', '/api/branches/x/qr-token', '/api/branches/x/qr/other', '/api/branches/x/qr/rotating-batch'])(
     '%s without cookie still redirects to /login (unchanged)',
     async (path) => {
       const res = await middleware(req(path));
@@ -332,7 +331,7 @@ describe('existing POST /api/attendance: method allowlist (policy-off staff QR)'
   });
 });
 
-describe('PHASE3 branch QR proxies', () => {
+describe('PHASE3 branch QR proxy (fixed static QR)', () => {
   const B = 'b0b0b0b0-1111-4222-8333-444444444444';
   let n = 0;
   beforeEach(() => {
@@ -358,7 +357,7 @@ describe('PHASE3 branch QR proxies', () => {
     vi.stubGlobal('fetch', fetchMock);
     expect((await branchQrGet(req(`/api/branches/${B}/qr?mode=rotating`), { params: { id: B } })).status).toBe(422);
     expect((await branchQrGet(req('/api/branches/x/qr'), { params: { id: '../members' } })).status).toBe(404);
-    expect((await rotatingGet(req('/api/branches/x/qr/rotating-batch'), { params: { id: `${B}/../x` } })).status).toBe(404);
+    expect((await branchQrGet(req('/api/branches/x/qr'), { params: { id: `${B}/../x` } })).status).toBe(404);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -366,7 +365,7 @@ describe('PHASE3 branch QR proxies', () => {
     vi.stubGlobal('fetch', backend(() => json({ error: 'Not found' }, 404)));
     expect((await branchQrGet(req(`/api/branches/${B}/qr`), { params: { id: B } })).status).toBe(404);
     vi.stubGlobal('fetch', backend(() => json({ message: 'Forbidden', required: 'attendance' }, 403)));
-    expect((await rotatingGet(req(`/api/branches/${B}/qr/rotating-batch`), { params: { id: B } })).status).toBe(403);
+    expect((await branchQrGet(req(`/api/branches/${B}/qr`), { params: { id: B } })).status).toBe(403);
   });
 
   it('no / invalid session → JSON 401', async () => {
@@ -376,29 +375,7 @@ describe('PHASE3 branch QR proxies', () => {
     expect(await r1.json()).toMatchObject({ code: 'auth_required' });
     cookieGet.mockReturnValue({ value: `1|expired-${'q'.repeat(16)}` });
     vi.stubGlobal('fetch', vi.fn(async () => json({ message: 'Unauthenticated.' }, 401)));
-    expect((await rotatingGet(req(`/api/branches/${B}/qr/rotating-batch`), { params: { id: B } })).status).toBe(401);
-  });
-
-  it.each([
-    ['', 12],
-    ['?hours=6', 6],
-    ['?hours=24', 24],
-    ['?hours=99', 24],
-    ['?hours=0', 1],
-    ['?hours=abc', 12],
-    ['?hours=-3', 12],
-    ['?hours=1.5', 12],
-  ])('rotating-batch%s → hours=%i upstream', async (qs, hours) => {
-    const fetchMock = backend(() => json({ tokens: [], kid: 'k', generated_at: 'x' }));
-    vi.stubGlobal('fetch', fetchMock);
-    await rotatingGet(req(`/api/branches/${B}/qr/rotating-batch${qs}`), { params: { id: B } });
-    expect(upstreamCall(fetchMock).url).toBe(`http://backend.test/api/branches/${B}/qr/rotating-batch?hours=${hours}`);
-  });
-
-  it('rotating-batch returns only {tokens:[{qr,iat,exp}], kid, generated_at}', async () => {
-    vi.stubGlobal('fetch', backend(() => json({ tokens: [{ qr: 'A', iat: 1, exp: 61, jti: 'x', sig: 's' }], kid: 'k', generated_at: 'g', secret_key: 'no' })));
-    const res = await rotatingGet(req(`/api/branches/${B}/qr/rotating-batch`), { params: { id: B } });
-    expect(await res.json()).toEqual({ tokens: [{ qr: 'A', iat: 1, exp: 61 }], kid: 'k', generated_at: 'g' });
+    expect((await branchQrGet(req(`/api/branches/${B}/qr`), { params: { id: B } })).status).toBe(401);
   });
 });
 

@@ -1,11 +1,10 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { QrCode, Download, Printer, RefreshCw, AlertTriangle, Loader2, MonitorPlay, ShieldCheck } from 'lucide-react';
+import { QrCode, Download, Printer, RefreshCw, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import type { StaticBranchQr } from '@/lib/offline/types';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Button, Modal, Select } from '@/components/ui';
@@ -16,11 +15,13 @@ interface Props {
   onClose: () => void;
 }
 
+/** Show "Valid until" only when the poster expires within a year. */
+export const EXPIRY_WORTH_SHOWING_MS = 365 * 24 * 60 * 60 * 1000;
+
 export default function GymQRModal({ gymId, branches, onClose }: Props) {
   const t = useTranslations('attendance');
   const tc = useTranslations('common');
   const format = useFormatter();
-  const router = useRouter();
   const qrRef = useRef<HTMLDivElement>(null);
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
@@ -102,9 +103,13 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
     : JSON.stringify({ type: 'gym_access', gym_id: gymId, branch_id: selectedBranchId || null });
   const checkinUrl = signed?.qr ?? v1Payload;
   const branchLabel = selectedBranch ? selectedBranch.name : t('qrModal.gymMainEntrance');
-  const validUntil = signed?.expires_at
-    ? t('qrModal.validUntil', { date: format.dateTime(new Date(signed.expires_at), { dateStyle: 'long' }) })
-    : null;
+  // The signed QR is fixed (same text on every call, ~10-year validity): an expiry
+  // date is only worth showing when it's close enough to matter.
+  const expiresMs = signed?.expires_at ? Date.parse(signed.expires_at) : NaN;
+  const validUntil =
+    !Number.isNaN(expiresMs) && expiresMs - Date.now() < EXPIRY_WORTH_SHOWING_MS
+      ? t('qrModal.validUntil', { date: format.dateTime(new Date(expiresMs), { dateStyle: 'long' }) })
+      : null;
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -206,6 +211,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
             <p className="text-sm font-medium text-fg">{branchLabel}</p>
             <p className="text-xs text-fg-faint mt-0.5">{t('qrModal.membersInstruction')}</p>
             {validUntil && <p className="text-xs text-fg-muted mt-0.5">{validUntil}</p>}
+            {signed && !validUntil && <p className="text-xs text-fg-muted mt-0.5">{t('qrModal.staysSame')}</p>}
           </div>
 
           {!tokenLoading && signed && (
@@ -230,17 +236,6 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
               {t('qrModal.print')}
             </Button>
           </div>
-
-          {selectedBranchId && (
-            <Button
-              variant="secondary"
-              fullWidth
-              onClick={() => router.push(`/dashboard/attendance/kiosk/${selectedBranchId}`)}
-              leftIcon={<MonitorPlay className="w-4 h-4" />}
-            >
-              {t('qrModal.openKiosk')}
-            </Button>
-          )}
 
           {/* Regenerate */}
           {selectedBranchId && (

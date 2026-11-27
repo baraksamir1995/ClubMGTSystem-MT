@@ -19,7 +19,6 @@ import type {
   CachedClassSession,
   CachedMember,
   CachedMembership,
-  KioskBatch,
   MetaKey,
   MetaValues,
   OutboxRow,
@@ -28,7 +27,7 @@ import type {
   SyncStatus,
 } from './types';
 
-export const DB_VERSION = 2;
+export const DB_VERSION = 1;
 export const DB_PREFIX = 'clby-offline';
 export const DEVICE_DB_NAME = 'clby-offline-device';
 
@@ -55,8 +54,6 @@ export interface OfflineDBSchema extends DBSchema {
     value: RecentAttendance;
     indexes: { gym_member_id: string; member_session: [string, string] };
   };
-  /** v2: pre-signed rotating branch QR batches for the kiosk screen (key = branch_id) */
-  kiosk_batches: { key: string; value: KioskBatch };
   outbox: {
     key: string; // event_id
     value: OutboxRow;
@@ -131,11 +128,6 @@ export async function openOfflineDb(gymId: string, userId: string): Promise<Offl
         outbox.createIndex('recorded_at_ms', 'recorded_at_ms');
         outbox.createIndex('member_id', 'member_id');
         outbox.createIndex('member_session', ['member_id', 'class_session_id']);
-      }
-      if (oldVersion < 2) {
-        // Phase 3 kiosk: NOT part of CACHE_STORES (a bootstrap snapshot replace
-        // must not drop it), but wiped on logout with the other cached data.
-        database.createObjectStore('kiosk_batches', { keyPath: 'branch_id' });
       }
     },
     blocking() {
@@ -311,12 +303,11 @@ export async function replaceSnapshot(db: OfflineDB, data: SnapshotData): Promis
   await Promise.all(ops);
 }
 
-/** Wipe cached operational data incl. kiosk batches (keeps outbox, device id, identity, policy). */
+/** Wipe cached operational data (keeps outbox, device id, identity, policy). */
 export async function wipeCache(db: OfflineDB): Promise<void> {
-  const tx = db.transaction([...CACHE_STORES, 'kiosk_batches', 'meta'], 'readwrite');
+  const tx = db.transaction([...CACHE_STORES, 'meta'], 'readwrite');
   const ops: Promise<unknown>[] = [];
   for (const name of CACHE_STORES) ops.push(tx.objectStore(name).clear());
-  ops.push(tx.objectStore('kiosk_batches').clear());
   for (const k of SNAPSHOT_META_KEYS) ops.push(tx.objectStore('meta').delete(k));
   ops.push(tx.done);
   await Promise.all(ops);
@@ -363,14 +354,4 @@ export async function searchMembers(db: OfflineDB, query: string, limit = 20): P
     cursor = await cursor.continue();
   }
   return out;
-}
-
-// ── kiosk batches (v2) ──────────────────────────────────────────────────────
-
-export async function putKioskBatch(db: OfflineDB, batch: KioskBatch): Promise<void> {
-  await db.put('kiosk_batches', batch);
-}
-
-export async function getKioskBatch(db: OfflineDB, branchId: string): Promise<KioskBatch | undefined> {
-  return db.get('kiosk_batches', branchId);
 }

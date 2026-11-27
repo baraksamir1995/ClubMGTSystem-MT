@@ -120,6 +120,9 @@ class CachedBranches extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  /// Current `branches.qr_token` (member snapshot, Phase 3): a v2 branch
+  /// QR must carry exactly this token. Added in schema v3.
+  TextColumn get qrToken => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

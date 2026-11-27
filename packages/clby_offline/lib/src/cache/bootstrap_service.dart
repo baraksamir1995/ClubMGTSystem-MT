@@ -146,6 +146,7 @@ class BootstrapService {
     Map<String, Object?>? gym;
     Map<String, Object?>? serverPolicy;
     Map<String, Object?>? me;
+    Map<String, Object?>? memberPass;
 
     void addBuckets(String memberId, Object? list) {
       if (list is! List) return;
@@ -201,6 +202,8 @@ class BootstrapService {
       for (final m in page.list('members')) {
         addMember(m);
       }
+      final mp = page.json['member_pass'];
+      if (mp is Map && memberPass == null) memberPass = mp.cast<String, Object?>();
       final self = page.member;
       if (self != null) {
         me ??= self;
@@ -215,6 +218,7 @@ class BootstrapService {
           id: id,
           name: _s(b['name']) ?? '',
           isActive: Value(b['is_active'] != false),
+          qrToken: Value(_s(b['qr_token'])),
         );
       }
       for (final c in page.list('class_sessions')) {
@@ -307,6 +311,8 @@ class BootstrapService {
           SyncMetaKeys.lastBootstrapAt, _now().toUtc().toIso8601String());
       await db.writeMeta(SyncMetaKeys.gym, gym == null ? null : jsonEncode(gym));
       await db.writeMeta(SyncMetaKeys.member, me == null ? null : jsonEncode(me));
+      await db.writeMeta(
+          SyncMetaKeys.memberPass, memberPass == null ? null : jsonEncode(memberPass));
     });
     if (serverPolicy != null) await policy.applyServerPolicy(serverPolicy);
 

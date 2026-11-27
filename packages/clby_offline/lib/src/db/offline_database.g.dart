@@ -3039,8 +3039,19 @@ class $CachedBranchesTable extends CachedBranches
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _qrTokenMeta = const VerificationMeta(
+    'qrToken',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, isActive];
+  late final GeneratedColumn<String> qrToken = GeneratedColumn<String>(
+    'qr_token',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, isActive, qrToken];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3072,6 +3083,12 @@ class $CachedBranchesTable extends CachedBranches
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('qr_token')) {
+      context.handle(
+        _qrTokenMeta,
+        qrToken.isAcceptableOrUnknown(data['qr_token']!, _qrTokenMeta),
+      );
+    }
     return context;
   }
 
@@ -3093,6 +3110,10 @@ class $CachedBranchesTable extends CachedBranches
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      qrToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}qr_token'],
+      ),
     );
   }
 
@@ -3106,10 +3127,15 @@ class CachedBranch extends DataClass implements Insertable<CachedBranch> {
   final String id;
   final String name;
   final bool isActive;
+
+  /// Current `branches.qr_token` (member snapshot, Phase 3): a v2 branch
+  /// QR must carry exactly this token. Added in schema v3.
+  final String? qrToken;
   const CachedBranch({
     required this.id,
     required this.name,
     required this.isActive,
+    this.qrToken,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3117,6 +3143,9 @@ class CachedBranch extends DataClass implements Insertable<CachedBranch> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || qrToken != null) {
+      map['qr_token'] = Variable<String>(qrToken);
+    }
     return map;
   }
 
@@ -3125,6 +3154,9 @@ class CachedBranch extends DataClass implements Insertable<CachedBranch> {
       id: Value(id),
       name: Value(name),
       isActive: Value(isActive),
+      qrToken: qrToken == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qrToken),
     );
   }
 
@@ -3137,6 +3169,7 @@ class CachedBranch extends DataClass implements Insertable<CachedBranch> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      qrToken: serializer.fromJson<String?>(json['qrToken']),
     );
   }
   @override
@@ -3146,20 +3179,27 @@ class CachedBranch extends DataClass implements Insertable<CachedBranch> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'isActive': serializer.toJson<bool>(isActive),
+      'qrToken': serializer.toJson<String?>(qrToken),
     };
   }
 
-  CachedBranch copyWith({String? id, String? name, bool? isActive}) =>
-      CachedBranch(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        isActive: isActive ?? this.isActive,
-      );
+  CachedBranch copyWith({
+    String? id,
+    String? name,
+    bool? isActive,
+    Value<String?> qrToken = const Value.absent(),
+  }) => CachedBranch(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    isActive: isActive ?? this.isActive,
+    qrToken: qrToken.present ? qrToken.value : this.qrToken,
+  );
   CachedBranch copyWithCompanion(CachedBranchesCompanion data) {
     return CachedBranch(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      qrToken: data.qrToken.present ? data.qrToken.value : this.qrToken,
     );
   }
 
@@ -3168,37 +3208,42 @@ class CachedBranch extends DataClass implements Insertable<CachedBranch> {
     return (StringBuffer('CachedBranch(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('qrToken: $qrToken')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, isActive);
+  int get hashCode => Object.hash(id, name, isActive, qrToken);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CachedBranch &&
           other.id == this.id &&
           other.name == this.name &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.qrToken == this.qrToken);
 }
 
 class CachedBranchesCompanion extends UpdateCompanion<CachedBranch> {
   final Value<String> id;
   final Value<String> name;
   final Value<bool> isActive;
+  final Value<String?> qrToken;
   final Value<int> rowid;
   const CachedBranchesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.qrToken = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CachedBranchesCompanion.insert({
     required String id,
     required String name,
     this.isActive = const Value.absent(),
+    this.qrToken = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name);
@@ -3206,12 +3251,14 @@ class CachedBranchesCompanion extends UpdateCompanion<CachedBranch> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<bool>? isActive,
+    Expression<String>? qrToken,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (isActive != null) 'is_active': isActive,
+      if (qrToken != null) 'qr_token': qrToken,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3220,12 +3267,14 @@ class CachedBranchesCompanion extends UpdateCompanion<CachedBranch> {
     Value<String>? id,
     Value<String>? name,
     Value<bool>? isActive,
+    Value<String?>? qrToken,
     Value<int>? rowid,
   }) {
     return CachedBranchesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       isActive: isActive ?? this.isActive,
+      qrToken: qrToken ?? this.qrToken,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3242,6 +3291,9 @@ class CachedBranchesCompanion extends UpdateCompanion<CachedBranch> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (qrToken.present) {
+      map['qr_token'] = Variable<String>(qrToken.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3254,6 +3306,7 @@ class CachedBranchesCompanion extends UpdateCompanion<CachedBranch> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('isActive: $isActive, ')
+          ..write('qrToken: $qrToken, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7118,6 +7171,7 @@ typedef $$CachedBranchesTableCreateCompanionBuilder =
       required String id,
       required String name,
       Value<bool> isActive,
+      Value<String?> qrToken,
       Value<int> rowid,
     });
 typedef $$CachedBranchesTableUpdateCompanionBuilder =
@@ -7125,6 +7179,7 @@ typedef $$CachedBranchesTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<bool> isActive,
+      Value<String?> qrToken,
       Value<int> rowid,
     });
 
@@ -7149,6 +7204,11 @@ class $$CachedBranchesTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qrToken => $composableBuilder(
+    column: $table.qrToken,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7176,6 +7236,11 @@ class $$CachedBranchesTableOrderingComposer
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get qrToken => $composableBuilder(
+    column: $table.qrToken,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CachedBranchesTableAnnotationComposer
@@ -7195,6 +7260,9 @@ class $$CachedBranchesTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get qrToken =>
+      $composableBuilder(column: $table.qrToken, builder: (column) => column);
 }
 
 class $$CachedBranchesTableTableManager
@@ -7237,11 +7305,13 @@ class $$CachedBranchesTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<String?> qrToken = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedBranchesCompanion(
                 id: id,
                 name: name,
                 isActive: isActive,
+                qrToken: qrToken,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7249,11 +7319,13 @@ class $$CachedBranchesTableTableManager
                 required String id,
                 required String name,
                 Value<bool> isActive = const Value.absent(),
+                Value<String?> qrToken = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedBranchesCompanion.insert(
                 id: id,
                 name: name,
                 isActive: isActive,
+                qrToken: qrToken,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

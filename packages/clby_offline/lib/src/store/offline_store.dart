@@ -11,6 +11,7 @@ import '../db/offline_database.dart';
 import '../db/open.dart';
 import '../errors.dart';
 import '../model/clock_offset.dart';
+import '../pass/branch_qr.dart';
 import '../pass/member_pass.dart';
 import '../model/enums.dart';
 import '../model/policy_holder.dart';
@@ -45,6 +46,46 @@ class OfflineStore {
 
   /// Shared server-time estimate (status / bootstrap / sync / recorder).
   final ServerClock serverClock;
+
+  /// White-label gym lock for branch QRs (`Env.gymId`), set by the app.
+  String? gymLock;
+
+  /// Offline v2 branch-QR verification (PHASE3-CONTRACT §2).
+  BranchQrVerifier get branchQrVerifier => BranchQrVerifier(
+      db: db, gymId: scope.gymId, serverClock: serverClock, policy: policy, gymLock: gymLock);
+
+  /// The member's own cached pass `{qr, expires_at, kid}` (member snapshot).
+  Future<CachedMemberPass?> memberPass() async {
+    final raw = await db.readMeta(SyncMetaKeys.memberPass);
+    if (raw == null) return null;
+    try {
+      final j = jsonDecode(raw);
+      if (j is! Map || j['qr'] is! String) return null;
+      return CachedMemberPass(
+        qr: j['qr'] as String,
+        expiresAt: DateTime.tryParse('${j['expires_at']}'),
+        kid: j['kid']?.toString(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The signed-in member's own `gym_member_id` (member snapshot).
+  Future<String?> ownMemberId() async {
+    final raw = await db.readMeta(SyncMetaKeys.member);
+    if (raw == null) return null;
+    try {
+      final j = jsonDecode(raw);
+      return j is Map ? j['gym_member_id']?.toString() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Cached buckets of one member (pre-check / "as of" summaries).
+  Future<List<CachedMembership>> membershipsOf(String gymMemberId) =>
+      (db.select(db.cachedMemberships)..where((t) => t.gymMemberId.equals(gymMemberId))).get();
 
   /// Offline member-pass verification (PHASE2-CONTRACT steps 1–6).
   late final MemberPassVerifier passVerifier = MemberPassVerifier(
@@ -293,4 +334,13 @@ class OfflineStore {
       await db.close();
     }
   }
+}
+
+/// The member's own pass as cached from `/offline/me`.
+class CachedMemberPass {
+  const CachedMemberPass({required this.qr, this.expiresAt, this.kid});
+  final String qr;
+  final DateTime? expiresAt;
+  final String? kid;
+  bool isExpiredAt(DateTime t) => expiresAt != null && !expiresAt!.isAfter(t);
 }

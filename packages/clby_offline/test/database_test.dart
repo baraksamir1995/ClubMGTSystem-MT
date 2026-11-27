@@ -241,9 +241,9 @@ void main() {
     setUp(() async => store = await memoryStore(transport: FakeTransport()));
     tearDown(() => store.close());
 
-    test('schema version 2 (v2 adds cached_pass_keys)', () {
-      expect(store.db.schemaVersion, 2);
-      expect(OfflineDatabase.currentSchemaVersion, 2);
+    test('schema version 3 (v2 pass keys, v3 branch qr_token)', () {
+      expect(store.db.schemaVersion, 3);
+      expect(OfflineDatabase.currentSchemaVersion, 3);
     });
 
     test('device_recorded_at / identity is immutable', () async {

@@ -23,6 +23,8 @@ abstract final class SyncMetaKeys {
   static const gym = 'gym';
   /// Member identity JSON (member app `/offline/me`).
   static const member = 'member';
+  /// The member's own pass `{qr, expires_at, kid}` (`/offline/me`, Phase 3).
+  static const memberPass = 'member_pass';
   /// `server_time - device_time` in ms, last measured.
   static const clockOffsetMs = 'clock_offset_ms';
   /// `{registered, revoked}` JSON from /offline/status.
@@ -39,6 +41,7 @@ abstract final class SyncMetaKeys {
     bootstrapCursor,
     gym,
     member,
+    memberPass,
   };
 }
 
@@ -64,7 +67,7 @@ class OfflineDatabase extends _$OfflineDatabase {
   /// Bump on every schema change and add a step to [_upgradeSteps].
   /// Exported schemas live in `drift_schemas/` (`dart run drift_dev schema
   /// dump lib/src/db/offline_database.dart drift_schemas/`).
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -73,9 +76,12 @@ class OfflineDatabase extends _$OfflineDatabase {
   /// Each step must be additive for the outbox (never drop unsynced rows).
   /// v1 is the initial schema.
   /// v2 (Phase 2): `cached_pass_keys` for offline member-pass verification.
+  /// v3 (Phase 3): `cached_branches.qr_token`.
   static final Map<int, Future<void> Function(Migrator m, OfflineDatabase db)>
       _upgradeSteps = {
     2: (m, db) => m.createTable(db.cachedPassKeys),
+    // v3 (Phase 3): branch QR tokens for offline v2 branch-QR verification.
+    3: (m, db) => m.addColumn(db.cachedBranches, db.cachedBranches.qrToken),
   };
 
   @override

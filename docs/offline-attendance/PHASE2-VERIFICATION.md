@@ -276,3 +276,6 @@ The sig and raw pass were never stored (0 rows match).
 - `p2dash-signout` tokens: 340 was revoked by the sign-out test and 341 was deleted.
 
 **Servers:** the Next dev server on :3002 was stopped. The :8082 API was left running as instructed, and :8081 was untouched.
+
+## Re-verification after fixes (2026-11-27)
+All MEDIUM findings fixed (65a7b85 API, 7520637 coach/package, efd8943 dashboard). Shared corpus v2 (66 cases): server, Dart and JS (WebCrypto + noble) agree on every case (client `qr_unknown_key` ≡ server `qr_invalid` by contract). Suites: API 279, dashboard 400 (+7 env-gated skipped), clby_offline 147 (+5 skipped), coach 21, member 14 — all green. Still device-only: real camera scanning, Android secure-storage check, coach 403 path live.

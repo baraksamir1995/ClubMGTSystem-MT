@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Services\RecurringExpenses;
 use App\Support\Revenue;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -23,10 +24,24 @@ use Illuminate\Validation\Rule;
  * inclusive). With neither given it defaults to the current calendar month
  * in the gym's timezone — the summary, the table and the export all
  * resolve it the same way, so they can never disagree.
+ *
+ * Recurring expenses (docs/recurring-expenses.md): occurrences of a
+ * schedule are rows in this same table with a recurring_expense_id. Only
+ * `status = recorded` rows are actual expenses — every one-off row is
+ * recorded, and an occurrence row only exists once its date has arrived
+ * (or as a skipped / cancelled / edited-ahead marker, which never counts).
+ * So the period math below is unchanged apart from that status filter.
  */
 class ExpenseController extends Controller
 {
     private const SORTABLE = ['expense_date', 'amount', 'created_at'];
+
+    /** Table "type" filter: expense kind, or the parent schedule's status. */
+    private const TYPES = ['all', 'one_off', 'recurring', 'active', 'paused', 'ended'];
+
+    public function __construct(private RecurringExpenses $recurring)
+    {
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -38,6 +53,7 @@ class ExpenseController extends Controller
         $request->validate([
             'search'   => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string'],
+            'type'     => ['nullable', Rule::in(self::TYPES)],
         ]);
 
         [$from, $to] = $this->period($request, Revenue::gymTimezone($gymId));
@@ -59,11 +75,10 @@ class ExpenseController extends Controller
             ->orderBy('id')
             ->offset(($page - 1) * $limit)
             ->limit($limit)
-            ->get()
-            ->map(fn ($r) => $this->present($r));
+            ->get();
 
         return response()->json([
-            'data' => $rows,
+            'data' => $this->presentAll($gymId, $rows),
             'pagination' => [
                 'page' => $page,
                 'limit' => $limit,
@@ -110,11 +125,10 @@ class ExpenseController extends Controller
         $rows = $this->inPeriod($gymId, $from, $to)
             ->orderBy('expense_date')
             ->orderBy('created_at')
-            ->get()
-            ->map(fn ($r) => $this->present($r));
+            ->get();
 
         return response()->json([
-            'data' => $rows,
+            'data' => $this->presentAll($gymId, $rows),
             'summary' => $this->summarize($gymId, $from, $to, $tz),
         ]);
     }
@@ -131,7 +145,12 @@ class ExpenseController extends Controller
             return response()->json(['error' => 'Expense not found'], 404);
         }
 
-        return response()->json(['data' => $expense]);
+        $data = $expense->toArray();
+        if ($expense->recurring_expense_id) {
+            $data['recurring'] = $this->recurringSummaries($gymId, [$expense->recurring_expense_id])[$expense->recurring_expense_id] ?? null;
+        }
+
+        return response()->json(['data' => $data]);
     }
 
     public function store(Request $request): JsonResponse
@@ -141,9 +160,13 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'No gym association found.'], 403);
         }
 
+        // One-off only. Recurrence fields are not in the rules, so a
+        // stray frequency / start_date in the body is ignored — schedules
+        // are created through POST /expenses/recurring.
         $validated = $request->validate($this->rules());
         $validated['gym_id'] = $gymId;
         $validated['created_by'] = $request->user()->id;
+        $validated['currency'] = Revenue::gymCurrency($gymId);
 
         $expense = Expense::create($validated);
 
@@ -162,9 +185,31 @@ class ExpenseController extends Controller
             return response()->json(['error' => 'Expense not found'], 404);
         }
 
-        // gym_id / created_by / created_at are not in the rules, so they
-        // can't be rewritten through this endpoint.
-        $expense->update($request->validate($this->rules(partial: true)));
+        // Skipped / cancelled / edited-ahead occurrence rows aren't actual
+        // expenses; upcoming ones are edited via the schedule endpoints.
+        if ($expense->status !== 'recorded') {
+            return response()->json(['error' => 'Only recorded expenses can be edited here.', 'message' => 'Only recorded expenses can be edited here.'], 422);
+        }
+
+        // gym_id / created_by / created_at / recurring_expense_id /
+        // scheduled_date / status are not in the rules, so they can't be
+        // rewritten through this endpoint. For an occurrence this is
+        // "edit this occurrence only": the schedule and its other
+        // occurrences are untouched.
+        $changes = $request->validate($this->rules(partial: true));
+        $before = array_intersect_key($expense->only(array_keys($changes)), $changes);
+        $expense->update($changes + ['updated_by' => $request->user()->id]);
+
+        if ($expense->recurring_expense_id) {
+            $s = DB::table('recurring_expenses')->where('id', $expense->recurring_expense_id)->first();
+            if ($s) {
+                $this->recurring->event($s, 'occurrence_edited', $request->user(), [
+                    'scheduled_date' => substr((string) $expense->scheduled_date, 0, 10),
+                    'before' => $before,
+                    'changes' => $changes,
+                ], $expense->id);
+            }
+        }
 
         return response()->json(['data' => $expense->fresh()]);
     }
@@ -180,6 +225,20 @@ class ExpenseController extends Controller
         if (! $expense) {
             return response()->json(['error' => 'Expense not found'], 404);
         }
+
+        // An occurrence is never hard-deleted: it is cancelled (kept for
+        // the schedule's history, excluded from totals), and its row keeps
+        // the (schedule, date) slot so the generator can't recreate it.
+        if ($expense->recurring_expense_id) {
+            if ($expense->status !== 'recorded') {
+                return response()->json(['error' => 'This occurrence is not a recorded expense.', 'message' => 'This occurrence is not a recorded expense.'], 422);
+            }
+            $this->recurring->cancelOccurrence((object) $expense->getAttributes(), $request->user());
+
+            return response()->json(['message' => 'Occurrence cancelled']);
+        }
+
+        // One-off: unchanged behaviour.
         $expense->delete();
 
         return response()->json(['message' => 'Expense deleted']);
@@ -244,10 +303,12 @@ class ExpenseController extends Controller
         return [$from, $to];
     }
 
+    /** Actual expenses (recorded rows) dated in the period. */
     private function inPeriod(string $gymId, string $from, string $to): Builder
     {
         return DB::table('expenses')
             ->where('gym_id', $gymId)
+            ->where('status', 'recorded')
             ->whereBetween('expense_date', [$from, $to]);
     }
 
@@ -263,6 +324,16 @@ class ExpenseController extends Controller
         if (($category = $request->query('category')) && in_array($category, Expense::CATEGORIES, true)) {
             $query->where('category', $category);
         }
+
+        match ($request->query('type')) {
+            'one_off' => $query->whereNull('recurring_expense_id'),
+            'recurring' => $query->whereNotNull('recurring_expense_id'),
+            'active', 'paused', 'ended' => $query->whereIn('recurring_expense_id', DB::table('recurring_expenses')
+                ->where('gym_id', $gymId)
+                ->where('status', $request->query('type'))
+                ->select('id')),
+            default => null,
+        };
 
         return $query;
     }
@@ -281,10 +352,20 @@ class ExpenseController extends Controller
         $revenue = Revenue::between($gymId, $from, $to, $tz, $currency);
         $excluded = Revenue::excludedCurrencies($gymId, $from, $to, $tz, $currency);
 
+        // Only the gym's currency is summed (legacy rows have no currency
+        // and are in it by definition); anything else is reported, never
+        // mixed in — same rule as revenue.
         $exp = $this->inPeriod($gymId, $from, $to)
+            ->where(fn ($q) => $q->whereNull('currency')->orWhere('currency', $currency))
             ->selectRaw('coalesce(sum(amount), 0) AS total, count(*) AS n')
             ->first();
         $expenses = (float) $exp->total;
+        $excludedExpenses = $this->inPeriod($gymId, $from, $to)
+            ->whereNotNull('currency')
+            ->where('currency', '!=', $currency)
+            ->distinct()
+            ->pluck('currency')
+            ->all();
 
         $now = CarbonImmutable::now($tz);
 
@@ -297,6 +378,7 @@ class ExpenseController extends Controller
             'timezone' => $tz,
             'currency' => $currency,
             'excluded_currencies' => $excluded,
+            'excluded_expense_currencies' => $excludedExpenses,
             'total_revenue' => round($revenue, 2),
             'total_expenses' => round($expenses, 2),
             'net_profit' => round($revenue - $expenses, 2),
@@ -304,13 +386,58 @@ class ExpenseController extends Controller
         ];
     }
 
-    private function present(object $row): array
+    /**
+     * @param \Illuminate\Support\Collection<int, object> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function presentAll(string $gymId, $rows): array
     {
-        $r = (array) $row;
-        $r['amount'] = (float) $r['amount'];
-        $r['expense_date'] = substr((string) $r['expense_date'], 0, 10);
-        unset($r['gym_id']);
+        $currency = null;
+        $schedules = $this->recurringSummaries($gymId, $rows->pluck('recurring_expense_id')->filter()->unique()->values()->all());
 
-        return $r;
+        return $rows->map(function ($row) use ($gymId, &$currency, $schedules) {
+            $r = (array) $row;
+            $r['amount'] = (float) $r['amount'];
+            $r['expense_date'] = substr((string) $r['expense_date'], 0, 10);
+            $r['scheduled_date'] = $r['scheduled_date'] ? substr((string) $r['scheduled_date'], 0, 10) : null;
+            // Legacy rows carry no currency: they are in the gym's.
+            $r['currency'] ??= ($currency ??= Revenue::gymCurrency($gymId));
+            $r['recurring'] = $r['recurring_expense_id'] ? ($schedules[$r['recurring_expense_id']] ?? null) : null;
+            unset($r['gym_id']);
+
+            return $r;
+        })->values()->all();
+    }
+
+    /**
+     * Compact schedule info for occurrence rows (Type / Schedule / next
+     * occurrence columns).
+     *
+     * @param list<string> $ids
+     * @return array<string, array<string, mixed>>
+     */
+    private function recurringSummaries(string $gymId, array $ids): array
+    {
+        if (! $ids) {
+            return [];
+        }
+        $today = $this->recurring->gymToday($gymId);
+
+        return DB::table('recurring_expenses')
+            ->where('gym_id', $gymId)
+            ->whereIn('id', $ids)
+            ->get()
+            ->mapWithKeys(fn ($s) => [$s->id => [
+                'id' => $s->id,
+                'frequency' => $s->frequency,
+                'interval' => (int) $s->interval,
+                'recurrence_day' => (int) $s->recurrence_day,
+                'recurrence_month' => $s->recurrence_month !== null ? (int) $s->recurrence_month : null,
+                'start_date' => substr((string) $s->start_date, 0, 10),
+                'end_date' => $s->end_date ? substr((string) $s->end_date, 0, 10) : null,
+                'status' => $s->status,
+                'next_occurrence' => $this->recurring->nextOccurrence($s, $today),
+            ]])
+            ->all();
     }
 }

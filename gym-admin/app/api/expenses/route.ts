@@ -6,7 +6,7 @@ import { denyUnlessPermitted } from '@/lib/get-permissions';
 
 // Fields forwarded to the Laravel /expenses endpoint. Anything outside
 // this allow-list is dropped so request URLs stay tidy.
-const FORWARD = ['page', 'limit', 'search', 'category', 'from', 'to', 'sort', 'dir'];
+const FORWARD = ['page', 'limit', 'search', 'category', 'type', 'from', 'to', 'sort', 'dir'];
 
 export async function GET(req: NextRequest) {
   const resolved = await resolveGymId();

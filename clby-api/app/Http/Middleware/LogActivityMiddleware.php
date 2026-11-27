@@ -132,6 +132,21 @@ class LogActivityMiddleware
         $parts = explode('/', $path);
         $resource = rtrim($parts[0] ?? 'resource', 's');
 
+        // Recurring expenses (before the generic matches: "/end" etc.).
+        if (str_starts_with($path, 'expenses/recurring')) {
+            $title = $request->input('title');
+            $named = $title ? " '{$title}'" : '';
+            if (str_ends_with($path, '/pause')) return "{$actorName} paused a recurring expense";
+            if (str_ends_with($path, '/resume')) return "{$actorName} resumed a recurring expense";
+            if (str_ends_with($path, '/end')) return "{$actorName} ended a recurring expense";
+            if (str_ends_with($path, '/skip')) return "{$actorName} skipped a recurring expense occurrence";
+            if (str_contains($path, '/occurrences/')) return "{$actorName} edited a recurring expense occurrence";
+
+            return $method === 'POST'
+                ? "{$actorName} created recurring expense{$named}"
+                : "{$actorName} updated recurring expense{$named} (this and future occurrences)";
+        }
+
         // Special descriptions
         if (str_contains($path, 'cancel')) return "{$actorName} cancelled a session";
         if (str_contains($path, 'checkin')) return "{$actorName} checked in a member";

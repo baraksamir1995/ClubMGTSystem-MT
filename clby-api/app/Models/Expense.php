@@ -26,13 +26,19 @@ class Expense extends Model
     protected $fillable = [
         'gym_id', 'title', 'amount', 'expense_date', 'category',
         'vendor', 'payment_method', 'description', 'created_by',
+        'currency', 'updated_by',
     ];
+
+    // recurring_expense_id / scheduled_date / status / recorded_at are
+    // deliberately NOT fillable: only App\Services\RecurringExpenses
+    // writes them (via the query builder).
 
     protected function casts(): array
     {
         return [
             'amount' => 'float',
             'expense_date' => 'date:Y-m-d',
+            'scheduled_date' => 'date:Y-m-d',
         ];
     }
 }

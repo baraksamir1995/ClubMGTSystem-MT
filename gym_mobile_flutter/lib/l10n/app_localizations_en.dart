@@ -3561,6 +3561,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The price has changed. Please refresh and try again.';
 
   @override
+  String get homeEventsTitle => 'Coming up';
+
+  @override
   String get eventsTitle => 'Events';
 
   @override

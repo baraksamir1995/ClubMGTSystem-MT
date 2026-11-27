@@ -1957,6 +1957,7 @@
   "storeErrVariantRequired": "Please choose an option first.",
   "storeErrProductUnavailable": "This product is no longer available.",
   "storeErrPriceChanged": "The price has changed. Please refresh and try again.",
+  "homeEventsTitle": "Coming up",
   "eventsTitle": "Events",
   "eventsUpcoming": "Upcoming events",
   "eventsPast": "Past events",

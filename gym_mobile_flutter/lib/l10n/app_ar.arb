@@ -1032,6 +1032,7 @@
   "storeErrVariantRequired": "يرجى اختيار أحد الخيارات أولًا.",
   "storeErrProductUnavailable": "هذا المنتج لم يعد متاحًا.",
   "storeErrPriceChanged": "تغيّر السعر. يرجى التحديث والمحاولة مرة أخرى.",
+  "homeEventsTitle": "قريبًا في النادي",
   "eventsTitle": "الفعاليات",
   "eventsUpcoming": "الفعاليات القادمة",
   "eventsPast": "الفعاليات السابقة",

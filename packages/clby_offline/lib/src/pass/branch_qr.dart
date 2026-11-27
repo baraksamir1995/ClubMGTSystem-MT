@@ -178,6 +178,9 @@ class BranchQrVerifier {
   /// `rotating_grace_seconds` (server config, default 30).
   static const rotatingGraceSeconds = 30;
 
+  /// Max `exp - iat` for a rotating code (server rule).
+  static const maxRotatingLifetimeSeconds = 120;
+
   static final _ed25519 = DartEd25519();
 
   /// [scanTime] defaults to the device clock (it becomes the event's
@@ -233,8 +236,12 @@ class BranchQrVerifier {
       return BranchQrInvalid(BranchQrFailure.qrInvalid, qr: qr, outOfDate: true);
     }
 
-    // 6. time (judged at the scan)
-    if (qr.iat > qr.exp) return BranchQrInvalid(BranchQrFailure.qrInvalid, qr: qr);
+    // 6. time (judged at the scan). A rotating code may live at most
+    // [maxRotatingLifetimeSeconds] (server rule) → else qr_invalid.
+    if (qr.iat > qr.exp ||
+        (qr.rotating && qr.exp - qr.iat > maxRotatingLifetimeSeconds)) {
+      return BranchQrInvalid(BranchQrFailure.qrInvalid, qr: qr);
+    }
     final skew = policy.value.futureSkewSeconds;
     final grace = qr.rotating ? rotatingGraceSeconds : 0;
     if (qr.iat > scanS + skew || scanS > qr.exp + grace) {

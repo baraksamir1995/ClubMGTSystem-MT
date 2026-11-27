@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'features/coach/screens/manual_log_screen.dart';
 import 'features/coach/screens/member_detail_screen.dart';
 import 'features/offline/offline_log_screen.dart';
-import 'features/offline/scan_pass_screen.dart';
 import 'features/offline/sync_status_screen.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
@@ -69,11 +68,6 @@ GoRouter buildRouter(BuildContext context) {
         name: 'offline-log',
         pageBuilder: (context, state) => _slide(OfflineLogScreen(
             args: state.extra is OfflineLogArgs ? state.extra as OfflineLogArgs : null)),
-      ),
-      GoRoute(
-        path: '/scan-pass',
-        name: 'scan-pass',
-        pageBuilder: (context, state) => _slide(const ScanPassScreen()),
       ),
       GoRoute(
         path: '/offline-status',

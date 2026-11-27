@@ -25,6 +25,7 @@ class NewOfflineEvent {
     this.classSessionId,
     this.studioId,
     this.serviceAssignmentId,
+    this.trainerId,
     this.qrRaw,
     this.note,
     this.metadata = const {},
@@ -71,6 +72,24 @@ class NewOfflineEvent {
         metadata: metadata,
       );
 
+  /// Member scanned a coach QR (Amendment 2 §C): `kind: service_session`,
+  /// `method: member_qr`, `trainer_id`, `qr.raw`. The server picks the
+  /// assignment.
+  factory NewOfflineEvent.memberServiceSession({
+    required String memberId,
+    required String trainerId,
+    required String qrRaw,
+    Map<String, Object?> metadata = const {},
+  }) =>
+      NewOfflineEvent._(
+        kind: EventKind.serviceSession,
+        method: AttendanceMethod.memberQr,
+        memberId: memberId,
+        trainerId: trainerId,
+        qrRaw: qrRaw,
+        metadata: metadata,
+      );
+
   final EventKind kind;
   final AttendanceMethod? method;
   final String memberId;
@@ -78,6 +97,7 @@ class NewOfflineEvent {
   final String? classSessionId;
   final String? studioId;
   final String? serviceAssignmentId;
+  final String? trainerId;
   final String? qrRaw;
   final String? note;
   final Map<String, Object?> metadata;
@@ -258,6 +278,7 @@ class OfflineEventRecorder {
             classSessionId: Value(input.classSessionId),
             studioId: Value(input.studioId),
             serviceAssignmentId: Value(input.serviceAssignmentId),
+            trainerId: Value(input.trainerId),
             deviceRecordedAt: formatWithOffset(local),
             deviceRecordedAtMs: local.millisecondsSinceEpoch,
             deviceTimezone: tz,
@@ -298,6 +319,15 @@ class OfflineEventRecorder {
           (e.qrRaw == null || e.qrRaw!.trim().isEmpty)) {
         return bad('member_qr requires the scanned QR text');
       }
+    } else if (e.method == AttendanceMethod.memberQr) {
+      // Member-scanned coach QR: trainer + QR text, server picks assignment.
+      if (!okId(e.trainerId, required: true)) return bad('trainer_id must be a UUID');
+      if (e.qrRaw == null || e.qrRaw!.trim().isEmpty) {
+        return bad('member_qr requires the scanned QR text');
+      }
+      if (e.serviceAssignmentId != null || e.classSessionId != null || e.studioId != null) {
+        return bad('member service_session carries only trainer_id + qr');
+      }
     } else {
       if (!okId(e.serviceAssignmentId, required: true)) {
         return bad('service_assignment_id must be a UUID');
@@ -334,7 +364,7 @@ class OfflineEventRecorder {
           return no('Staff record manual or staff_qr attendance only.');
         }
       case OfflineApp.coach:
-        if (e.kind != EventKind.serviceSession) {
+        if (e.kind != EventKind.serviceSession || e.method != null) {
           return no('Coaches record service sessions only.');
         }
       case OfflineApp.member:
@@ -389,6 +419,7 @@ class OfflineEventRecorder {
           _nullableEq(t.classSessionId, e.classSessionId) &
           _nullableEq(t.studioId, e.studioId) &
           _nullableEq(t.serviceAssignmentId, e.serviceAssignmentId) &
+          _nullableEq(t.trainerId, e.trainerId) &
           _nullableEq(t.qrRaw, e.qrRaw))
       ..orderBy([(t) => OrderingTerm.desc(t.deviceRecordedAtMs)])
       ..limit(1);

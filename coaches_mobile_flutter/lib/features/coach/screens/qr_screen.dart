@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -9,8 +8,9 @@ import '../../../widgets/coach_greeting_header.dart';
 import '../coach_app_state.dart';
 import '../../offline/coach_offline_controller.dart';
 import '../../offline/offline_logic.dart';
-import '../../offline/offline_strings.dart';
 import '../../offline/offline_widgets.dart';
+import '../../offline/own_qr_card.dart';
+import 'package:clby_offline/clby_offline.dart' show CachedSignedQr;
 
 /// Coach QR / Scan — the home tab, now wired to `/api/coach/*`.
 ///
@@ -69,17 +69,19 @@ class _QrScreenState extends State<QrScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Center(child: _QrCard(
-                        // Real, scannable QR encoding the exact payload the
-                        // member app's scanner reads (type/gym_id/trainer_id).
-                        // Null until identity loads, then a loader shows.
-                        data: (id != null && id.gymId.isNotEmpty && id.trainerProfileId.isNotEmpty)
-                            ? jsonEncode({
-                                'type': 'specialist_session',
-                                'gym_id': id.gymId,
-                                'trainer_id': id.trainerProfileId,
-                              })
-                            : null,
+                      // Server-signed v2 QR (cached `own_qr`, works offline
+                      // for members) when available; otherwise today's
+                      // unsigned QR (online-only for members). Both carry
+                      // type/gym_id/trainer_id, so every member app reads it.
+                      Center(child: FutureBuilder<CachedSignedQr?>(
+                        future: context.watch<CoachOfflineController>().ownQr(),
+                        builder: (context, snap) => _QrCard(
+                          data: signedOrUnsignedCoachQr(
+                            signed: snap.data,
+                            gymId: id?.gymId,
+                            trainerId: id?.trainerProfileId,
+                          ),
+                        ),
                       )),
                       const SizedBox(height: 16),
                       Center(
@@ -100,13 +102,6 @@ class _QrScreenState extends State<QrScreen> {
                       const SizedBox(height: 20),
                       const Center(child: SyncIndicatorChip()),
                       const SizedBox(height: 16),
-                      _ManualLogRow(
-                        key: const Key('scan-pass-row'),
-                        icon: Icons.qr_code_scanner_rounded,
-                        label: OfflineStrings.current().scanPass,
-                        onTap: () => context.push('/scan-pass'),
-                      ),
-                      const SizedBox(height: 10),
                       // Offline mode enabled for the gym → the outbox flow
                       // (single code path, synced immediately when online);
                       // otherwise the existing online manual log.
@@ -178,14 +173,7 @@ class _QrCard extends StatelessWidget {
 
 class _ManualLogRow extends StatelessWidget {
   final VoidCallback onTap;
-  final IconData icon;
-  final String label;
-  const _ManualLogRow({
-    super.key,
-    required this.onTap,
-    this.icon = Icons.edit_outlined,
-    this.label = 'Manual session log',
-  });
+  const _ManualLogRow({required this.onTap});
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -199,11 +187,11 @@ class _ManualLogRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: AppColors.text),
+            Icon(Icons.edit_outlined, size: 16, color: AppColors.text),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                label,
+                'Manual session log',
                 style: AppText.body(
                   size: 14,
                   weight: FontWeight.w500,

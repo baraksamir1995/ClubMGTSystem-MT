@@ -78,12 +78,20 @@ ScanPath chooseScanPath({
 /// `enabled && allow_member_qr_offline`.
 bool memberQrOfflineAllowed(OfflinePolicy p) => p.enabled && p.allowMemberQrOffline;
 
-/// Routes reachable in offline mode (everything else redirects to
-/// `/offline`).
-const offlineRoutes = {'/offline', '/member-pass', '/offline-checkins'};
+/// Fix (verification MEDIUM): the cached membership / package pre-check
+/// may only deny when the phone is actually offline. Online, a stale
+/// snapshot must never block a member — the event is recorded and synced
+/// at once, and the server decides.
+bool shouldRunLocalPreCheck({required bool offlineMode, required bool online}) =>
+    offlineMode || !online;
 
-/// Router rule for offline mode. Returns the redirect target or null.
-String? offlineRedirect({required bool offlineMode, required String location}) {
-  if (!offlineMode) return null;
-  return offlineRoutes.contains(location) ? null : '/offline';
-}
+/// Fix (verification LOW): with offline check-in off for the gym, no new
+/// UI appears (no status chip, no dimming, no extra Profile row).
+bool shouldShowStatus({
+  required bool policyAllows,
+  required bool offlineMode,
+  required bool online,
+  required int pending,
+  required bool failing,
+}) =>
+    policyAllows && (offlineMode || !online || pending > 0 || failing);

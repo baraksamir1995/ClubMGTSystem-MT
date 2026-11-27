@@ -74,18 +74,58 @@ void main() {
     });
   });
 
-  group('offline-mode routing', () {
-    test('inactive when online (no redirect ever)', () {
-      for (final loc in ['/home', '/checkin', '/profile', '/offline', '/member-pass']) {
-        expect(offlineRedirect(offlineMode: false, location: loc), isNull);
+  group('verification fixes', () {
+    test('HTML 5xx body → ApiException(5xx) → network → offline mode may be tried', () {
+      Object? caught;
+      try {
+        decodeApiBody(502, '<html><body>Bad Gateway</body></html>');
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isA<ApiException>().having((e) => e.statusCode, 'status', 502));
+      expect(classifyLoadError(caught!), LoadErrorKind.network);
+      expect(shouldTryOfflineMode(userId: 'u', hasProfile: false, isLoading: false,
+          isGuest: false, profileError: classifyLoadError(caught)), isTrue);
+    });
+    test('HTML 403 / 401 bodies keep their status (no offline mode)', () {
+      for (final s in [401, 403]) {
+        Object? e;
+        try {
+          decodeApiBody(s, '<html>nope</html>');
+        } catch (x) {
+          e = x;
+        }
+        expect((e as ApiException).statusCode, s);
+        expect(classifyLoadError(e), isNot(LoadErrorKind.network));
       }
     });
-    test('offline: only pass / check-ins / offline home', () {
-      expect(offlineRedirect(offlineMode: true, location: '/home'), '/offline');
-      expect(offlineRedirect(offlineMode: true, location: '/explore'), '/offline');
-      for (final loc in offlineRoutes) {
-        expect(offlineRedirect(offlineMode: true, location: loc), isNull);
+    test('JSON bodies and non-JSON 2xx behave as before', () {
+      expect(decodeApiBody(500, '{"message":"x"}'), {'message': 'x'});
+      expect(() => decodeApiBody(200, '<html>'), throwsFormatException);
+    });
+    test('stale snapshot: local pre-check only when actually offline', () {
+      expect(shouldRunLocalPreCheck(offlineMode: false, online: true), isFalse,
+          reason: 'online → server decides, cache never denies');
+      expect(shouldRunLocalPreCheck(offlineMode: false, online: false), isTrue);
+      expect(shouldRunLocalPreCheck(offlineMode: true, online: true), isTrue);
+    });
+    test('policy off → no status UI at all', () {
+      for (final offline in [true, false]) {
+        for (final online in [true, false]) {
+          expect(shouldShowStatus(policyAllows: false, offlineMode: offline, online: online,
+              pending: 3, failing: true), isFalse);
+        }
       }
+      expect(shouldShowStatus(policyAllows: true, offlineMode: false, online: true,
+          pending: 0, failing: false), isFalse, reason: 'online + nothing pending → as today');
+      expect(shouldShowStatus(policyAllows: true, offlineMode: true, online: false,
+          pending: 0, failing: false), isTrue);
+      expect(shouldShowStatus(policyAllows: true, offlineMode: false, online: true,
+          pending: 1, failing: false), isTrue);
+    });
+    test('coach QR v2 claims also go through the outbox', () {
+      expect(SpecialistQr.claimsV2('{"type":"specialist_session","gym_id":"g","trainer_id":"t"}'), isFalse);
+      expect(SpecialistQr.claimsV2('{"type":"specialist_session","v":2}'), isTrue);
     });
   });
 }

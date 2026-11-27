@@ -152,7 +152,9 @@ class CoachOfflineController extends ChangeNotifier {
   Future<List<CachedAssignment>> roster({String? query}) async =>
       await store?.cachedAssignments(query: query) ?? const [];
 
-  Future<PassVerdict?> verifyPass(String raw) async => store?.passVerifier.verify(raw);
+  /// The coach's own server-signed QR (cached `own_qr`), or null if never
+  /// fetched — then the QR screen falls back to today's unsigned QR.
+  Future<CachedSignedQr?> ownQr() async => store?.ownQr();
 
   Stream<OutboxEvent?> watchEvent(String id) =>
       store?.watchEvent(id) ?? Stream.value(null);

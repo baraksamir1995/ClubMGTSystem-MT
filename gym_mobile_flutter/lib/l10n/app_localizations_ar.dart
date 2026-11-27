@@ -3488,44 +3488,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get contractTermsErrorBody => 'تحقق من اتصالك وحاول مرة أخرى.';
 
   @override
-  String get offlineModeTitle => 'وضع عدم الاتصال';
-
-  @override
-  String get offlineModeBody =>
-      'تعذّر الوصول إلى النادي الآن. يمكنك عرض بطاقة العضوية، وتسجيل الدخول بمسح رمز QR الخاص بالنادي، ورؤية عمليات الدخول المسجلة على هذا الهاتف. سيتم تأكيدها عند عودة الاتصال.';
-
-  @override
-  String get offlineOnlineOnlyNotice =>
-      'الحجوزات والمدفوعات والحصص وسجلك تحتاج إلى اتصال.';
-
-  @override
-  String get offlineTryAgain => 'حاول الاتصال مجددًا';
-
-  @override
-  String get offlineBlockNotSignedIn =>
-      'وضع عدم الاتصال غير متاح: لم تسجّل الدخول على هذا الهاتف.';
-
-  @override
-  String get offlineBlockNoPreviousSession =>
-      'وضع عدم الاتصال غير متاح: افتح التطبيق وأنت متصل مرة واحدة على هذا الهاتف أولًا.';
-
-  @override
-  String get offlineBlockDifferentUser =>
-      'وضع عدم الاتصال غير متاح: البيانات المحفوظة تخص حسابًا آخر.';
-
-  @override
-  String get offlineBlockDifferentApi =>
-      'وضع عدم الاتصال غير متاح: البيانات المحفوظة لخادم مختلف.';
-
-  @override
-  String get offlineBlockStoreUnavailable =>
-      'وضع عدم الاتصال غير متاح: تعذّر فتح التخزين دون اتصال على هذا الهاتف حاليًا.';
-
-  @override
-  String get offlineBlockNoCachedData =>
-      'وضع عدم الاتصال غير متاح: لم يتم تنزيل بيانات للعمل دون اتصال بعد.';
-
-  @override
   String get syncOnline => 'متصل';
 
   @override
@@ -3599,36 +3561,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'تاريخ أو وقت هذا الهاتف غير صحيح. صحّحه وحاول مجددًا.';
 
   @override
-  String get memberPassTitle => 'بطاقة العضوية';
-
-  @override
-  String get memberPassHint => 'اعرض هذا الرمز على الموظفين عند الاستقبال.';
-
-  @override
-  String memberPassValidUntil(String date) {
-    return 'البطاقة صالحة حتى $date';
-  }
-
-  @override
-  String memberPassNumber(String number) {
-    return 'عضو رقم $number';
-  }
-
-  @override
-  String get memberPassUnavailable =>
-      'بطاقتك غير موجودة على هذا الهاتف بعد. اتصل بالإنترنت مرة واحدة لتنزيلها.';
-
-  @override
-  String get memberPassExpiredOffline =>
-      'انتهت صلاحية بطاقتك ولا يمكن تجديدها دون اتصال. اتصل بالإنترنت للحصول على بطاقة جديدة.';
-
-  @override
-  String get memberPassRefresh => 'تحديث البطاقة';
-
-  @override
-  String get memberPassProfileLabel => 'البطاقة';
-
-  @override
   String get thisPhoneCheckinsTitle => 'عمليات الدخول على هذا الهاتف';
 
   @override
@@ -3667,4 +3599,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get signOutPendingSignOutAnyway => 'تسجيل الخروج على أي حال';
+
+  @override
+  String get sessionSavedTitle => 'تم حفظ الجلسة على هذا الهاتف';
+
+  @override
+  String get sessionConfirmedTitle => 'تم تأكيد الجلسة';
+
+  @override
+  String get sessionNotAcceptedTitle => 'لم تُقبل الجلسة';
+
+  @override
+  String get checkinKindGym => 'دخول النادي';
+
+  @override
+  String get checkinKindSession => 'جلسة مع المدرب';
 }

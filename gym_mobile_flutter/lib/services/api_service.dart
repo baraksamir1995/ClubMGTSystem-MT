@@ -253,7 +253,7 @@ class ApiService {
 
   Future<dynamic> _parse(http.Response response) async {
     if (response.body.isEmpty) return <String, dynamic>{};
-    final body = jsonDecode(response.body);
+    final body = decodeApiBody(response.statusCode, response.body);
     if (response.statusCode >= 400) {
       if (response.statusCode == 401) await _handle401(response, body);
       final msg = body is Map ? (body['message']?.toString() ?? 'Unknown error') : 'Unknown error';
@@ -1758,6 +1758,22 @@ class AuthResult {
     this.fullName,
     required this.userData,
   });
+}
+
+/// JSON-decodes a response body. A non-JSON body on an error status (e.g.
+/// a proxy's HTML 502 page) becomes an [ApiException] with that status, so
+/// callers can classify by status code (offline-mode entry treats 5xx as a
+/// network failure) instead of seeing a FormatException. Non-JSON 2xx
+/// bodies still throw FormatException, as before.
+Object? decodeApiBody(int statusCode, String body) {
+  try {
+    return jsonDecode(body);
+  } on FormatException {
+    if (statusCode >= 400) {
+      throw ApiException(statusCode: statusCode, message: 'Unknown error');
+    }
+    rethrow;
+  }
 }
 
 class ApiException implements Exception {

@@ -10,8 +10,7 @@ import '../providers/member_provider.dart';
 import '../services/api_service.dart';
 import '../models/service_model.dart';
 import '../utils/error_utils.dart';
-import 'package:clby_offline/clby_offline.dart'
-    show BranchQrFailure, EntryDenial, RecordRefusal;
+import 'package:clby_offline/clby_offline.dart' show EntryDenial, RecordRefusal;
 import '../features/offline/member_offline_controller.dart';
 import '../features/offline/offline_checkin_sheet.dart';
 import '../features/offline/offline_logic.dart';
@@ -545,19 +544,26 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         _showOfflineSaved(r);
       case CheckInDuplicate():
         _showGymDenyResult('already_checked_in');
-      case CheckInQrRejected(:final reason, :final outOfDate):
-        if (reason == BranchQrFailure.qrWrongGym) {
+      case CheckInSpecialistDenied(:final denial, :final serviceType):
+        // Today's specialist denial messages (offline: no server text).
+        _showSpecialistDeny({'code': denial.code, 'trainer_type': serviceType});
+      case CheckInQrRejected(:final code, :final outOfDate, :final unknownTrainer):
+        if (code == 'qr_wrong_gym') {
           _showResult(_CheckInResult.error(
               title: l.qrWrongGymTitle, subtitle: l.qrWrongGymSubtitle));
         } else if (outOfDate) {
           _showResult(_CheckInResult.error(
               title: l.qrOutOfDateTitle, subtitle: l.qrOutOfDateSubtitle,
               icon: Icons.qr_code_outlined));
-        } else if (reason == BranchQrFailure.qrExpired) {
+        } else if (unknownTrainer) {
+          _showResult(_CheckInResult.error(
+              title: l.qrInvalidTitle, subtitle: l.qrSpecialistCodeInvalid,
+              icon: Icons.qr_code_outlined));
+        } else if (code == 'qr_expired') {
           _showResult(_CheckInResult.error(
               title: l.qrExpiredTitle, subtitle: l.qrExpiredSubtitle,
               icon: Icons.timer_off_outlined));
-        } else if (reason == BranchQrFailure.qrUnknownKey) {
+        } else if (code == 'qr_unknown_key') {
           _showResult(_CheckInResult.error(
               title: l.qrRefreshDataTitle, subtitle: l.qrRefreshDataSubtitle,
               icon: Icons.cloud_download_outlined));
@@ -617,6 +623,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           Navigator.pop(context);
           setState(() => _processing = false);
           _controller.start();
+        },
+        onViewCheckIns: () {
+          Navigator.pop(context);
+          Navigator.pop(context);
+          context.push('/offline-checkins');
         },
       ),
     );

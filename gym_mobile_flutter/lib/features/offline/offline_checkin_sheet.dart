@@ -14,11 +14,13 @@ class OfflineCheckInSheet extends StatelessWidget {
     required this.saved,
     required this.onDone,
     required this.onScanAgain,
+    required this.onViewCheckIns,
   });
 
   final CheckInSaved saved;
   final VoidCallback onDone;
   final VoidCallback onScanAgain;
+  final VoidCallback onViewCheckIns;
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +32,26 @@ class OfflineCheckInSheet extends StatelessWidget {
       builder: (context, snap) {
         final e = snap.data ?? saved.event;
         final st = OutboxStatus.fromWire(e.syncStatus);
+        final coach = saved.coachSession;
         final (title, subtitle, icon, color) = switch (st) {
-          OutboxStatus.synced => (l.checkinConfirmedTitle, null, Icons.check_circle_rounded, kOffSuccess),
+          OutboxStatus.synced => (
+              coach ? l.sessionConfirmedTitle : l.checkinConfirmedTitle,
+              null,
+              Icons.check_circle_rounded,
+              kOffSuccess
+            ),
           OutboxStatus.rejected => (
-              l.checkinNotAcceptedTitle,
+              coach ? l.sessionNotAcceptedTitle : l.checkinNotAcceptedTitle,
               e.resultMessage ?? e.resultCode,
               Icons.block_rounded,
               kOffError
             ),
-          _ => (l.checkinSavedTitle, l.checkinSavedSubtitle, Icons.schedule_rounded, kOffWarn),
+          _ => (
+              coach ? l.sessionSavedTitle : l.checkinSavedTitle,
+              l.checkinSavedSubtitle,
+              Icons.schedule_rounded,
+              kOffWarn
+            ),
         };
         return SafeArea(
           child: Padding(
@@ -75,6 +88,11 @@ class OfflineCheckInSheet extends StatelessWidget {
                 ),
               ),
               TextButton(onPressed: onScanAgain, child: Text(l.qrScanAgain)),
+              TextButton(
+                key: const Key('view-checkins'),
+                onPressed: onViewCheckIns,
+                child: Text(l.thisPhoneCheckinsTitle),
+              ),
             ]),
           ),
         );

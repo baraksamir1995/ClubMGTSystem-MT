@@ -163,7 +163,20 @@ class ApiService {
 
   Future<dynamic> _parse(http.Response response) async {
     if (response.body.isEmpty) return <String, dynamic>{};
-    final body = jsonDecode(response.body);
+    final Object? body;
+    try {
+      body = jsonDecode(response.body);
+    } on FormatException {
+      // Non-JSON error page (proxy HTML 502…): keep the status so the
+      // offline-mode rules can classify it (5xx = network failure).
+      if (response.statusCode < 400) rethrow;
+      if (response.statusCode == 401) {
+        await _storage.delete(key: _tokenKey);
+        await _storage.delete(key: _userIdKey);
+        _cachedUserId = null;
+      }
+      throw ApiException(statusCode: response.statusCode, message: 'Unknown error');
+    }
     if (response.statusCode >= 400) {
       if (response.statusCode == 401) {
         // Sanctum tokens expire after 24h. Clear stale credentials so the

@@ -53,18 +53,6 @@ String syncLabel(BuildContext context, SyncState s) {
   };
 }
 
-String entryBlockText(BuildContext context, OfflineEntryBlock b) {
-  final l = context.l10n;
-  return switch (b) {
-    OfflineEntryBlock.notSignedIn => l.offlineBlockNotSignedIn,
-    OfflineEntryBlock.noPreviousSession => l.offlineBlockNoPreviousSession,
-    OfflineEntryBlock.differentUser => l.offlineBlockDifferentUser,
-    OfflineEntryBlock.differentApi => l.offlineBlockDifferentApi,
-    OfflineEntryBlock.storeUnavailable => l.offlineBlockStoreUnavailable,
-    OfflineEntryBlock.noCachedData => l.offlineBlockNoCachedData,
-  };
-}
-
 /// Per-item state; a local item is never shown as confirmed.
 String checkInStateLabel(BuildContext context, OutboxEvent e) {
   final l = context.l10n;

@@ -241,9 +241,9 @@ void main() {
     setUp(() async => store = await memoryStore(transport: FakeTransport()));
     tearDown(() => store.close());
 
-    test('schema version 3 (v2 pass keys, v3 branch qr_token)', () {
-      expect(store.db.schemaVersion, 3);
-      expect(OfflineDatabase.currentSchemaVersion, 3);
+    test('schema version 4 (v2 pass keys, v3 branch qr_token, v4 trainers)', () {
+      expect(store.db.schemaVersion, 4);
+      expect(OfflineDatabase.currentSchemaVersion, 4);
     });
 
     test('device_recorded_at / identity is immutable', () async {

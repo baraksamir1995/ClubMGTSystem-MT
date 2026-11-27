@@ -24,6 +24,7 @@ class BootstrapResult {
     required this.recentAttendance,
     required this.recentServiceLogs,
     this.passKeys = 0,
+    this.trainers = 0,
   });
 
   final DateTime? asOf;
@@ -36,6 +37,7 @@ class BootstrapResult {
   final int recentAttendance;
   final int recentServiceLogs;
   final int passKeys;
+  final int trainers;
 
   @override
   String toString() => 'BootstrapResult(asOf=$asOf, pages=$pages, '
@@ -146,7 +148,8 @@ class BootstrapService {
     Map<String, Object?>? gym;
     Map<String, Object?>? serverPolicy;
     Map<String, Object?>? me;
-    Map<String, Object?>? memberPass;
+    Map<String, Object?>? ownQr;
+    final trainers = <String, CachedTrainersCompanion>{};
 
     void addBuckets(String memberId, Object? list) {
       if (list is! List) return;
@@ -202,8 +205,18 @@ class BootstrapService {
       for (final m in page.list('members')) {
         addMember(m);
       }
-      final mp = page.json['member_pass'];
-      if (mp is Map && memberPass == null) memberPass = mp.cast<String, Object?>();
+      final oq = page.json['own_qr'];
+      if (oq is Map && ownQr == null) ownQr = oq.cast<String, Object?>();
+      for (final t in page.list('trainers')) {
+        final id = _s(t['id']);
+        if (id == null) continue;
+        trainers[id] = CachedTrainersCompanion.insert(
+          id: id,
+          name: Value(_s(t['name']) ?? ''),
+          serviceType: Value(_s(t['service_type'])),
+          isActive: Value(t['is_active'] != false),
+        );
+      }
       final self = page.member;
       if (self != null) {
         me ??= self;
@@ -234,13 +247,17 @@ class BootstrapService {
           endsAt: Value(_s(c['ends_at'])),
         );
       }
+      // Coach snapshot: {assignment_id, gym_member_id, …}. Member snapshot
+      // (/offline/me): {id, trainer_id, …} for the member's own packages.
+      final selfId = _s(page.member?['gym_member_id']);
       for (final a in page.list('assignments')) {
-        final id = _s(a['assignment_id']);
-        final member = _s(a['gym_member_id']);
+        final id = _s(a['assignment_id']) ?? _s(a['id']);
+        final member = _s(a['gym_member_id']) ?? selfId;
         if (id == null || member == null) continue;
         assignments[id] = CachedAssignmentsCompanion.insert(
           assignmentId: id,
           gymMemberId: member,
+          trainerId: Value(_s(a['trainer_id'])),
           memberName: Value(_s(a['member_name'])),
           memberNumber: Value(_s(a['member_number'])),
           photoUrl: Value(_s(a['photo_url'])),
@@ -304,6 +321,7 @@ class BootstrapService {
         b.insertAll(db.cachedRecentAttendance, recentAtt.values);
         b.insertAll(db.cachedRecentServiceLogs, recentLogs.values);
         b.insertAll(db.cachedPassKeys, passKeys.values);
+        b.insertAll(db.cachedTrainers, trainers.values);
       });
       await db.writeMeta(SyncMetaKeys.asOf, asOfRaw);
       await db.writeMeta(SyncMetaKeys.serverTime, serverTime);
@@ -311,8 +329,7 @@ class BootstrapService {
           SyncMetaKeys.lastBootstrapAt, _now().toUtc().toIso8601String());
       await db.writeMeta(SyncMetaKeys.gym, gym == null ? null : jsonEncode(gym));
       await db.writeMeta(SyncMetaKeys.member, me == null ? null : jsonEncode(me));
-      await db.writeMeta(
-          SyncMetaKeys.memberPass, memberPass == null ? null : jsonEncode(memberPass));
+      await db.writeMeta(SyncMetaKeys.ownQr, ownQr == null ? null : jsonEncode(ownQr));
     });
     if (serverPolicy != null) await policy.applyServerPolicy(serverPolicy);
 
@@ -327,6 +344,7 @@ class BootstrapService {
       recentAttendance: recentAtt.length,
       recentServiceLogs: recentLogs.length,
       passKeys: passKeys.length,
+      trainers: trainers.length,
     );
   }
 

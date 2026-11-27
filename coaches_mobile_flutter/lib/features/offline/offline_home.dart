@@ -9,6 +9,7 @@ import 'coach_offline_controller.dart';
 import 'offline_logic.dart';
 import 'offline_strings.dart';
 import 'offline_widgets.dart';
+import 'own_qr_card.dart';
 
 /// Offline cold-start shell (replaces "CAN'T REACH THE GYM" when
 /// [CoachOfflineController.tryEnterOfflineMode] allowed it): scan passes,
@@ -46,16 +47,10 @@ class OfflineHome extends StatelessWidget {
               OfflineNotice(text: t.policyOffOffline, tone: AppColors.warn),
               const SizedBox(height: 12),
             ],
-            CButton(
-              key: const Key('offline-scan'),
-              label: t.scanPass,
-              icon: Icons.qr_code_scanner_rounded,
-              size: CButtonSize.lg,
-              full: true,
-              disabled: !canLog,
-              onTap: canLog ? () => context.push('/scan-pass') : null,
-            ),
-            const SizedBox(height: 10),
+            // The coach's signed QR works offline for members (Phase 3
+            // Amendment 2): show it when cached.
+            const OwnQrCard(),
+            const SizedBox(height: 14),
             CButton(
               key: const Key('offline-log'),
               label: t.logSession,

@@ -23,8 +23,9 @@ abstract final class SyncMetaKeys {
   static const gym = 'gym';
   /// Member identity JSON (member app `/offline/me`).
   static const member = 'member';
-  /// The member's own pass `{qr, expires_at, kid}` (`/offline/me`, Phase 3).
-  static const memberPass = 'member_pass';
+  /// The coach's own signed QR `{qr, expires_at, kid}` (coach bootstrap
+  /// `own_qr`, Phase 3 Amendment 2).
+  static const ownQr = 'own_qr';
   /// `server_time - device_time` in ms, last measured.
   static const clockOffsetMs = 'clock_offset_ms';
   /// `{registered, revoked}` JSON from /offline/status.
@@ -41,7 +42,7 @@ abstract final class SyncMetaKeys {
     bootstrapCursor,
     gym,
     member,
-    memberPass,
+    ownQr,
   };
 }
 
@@ -58,6 +59,7 @@ abstract final class SyncMetaKeys {
     CachedRecentAttendance,
     CachedRecentServiceLogs,
     CachedPassKeys,
+    CachedTrainers,
     SyncMeta,
   ],
 )
@@ -67,7 +69,7 @@ class OfflineDatabase extends _$OfflineDatabase {
   /// Bump on every schema change and add a step to [_upgradeSteps].
   /// Exported schemas live in `drift_schemas/` (`dart run drift_dev schema
   /// dump lib/src/db/offline_database.dart drift_schemas/`).
-  static const int currentSchemaVersion = 3;
+  static const int currentSchemaVersion = 4;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -77,11 +79,19 @@ class OfflineDatabase extends _$OfflineDatabase {
   /// v1 is the initial schema.
   /// v2 (Phase 2): `cached_pass_keys` for offline member-pass verification.
   /// v3 (Phase 3): `cached_branches.qr_token`.
+  /// v4 (Phase 3 Amendment 2): `outbox_events.trainer_id`,
+  /// `cached_assignments.trainer_id`, `cached_trainers`.
   static final Map<int, Future<void> Function(Migrator m, OfflineDatabase db)>
       _upgradeSteps = {
     2: (m, db) => m.createTable(db.cachedPassKeys),
     // v3 (Phase 3): branch QR tokens for offline v2 branch-QR verification.
     3: (m, db) => m.addColumn(db.cachedBranches, db.cachedBranches.qrToken),
+    // v4 (Phase 3 Amendment 2): member-scanned coach QRs.
+    4: (m, db) async {
+      await m.addColumn(db.outboxEvents, db.outboxEvents.trainerId);
+      await m.addColumn(db.cachedAssignments, db.cachedAssignments.trainerId);
+      await m.createTable(db.cachedTrainers);
+    },
   };
 
   @override
@@ -181,6 +191,7 @@ END''');
         await delete(cachedRecentAttendance).go();
         await delete(cachedRecentServiceLogs).go();
         await delete(cachedPassKeys).go();
+        await delete(cachedTrainers).go();
         await (delete(syncMeta)
               ..where((t) => t.key.isIn(SyncMetaKeys.cacheKeys)))
             .go();

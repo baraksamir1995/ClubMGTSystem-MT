@@ -104,6 +104,17 @@ class $OutboxEventsTable extends OutboxEvents
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _trainerIdMeta = const VerificationMeta(
+    'trainerId',
+  );
+  @override
+  late final GeneratedColumn<String> trainerId = GeneratedColumn<String>(
+    'trainer_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deviceRecordedAtMeta = const VerificationMeta(
     'deviceRecordedAt',
   );
@@ -354,6 +365,7 @@ class $OutboxEventsTable extends OutboxEvents
     classSessionId,
     studioId,
     serviceAssignmentId,
+    trainerId,
     deviceRecordedAt,
     deviceRecordedAtMs,
     deviceTimezone,
@@ -458,6 +470,12 @@ class $OutboxEventsTable extends OutboxEvents
           data['service_assignment_id']!,
           _serviceAssignmentIdMeta,
         ),
+      );
+    }
+    if (data.containsKey('trainer_id')) {
+      context.handle(
+        _trainerIdMeta,
+        trainerId.isAcceptableOrUnknown(data['trainer_id']!, _trainerIdMeta),
       );
     }
     if (data.containsKey('device_recorded_at')) {
@@ -687,6 +705,10 @@ class $OutboxEventsTable extends OutboxEvents
         DriftSqlType.string,
         data['${effectivePrefix}service_assignment_id'],
       ),
+      trainerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trainer_id'],
+      ),
       deviceRecordedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}device_recorded_at'],
@@ -799,6 +821,10 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
   final String? studioId;
   final String? serviceAssignmentId;
 
+  /// trainer_profiles.id for a member-scanned coach QR (`kind:
+  /// service_session`, `method: member_qr`). Added in schema v4.
+  final String? trainerId;
+
   /// ISO-8601 with the device's UTC offset, exactly as sent. Immutable.
   final String deviceRecordedAt;
 
@@ -852,6 +878,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
     this.classSessionId,
     this.studioId,
     this.serviceAssignmentId,
+    this.trainerId,
     required this.deviceRecordedAt,
     required this.deviceRecordedAtMs,
     required this.deviceTimezone,
@@ -896,6 +923,9 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
     }
     if (!nullToAbsent || serviceAssignmentId != null) {
       map['service_assignment_id'] = Variable<String>(serviceAssignmentId);
+    }
+    if (!nullToAbsent || trainerId != null) {
+      map['trainer_id'] = Variable<String>(trainerId);
     }
     map['device_recorded_at'] = Variable<String>(deviceRecordedAt);
     map['device_recorded_at_ms'] = Variable<int>(deviceRecordedAtMs);
@@ -965,6 +995,9 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
       serviceAssignmentId: serviceAssignmentId == null && nullToAbsent
           ? const Value.absent()
           : Value(serviceAssignmentId),
+      trainerId: trainerId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trainerId),
       deviceRecordedAt: Value(deviceRecordedAt),
       deviceRecordedAtMs: Value(deviceRecordedAtMs),
       deviceTimezone: Value(deviceTimezone),
@@ -1027,6 +1060,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
       serviceAssignmentId: serializer.fromJson<String?>(
         json['serviceAssignmentId'],
       ),
+      trainerId: serializer.fromJson<String?>(json['trainerId']),
       deviceRecordedAt: serializer.fromJson<String>(json['deviceRecordedAt']),
       deviceRecordedAtMs: serializer.fromJson<int>(json['deviceRecordedAtMs']),
       deviceTimezone: serializer.fromJson<String>(json['deviceTimezone']),
@@ -1064,6 +1098,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
       'classSessionId': serializer.toJson<String?>(classSessionId),
       'studioId': serializer.toJson<String?>(studioId),
       'serviceAssignmentId': serializer.toJson<String?>(serviceAssignmentId),
+      'trainerId': serializer.toJson<String?>(trainerId),
       'deviceRecordedAt': serializer.toJson<String>(deviceRecordedAt),
       'deviceRecordedAtMs': serializer.toJson<int>(deviceRecordedAtMs),
       'deviceTimezone': serializer.toJson<String>(deviceTimezone),
@@ -1099,6 +1134,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
     Value<String?> classSessionId = const Value.absent(),
     Value<String?> studioId = const Value.absent(),
     Value<String?> serviceAssignmentId = const Value.absent(),
+    Value<String?> trainerId = const Value.absent(),
     String? deviceRecordedAt,
     int? deviceRecordedAtMs,
     String? deviceTimezone,
@@ -1137,6 +1173,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
     serviceAssignmentId: serviceAssignmentId.present
         ? serviceAssignmentId.value
         : this.serviceAssignmentId,
+    trainerId: trainerId.present ? trainerId.value : this.trainerId,
     deviceRecordedAt: deviceRecordedAt ?? this.deviceRecordedAt,
     deviceRecordedAtMs: deviceRecordedAtMs ?? this.deviceRecordedAtMs,
     deviceTimezone: deviceTimezone ?? this.deviceTimezone,
@@ -1187,6 +1224,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
       serviceAssignmentId: data.serviceAssignmentId.present
           ? data.serviceAssignmentId.value
           : this.serviceAssignmentId,
+      trainerId: data.trainerId.present ? data.trainerId.value : this.trainerId,
       deviceRecordedAt: data.deviceRecordedAt.present
           ? data.deviceRecordedAt.value
           : this.deviceRecordedAt,
@@ -1254,6 +1292,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
           ..write('classSessionId: $classSessionId, ')
           ..write('studioId: $studioId, ')
           ..write('serviceAssignmentId: $serviceAssignmentId, ')
+          ..write('trainerId: $trainerId, ')
           ..write('deviceRecordedAt: $deviceRecordedAt, ')
           ..write('deviceRecordedAtMs: $deviceRecordedAtMs, ')
           ..write('deviceTimezone: $deviceTimezone, ')
@@ -1291,6 +1330,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
     classSessionId,
     studioId,
     serviceAssignmentId,
+    trainerId,
     deviceRecordedAt,
     deviceRecordedAtMs,
     deviceTimezone,
@@ -1327,6 +1367,7 @@ class OutboxEvent extends DataClass implements Insertable<OutboxEvent> {
           other.classSessionId == this.classSessionId &&
           other.studioId == this.studioId &&
           other.serviceAssignmentId == this.serviceAssignmentId &&
+          other.trainerId == this.trainerId &&
           other.deviceRecordedAt == this.deviceRecordedAt &&
           other.deviceRecordedAtMs == this.deviceRecordedAtMs &&
           other.deviceTimezone == this.deviceTimezone &&
@@ -1361,6 +1402,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
   final Value<String?> classSessionId;
   final Value<String?> studioId;
   final Value<String?> serviceAssignmentId;
+  final Value<String?> trainerId;
   final Value<String> deviceRecordedAt;
   final Value<int> deviceRecordedAtMs;
   final Value<String> deviceTimezone;
@@ -1394,6 +1436,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
     this.classSessionId = const Value.absent(),
     this.studioId = const Value.absent(),
     this.serviceAssignmentId = const Value.absent(),
+    this.trainerId = const Value.absent(),
     this.deviceRecordedAt = const Value.absent(),
     this.deviceRecordedAtMs = const Value.absent(),
     this.deviceTimezone = const Value.absent(),
@@ -1428,6 +1471,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
     this.classSessionId = const Value.absent(),
     this.studioId = const Value.absent(),
     this.serviceAssignmentId = const Value.absent(),
+    this.trainerId = const Value.absent(),
     required String deviceRecordedAt,
     required int deviceRecordedAtMs,
     required String deviceTimezone,
@@ -1472,6 +1516,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
     Expression<String>? classSessionId,
     Expression<String>? studioId,
     Expression<String>? serviceAssignmentId,
+    Expression<String>? trainerId,
     Expression<String>? deviceRecordedAt,
     Expression<int>? deviceRecordedAtMs,
     Expression<String>? deviceTimezone,
@@ -1507,6 +1552,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
       if (studioId != null) 'studio_id': studioId,
       if (serviceAssignmentId != null)
         'service_assignment_id': serviceAssignmentId,
+      if (trainerId != null) 'trainer_id': trainerId,
       if (deviceRecordedAt != null) 'device_recorded_at': deviceRecordedAt,
       if (deviceRecordedAtMs != null)
         'device_recorded_at_ms': deviceRecordedAtMs,
@@ -1544,6 +1590,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
     Value<String?>? classSessionId,
     Value<String?>? studioId,
     Value<String?>? serviceAssignmentId,
+    Value<String?>? trainerId,
     Value<String>? deviceRecordedAt,
     Value<int>? deviceRecordedAtMs,
     Value<String>? deviceTimezone,
@@ -1578,6 +1625,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
       classSessionId: classSessionId ?? this.classSessionId,
       studioId: studioId ?? this.studioId,
       serviceAssignmentId: serviceAssignmentId ?? this.serviceAssignmentId,
+      trainerId: trainerId ?? this.trainerId,
       deviceRecordedAt: deviceRecordedAt ?? this.deviceRecordedAt,
       deviceRecordedAtMs: deviceRecordedAtMs ?? this.deviceRecordedAtMs,
       deviceTimezone: deviceTimezone ?? this.deviceTimezone,
@@ -1635,6 +1683,9 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
       map['service_assignment_id'] = Variable<String>(
         serviceAssignmentId.value,
       );
+    }
+    if (trainerId.present) {
+      map['trainer_id'] = Variable<String>(trainerId.value);
     }
     if (deviceRecordedAt.present) {
       map['device_recorded_at'] = Variable<String>(deviceRecordedAt.value);
@@ -1720,6 +1771,7 @@ class OutboxEventsCompanion extends UpdateCompanion<OutboxEvent> {
           ..write('classSessionId: $classSessionId, ')
           ..write('studioId: $studioId, ')
           ..write('serviceAssignmentId: $serviceAssignmentId, ')
+          ..write('trainerId: $trainerId, ')
           ..write('deviceRecordedAt: $deviceRecordedAt, ')
           ..write('deviceRecordedAtMs: $deviceRecordedAtMs, ')
           ..write('deviceTimezone: $deviceTimezone, ')
@@ -3799,6 +3851,17 @@ class $CachedAssignmentsTable extends CachedAssignments
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _trainerIdMeta = const VerificationMeta(
+    'trainerId',
+  );
+  @override
+  late final GeneratedColumn<String> trainerId = GeneratedColumn<String>(
+    'trainer_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _memberNameMeta = const VerificationMeta(
     'memberName',
   );
@@ -3911,6 +3974,7 @@ class $CachedAssignmentsTable extends CachedAssignments
   List<GeneratedColumn> get $columns => [
     assignmentId,
     gymMemberId,
+    trainerId,
     memberName,
     memberNumber,
     photoUrl,
@@ -3955,6 +4019,12 @@ class $CachedAssignmentsTable extends CachedAssignments
       );
     } else if (isInserting) {
       context.missing(_gymMemberIdMeta);
+    }
+    if (data.containsKey('trainer_id')) {
+      context.handle(
+        _trainerIdMeta,
+        trainerId.isAcceptableOrUnknown(data['trainer_id']!, _trainerIdMeta),
+      );
     }
     if (data.containsKey('member_name')) {
       context.handle(
@@ -4051,6 +4121,10 @@ class $CachedAssignmentsTable extends CachedAssignments
         DriftSqlType.string,
         data['${effectivePrefix}gym_member_id'],
       )!,
+      trainerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trainer_id'],
+      ),
       memberName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}member_name'],
@@ -4104,6 +4178,9 @@ class CachedAssignment extends DataClass
     implements Insertable<CachedAssignment> {
   final String assignmentId;
   final String gymMemberId;
+
+  /// Trainer of the assignment (member snapshot; schema v4).
+  final String? trainerId;
   final String? memberName;
   final String? memberNumber;
   final String? photoUrl;
@@ -4117,6 +4194,7 @@ class CachedAssignment extends DataClass
   const CachedAssignment({
     required this.assignmentId,
     required this.gymMemberId,
+    this.trainerId,
     this.memberName,
     this.memberNumber,
     this.photoUrl,
@@ -4133,6 +4211,9 @@ class CachedAssignment extends DataClass
     final map = <String, Expression>{};
     map['assignment_id'] = Variable<String>(assignmentId);
     map['gym_member_id'] = Variable<String>(gymMemberId);
+    if (!nullToAbsent || trainerId != null) {
+      map['trainer_id'] = Variable<String>(trainerId);
+    }
     if (!nullToAbsent || memberName != null) {
       map['member_name'] = Variable<String>(memberName);
     }
@@ -4170,6 +4251,9 @@ class CachedAssignment extends DataClass
     return CachedAssignmentsCompanion(
       assignmentId: Value(assignmentId),
       gymMemberId: Value(gymMemberId),
+      trainerId: trainerId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trainerId),
       memberName: memberName == null && nullToAbsent
           ? const Value.absent()
           : Value(memberName),
@@ -4211,6 +4295,7 @@ class CachedAssignment extends DataClass
     return CachedAssignment(
       assignmentId: serializer.fromJson<String>(json['assignmentId']),
       gymMemberId: serializer.fromJson<String>(json['gymMemberId']),
+      trainerId: serializer.fromJson<String?>(json['trainerId']),
       memberName: serializer.fromJson<String?>(json['memberName']),
       memberNumber: serializer.fromJson<String?>(json['memberNumber']),
       photoUrl: serializer.fromJson<String?>(json['photoUrl']),
@@ -4229,6 +4314,7 @@ class CachedAssignment extends DataClass
     return <String, dynamic>{
       'assignmentId': serializer.toJson<String>(assignmentId),
       'gymMemberId': serializer.toJson<String>(gymMemberId),
+      'trainerId': serializer.toJson<String?>(trainerId),
       'memberName': serializer.toJson<String?>(memberName),
       'memberNumber': serializer.toJson<String?>(memberNumber),
       'photoUrl': serializer.toJson<String?>(photoUrl),
@@ -4245,6 +4331,7 @@ class CachedAssignment extends DataClass
   CachedAssignment copyWith({
     String? assignmentId,
     String? gymMemberId,
+    Value<String?> trainerId = const Value.absent(),
     Value<String?> memberName = const Value.absent(),
     Value<String?> memberNumber = const Value.absent(),
     Value<String?> photoUrl = const Value.absent(),
@@ -4258,6 +4345,7 @@ class CachedAssignment extends DataClass
   }) => CachedAssignment(
     assignmentId: assignmentId ?? this.assignmentId,
     gymMemberId: gymMemberId ?? this.gymMemberId,
+    trainerId: trainerId.present ? trainerId.value : this.trainerId,
     memberName: memberName.present ? memberName.value : this.memberName,
     memberNumber: memberNumber.present ? memberNumber.value : this.memberNumber,
     photoUrl: photoUrl.present ? photoUrl.value : this.photoUrl,
@@ -4281,6 +4369,7 @@ class CachedAssignment extends DataClass
       gymMemberId: data.gymMemberId.present
           ? data.gymMemberId.value
           : this.gymMemberId,
+      trainerId: data.trainerId.present ? data.trainerId.value : this.trainerId,
       memberName: data.memberName.present
           ? data.memberName.value
           : this.memberName,
@@ -4313,6 +4402,7 @@ class CachedAssignment extends DataClass
     return (StringBuffer('CachedAssignment(')
           ..write('assignmentId: $assignmentId, ')
           ..write('gymMemberId: $gymMemberId, ')
+          ..write('trainerId: $trainerId, ')
           ..write('memberName: $memberName, ')
           ..write('memberNumber: $memberNumber, ')
           ..write('photoUrl: $photoUrl, ')
@@ -4331,6 +4421,7 @@ class CachedAssignment extends DataClass
   int get hashCode => Object.hash(
     assignmentId,
     gymMemberId,
+    trainerId,
     memberName,
     memberNumber,
     photoUrl,
@@ -4348,6 +4439,7 @@ class CachedAssignment extends DataClass
       (other is CachedAssignment &&
           other.assignmentId == this.assignmentId &&
           other.gymMemberId == this.gymMemberId &&
+          other.trainerId == this.trainerId &&
           other.memberName == this.memberName &&
           other.memberNumber == this.memberNumber &&
           other.photoUrl == this.photoUrl &&
@@ -4363,6 +4455,7 @@ class CachedAssignment extends DataClass
 class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
   final Value<String> assignmentId;
   final Value<String> gymMemberId;
+  final Value<String?> trainerId;
   final Value<String?> memberName;
   final Value<String?> memberNumber;
   final Value<String?> photoUrl;
@@ -4377,6 +4470,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
   const CachedAssignmentsCompanion({
     this.assignmentId = const Value.absent(),
     this.gymMemberId = const Value.absent(),
+    this.trainerId = const Value.absent(),
     this.memberName = const Value.absent(),
     this.memberNumber = const Value.absent(),
     this.photoUrl = const Value.absent(),
@@ -4392,6 +4486,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
   CachedAssignmentsCompanion.insert({
     required String assignmentId,
     required String gymMemberId,
+    this.trainerId = const Value.absent(),
     this.memberName = const Value.absent(),
     this.memberNumber = const Value.absent(),
     this.photoUrl = const Value.absent(),
@@ -4408,6 +4503,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
   static Insertable<CachedAssignment> custom({
     Expression<String>? assignmentId,
     Expression<String>? gymMemberId,
+    Expression<String>? trainerId,
     Expression<String>? memberName,
     Expression<String>? memberNumber,
     Expression<String>? photoUrl,
@@ -4423,6 +4519,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
     return RawValuesInsertable({
       if (assignmentId != null) 'assignment_id': assignmentId,
       if (gymMemberId != null) 'gym_member_id': gymMemberId,
+      if (trainerId != null) 'trainer_id': trainerId,
       if (memberName != null) 'member_name': memberName,
       if (memberNumber != null) 'member_number': memberNumber,
       if (photoUrl != null) 'photo_url': photoUrl,
@@ -4440,6 +4537,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
   CachedAssignmentsCompanion copyWith({
     Value<String>? assignmentId,
     Value<String>? gymMemberId,
+    Value<String?>? trainerId,
     Value<String?>? memberName,
     Value<String?>? memberNumber,
     Value<String?>? photoUrl,
@@ -4455,6 +4553,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
     return CachedAssignmentsCompanion(
       assignmentId: assignmentId ?? this.assignmentId,
       gymMemberId: gymMemberId ?? this.gymMemberId,
+      trainerId: trainerId ?? this.trainerId,
       memberName: memberName ?? this.memberName,
       memberNumber: memberNumber ?? this.memberNumber,
       photoUrl: photoUrl ?? this.photoUrl,
@@ -4477,6 +4576,9 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
     }
     if (gymMemberId.present) {
       map['gym_member_id'] = Variable<String>(gymMemberId.value);
+    }
+    if (trainerId.present) {
+      map['trainer_id'] = Variable<String>(trainerId.value);
     }
     if (memberName.present) {
       map['member_name'] = Variable<String>(memberName.value);
@@ -4519,6 +4621,7 @@ class CachedAssignmentsCompanion extends UpdateCompanion<CachedAssignment> {
     return (StringBuffer('CachedAssignmentsCompanion(')
           ..write('assignmentId: $assignmentId, ')
           ..write('gymMemberId: $gymMemberId, ')
+          ..write('trainerId: $trainerId, ')
           ..write('memberName: $memberName, ')
           ..write('memberNumber: $memberNumber, ')
           ..write('photoUrl: $photoUrl, ')
@@ -5540,6 +5643,319 @@ class CachedPassKeysCompanion extends UpdateCompanion<CachedPassKey> {
   }
 }
 
+class $CachedTrainersTable extends CachedTrainers
+    with TableInfo<$CachedTrainersTable, CachedTrainer> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedTrainersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _serviceTypeMeta = const VerificationMeta(
+    'serviceType',
+  );
+  @override
+  late final GeneratedColumn<String> serviceType = GeneratedColumn<String>(
+    'service_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, serviceType, isActive];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_trainers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedTrainer> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('service_type')) {
+      context.handle(
+        _serviceTypeMeta,
+        serviceType.isAcceptableOrUnknown(
+          data['service_type']!,
+          _serviceTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedTrainer map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedTrainer(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      serviceType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service_type'],
+      ),
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedTrainersTable createAlias(String alias) {
+    return $CachedTrainersTable(attachedDatabase, alias);
+  }
+}
+
+class CachedTrainer extends DataClass implements Insertable<CachedTrainer> {
+  final String id;
+  final String name;
+  final String? serviceType;
+  final bool isActive;
+  const CachedTrainer({
+    required this.id,
+    required this.name,
+    this.serviceType,
+    required this.isActive,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || serviceType != null) {
+      map['service_type'] = Variable<String>(serviceType);
+    }
+    map['is_active'] = Variable<bool>(isActive);
+    return map;
+  }
+
+  CachedTrainersCompanion toCompanion(bool nullToAbsent) {
+    return CachedTrainersCompanion(
+      id: Value(id),
+      name: Value(name),
+      serviceType: serviceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serviceType),
+      isActive: Value(isActive),
+    );
+  }
+
+  factory CachedTrainer.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedTrainer(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      serviceType: serializer.fromJson<String?>(json['serviceType']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'serviceType': serializer.toJson<String?>(serviceType),
+      'isActive': serializer.toJson<bool>(isActive),
+    };
+  }
+
+  CachedTrainer copyWith({
+    String? id,
+    String? name,
+    Value<String?> serviceType = const Value.absent(),
+    bool? isActive,
+  }) => CachedTrainer(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    serviceType: serviceType.present ? serviceType.value : this.serviceType,
+    isActive: isActive ?? this.isActive,
+  );
+  CachedTrainer copyWithCompanion(CachedTrainersCompanion data) {
+    return CachedTrainer(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      serviceType: data.serviceType.present
+          ? data.serviceType.value
+          : this.serviceType,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedTrainer(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('serviceType: $serviceType, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, serviceType, isActive);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedTrainer &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.serviceType == this.serviceType &&
+          other.isActive == this.isActive);
+}
+
+class CachedTrainersCompanion extends UpdateCompanion<CachedTrainer> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> serviceType;
+  final Value<bool> isActive;
+  final Value<int> rowid;
+  const CachedTrainersCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.serviceType = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedTrainersCompanion.insert({
+    required String id,
+    this.name = const Value.absent(),
+    this.serviceType = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<CachedTrainer> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? serviceType,
+    Expression<bool>? isActive,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (serviceType != null) 'service_type': serviceType,
+      if (isActive != null) 'is_active': isActive,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedTrainersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? serviceType,
+    Value<bool>? isActive,
+    Value<int>? rowid,
+  }) {
+    return CachedTrainersCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      serviceType: serviceType ?? this.serviceType,
+      isActive: isActive ?? this.isActive,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (serviceType.present) {
+      map['service_type'] = Variable<String>(serviceType.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedTrainersCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('serviceType: $serviceType, ')
+          ..write('isActive: $isActive, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncMetaTable extends SyncMeta
     with TableInfo<$SyncMetaTable, SyncMetaEntry> {
   @override
@@ -5774,6 +6190,7 @@ abstract class _$OfflineDatabase extends GeneratedDatabase {
   late final $CachedRecentServiceLogsTable cachedRecentServiceLogs =
       $CachedRecentServiceLogsTable(this);
   late final $CachedPassKeysTable cachedPassKeys = $CachedPassKeysTable(this);
+  late final $CachedTrainersTable cachedTrainers = $CachedTrainersTable(this);
   late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -5789,6 +6206,7 @@ abstract class _$OfflineDatabase extends GeneratedDatabase {
     cachedRecentAttendance,
     cachedRecentServiceLogs,
     cachedPassKeys,
+    cachedTrainers,
     syncMeta,
   ];
 }
@@ -5804,6 +6222,7 @@ typedef $$OutboxEventsTableCreateCompanionBuilder =
       Value<String?> classSessionId,
       Value<String?> studioId,
       Value<String?> serviceAssignmentId,
+      Value<String?> trainerId,
       required String deviceRecordedAt,
       required int deviceRecordedAtMs,
       required String deviceTimezone,
@@ -5839,6 +6258,7 @@ typedef $$OutboxEventsTableUpdateCompanionBuilder =
       Value<String?> classSessionId,
       Value<String?> studioId,
       Value<String?> serviceAssignmentId,
+      Value<String?> trainerId,
       Value<String> deviceRecordedAt,
       Value<int> deviceRecordedAtMs,
       Value<String> deviceTimezone,
@@ -5915,6 +6335,11 @@ class $$OutboxEventsTableFilterComposer
 
   ColumnFilters<String> get serviceAssignmentId => $composableBuilder(
     column: $table.serviceAssignmentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trainerId => $composableBuilder(
+    column: $table.trainerId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6083,6 +6508,11 @@ class $$OutboxEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get trainerId => $composableBuilder(
+    column: $table.trainerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get deviceRecordedAt => $composableBuilder(
     column: $table.deviceRecordedAt,
     builder: (column) => ColumnOrderings(column),
@@ -6236,6 +6666,9 @@ class $$OutboxEventsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get trainerId =>
+      $composableBuilder(column: $table.trainerId, builder: (column) => column);
+
   GeneratedColumn<String> get deviceRecordedAt => $composableBuilder(
     column: $table.deviceRecordedAt,
     builder: (column) => column,
@@ -6375,6 +6808,7 @@ class $$OutboxEventsTableTableManager
                 Value<String?> classSessionId = const Value.absent(),
                 Value<String?> studioId = const Value.absent(),
                 Value<String?> serviceAssignmentId = const Value.absent(),
+                Value<String?> trainerId = const Value.absent(),
                 Value<String> deviceRecordedAt = const Value.absent(),
                 Value<int> deviceRecordedAtMs = const Value.absent(),
                 Value<String> deviceTimezone = const Value.absent(),
@@ -6408,6 +6842,7 @@ class $$OutboxEventsTableTableManager
                 classSessionId: classSessionId,
                 studioId: studioId,
                 serviceAssignmentId: serviceAssignmentId,
+                trainerId: trainerId,
                 deviceRecordedAt: deviceRecordedAt,
                 deviceRecordedAtMs: deviceRecordedAtMs,
                 deviceTimezone: deviceTimezone,
@@ -6443,6 +6878,7 @@ class $$OutboxEventsTableTableManager
                 Value<String?> classSessionId = const Value.absent(),
                 Value<String?> studioId = const Value.absent(),
                 Value<String?> serviceAssignmentId = const Value.absent(),
+                Value<String?> trainerId = const Value.absent(),
                 required String deviceRecordedAt,
                 required int deviceRecordedAtMs,
                 required String deviceTimezone,
@@ -6476,6 +6912,7 @@ class $$OutboxEventsTableTableManager
                 classSessionId: classSessionId,
                 studioId: studioId,
                 serviceAssignmentId: serviceAssignmentId,
+                trainerId: trainerId,
                 deviceRecordedAt: deviceRecordedAt,
                 deviceRecordedAtMs: deviceRecordedAtMs,
                 deviceTimezone: deviceTimezone,
@@ -7631,6 +8068,7 @@ typedef $$CachedAssignmentsTableCreateCompanionBuilder =
     CachedAssignmentsCompanion Function({
       required String assignmentId,
       required String gymMemberId,
+      Value<String?> trainerId,
       Value<String?> memberName,
       Value<String?> memberNumber,
       Value<String?> photoUrl,
@@ -7647,6 +8085,7 @@ typedef $$CachedAssignmentsTableUpdateCompanionBuilder =
     CachedAssignmentsCompanion Function({
       Value<String> assignmentId,
       Value<String> gymMemberId,
+      Value<String?> trainerId,
       Value<String?> memberName,
       Value<String?> memberNumber,
       Value<String?> photoUrl,
@@ -7676,6 +8115,11 @@ class $$CachedAssignmentsTableFilterComposer
 
   ColumnFilters<String> get gymMemberId => $composableBuilder(
     column: $table.gymMemberId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trainerId => $composableBuilder(
+    column: $table.trainerId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7749,6 +8193,11 @@ class $$CachedAssignmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get trainerId => $composableBuilder(
+    column: $table.trainerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get memberName => $composableBuilder(
     column: $table.memberName,
     builder: (column) => ColumnOrderings(column),
@@ -7818,6 +8267,9 @@ class $$CachedAssignmentsTableAnnotationComposer
     column: $table.gymMemberId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get trainerId =>
+      $composableBuilder(column: $table.trainerId, builder: (column) => column);
 
   GeneratedColumn<String> get memberName => $composableBuilder(
     column: $table.memberName,
@@ -7906,6 +8358,7 @@ class $$CachedAssignmentsTableTableManager
               ({
                 Value<String> assignmentId = const Value.absent(),
                 Value<String> gymMemberId = const Value.absent(),
+                Value<String?> trainerId = const Value.absent(),
                 Value<String?> memberName = const Value.absent(),
                 Value<String?> memberNumber = const Value.absent(),
                 Value<String?> photoUrl = const Value.absent(),
@@ -7920,6 +8373,7 @@ class $$CachedAssignmentsTableTableManager
               }) => CachedAssignmentsCompanion(
                 assignmentId: assignmentId,
                 gymMemberId: gymMemberId,
+                trainerId: trainerId,
                 memberName: memberName,
                 memberNumber: memberNumber,
                 photoUrl: photoUrl,
@@ -7936,6 +8390,7 @@ class $$CachedAssignmentsTableTableManager
               ({
                 required String assignmentId,
                 required String gymMemberId,
+                Value<String?> trainerId = const Value.absent(),
                 Value<String?> memberName = const Value.absent(),
                 Value<String?> memberNumber = const Value.absent(),
                 Value<String?> photoUrl = const Value.absent(),
@@ -7950,6 +8405,7 @@ class $$CachedAssignmentsTableTableManager
               }) => CachedAssignmentsCompanion.insert(
                 assignmentId: assignmentId,
                 gymMemberId: gymMemberId,
+                trainerId: trainerId,
                 memberName: memberName,
                 memberNumber: memberNumber,
                 photoUrl: photoUrl,
@@ -8632,6 +9088,204 @@ typedef $$CachedPassKeysTableProcessedTableManager =
       CachedPassKey,
       PrefetchHooks Function()
     >;
+typedef $$CachedTrainersTableCreateCompanionBuilder =
+    CachedTrainersCompanion Function({
+      required String id,
+      Value<String> name,
+      Value<String?> serviceType,
+      Value<bool> isActive,
+      Value<int> rowid,
+    });
+typedef $$CachedTrainersTableUpdateCompanionBuilder =
+    CachedTrainersCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> serviceType,
+      Value<bool> isActive,
+      Value<int> rowid,
+    });
+
+class $$CachedTrainersTableFilterComposer
+    extends Composer<_$OfflineDatabase, $CachedTrainersTable> {
+  $$CachedTrainersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serviceType => $composableBuilder(
+    column: $table.serviceType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedTrainersTableOrderingComposer
+    extends Composer<_$OfflineDatabase, $CachedTrainersTable> {
+  $$CachedTrainersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get serviceType => $composableBuilder(
+    column: $table.serviceType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedTrainersTableAnnotationComposer
+    extends Composer<_$OfflineDatabase, $CachedTrainersTable> {
+  $$CachedTrainersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get serviceType => $composableBuilder(
+    column: $table.serviceType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+}
+
+class $$CachedTrainersTableTableManager
+    extends
+        RootTableManager<
+          _$OfflineDatabase,
+          $CachedTrainersTable,
+          CachedTrainer,
+          $$CachedTrainersTableFilterComposer,
+          $$CachedTrainersTableOrderingComposer,
+          $$CachedTrainersTableAnnotationComposer,
+          $$CachedTrainersTableCreateCompanionBuilder,
+          $$CachedTrainersTableUpdateCompanionBuilder,
+          (
+            CachedTrainer,
+            BaseReferences<
+              _$OfflineDatabase,
+              $CachedTrainersTable,
+              CachedTrainer
+            >,
+          ),
+          CachedTrainer,
+          PrefetchHooks Function()
+        > {
+  $$CachedTrainersTableTableManager(
+    _$OfflineDatabase db,
+    $CachedTrainersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedTrainersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedTrainersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedTrainersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> serviceType = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedTrainersCompanion(
+                id: id,
+                name: name,
+                serviceType: serviceType,
+                isActive: isActive,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> name = const Value.absent(),
+                Value<String?> serviceType = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedTrainersCompanion.insert(
+                id: id,
+                name: name,
+                serviceType: serviceType,
+                isActive: isActive,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CachedTrainersTable, CachedTrainer>(table),
+                  BaseReferences<
+                    _$OfflineDatabase,
+                    $CachedTrainersTable,
+                    CachedTrainer
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedTrainersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$OfflineDatabase,
+      $CachedTrainersTable,
+      CachedTrainer,
+      $$CachedTrainersTableFilterComposer,
+      $$CachedTrainersTableOrderingComposer,
+      $$CachedTrainersTableAnnotationComposer,
+      $$CachedTrainersTableCreateCompanionBuilder,
+      $$CachedTrainersTableUpdateCompanionBuilder,
+      (
+        CachedTrainer,
+        BaseReferences<_$OfflineDatabase, $CachedTrainersTable, CachedTrainer>,
+      ),
+      CachedTrainer,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncMetaTableCreateCompanionBuilder =
     SyncMetaCompanion Function({
       required String key,
@@ -8808,6 +9462,8 @@ class $OfflineDatabaseManager {
       );
   $$CachedPassKeysTableTableManager get cachedPassKeys =>
       $$CachedPassKeysTableTableManager(_db, _db.cachedPassKeys);
+  $$CachedTrainersTableTableManager get cachedTrainers =>
+      $$CachedTrainersTableTableManager(_db, _db.cachedTrainers);
   $$SyncMetaTableTableManager get syncMeta =>
       $$SyncMetaTableTableManager(_db, _db.syncMeta);
 }

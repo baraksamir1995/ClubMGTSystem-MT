@@ -22,6 +22,9 @@ class OutboxEvents extends Table {
   TextColumn get classSessionId => text().nullable()();
   TextColumn get studioId => text().nullable()();
   TextColumn get serviceAssignmentId => text().nullable()();
+  /// trainer_profiles.id for a member-scanned coach QR (`kind:
+  /// service_session`, `method: member_qr`). Added in schema v4.
+  TextColumn get trainerId => text().nullable()();
   /// ISO-8601 with the device's UTC offset, exactly as sent. Immutable.
   TextColumn get deviceRecordedAt => text()();
   /// Same instant as UTC epoch millis — ordering key only. Immutable.
@@ -153,6 +156,8 @@ class CachedAssignments extends Table {
 
   TextColumn get assignmentId => text()();
   TextColumn get gymMemberId => text()();
+  /// Trainer of the assignment (member snapshot; schema v4).
+  TextColumn get trainerId => text().nullable()();
   TextColumn get memberName => text().nullable()();
   TextColumn get memberNumber => text().nullable()();
   TextColumn get photoUrl => text().nullable()();
@@ -196,6 +201,22 @@ class CachedRecentServiceLogs extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {serviceLogId};
+}
+
+/// Trainers of the member's gym (member snapshot, Phase 3 Amendment 2):
+/// a coach QR must name a cached ACTIVE trainer. Added in schema v4.
+@DataClassName('CachedTrainer')
+class CachedTrainers extends Table {
+  @override
+  String get tableName => 'cached_trainers';
+
+  TextColumn get id => text()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  TextColumn get serviceType => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
 }
 
 /// Member-pass verification keys (PHASE2-CONTRACT "Keys"), from the

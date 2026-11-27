@@ -57,7 +57,7 @@ void main() {
     test('member live (set CLBY_MEMBER_LIVE)', () {}, skip: 'CLBY_MEMBER_LIVE unset');
     return;
   }
-  test('member: /offline/me → offline verify → member_qr → sync → replay', () async {
+  test('member: /offline/me → offline gym-QR verify → member_qr → sync → replay', () async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     final j = jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     final qr = (j['qr'] as Map)['qr'] as String;
@@ -75,9 +75,6 @@ void main() {
     final branches = await store.db.select(store.db.cachedBranches).get();
     print('branches: ${branches.map((b) => '${b.name} token=${b.qrToken != null}').toList()}');
     expect(branches.any((b) => b.qrToken != null), isTrue, reason: '/offline/me branches[].qr_token');
-    final pass = await store.memberPass();
-    print('member pass: kid=${pass?.kid} expires=${pass?.expiresAt}');
-    expect(pass, isNotNull, reason: '/offline/me member_pass');
     expect(await store.ownMemberId(), barakGm);
 
     final v = await store.branchQrVerifier.verify(qr);
@@ -87,9 +84,6 @@ void main() {
     final denial = gymEntryDenialCached(await store.membershipsOf(barakGm), valid.qr.branchId);
     print('local pre-check denial: $denial');
 
-    // The member's own pass verifies with the cached keys too.
-    final pv = await store.passVerifier.verify(pass!.qr);
-    print('own pass verdict: ${pv.runtimeType}');
 
     // Record at "now" (inside the server's online grace → processed even
     // when the offline policy is off); local policy forced on for the test.

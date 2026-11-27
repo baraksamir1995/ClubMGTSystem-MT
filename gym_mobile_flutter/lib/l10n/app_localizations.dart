@@ -6079,66 +6079,6 @@ abstract class AppLocalizations {
   /// **'Check your connection and try again.'**
   String get contractTermsErrorBody;
 
-  /// No description provided for @offlineModeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode'**
-  String get offlineModeTitle;
-
-  /// No description provided for @offlineModeBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Can\'t reach the gym right now. You can show your member pass, check in by scanning the gym QR and see this phone\'s check-ins. They\'ll be confirmed when you\'re back online.'**
-  String get offlineModeBody;
-
-  /// No description provided for @offlineOnlineOnlyNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'Bookings, payments, classes and your history need a connection.'**
-  String get offlineOnlineOnlyNotice;
-
-  /// No description provided for @offlineTryAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Try to reconnect'**
-  String get offlineTryAgain;
-
-  /// No description provided for @offlineBlockNotSignedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode isn\'t available: you\'re not signed in on this phone.'**
-  String get offlineBlockNotSignedIn;
-
-  /// No description provided for @offlineBlockNoPreviousSession.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode isn\'t available: open the app online once on this phone first.'**
-  String get offlineBlockNoPreviousSession;
-
-  /// No description provided for @offlineBlockDifferentUser.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode isn\'t available: the saved data belongs to another account.'**
-  String get offlineBlockDifferentUser;
-
-  /// No description provided for @offlineBlockDifferentApi.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode isn\'t available: the saved data is for a different server.'**
-  String get offlineBlockDifferentApi;
-
-  /// No description provided for @offlineBlockStoreUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode isn\'t available: this phone\'s offline storage can\'t be opened right now.'**
-  String get offlineBlockStoreUnavailable;
-
-  /// No description provided for @offlineBlockNoCachedData.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode isn\'t available: no offline data has been downloaded yet.'**
-  String get offlineBlockNoCachedData;
-
   /// No description provided for @syncOnline.
   ///
   /// In en, this message translates to:
@@ -6271,54 +6211,6 @@ abstract class AppLocalizations {
   /// **'This phone\'s date or time is wrong. Correct it and try again.'**
   String get qrClockWrongSubtitle;
 
-  /// No description provided for @memberPassTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Member pass'**
-  String get memberPassTitle;
-
-  /// No description provided for @memberPassHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Show this code to staff at the desk.'**
-  String get memberPassHint;
-
-  /// No description provided for @memberPassValidUntil.
-  ///
-  /// In en, this message translates to:
-  /// **'Pass valid until {date}'**
-  String memberPassValidUntil(String date);
-
-  /// No description provided for @memberPassNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Member #{number}'**
-  String memberPassNumber(String number);
-
-  /// No description provided for @memberPassUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Your pass isn\'t on this phone yet. Connect to the internet once to download it.'**
-  String get memberPassUnavailable;
-
-  /// No description provided for @memberPassExpiredOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Your pass has expired and can\'t be renewed offline. Connect to the internet to get a new one.'**
-  String get memberPassExpiredOffline;
-
-  /// No description provided for @memberPassRefresh.
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh pass'**
-  String get memberPassRefresh;
-
-  /// No description provided for @memberPassProfileLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'PASS'**
-  String get memberPassProfileLabel;
-
   /// No description provided for @thisPhoneCheckinsTitle.
   ///
   /// In en, this message translates to:
@@ -6384,6 +6276,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out anyway'**
   String get signOutPendingSignOutAnyway;
+
+  /// No description provided for @sessionSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session saved on this phone'**
+  String get sessionSavedTitle;
+
+  /// No description provided for @sessionConfirmedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session confirmed'**
+  String get sessionConfirmedTitle;
+
+  /// No description provided for @sessionNotAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session not accepted'**
+  String get sessionNotAcceptedTitle;
+
+  /// No description provided for @checkinKindGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym check-in'**
+  String get checkinKindGym;
+
+  /// No description provided for @checkinKindSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach session'**
+  String get checkinKindSession;
 }
 
 class _AppLocalizationsDelegate

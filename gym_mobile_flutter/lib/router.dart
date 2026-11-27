@@ -47,21 +47,17 @@ import 'screens/transfer_sessions_screen.dart';
 import 'models/banner_model.dart';
 import 'models/checkout_item.dart';
 import 'models/service_model.dart';
-import 'features/offline/member_offline_controller.dart';
-import 'features/offline/member_pass_screen.dart';
 import 'features/offline/offline_checkins_screen.dart';
-import 'features/offline/offline_home_screen.dart';
-import 'features/offline/offline_logic.dart';
+
 
 const _publicRoutes = {'/splash', '/onboarding', '/welcome', '/login', '/register', '/forgot-password', '/reset-password'};
 
 GoRouter buildRouter(BuildContext context) {
   final authProvider = context.read<AuthProvider>();
-  final offline = context.read<MemberOfflineController>();
 
   final router = GoRouter(
     initialLocation: '/splash',
-    refreshListenable: Listenable.merge([authProvider, offline]),
+    refreshListenable: authProvider,
     redirect: (BuildContext ctx, GoRouterState state) {
       final isAuthenticated = authProvider.isAuthenticated;
       final isPasswordRecovery = authProvider.isPasswordRecovery;
@@ -74,26 +70,9 @@ GoRouter buildRouter(BuildContext context) {
       }
       if (!isAuthenticated && !isPublic) return '/login';
       if (isAuthenticated && !isPasswordRecovery && location == '/login') return '/home';
-      // Offline mode (Phase 3): only pass / check-in / this phone's
-      // check-ins. Inactive (null) whenever the app is online as today.
-      if (isAuthenticated) {
-        final off = offlineRedirect(offlineMode: offline.offlineMode, location: location);
-        if (off != null) return off;
-      }
-      if (!offline.offlineMode && location == '/offline') return '/home';
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/offline',
-        name: 'offline',
-        pageBuilder: (context, state) => const NoTransitionPage(child: OfflineHomeScreen()),
-      ),
-      GoRoute(
-        path: '/member-pass',
-        name: 'member-pass',
-        builder: (context, state) => const MemberPassScreen(),
-      ),
       GoRoute(
         path: '/offline-checkins',
         name: 'offline-checkins',

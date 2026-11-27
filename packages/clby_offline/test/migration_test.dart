@@ -7,11 +7,48 @@ import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v1.dart' as v1;
 import 'generated_migrations/schema_v2.dart' as v2;
 import 'generated_migrations/schema_v3.dart' as v3;
+import 'generated_migrations/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late SchemaVerifier verifier;
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
+
+  test('v1/v2/v3 → v4 match the exported v4 schema', () async {
+    for (final from in [1, 2, 3]) {
+      final schema = await verifier.schemaAt(from);
+      final db = OfflineDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 4);
+      await db.close();
+    }
+  });
+
+  test('v3 → v4 keeps outbox + assignments; trainer_id starts null', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: OfflineDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insert(oldDb.cachedAssignments,
+            const v3.CachedAssignmentsData(assignmentId: 'a1', gymMemberId: 'm'));
+        batch.insert(oldDb.outboxEvents, const v3.OutboxEventsData(
+          eventId: 'e-3', kind: 'attendance', gymId: 'g', memberId: 'm',
+          deviceRecordedAt: '2026-11-27T08:00:00.000+02:00', deviceRecordedAtMs: 1,
+          deviceTimezone: 'Africa/Cairo', metadata: '{}', actorUserId: 'u',
+          actorType: 'member', deviceId: 'd', syncStatus: 'pending', syncAttempts: 0,
+          flags: '[]', createdAt: 1, attendanceMethod: 'member_qr'));
+      },
+      validateItems: (newDb) async {
+        final e = await newDb.select(newDb.outboxEvents).getSingle();
+        expect(e.eventId, 'e-3');
+        expect(e.trainerId, equals(null));
+        expect((await newDb.select(newDb.cachedAssignments).getSingle()).trainerId, equals(null));
+        expect(await newDb.select(newDb.cachedTrainers).get(), isEmpty);
+      },
+    );
+  });
 
   test('v2 → v3 matches the exported v3 schema; v1 → v3 too', () async {
     for (final from in [1, 2]) {
@@ -88,7 +125,7 @@ void main() {
     final schema = await verifier.schemaAt(1);
     final db = OfflineDatabase(schema.newConnection());
     await db.customSelect('SELECT 1').get();
-    expect(db.schemaVersion, 3);
+    expect(db.schemaVersion, 4);
     await db.into(db.cachedPassKeys).insert(CachedPassKeysCompanion.insert(
         kid: 'k', publicKey: 'p', status: 'active'));
     await db.close();

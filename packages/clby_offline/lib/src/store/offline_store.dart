@@ -13,6 +13,7 @@ import '../errors.dart';
 import '../model/clock_offset.dart';
 import '../pass/branch_qr.dart';
 import '../pass/member_pass.dart';
+import '../pass/specialist_qr.dart';
 import '../model/enums.dart';
 import '../model/policy_holder.dart';
 import '../model/sync_models.dart';
@@ -54,14 +55,15 @@ class OfflineStore {
   BranchQrVerifier get branchQrVerifier => BranchQrVerifier(
       db: db, gymId: scope.gymId, serverClock: serverClock, policy: policy, gymLock: gymLock);
 
-  /// The member's own cached pass `{qr, expires_at, kid}` (member snapshot).
-  Future<CachedMemberPass?> memberPass() async {
-    final raw = await db.readMeta(SyncMetaKeys.memberPass);
+  /// The coach's own signed QR `{qr, expires_at, kid}` (coach bootstrap
+  /// `own_qr`), cached so it can be shown offline.
+  Future<CachedSignedQr?> ownQr() async {
+    final raw = await db.readMeta(SyncMetaKeys.ownQr);
     if (raw == null) return null;
     try {
       final j = jsonDecode(raw);
       if (j is! Map || j['qr'] is! String) return null;
-      return CachedMemberPass(
+      return CachedSignedQr(
         qr: j['qr'] as String,
         expiresAt: DateTime.tryParse('${j['expires_at']}'),
         kid: j['kid']?.toString(),
@@ -70,6 +72,14 @@ class OfflineStore {
       return null;
     }
   }
+
+  /// Offline coach-QR verification (Amendment 2 §C).
+  SpecialistQrVerifier get specialistQrVerifier => SpecialistQrVerifier(
+      db: db, gymId: scope.gymId, serverClock: serverClock, policy: policy, gymLock: gymLock);
+
+  /// Cached assignments of one member (member snapshot: own packages).
+  Future<List<CachedAssignment>> assignmentsOf(String gymMemberId) =>
+      (db.select(db.cachedAssignments)..where((t) => t.gymMemberId.equals(gymMemberId))).get();
 
   /// The signed-in member's own `gym_member_id` (member snapshot).
   Future<String?> ownMemberId() async {
@@ -336,9 +346,9 @@ class OfflineStore {
   }
 }
 
-/// The member's own pass as cached from `/offline/me`.
-class CachedMemberPass {
-  const CachedMemberPass({required this.qr, this.expiresAt, this.kid});
+/// A cached server-signed QR text (the coach's own `own_qr`).
+class CachedSignedQr {
+  const CachedSignedQr({required this.qr, this.expiresAt, this.kid});
   final String qr;
   final DateTime? expiresAt;
   final String? kid;

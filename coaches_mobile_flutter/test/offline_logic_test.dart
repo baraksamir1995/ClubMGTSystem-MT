@@ -1,6 +1,7 @@
 import 'package:clby_offline/clby_offline.dart';
 import 'package:coachesapp/features/offline/offline_logic.dart';
 import 'package:coachesapp/features/offline/offline_strings.dart';
+import 'package:coachesapp/features/offline/own_qr_card.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 CachedAssignment a({
@@ -133,6 +134,19 @@ void main() {
         expect(passFailureText(f, OfflineStrings.en), isNotEmpty);
         expect(passFailureText(f, OfflineStrings.ar), isNotEmpty);
       }
+    });
+  });
+
+  group('coach QR (Phase 3 Amendment 2)', () {
+    test('signed own_qr when cached and valid, else today\'s unsigned QR', () {
+      const signed = CachedSignedQr(qr: '{"type":"specialist_session","v":2}', expiresAt: null);
+      expect(signedOrUnsignedCoachQr(signed: signed, gymId: 'g', trainerId: 't'), signed.qr);
+      final expired = CachedSignedQr(qr: 'old', expiresAt: DateTime.utc(2020));
+      expect(signedOrUnsignedCoachQr(signed: expired, gymId: 'g', trainerId: 't'),
+          '{"type":"specialist_session","gym_id":"g","trainer_id":"t"}');
+      expect(signedOrUnsignedCoachQr(signed: null, gymId: 'g', trainerId: 't'),
+          '{"type":"specialist_session","gym_id":"g","trainer_id":"t"}');
+      expect(signedOrUnsignedCoachQr(signed: null, gymId: null, trainerId: 't'), isNull);
     });
   });
 }

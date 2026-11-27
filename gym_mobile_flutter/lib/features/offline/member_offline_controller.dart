@@ -16,9 +16,11 @@ sealed class OfflineCheckIn {
 
 /// Saved on this phone (state then follows the event live).
 class CheckInSaved extends OfflineCheckIn {
-  const CheckInSaved(this.event, {required this.asOf});
+  const CheckInSaved(this.event, {required this.asOf, this.coachSession = false});
   final OutboxEvent event;
   final DateTime? asOf;
+  /// A coach session (scanned coach QR) rather than a gym check-in.
+  final bool coachSession;
 }
 
 /// Same scan saved moments ago — nothing new written.
@@ -27,11 +29,23 @@ class CheckInDuplicate extends OfflineCheckIn {
   final String? existingEventId;
 }
 
-/// The QR failed offline verification (§2 steps 1–6).
+/// The QR failed offline verification (gym QR §2 / coach QR Amendment 2).
+/// [code]: qr_invalid | qr_wrong_gym | qr_unknown_key | qr_expired.
 class CheckInQrRejected extends OfflineCheckIn {
-  const CheckInQrRejected(this.reason, {this.outOfDate = false});
-  final BranchQrFailure reason;
+  const CheckInQrRejected(this.code, {this.outOfDate = false, this.unknownTrainer = false});
+  final String code;
+  /// Gym QR whose branch token isn't the cached current one.
   final bool outOfDate;
+  /// Coach QR for a trainer that isn't a cached active trainer.
+  final bool unknownTrainer;
+}
+
+/// Offline coach-session pre-check denied (today's codes no_package /
+/// package_expired / package_exhausted) — nothing recorded.
+class CheckInSpecialistDenied extends OfflineCheckIn {
+  const CheckInSpecialistDenied(this.denial, {this.serviceType});
+  final SpecialistDenial denial;
+  final String? serviceType;
 }
 
 /// Local membership pre-check denied entry (§2 step 7) — nothing recorded.
@@ -80,7 +94,22 @@ class MemberOfflineController extends ChangeNotifier {
   bool get offlineMode => _offlineMode;
   bool get checkingEntry => _checking;
   OfflineEntryBlock? get entryBlock => _entryBlock;
+  /// Offline check-in allowed by the gym's policy. Every new piece of UI is
+  /// gated on this: policy off → the app looks and behaves as today.
   bool get memberQrAllowed => store != null && memberQrOfflineAllowed(store!.policy.value);
+
+  /// Actually offline right now — the cached pre-check only runs then.
+  bool get isOfflineNow =>
+      shouldRunLocalPreCheck(offlineMode: _offlineMode, online: _sync.online);
+
+  /// Shell status chip (only with offline check-in allowed).
+  bool get showStatus => shouldShowStatus(
+        policyAllows: memberQrAllowed,
+        offlineMode: _offlineMode,
+        online: _sync.online,
+        pending: _sync.pendingCount,
+        failing: _sync.indicator == SyncIndicator.failed || _sync.pause != null,
+      );
 
   void _onStore(OfflineStore? s) {
     _stateSub?.cancel();
@@ -174,6 +203,13 @@ class MemberOfflineController extends ChangeNotifier {
             apiBase: Env.apiUrl,
             storeOpened: s != null,
             hasCachedData: hasData);
+        // Policy off (cached) → behave exactly like today: no offline mode.
+        if (block == null && s != null && !memberQrOfflineAllowed(s.policy.value)) {
+          await offline.manager.deactivate();
+          _entryBlock = null;
+          _offlineMode = false;
+          return false;
+        }
         if (block != null && s != null) await offline.manager.deactivate();
       }
       _entryBlock = block;
@@ -193,33 +229,42 @@ class MemberOfflineController extends ChangeNotifier {
   /// "Try to reconnect" in offline mode.
   Future<void> retryOnline() => auth.refreshProfile();
 
-  ScanPath scanPath(String code) => chooseScanPath(
-        claimsV2: BranchQr.claimsV2(code),
-        policyAllows: memberQrAllowed,
+  ScanPath scanPath(String code) {
+    final coach = SpecialistQr.claimsV2(code);
+    return chooseScanPath(
+        claimsV2: coach || BranchQr.claimsV2(code),
+        // Coach QR offline also needs allow_service_session_offline (server
+        // offline gate); gym QR needs enabled + allow_member_qr_offline.
+        policyAllows: memberQrAllowed &&
+            (!coach || store!.policy.value.allowServiceSessionOffline),
         storeOpen: store != null,
         offlineMode: _offlineMode,
       );
+  }
 
-  /// §4 offline check-in: verify (§2 1–6) → local pre-check (step 7, no
-  /// event on denial) → record `member_qr` (self, branch, `qr.raw`).
+  /// Outbox check-in for a v2 gym QR or v2 coach QR: verify offline →
+  /// cached pre-check ONLY when actually offline (online the server
+  /// decides; a stale snapshot never denies an online member) → record.
   Future<OfflineCheckIn> checkIn(String raw) async {
     final s = store;
-    if (s == null) {
-      return const CheckInRefused(null, 'store_unavailable');
-    }
+    if (s == null) return const CheckInRefused(null, 'store_unavailable');
+    final self = await s.ownMemberId();
+    if (self == null) return const CheckInQrRejected('qr_unknown_key');
+    return SpecialistQr.claimsV2(raw) ? _coachSession(s, self, raw) : _gymEntry(s, self, raw);
+  }
+
+  Future<OfflineCheckIn> _gymEntry(OfflineStore s, String self, String raw) async {
     final v = await s.branchQrVerifier.verify(raw);
     switch (v) {
       case BranchQrNotV2():
-        return const CheckInQrRejected(BranchQrFailure.qrInvalid);
+        return const CheckInQrRejected('qr_invalid');
       case BranchQrInvalid(:final reason, :final outOfDate):
-        return CheckInQrRejected(reason, outOfDate: outOfDate);
+        return CheckInQrRejected(reason.code, outOfDate: outOfDate);
       case BranchQrValid(:final qr):
-        final self = await s.ownMemberId();
-        if (self == null) {
-          return const CheckInQrRejected(BranchQrFailure.qrUnknownKey);
+        if (isOfflineNow) {
+          final denial = gymEntryDenialCached(await s.membershipsOf(self), qr.branchId);
+          if (denial != null) return CheckInDenied(denial);
         }
-        final denial = gymEntryDenialCached(await s.membershipsOf(self), qr.branchId);
-        if (denial != null) return CheckInDenied(denial);
         final o = await s.recorder.record(NewOfflineEvent.attendance(
           method: AttendanceMethod.memberQr,
           memberId: self,
@@ -227,14 +272,43 @@ class MemberOfflineController extends ChangeNotifier {
           qrRaw: raw,
           metadata: {'source': 'member_scan', 'qr_v': 2, 'qr_mode': qr.mode},
         ));
-        final asOfRaw = await s.db.readMeta(SyncMetaKeys.asOf);
-        return switch (o) {
-          RecordSaved(:final event) => CheckInSaved(event,
-              asOf: asOfRaw == null ? null : DateTime.tryParse(asOfRaw)),
-          RecordDuplicate(:final existingEventId) => CheckInDuplicate(existingEventId),
-          RecordRefused(:final reason, :final message) => CheckInRefused(reason, message),
-        };
+        return _outcome(s, o, coachSession: false);
     }
+  }
+
+  Future<OfflineCheckIn> _coachSession(OfflineStore s, String self, String raw) async {
+    final v = await s.specialistQrVerifier.verify(raw);
+    switch (v) {
+      case SpecialistQrNotV2():
+        return const CheckInQrRejected('qr_invalid');
+      case SpecialistQrInvalid(:final reason, :final unknownTrainer):
+        return CheckInQrRejected(reason.code, unknownTrainer: unknownTrainer);
+      case SpecialistQrValid(:final qr, :final trainer):
+        if (isOfflineNow) {
+          final pc = specialistPreCheck(
+              await s.assignmentsOf(self), qr.trainerId, s.serverClock.deviceNow());
+          if (pc.denial != null) {
+            return CheckInSpecialistDenied(pc.denial!, serviceType: trainer.serviceType);
+          }
+        }
+        final o = await s.recorder.record(NewOfflineEvent.memberServiceSession(
+          memberId: self,
+          trainerId: qr.trainerId,
+          qrRaw: raw,
+          metadata: {'source': 'member_scan', 'qr_v': 2},
+        ));
+        return _outcome(s, o, coachSession: true);
+    }
+  }
+
+  Future<OfflineCheckIn> _outcome(OfflineStore s, RecordOutcome o, {required bool coachSession}) async {
+    final asOfRaw = await s.db.readMeta(SyncMetaKeys.asOf);
+    return switch (o) {
+      RecordSaved(:final event) => CheckInSaved(event,
+          asOf: asOfRaw == null ? null : DateTime.tryParse(asOfRaw), coachSession: coachSession),
+      RecordDuplicate(:final existingEventId) => CheckInDuplicate(existingEventId),
+      RecordRefused(:final reason, :final message) => CheckInRefused(reason, message),
+    };
   }
 
   Stream<OutboxEvent?> watchEvent(String id) => store?.watchEvent(id) ?? Stream.value(null);

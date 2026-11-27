@@ -21,6 +21,9 @@ extension OutboxEventWire on OutboxEvent {
       'class_session_id': classSessionId,
       'studio_id': studioId,
       'service_assignment_id': serviceAssignmentId,
+      // Only member-scanned coach QRs carry it; omitted otherwise so older
+      // events keep their exact wire shape (replay hash).
+      'trainer_id': ?trainerId,
       'device_recorded_at': deviceRecordedAt,
       'device_timezone': deviceTimezone,
       'qr': qrRaw == null ? null : {'raw': qrRaw},

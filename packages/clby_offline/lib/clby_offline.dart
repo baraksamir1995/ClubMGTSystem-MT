@@ -22,6 +22,7 @@ export 'src/model/policy_holder.dart';
 export 'src/model/sync_models.dart';
 export 'src/pass/branch_qr.dart';
 export 'src/pass/member_pass.dart';
+export 'src/pass/specialist_qr.dart';
 export 'src/platform/client_info.dart';
 export 'src/platform/connectivity.dart';
 export 'src/recorder/offline_event_recorder.dart';

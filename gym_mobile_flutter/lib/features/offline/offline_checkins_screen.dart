@@ -24,7 +24,7 @@ class OfflineCheckinsScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: kOffInk),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/offline'),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
         title: Text(l.thisPhoneCheckinsTitle,
             style: const TextStyle(color: kOffInk, fontWeight: FontWeight.w700)),
@@ -38,8 +38,9 @@ class OfflineCheckinsScreen extends StatelessWidget {
       body: StreamBuilder<List<OutboxEvent>>(
         stream: c.watchCheckIns(),
         builder: (context, snap) {
+          // Gym check-ins AND coach sessions recorded on this phone.
           final items = (snap.data ?? const <OutboxEvent>[])
-              .where((e) => e.kind == EventKind.attendance.wire)
+              .where((e) => e.attendanceMethod == AttendanceMethod.memberQr.wire)
               .toList();
           return ListView(
             padding: const EdgeInsets.fromLTRB(22, 8, 22, 32),
@@ -60,6 +61,11 @@ class OfflineCheckinsScreen extends StatelessWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(fmtOfflineTime(context, e.deviceRecordedAtUtc),
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kOffInk)),
+                      Text(
+                          e.kind == EventKind.serviceSession.wire
+                              ? l.checkinKindSession
+                              : l.checkinKindGym,
+                          style: const TextStyle(fontSize: 13, color: kOffMuted)),
                       const SizedBox(height: 8),
                       CheckInStateChip(event: e),
                     ]),

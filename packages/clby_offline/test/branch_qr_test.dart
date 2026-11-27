@@ -180,6 +180,11 @@ void main() {
     expect(reason(await verify(future)), BranchQrFailure.qrExpired);
     final inverted = await active.branchQr(gym: gymA, branch: branch, token: token, iat: nowS + 10, exp: nowS + 5);
     expect(reason(await verify(inverted)), BranchQrFailure.qrInvalid);
+    // Rotating code living longer than 120 s → qr_invalid (server rule).
+    final longRot = await active.branchQr(gym: gymA, branch: branch, token: token, mode: 'rotating', iat: nowS - 10, exp: nowS + 111);
+    expect(reason(await verify(longRot)), BranchQrFailure.qrInvalid);
+    final okRot = await active.branchQr(gym: gymA, branch: branch, token: token, mode: 'rotating', iat: nowS - 10, exp: nowS + 110);
+    expect(await verify(okRot), isA<BranchQrValid>());
   });
 
   group('gymEntryDenialCached (server gymEntryDenialForBranch rules)', () {
@@ -205,29 +210,49 @@ void main() {
     });
   });
 
-  test('member snapshot caches branch tokens + own pass; logout wipes them', () async {
+  test('member snapshot caches branch tokens, trainers, own assignments; logout wipes them', () async {
     final t = FakeTransport();
     final ms = await memoryStore(transport: t, app: OfflineApp.member, clock: clock,
         scope: OfflineScope(apiBase: apiBase, gymId: gymA, userId: uid()));
+    final trainer = uid();
     t.mePage = SnapshotPage({
       'server_time': '2026-11-27T08:00:00Z', 'as_of': '2026-11-27T08:00:00Z',
       'member': {'gym_member_id': memberA, 'member_number': 7, 'full_name': 'Me'},
       'buckets': [],
       'branches': [{'id': branch, 'name': 'Main', 'is_active': true, 'qr_token': token}],
       'pass_keys': [{'kid': 'k', 'public_key': b64u(active.pub), 'status': 'active', 'valid_until': null}],
-      'member_pass': {'qr': '{"t":"clby_mp"}', 'expires_at': '2026-12-27T08:00:00Z', 'kid': 'k'},
+      'trainers': [{'id': trainer, 'name': 'Coach', 'service_type': 'personal_trainer', 'is_active': true}],
+      'assignments': [{'id': 'as-1', 'trainer_id': trainer, 'service_type': 'personal_trainer',
+          'sessions_total': 10, 'sessions_used': 2, 'expires_at': null, 'status': 'active'}],
     });
-    await ms.bootstrap.refresh();
+    final r = await ms.bootstrap.refresh();
+    expect(r.trainers, 1);
     expect((await ms.db.select(ms.db.cachedBranches).getSingle()).qrToken, token);
-    final p = (await ms.memberPass())!;
-    expect(p.qr, '{"t":"clby_mp"}');
-    expect(p.isExpiredAt(DateTime.utc(2026, 12, 1)), isFalse);
-    expect(p.isExpiredAt(DateTime.utc(2027, 1, 1)), isTrue);
+    final a = (await ms.assignmentsOf(memberA)).single;
+    expect(a.assignmentId, 'as-1');
+    expect(a.trainerId, trainer);
     expect(await ms.ownMemberId(), memberA);
     await ms.wipeCache();
-    expect(await ms.memberPass(), isNull);
     expect(await ms.db.select(ms.db.cachedBranches).get(), isEmpty);
+    expect(await ms.db.select(ms.db.cachedTrainers).get(), isEmpty);
     await ms.close();
+  });
+
+  test('coach bootstrap caches own_qr for offline display', () async {
+    final t = FakeTransport();
+    final cs = await memoryStore(transport: t, app: OfflineApp.coach, clock: clock,
+        scope: OfflineScope(apiBase: apiBase, gymId: gymA, userId: uid()));
+    t.bootstrapPages[null] = const SnapshotPage({
+      'as_of': '2026-11-27T08:00:00Z',
+      'own_qr': {'qr': '{"type":"specialist_session","v":2}', 'expires_at': '2036-11-27T08:00:00Z', 'kid': 'k'},
+    });
+    await cs.bootstrap.refresh();
+    final q = (await cs.ownQr())!;
+    expect(q.qr, contains('specialist_session'));
+    expect(q.isExpiredAt(DateTime.utc(2030)), isFalse);
+    await cs.wipeCache();
+    expect(await cs.ownQr(), isNull);
+    await cs.close();
   });
 
   test('member_qr event: self only, qr.raw + branch recorded', () async {

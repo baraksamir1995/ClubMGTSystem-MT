@@ -21,7 +21,10 @@ Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch pos
   - removed the sync messages for `pass_expired` / `qr_member_mismatch` and the unused config `member_pass_cache_minutes`;
   - reworded the key command, the key-service messages and comments to "gym/QR signing keys".
   - The `pass_keys` meta key and stale texts in the **dashboard** are client-side and not in this change. Server-side `pass_keys` (the public-key list) stays, as Amendment 2 requires.
-- **Follow-up, not changed in this branch (L3):** online `POST /api/specialists/scan` accepts an **inactive** trainer. This is pre-existing: the controller loads `is_active` but never checks it. The offline sync path rejects it (`qr_invalid` for a v2 coach QR whose trainer is inactive). Fix it online separately, together with the timezone skew of the online 30-minute guard noted below.
+- **Online coach-scan bugs: fixed** (ported from `fix/specialist-scan` d2be08a so they don't come back on merge):
+  - the online 30-minute guards (`SpecialistSessionService` online path behind `/specialists/scan`, and the `ServiceSessionService` coach decrement) pass the cutoff as ISO-8601 with an offset, so a Postgres session in Africa/Cairo no longer stretches the window to ~2.5 h;
+  - `/specialists/scan` with an **inactive** trainer returns 404 `{"error":"This specialist is no longer active at your gym.","code":"specialist_not_found"}`.
+  - Tests: `SpecialistScanRegressionTest` (inactive case) and the Postgres-only `CoachGuardPostgresTest`, which runs with `CLBY_PG_TEST_DATABASE=clby_offline` inside a rolled-back transaction and fails without the fix.
 - **Not changed (L1, label only):** a hand-crafted QR nested deeper than `json_decode`'s depth of 4 is `not_v2` on the server and `qr_invalid` in Dart. Both reject it.
 
 ### Amendment 2: no member pass; the coach QR works offline (2026-11-27)
@@ -83,8 +86,6 @@ Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch pos
 - **Corpora:**
   - `scratchpad/verify/p3/gen_specialist_corpus.php` writes `specialist_corpus.json` (55 cases, with `trainers` and `pass_keys`). It covers both cross-type directions (a branch-QR signature pasted into a coach QR, a branch QR offered as a coach QR) and a member-pass signature pasted into a coach QR.
   - `branch_corpus.json` was regenerated as **version 2** (64 cases): the 59 earlier verdicts are unchanged, plus 3 rotating-lifetime cases and 2 coach-QR cross-type cases. The v1 file is kept as `branch_corpus.v1.json`.
-- **Pre-existing bug found, not changed:** the **online** 30-minute guards (`SpecialistScanController`, and `CoachController::decrement` before it) compare `delivered_at` with a naive UTC string. On a database whose session timezone is Africa/Cairo (as `clby_offline` is), the window is effectively 2.5 h. Seen in the e2e: an online scan 2 h after a synced session got `recently_logged`. The online code is unchanged because its responses were kept byte-identical. The fix is to pass ISO-8601 with an offset; it needs separate sign-off. The sync path compares in PHP on timestamps and is not affected.
-- **Pre-existing, unchanged:** online `POST /specialists/scan` does not check `trainer_profiles.is_active`. The sync v2 path does, as the contract requires.
 
 ### Product amendment: one fixed QR per branch, no rotating codes (2026-11-27)
 

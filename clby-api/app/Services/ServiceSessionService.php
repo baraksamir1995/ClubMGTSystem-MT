@@ -89,7 +89,9 @@ class ServiceSessionService
                 $guardCutoff = Carbon::now()->subMinutes(self::SCAN_GUARD_MINUTES);
                 $lastLog = DB::table('service_session_logs')
                     ->where('assignment_id', $assignment->id)
-                    ->where('delivered_at', '>', $guardCutoff)
+                    // ISO-8601 with offset, not a naive string read in the
+                    // Postgres session timezone (fix/specialist-scan d2be08a).
+                    ->where('delivered_at', '>', $guardCutoff->toIso8601String())
                     ->orderByDesc('delivered_at')
                     ->first();
                 if ($lastLog) {

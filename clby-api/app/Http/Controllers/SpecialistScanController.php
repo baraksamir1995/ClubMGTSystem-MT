@@ -66,6 +66,13 @@ class SpecialistScanController extends Controller
             ], 404);
         }
 
+        if (! $trainer->is_active) {
+            return response()->json([
+                'error' => 'This specialist is no longer active at your gym.',
+                'code'  => 'specialist_not_found',
+            ], 404);
+        }
+
         $trainerInfo = [
             'trainer_id'   => $trainer->id,
             'trainer_name' => $trainer->name,

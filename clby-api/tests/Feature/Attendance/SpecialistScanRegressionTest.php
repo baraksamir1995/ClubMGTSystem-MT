@@ -81,6 +81,12 @@ class SpecialistScanRegressionTest extends AttendanceTestCase
         $res = $this->scan($user, $tp)->assertStatus(409);
         $this->assertSame('{"error":"You\'ve used all sessions in your package with this specialist.","code":"package_exhausted","trainer_id":"' . $tp . '","trainer_name":"Coach C","trainer_type":"physio"}', $res->getContent());
 
+        // Inactive specialist (fix/specialist-scan d2be08a): refused before any pack lookup.
+        DB::table('trainer_profiles')->where('id', $tp)->update(['is_active' => false]);
+        $res = $this->scan($user, $tp)->assertStatus(404);
+        $this->assertSame('{"error":"This specialist is no longer active at your gym.","code":"specialist_not_found"}', $res->getContent());
+        DB::table('trainer_profiles')->where('id', $tp)->update(['is_active' => true]);
+
         $admin = $this->makeAdmin($gym);
         $res = $this->scan($admin, $tp)->assertStatus(403);
         $this->assertSame('{"error":"No active membership found for your account.","code":"no_member"}', $res->getContent());

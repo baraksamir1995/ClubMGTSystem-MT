@@ -114,7 +114,10 @@ class SpecialistSessionService
         $lastLog = DB::table('service_session_logs')
             ->where('gym_member_id', $memberId)
             ->where('trainer_id', $trainerId)
-            ->where('delivered_at', '>', $guardCutoff)
+            // ISO-8601 with offset: a bare Carbon renders as a naive
+            // 'Y-m-d H:i:s' that Postgres reads in the session timezone,
+            // stretching the 30-min window by hours (fix/specialist-scan d2be08a).
+            ->where('delivered_at', '>', $guardCutoff->toIso8601String())
             ->orderByDesc('delivered_at')
             ->first();
         if ($lastLog) {

@@ -51,7 +51,7 @@ class BranchQrTest extends OfflineSyncTestCase
         $q = json_decode($r['qr'], true);
         $this->assertSame(['type', 'gym_id', 'branch_id', 'token', 'v', 'mode', 'kid', 'iat', 'exp', 'jti', 'sig'], array_keys($q));
         $this->assertSame(['gym_access', $gym, $branch, $token, 2, 'static'], [$q['type'], $q['gym_id'], $q['branch_id'], $q['token'], $q['v'], $q['mode']]);
-        $this->assertSame(365 * 86400, $q['exp'] - $q['iat']);
+        $this->assertSame(3650 * 86400, $q['exp'] - $q['iat']);
         $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{16,32}$/', $q['jti']);
 
         $pk = MemberPassService::b64urlDecode(app(MemberPassService::class)->passKeys($gym)[0]['public_key']);
@@ -60,34 +60,101 @@ class BranchQrTest extends OfflineSyncTestCase
         $this->assertSame('ok', $this->code($r['qr'], $gym));
     }
 
-    public function test_rotating_batch_is_consecutive_and_cheap(): void
+    public function test_poster_is_the_same_text_on_every_call(): void
+    {
+        $gym = $this->makeGym();
+        [$branch] = $this->makeBranch($gym);
+        $this->actingAsUser($this->makeStaff($gym, ['attendance']));
+
+        $a = $this->getJson("/api/branches/{$branch}/qr?mode=static")->assertOk()->json();
+        $b = $this->getJson("/api/branches/{$branch}/qr")->assertOk()->json();
+        $this->assertSame($a, $b, 'identical QR text, kid and expiry');
+        $this->assertSame($a['qr'], $this->svc()->posterFor($gym, $this->branchRow($branch))['qr']);
+        $this->assertSame(1, DB::table('branch_qr_posters')->where('branch_id', $branch)->count());
+        $q = json_decode($a['qr'], true);
+        $this->assertSame('static', $q['mode']);
+        $this->assertSame(3650 * 86400, $q['exp'] - $q['iat'], '10-year TTL');
+        $this->assertSame('ok', $this->code($a['qr'], $gym));
+    }
+
+    public function test_regenerate_reissues_and_the_old_poster_is_rejected(): void
+    {
+        $gym = $this->makeGym();
+        [$branch] = $this->makeBranch($gym);
+        $old = $this->svc()->posterFor($gym, $this->branchRow($branch))['qr'];
+
+        DB::table('branches')->where('id', $branch)->update(['qr_token' => (string) Str::uuid()]); // admin "Regenerate"
+        $new = $this->svc()->posterFor($gym, $this->branchRow($branch))['qr'];
+
+        $this->assertNotSame($old, $new);
+        $this->assertSame('qr_invalid', $this->code($old, $gym));
+        $this->assertSame('ok', $this->code($new, $gym));
+        $this->assertSame($new, $this->svc()->posterFor($gym, $this->branchRow($branch))['qr'], 'stable again');
+    }
+
+    public function test_key_rotation_or_revocation_and_near_expiry_reissue(): void
+    {
+        $gym = $this->makeGym();
+        [$branch] = $this->makeBranch($gym);
+        $first = $this->svc()->posterFor($gym, $this->branchRow($branch));
+
+        $newKid = app(MemberPassService::class)->rotate($gym);
+        $second = $this->svc()->posterFor($gym, $this->branchRow($branch));
+        $this->assertNotSame($first['qr'], $second['qr']);
+        $this->assertSame($newKid, $second['kid']);
+        $this->assertSame('ok', $this->code($first['qr'], $gym), 'old poster still verifies within the key grace');
+
+        // Compromised key: rotate + revoke → reissued, and the old one is dead.
+        app(MemberPassService::class)->rotate($gym);
+        app(MemberPassService::class)->revoke($gym, $newKid);
+        $third = $this->svc()->posterFor($gym, $this->branchRow($branch));
+        $this->assertNotSame($second['kid'], $third['kid']);
+        $this->assertSame('qr_invalid', $this->code($second['qr'], $gym));
+
+        // Within 30 days of exp → reissued.
+        DB::table('branch_qr_posters')->where('branch_id', $branch)->update(['exp' => time() + 29 * 86400]);
+        $fourth = $this->svc()->posterFor($gym, $this->branchRow($branch));
+        $this->assertNotSame($third['qr'], $fourth['qr']);
+        DB::table('branch_qr_posters')->where('branch_id', $branch)->update(['exp' => time() + 31 * 86400]);
+        $this->assertSame($fourth['qr'], $this->svc()->posterFor($gym, $this->branchRow($branch))['qr'], '31 days left: kept');
+    }
+
+    public function test_concurrent_first_calls_store_one_poster(): void
     {
         $gym = $this->makeGym();
         [$branch] = $this->makeBranch($gym);
         $row = $this->branchRow($branch);
         app(MemberPassService::class)->activeKey($gym);
 
-        DB::enableQueryLog();
-        $batch = $this->svc()->rotatingBatch($gym, $row, 2);
-        $queries = count(DB::getQueryLog());
-        DB::disableQueryLog();
-        $this->assertLessThanOrEqual(2, $queries, 'one key lookup, not one query per token');
+        // Race: right after our unlocked read finds no poster, a concurrent
+        // request stores one. The locked re-read must return THAT poster
+        // instead of issuing a second, different text.
+        $racer = $this->svc()->issueStatic($gym, $row);
+        $q = json_decode($racer['qr'], true);
+        $fired = false;
+        DB::listen(function ($query) use (&$fired, $branch, $gym, $racer, $q) {
+            if ($fired || ! str_contains($query->sql, 'branch_qr_posters') || ! str_starts_with(strtolower($query->sql), 'select')) {
+                return;
+            }
+            $fired = true;
+            DB::table('branch_qr_posters')->insert(['branch_id' => $branch, 'gym_id' => $gym, 'qr' => $racer['qr'],
+                'kid' => $q['kid'], 'token' => $q['token'], 'iat' => $q['iat'], 'exp' => $q['exp'],
+                'created_at' => now(), 'updated_at' => now()]);
+        });
 
-        $this->assertCount(120, $batch['tokens']);
-        $jtis = [];
-        foreach ($batch['tokens'] as $i => $t) {
-            $q = json_decode($t['qr'], true);
-            $this->assertSame('rotating', $q['mode']);
-            $this->assertSame($t['iat'] + 60, $t['exp']);
-            if ($i > 0) $this->assertSame($batch['tokens'][$i - 1]['exp'], $t['iat']);
-            $jtis[] = $q['jti'];
-        }
-        $this->assertCount(120, array_unique($jtis));
-        $this->assertSame(0, $batch['tokens'][0]['iat'] % 60);
-        $first = $batch['tokens'][0];
-        $this->assertSame('ok', $this->code($first['qr'], $gym, Carbon::createFromTimestampUTC($first['iat'] + 10)));
-        $last = end($batch['tokens']);
-        $this->assertSame('ok', $this->code($last['qr'], $gym, Carbon::createFromTimestampUTC($last['iat'] + 5)));
+        $mine = $this->svc()->posterFor($gym, $row);
+        $this->assertTrue($fired);
+        $this->assertSame($racer['qr'], $mine['qr'], 'the locked re-read returns the racer\'s poster');
+        $this->assertSame(1, DB::table('branch_qr_posters')->count());
+    }
+
+    public function test_rotating_batch_route_is_gone(): void
+    {
+        $gym = $this->makeGym();
+        [$branch] = $this->makeBranch($gym);
+        $this->actingAsUser($this->makeAdmin($gym))->getJson("/api/branches/{$branch}/qr/rotating-batch?hours=1")->assertStatus(404);
+        $this->assertFalse(method_exists(BranchQrService::class, 'rotatingBatch'));
+        $this->getJson("/api/branches/{$branch}/qr?mode=rotating")->assertStatus(422);
     }
 
     public function test_verification_rules(): void
@@ -177,12 +244,6 @@ class BranchQrTest extends OfflineSyncTestCase
         $this->getJson("/api/branches/{$branch}/qr?mode=rotating")->assertStatus(422);
         $this->getJson("/api/branches/{$foreignBranch}/qr")->assertStatus(404);
 
-        $batch = $this->getJson("/api/branches/{$branch}/qr/rotating-batch?hours=1")->assertOk();
-        $this->assertSame(['tokens', 'kid', 'generated_at'], array_keys($batch->json()));
-        $this->assertCount(60, $batch->json('tokens'));
-        $this->assertSame(['qr', 'iat', 'exp'], array_keys($batch->json('tokens.0')));
-        $this->getJson("/api/branches/{$branch}/qr/rotating-batch?hours=25")->assertStatus(422);
-        $this->getJson("/api/branches/{$foreignBranch}/qr/rotating-batch")->assertStatus(404);
 
         $this->actingAsUser($this->makeStaff($gym, ['members']))->getJson("/api/branches/{$branch}/qr")->assertStatus(403);
         [$member] = $this->makeMember($gym);
@@ -190,7 +251,7 @@ class BranchQrTest extends OfflineSyncTestCase
 
         $enc = DB::table('gym_signing_keys')->where('gym_id', $gym)->value('secret_key_enc');
         $secret = Crypt::decryptString($enc);
-        foreach ([$poster->getContent(), $batch->getContent()] as $body) {
+        foreach ([$poster->getContent()] as $body) {
             $this->assertStringNotContainsString($secret, $body);
             $this->assertStringNotContainsString('secret', $body);
         }

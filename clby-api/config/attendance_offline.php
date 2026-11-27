@@ -42,10 +42,13 @@ return [
     'member_pass_cache_minutes' => (int) env('ATTENDANCE_MEMBER_PASS_CACHE_MINUTES', 60),
 
     // Phase 3 signed branch QR v2 (PHASE3-CONTRACT §1–§2).
-    'branch_qr_static_ttl_days' => (int) env('ATTENDANCE_BRANCH_QR_STATIC_TTL_DAYS', 365),
+    // One fixed poster per branch that effectively never expires (10 years);
+    // reissued only on token regenerate / key rotation / within 30 d of exp.
+    'branch_qr_static_ttl_days' => (int) env('ATTENDANCE_BRANCH_QR_STATIC_TTL_DAYS', 3650),
+    'branch_qr_reissue_before_days' => 30,
+    // Rotating QRs are no longer issued; the verifier still honours this
+    // grace for any rotating-mode QR it sees (dormant path).
     'rotating_grace_seconds' => (int) env('ATTENDANCE_ROTATING_GRACE_SECONDS', 30),
-    'rotating_period_seconds' => 60,     // contract: exp = iat + 60
-    'rotating_batch_max_hours' => 24,
 
     // Server-side only (not part of the policy object).
     'sync_rate_per_minute' => (int) env('ATTENDANCE_OFFLINE_SYNC_RATE_PER_MINUTE', 30), // per user

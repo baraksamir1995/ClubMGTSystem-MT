@@ -9,13 +9,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Signed branch QR v2 for posters and kiosks (PHASE3-CONTRACT §3).
+ * The branch's one fixed signed QR v2 poster (PHASE3-CONTRACT §3 + amendment:
+ * same text on every call; no rotating/kiosk batches).
  * Admin group + permission:attendance,view; branch must be in the caller's gym.
  * Responses carry the public kid only — never key material.
  */
 class BranchQrController extends Controller
 {
-    /** GET /api/branches/{id}/qr?mode=static → {qr, mode, expires_at, kid} */
+    /** GET /api/branches/{id}/qr?mode=static → {qr, mode, expires_at, kid} — identical on every call. */
     public function show(Request $request, BranchQrService $qrs, string $id): JsonResponse
     {
         $request->validate(['mode' => 'nullable|in:static']);
@@ -23,19 +24,7 @@ class BranchQrController extends Controller
         if (! $branch) {
             return response()->json(['error' => 'Branch not found'], 404);
         }
-        return response()->json($qrs->issueStatic($request->user()->gym_id, $branch));
-    }
-
-    /** GET /api/branches/{id}/qr/rotating-batch?hours=12 (1–24) → {tokens:[{qr,iat,exp}], kid, generated_at} */
-    public function rotatingBatch(Request $request, BranchQrService $qrs, string $id): JsonResponse
-    {
-        $max = (int) config('attendance_offline.rotating_batch_max_hours', 24);
-        $request->validate(['hours' => "nullable|integer|min:1|max:{$max}"]);
-        $branch = $this->branch($request, $id);
-        if (! $branch) {
-            return response()->json(['error' => 'Branch not found'], 404);
-        }
-        return response()->json($qrs->rotatingBatch($request->user()->gym_id, $branch, (int) ($request->query('hours') ?? 12)));
+        return response()->json($qrs->posterFor($request->user()->gym_id, $branch));
     }
 
     private function branch(Request $request, string $id): ?object

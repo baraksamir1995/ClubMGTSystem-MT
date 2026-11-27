@@ -17,6 +17,11 @@ use Illuminate\Support\Facades\DB;
  *
  * Deployed apps read only type/gym_id/branch_id/token, so a v2 poster still
  * works with POST /attendance/qr unchanged.
+ *
+ * Product decision (Phase 3 amendment): ONE fixed QR per branch — only
+ * `static` posters are issued (posterFor). Rotating QRs are no longer
+ * issued, but verify() still handles mode "rotating" (dormant path, kept for
+ * the shared corpus and the Dart verifier).
  */
 class BranchQrService
 {
@@ -34,14 +39,58 @@ class BranchQrService
         return max(0, (int) config('attendance_offline.rotating_grace_seconds', 30));
     }
 
-    public function period(): int
-    {
-        return (int) config('attendance_offline.rotating_period_seconds', 60);
-    }
-
     /* ── issue ──────────────────────────────────────────────────── */
 
-    /** One static poster QR: {qr, mode, expires_at, kid}. */
+    /**
+     * The branch's ONE fixed poster QR: {qr, mode, expires_at, kid}. The
+     * same text on every call; reissued (and stored) only when the branch
+     * token was regenerated, the signing kid is no longer the gym's active
+     * key (rotate / revoke), or the poster is within
+     * branch_qr_reissue_before_days of exp. Concurrent first calls are
+     * serialised (row lock + pg advisory lock) so all callers get one text.
+     */
+    public function posterFor(string $gymId, object $branch): array
+    {
+        $activeKid = $this->keys->activeKey($gymId)->kid;
+        $branchId = strtolower((string) $branch->id);
+        $token = strtolower((string) $branch->qr_token);
+
+        $fresh = function (?object $row) use ($activeKid, $token): bool {
+            $minLeft = (int) config('attendance_offline.branch_qr_reissue_before_days', 30) * 86400;
+            return $row && $row->kid === $activeKid && strtolower((string) $row->token) === $token
+                && ((int) $row->exp - time()) > $minLeft;
+        };
+        $shape = fn (object $row) => ['qr' => $row->qr, 'mode' => 'static',
+            'expires_at' => AttendanceSyncService::iso(Carbon::createFromTimestampUTC((int) $row->exp)), 'kid' => $row->kid];
+
+        $row = DB::table('branch_qr_posters')->where('branch_id', $branchId)->first();
+        if ($fresh($row)) {
+            return $shape($row);
+        }
+
+        return DB::transaction(function () use ($gymId, $branch, $branchId, $token, $fresh, $shape) {
+            if (DB::getDriverName() === 'pgsql') {
+                DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', ['branch-qr-poster:' . $branchId]);
+            }
+            $row = DB::table('branch_qr_posters')->where('branch_id', $branchId)->lockForUpdate()->first();
+            if ($fresh($row)) {
+                return $shape($row);          // another request reissued it meanwhile
+            }
+
+            $issued = $this->issueStatic($gymId, $branch);
+            $q = json_decode($issued['qr'], true);
+            $values = ['gym_id' => strtolower($gymId), 'qr' => $issued['qr'], 'kid' => $q['kid'], 'token' => $token,
+                'iat' => $q['iat'], 'exp' => $q['exp'], 'updated_at' => Carbon::now('UTC')->toIso8601String()];
+            if ($row) {
+                DB::table('branch_qr_posters')->where('branch_id', $branchId)->update($values);
+            } else {
+                DB::table('branch_qr_posters')->insert($values + ['branch_id' => $branchId, 'created_at' => $values['updated_at']]);
+            }
+            return $issued;
+        });
+    }
+
+    /** Sign a new static poster QR (not stored — use posterFor() for the branch's fixed QR). */
     public function issueStatic(string $gymId, object $branch, ?CarbonInterface $at = null): array
     {
         $iat = ($at ?? Carbon::now('UTC'))->getTimestamp();
@@ -50,29 +99,6 @@ class BranchQrService
         return $this->keys->withSigner($gymId, function (string $kid, callable $sign) use ($gymId, $branch, $iat, $exp) {
             $qr = $this->build($sign, 'static', $kid, $gymId, $branch, $iat, $exp, self::newJti());
             return ['qr' => $qr, 'mode' => 'static', 'expires_at' => AttendanceSyncService::iso(Carbon::createFromTimestampUTC($exp)), 'kid' => $kid];
-        });
-    }
-
-    /**
-     * Consecutive 60 s rotating tokens covering $hours from the current
-     * period start. One key decrypt, no per-token queries.
-     * Returns {tokens:[{qr, iat, exp}], kid, generated_at}.
-     */
-    public function rotatingBatch(string $gymId, object $branch, int $hours, ?CarbonInterface $at = null): array
-    {
-        $now = ($at ?? Carbon::now('UTC'))->getTimestamp();
-        $period = $this->period();
-        $start = intdiv($now, $period) * $period;
-        $count = intdiv($hours * 3600, $period);
-
-        return $this->keys->withSigner($gymId, function (string $kid, callable $sign) use ($gymId, $branch, $start, $count, $period, $now) {
-            $tokens = [];
-            for ($i = 0; $i < $count; $i++) {
-                $iat = $start + $i * $period;
-                $exp = $iat + $period;
-                $tokens[] = ['qr' => $this->build($sign, 'rotating', $kid, $gymId, $branch, $iat, $exp, self::newJti()), 'iat' => $iat, 'exp' => $exp];
-            }
-            return ['tokens' => $tokens, 'kid' => $kid, 'generated_at' => AttendanceSyncService::iso(Carbon::createFromTimestampUTC($now))];
         });
     }
 

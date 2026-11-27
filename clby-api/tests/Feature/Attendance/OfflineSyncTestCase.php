@@ -73,7 +73,26 @@ abstract class OfflineSyncTestCase extends AttendanceTestCase
         if ($mode === 'static') {
             return $svc->issueStatic($gymId, $branch, $at ?? Carbon::now()->subHour())['qr'];
         }
-        return $svc->rotatingBatch($gymId, $branch, 1, $at ?? Carbon::now())['tokens'][0]['qr'];
+        return $this->signRotating($gymId, $branch, ($at ?? Carbon::now())->copy()->startOfMinute());
+    }
+
+    /**
+     * Rotating-mode v2 QR signed directly with the gym key. The API no longer
+     * ISSUES rotating QRs (one fixed QR per branch), but the verifier and the
+     * replay protection still handle them, so tests build one by hand.
+     */
+    protected function signRotating(string $gymId, object $branch, Carbon $start): string
+    {
+        $iat = $start->getTimestamp();
+        $exp = $iat + 60;
+        $jti = \App\Services\BranchQrService::newJti();
+        $b = strtolower((string) $branch->id);
+        $t = strtolower((string) $branch->qr_token);
+        return app(MemberPassService::class)->withSigner($gymId, fn (string $kid, callable $sign) => json_encode([
+            'type' => 'gym_access', 'gym_id' => $gymId, 'branch_id' => $b, 'token' => $t, 'v' => 2, 'mode' => 'rotating',
+            'kid' => $kid, 'iat' => $iat, 'exp' => $exp, 'jti' => $jti,
+            'sig' => $sign(\App\Services\BranchQrService::canonical('rotating', $kid, $gymId, $b, $t, $iat, $exp, $jti)),
+        ], JSON_UNESCAPED_SLASHES));
     }
 
     protected function serviceEvent(string $gymId, string $assignmentId, array $overrides = []): array

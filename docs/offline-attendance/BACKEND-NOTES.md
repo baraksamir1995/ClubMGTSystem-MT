@@ -2,7 +2,26 @@
 
 ## Phase 3
 
-Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, poster and kiosk endpoints, v2 `member_qr` sync with rotating replay protection, and `/offline/me` additions.
+Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch poster endpoint, v2 `member_qr` sync with rotating replay protection, and `/offline/me` additions.
+
+### Product amendment: one fixed QR per branch, no rotating codes (2026-11-27)
+
+- **Same QR every time.** `GET /api/branches/{id}/qr?mode=static` returns the **same QR text on every call**. The issued poster is stored in a new table, `branch_qr_posters`:
+  - columns: `branch_id` PK, `gym_id`, `qr`, `kid`, `token`, `iat`, `exp`, timestamps;
+  - migration `2026_11_27_210000_create_branch_qr_posters_table.php` (new table, guarded); the legacy `branches` table is untouched.
+- **Reissued only when** (the stored row is overwritten):
+  - the branch `qr_token` changed (admin "Regenerate"; the old poster then fails `qr_invalid`);
+  - the stored `kid` is no longer the gym's active key (`attendance:pass-key --rotate`, or rotate + revoke);
+  - the poster is within `branch_qr_reissue_before_days` (30) of `exp`.
+- **Concurrent first calls** are safe. Under a transaction, the code takes the pg advisory lock `branch-qr-poster:<branch_id>`, re-reads the row with `FOR UPDATE`, and returns that poster if another request stored it meanwhile. The primary key on `branch_id` is the backstop.
+- **TTL:** `branch_qr_static_ttl_days` default is now **3650** (10 years), effectively never expiring.
+- **Removed:**
+  - the route `GET /branches/{id}/qr/rotating-batch`;
+  - `BranchQrController::rotatingBatch` and `BranchQrService::rotatingBatch`;
+  - the config keys `rotating_period_seconds` and `rotating_batch_max_hours`.
+  - Nothing issues `mode=rotating` any more; `?mode=rotating` on the poster endpoint → 422.
+- **Kept, now dormant:** `BranchQrService::verify` still handles rotating-mode QRs (`rotating_grace_seconds`), and `attendance_qr_redemptions` plus the `qr_replayed` sync path are unchanged. `branch_corpus.json` and the Dart verifier depend on them; the corpus was **not** regenerated. Tests build rotating QRs by hand (`OfflineSyncTestCase::signRotating`) to keep that path covered.
+- Item 8 below still applies: a key rotation now reissues the stored poster, and the gym must **reprint** it. The old poster keeps verifying for the 30-day pass grace, or not at all if the key was revoked.
 
 ### Contract deviations / interpretations (Phase 3)
 
@@ -38,16 +57,14 @@ Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, poster and kio
 
 - `GET /api/branches/{id}/qr?mode=static` (admin group, `permission:attendance,view`; the branch must belong to the caller's gym, otherwise 404) → `{qr, mode:"static", expires_at, kid}`.
   - `mode` may only be `static` (otherwise 422).
-  - A new `jti` (16 random bytes → 22 characters) per call.
-  - `exp = iat + branch_qr_static_ttl_days` (365).
-- `GET /api/branches/{id}/qr/rotating-batch?hours=` (same group and permission; `hours` 1–24, default 12, 25 → 422) → `{tokens:[{qr, iat, exp}], kid, generated_at}`.
-  - Starts at the current 60 s boundary; consecutive 60 s tokens, each with a fresh `jti`.
-  - One key lookup and one secret decrypt per batch: 12 h = 720 tokens in about 0.17 s on Postgres.
+  - The same stored text on every call (see the amendment). `jti` is 16 random bytes → 22 characters, chosen at (re)issue.
+  - `exp = iat + branch_qr_static_ttl_days` (3650).
+- ~~`GET /api/branches/{id}/qr/rotating-batch`~~: **removed** by the product amendment above (404).
 - `GET /api/attendance/offline/me` adds:
   - `branches[].qr_token` (current, lowercase);
   - `member_pass: {qr, expires_at, kid}` (the same 60-minute cached pass as `/me/member-pass`).
 - `POST /api/attendance/qr` is unchanged and accepts a v2 poster's `token` (regression test plus Postgres e2e).
-- Config: `branch_qr_static_ttl_days` (365), `rotating_grace_seconds` (30); also `rotating_period_seconds` (60, fixed) and `rotating_batch_max_hours` (24).
+- Config: `branch_qr_static_ttl_days` (3650), `branch_qr_reissue_before_days` (30), `rotating_grace_seconds` (30, verifier only).
 
 ### Files
 

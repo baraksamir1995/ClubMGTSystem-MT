@@ -431,9 +431,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Branch management
     Route::post('/branches', [BranchController::class, 'store'])->middleware('permission:settings,create');
     Route::get('/branches/{id}/qr-token', [BranchController::class, 'getQrToken'])->middleware('permission:settings|attendance,view');
-    // Signed branch QR v2 (PHASE3-CONTRACT §3): poster + kiosk rotating batch.
+    // Signed branch QR v2 (PHASE3-CONTRACT §3): the branch's one fixed poster QR.
     Route::get('/branches/{id}/qr', [BranchQrController::class, 'show'])->middleware('permission:attendance,view');
-    Route::get('/branches/{id}/qr/rotating-batch', [BranchQrController::class, 'rotatingBatch'])->middleware('permission:attendance,view');
     Route::post('/branches/{id}/upload-image', [BranchController::class, 'uploadImage'])->middleware('permission:settings,edit');
     Route::patch('/branches/{id}', [BranchController::class, 'update'])->middleware('permission:settings,edit');
     Route::delete('/branches/{id}', [BranchController::class, 'destroy'])->middleware('permission:settings,delete');

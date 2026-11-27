@@ -10,6 +10,12 @@ import '../providers/member_provider.dart';
 import '../services/api_service.dart';
 import '../models/service_model.dart';
 import '../utils/error_utils.dart';
+import 'package:clby_offline/clby_offline.dart'
+    show BranchQrFailure, EntryDenial, RecordRefusal;
+import '../features/offline/member_offline_controller.dart';
+import '../features/offline/offline_checkin_sheet.dart';
+import '../features/offline/offline_logic.dart';
+import '../features/offline/offline_ui.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -49,6 +55,30 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Future<void> _handleCode(String code) async {
+    // Offline attendance (PHASE3 §4). A v2 branch QR with offline check-in
+    // allowed goes through the outbox; in offline mode anything else gets a
+    // clear "not available offline" message. Every other case falls
+    // through to today's online flow below, unchanged.
+    final offline = context.read<MemberOfflineController>();
+    switch (offline.scanPath(code)) {
+      case ScanPath.outbox:
+        await _handleOfflineCheckIn(offline, code);
+        return;
+      case ScanPath.unavailableOffline:
+        _showResult(_CheckInResult.error(
+          title: context.l10n.offlineQrUnavailableTitle,
+          subtitle: context.l10n.offlineQrUnavailableSubtitle,
+          icon: Icons.cloud_off_rounded,
+        ));
+        return;
+      case ScanPath.legacy:
+        return _handleCodeOnline(code);
+    }
+  }
+
+  /// Today's scanner flow, unchanged (v1 QRs, studio / specialist QRs,
+  /// legacy strings, and everything while offline check-in is off).
+  Future<void> _handleCodeOnline(String code) async {
     final memberProvider = context.read<MemberProvider>();
     final userGymId = context.read<AuthProvider>().profile?.gymId;
 
@@ -499,6 +529,99 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   /// Maps a checkin_gym_entrance denial reason code to the correct UI message.
+  /// v2 branch QR through the outbox: verify offline → local pre-check
+  /// with today's rules/messages (no event on a denial) → record → live
+  /// result sheet.
+  Future<void> _handleOfflineCheckIn(MemberOfflineController offline, String code) async {
+    final r = await offline.checkIn(code);
+    if (!mounted) return;
+    final l = context.l10n;
+    final memberProvider = context.read<MemberProvider>();
+    // Live membership loaded (online) → today's exact sheets; offline →
+    // the same denial messages the server path shows.
+    final live = memberProvider.currentMembership != null;
+    switch (r) {
+      case CheckInSaved():
+        _showOfflineSaved(r);
+      case CheckInDuplicate():
+        _showGymDenyResult('already_checked_in');
+      case CheckInQrRejected(:final reason, :final outOfDate):
+        if (reason == BranchQrFailure.qrWrongGym) {
+          _showResult(_CheckInResult.error(
+              title: l.qrWrongGymTitle, subtitle: l.qrWrongGymSubtitle));
+        } else if (outOfDate) {
+          _showResult(_CheckInResult.error(
+              title: l.qrOutOfDateTitle, subtitle: l.qrOutOfDateSubtitle,
+              icon: Icons.qr_code_outlined));
+        } else if (reason == BranchQrFailure.qrExpired) {
+          _showResult(_CheckInResult.error(
+              title: l.qrExpiredTitle, subtitle: l.qrExpiredSubtitle,
+              icon: Icons.timer_off_outlined));
+        } else if (reason == BranchQrFailure.qrUnknownKey) {
+          _showResult(_CheckInResult.error(
+              title: l.qrRefreshDataTitle, subtitle: l.qrRefreshDataSubtitle,
+              icon: Icons.cloud_download_outlined));
+        } else {
+          _showResult(_CheckInResult.error(
+              title: l.qrInvalidTitle, subtitle: l.qrNotRecognized,
+              icon: Icons.qr_code_outlined));
+        }
+      case CheckInDenied(:final denial):
+        switch (denial) {
+          case EntryDenial.frozen:
+            live ? _showFrozenSheet(memberProvider) : _showGymDenyResult('membership_frozen');
+          case EntryDenial.transferOnly:
+            _showResult(_CheckInResult.error(
+              title: l.qrStudioOnlyTitle,
+              subtitle: l.qrStudioOnlySubtitle,
+              icon: Icons.fitness_center_outlined,
+            ));
+          case EntryDenial.gymAccessNotIncluded:
+            live ? _showNoGymAccessSheet() : _showGymDenyResult('gym_access_not_included');
+          case EntryDenial.branchNotIncluded:
+            _showGymDenyResult('branch_not_included');
+        }
+      case CheckInRefused(:final reason, :final message):
+        if (reason == RecordRefusal.clockSkew) {
+          _showResult(_CheckInResult.error(
+              title: l.qrCheckinFailedTitle, subtitle: l.qrClockWrongSubtitle));
+        } else if (reason == RecordRefusal.offlineDisabled ||
+            reason == RecordRefusal.notAllowed) {
+          _showResult(_CheckInResult.error(
+            title: l.offlineQrUnavailableTitle,
+            subtitle: l.offlineQrUnavailableSubtitle,
+            icon: Icons.cloud_off_rounded,
+          ));
+        } else {
+          _showResult(_CheckInResult.error(
+              title: l.qrCheckinFailedTitle, subtitle: message));
+        }
+    }
+  }
+
+  void _showOfflineSaved(CheckInSaved saved) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => OfflineCheckInSheet(
+        saved: saved,
+        onDone: () {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        },
+        onScanAgain: () {
+          Navigator.pop(context);
+          setState(() => _processing = false);
+          _controller.start();
+        },
+      ),
+    );
+  }
+
   void _showGymDenyResult(String reason) {
     switch (reason) {
       case 'not_a_member':
@@ -652,6 +775,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         title: Text(context.l10n.qrScanTitle,
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
         actions: [
+          const Center(child: OfflineSyncChip()),
           IconButton(
             icon: const Icon(Icons.flash_on_outlined, color: Colors.white),
             onPressed: () => _controller.toggleTorch(),

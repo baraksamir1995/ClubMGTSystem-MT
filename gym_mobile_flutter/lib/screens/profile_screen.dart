@@ -10,6 +10,7 @@ import 'package:clby/l10n/l10n.dart';
 import 'package:clby/providers/locale_provider.dart';
 import '../models/membership_summary_model.dart';
 import '../providers/auth_provider.dart';
+import '../features/offline/sign_out_guard.dart';
 import '../providers/member_provider.dart';
 import '../utils/env.dart';
 import '../widgets/gym_app_bar.dart';
@@ -229,6 +230,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: _whiteCard(
                       child: Column(
                         children: [
+                          // Offline attendance (Phase 3): the member's own
+                          // pass + this phone's check-ins.
+                          _row(
+                            iconBox: const Icon(Icons.qr_code_2_rounded, size: 16, color: _kInk),
+                            label: context.l10n.memberPassProfileLabel,
+                            value: context.l10n.memberPassTitle,
+                            onTap: () => context.push('/member-pass'),
+                          ),
+                          _row(
+                            iconBox: const Icon(Icons.history_rounded, size: 16, color: _kInk),
+                            label: context.l10n.thisPhoneCheckinsLabel,
+                            value: context.l10n.thisPhoneCheckinsTitle,
+                            onTap: () => context.push('/offline-checkins'),
+                          ),
                           _row(
                             iconBox: const Icon(Icons.language, size: 16, color: _kInk),
                             label: context.l10n.commonLanguage.toUpperCase(),
@@ -1181,6 +1196,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         onPressed: () async {
                           Navigator.of(ctx).pop();
+                          // Unconfirmed check-ins: warn + offer sync first.
+                          if (!await warnPendingBeforeSignOut(context)) return;
+                          if (!mounted) return;
                           await context.read<AuthProvider>().signOut();
                           if (!mounted) return;
                           context.go('/login');

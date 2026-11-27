@@ -64,6 +64,9 @@ class OfflineAttendance {
       apiBase: Env.apiUrl,
       transport: transport,
       onError: (e, _) => appLog('[offline] $e'),
+      // /offline/me also carries the member's own pass, needed offline even
+      // when offline check-in is disabled for the gym.
+      bootstrapWhenDisabled: true,
     )..attachLifecycle();
     return OfflineAttendance._(transport, manager);
   }
@@ -85,6 +88,21 @@ class OfflineAttendance {
     if (gen != _generation) return;
     transport.bind(userId, token);
     await manager.activate(userId: userId, gymId: gymId);
+  }
+
+  /// Offline cold start (PHASE3 §4): reopen the LAST scope this member
+  /// used online, binding the stored token (sync resumes when the network
+  /// returns; a dead token only pauses the engine). Doesn't overwrite the
+  /// last-scope record. Callers must have checked [offlineEntryBlock].
+  Future<OfflineStore?> enterOffline(String userId, String gymId) async {
+    final gen = _generation;
+    String? token;
+    try {
+      token = await transport._api.authToken;
+    } catch (_) {}
+    if (gen != _generation) return null;
+    transport.bind(userId, token);
+    return manager.activate(userId: userId, gymId: gymId, rememberScope: false);
   }
 
   void onSignedOut() {

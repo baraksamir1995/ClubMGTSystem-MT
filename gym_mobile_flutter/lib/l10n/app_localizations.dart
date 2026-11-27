@@ -6078,6 +6078,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check your connection and try again.'**
   String get contractTermsErrorBody;
+
+  /// No description provided for @offlineModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode'**
+  String get offlineModeTitle;
+
+  /// No description provided for @offlineModeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the gym right now. You can show your member pass, check in by scanning the gym QR and see this phone\'s check-ins. They\'ll be confirmed when you\'re back online.'**
+  String get offlineModeBody;
+
+  /// No description provided for @offlineOnlineOnlyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookings, payments, classes and your history need a connection.'**
+  String get offlineOnlineOnlyNotice;
+
+  /// No description provided for @offlineTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try to reconnect'**
+  String get offlineTryAgain;
+
+  /// No description provided for @offlineBlockNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode isn\'t available: you\'re not signed in on this phone.'**
+  String get offlineBlockNotSignedIn;
+
+  /// No description provided for @offlineBlockNoPreviousSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode isn\'t available: open the app online once on this phone first.'**
+  String get offlineBlockNoPreviousSession;
+
+  /// No description provided for @offlineBlockDifferentUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode isn\'t available: the saved data belongs to another account.'**
+  String get offlineBlockDifferentUser;
+
+  /// No description provided for @offlineBlockDifferentApi.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode isn\'t available: the saved data is for a different server.'**
+  String get offlineBlockDifferentApi;
+
+  /// No description provided for @offlineBlockStoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode isn\'t available: this phone\'s offline storage can\'t be opened right now.'**
+  String get offlineBlockStoreUnavailable;
+
+  /// No description provided for @offlineBlockNoCachedData.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode isn\'t available: no offline data has been downloaded yet.'**
+  String get offlineBlockNoCachedData;
+
+  /// No description provided for @syncOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get syncOnline;
+
+  /// No description provided for @syncOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get syncOffline;
+
+  /// No description provided for @syncSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get syncSyncing;
+
+  /// No description provided for @syncPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} waiting'**
+  String syncPending(int count);
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
+
+  /// No description provided for @syncDataExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline data out of date'**
+  String get syncDataExpired;
+
+  /// No description provided for @syncLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to sync'**
+  String get syncLoginRequired;
+
+  /// No description provided for @syncDeviceBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone blocked'**
+  String get syncDeviceBlocked;
+
+  /// No description provided for @checkinSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in saved on this phone'**
+  String get checkinSavedTitle;
+
+  /// No description provided for @checkinSavedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be confirmed when you\'re back online.'**
+  String get checkinSavedSubtitle;
+
+  /// No description provided for @checkinConfirmedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in confirmed'**
+  String get checkinConfirmedTitle;
+
+  /// No description provided for @checkinNotAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in not accepted'**
+  String get checkinNotAcceptedTitle;
+
+  /// No description provided for @checkinMembershipAsOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Membership as of {time}'**
+  String checkinMembershipAsOf(String time);
+
+  /// No description provided for @offlineQrUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline check-in isn\'t available here'**
+  String get offlineQrUnavailableTitle;
+
+  /// No description provided for @offlineQrUnavailableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR code only works online. Connect to the internet and scan again.'**
+  String get offlineQrUnavailableSubtitle;
+
+  /// No description provided for @qrOutOfDateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR is out of date'**
+  String get qrOutOfDateTitle;
+
+  /// No description provided for @qrOutOfDateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask staff for the current gym QR code.'**
+  String get qrOutOfDateSubtitle;
+
+  /// No description provided for @qrExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR has expired'**
+  String get qrExpiredTitle;
+
+  /// No description provided for @qrExpiredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the current QR code at the entrance.'**
+  String get qrExpiredSubtitle;
+
+  /// No description provided for @qrRefreshDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline data needs a refresh'**
+  String get qrRefreshDataTitle;
+
+  /// No description provided for @qrRefreshDataSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet once, then scan again.'**
+  String get qrRefreshDataSubtitle;
+
+  /// No description provided for @qrClockWrongSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone\'s date or time is wrong. Correct it and try again.'**
+  String get qrClockWrongSubtitle;
+
+  /// No description provided for @memberPassTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member pass'**
+  String get memberPassTitle;
+
+  /// No description provided for @memberPassHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show this code to staff at the desk.'**
+  String get memberPassHint;
+
+  /// No description provided for @memberPassValidUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass valid until {date}'**
+  String memberPassValidUntil(String date);
+
+  /// No description provided for @memberPassNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Member #{number}'**
+  String memberPassNumber(String number);
+
+  /// No description provided for @memberPassUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Your pass isn\'t on this phone yet. Connect to the internet once to download it.'**
+  String get memberPassUnavailable;
+
+  /// No description provided for @memberPassExpiredOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your pass has expired and can\'t be renewed offline. Connect to the internet to get a new one.'**
+  String get memberPassExpiredOffline;
+
+  /// No description provided for @memberPassRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh pass'**
+  String get memberPassRefresh;
+
+  /// No description provided for @memberPassProfileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PASS'**
+  String get memberPassProfileLabel;
+
+  /// No description provided for @thisPhoneCheckinsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-ins on this phone'**
+  String get thisPhoneCheckinsTitle;
+
+  /// No description provided for @thisPhoneCheckinsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK-INS'**
+  String get thisPhoneCheckinsLabel;
+
+  /// No description provided for @thisPhoneCheckinsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No check-ins saved on this phone.'**
+  String get thisPhoneCheckinsEmpty;
+
+  /// No description provided for @thisPhoneCheckinsReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved check-ins can\'t be edited or deleted.'**
+  String get thisPhoneCheckinsReadOnly;
+
+  /// No description provided for @checkinStateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this phone — waiting to confirm'**
+  String get checkinStateSaved;
+
+  /// No description provided for @checkinStateConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get checkinStateConfirmed;
+
+  /// No description provided for @checkinStateNotAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not accepted — {reason}'**
+  String checkinStateNotAccepted(String reason);
+
+  /// No description provided for @syncNowAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNowAction;
+
+  /// No description provided for @signOutPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} check-ins not confirmed yet'**
+  String signOutPendingTitle(int count);
+
+  /// No description provided for @signOutPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'re saved on this phone and will be confirmed the next time you sign in here. You can sync now to confirm them first.'**
+  String get signOutPendingBody;
+
+  /// No description provided for @signOutPendingSignOutAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out anyway'**
+  String get signOutPendingSignOutAnyway;
 }
 
 class _AppLocalizationsDelegate

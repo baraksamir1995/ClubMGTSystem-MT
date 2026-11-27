@@ -3486,4 +3486,185 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get contractTermsErrorBody => 'تحقق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get offlineModeTitle => 'وضع عدم الاتصال';
+
+  @override
+  String get offlineModeBody =>
+      'تعذّر الوصول إلى النادي الآن. يمكنك عرض بطاقة العضوية، وتسجيل الدخول بمسح رمز QR الخاص بالنادي، ورؤية عمليات الدخول المسجلة على هذا الهاتف. سيتم تأكيدها عند عودة الاتصال.';
+
+  @override
+  String get offlineOnlineOnlyNotice =>
+      'الحجوزات والمدفوعات والحصص وسجلك تحتاج إلى اتصال.';
+
+  @override
+  String get offlineTryAgain => 'حاول الاتصال مجددًا';
+
+  @override
+  String get offlineBlockNotSignedIn =>
+      'وضع عدم الاتصال غير متاح: لم تسجّل الدخول على هذا الهاتف.';
+
+  @override
+  String get offlineBlockNoPreviousSession =>
+      'وضع عدم الاتصال غير متاح: افتح التطبيق وأنت متصل مرة واحدة على هذا الهاتف أولًا.';
+
+  @override
+  String get offlineBlockDifferentUser =>
+      'وضع عدم الاتصال غير متاح: البيانات المحفوظة تخص حسابًا آخر.';
+
+  @override
+  String get offlineBlockDifferentApi =>
+      'وضع عدم الاتصال غير متاح: البيانات المحفوظة لخادم مختلف.';
+
+  @override
+  String get offlineBlockStoreUnavailable =>
+      'وضع عدم الاتصال غير متاح: تعذّر فتح التخزين دون اتصال على هذا الهاتف حاليًا.';
+
+  @override
+  String get offlineBlockNoCachedData =>
+      'وضع عدم الاتصال غير متاح: لم يتم تنزيل بيانات للعمل دون اتصال بعد.';
+
+  @override
+  String get syncOnline => 'متصل';
+
+  @override
+  String get syncOffline => 'غير متصل';
+
+  @override
+  String get syncSyncing => 'جارٍ المزامنة';
+
+  @override
+  String syncPending(int count) {
+    return '$count بانتظار التأكيد';
+  }
+
+  @override
+  String get syncFailed => 'فشلت المزامنة';
+
+  @override
+  String get syncDataExpired => 'البيانات المحفوظة قديمة';
+
+  @override
+  String get syncLoginRequired => 'سجّل الدخول للمزامنة';
+
+  @override
+  String get syncDeviceBlocked => 'الهاتف محظور';
+
+  @override
+  String get checkinSavedTitle => 'تم حفظ تسجيل الدخول على هذا الهاتف';
+
+  @override
+  String get checkinSavedSubtitle => 'سيتم تأكيده عند عودة الاتصال.';
+
+  @override
+  String get checkinConfirmedTitle => 'تم تأكيد تسجيل الدخول';
+
+  @override
+  String get checkinNotAcceptedTitle => 'لم يُقبل تسجيل الدخول';
+
+  @override
+  String checkinMembershipAsOf(String time) {
+    return 'العضوية بتاريخ $time';
+  }
+
+  @override
+  String get offlineQrUnavailableTitle => 'تسجيل الدخول دون اتصال غير متاح هنا';
+
+  @override
+  String get offlineQrUnavailableSubtitle =>
+      'هذا الرمز يعمل فقط عند الاتصال. اتصل بالإنترنت وامسح مجددًا.';
+
+  @override
+  String get qrOutOfDateTitle => 'هذا الرمز لم يعد صالحًا';
+
+  @override
+  String get qrOutOfDateSubtitle => 'اطلب من الموظفين رمز QR الحالي للنادي.';
+
+  @override
+  String get qrExpiredTitle => 'انتهت صلاحية هذا الرمز';
+
+  @override
+  String get qrExpiredSubtitle => 'امسح الرمز الحالي عند المدخل.';
+
+  @override
+  String get qrRefreshDataTitle => 'البيانات المحفوظة تحتاج إلى تحديث';
+
+  @override
+  String get qrRefreshDataSubtitle =>
+      'اتصل بالإنترنت مرة واحدة ثم امسح مجددًا.';
+
+  @override
+  String get qrClockWrongSubtitle =>
+      'تاريخ أو وقت هذا الهاتف غير صحيح. صحّحه وحاول مجددًا.';
+
+  @override
+  String get memberPassTitle => 'بطاقة العضوية';
+
+  @override
+  String get memberPassHint => 'اعرض هذا الرمز على الموظفين عند الاستقبال.';
+
+  @override
+  String memberPassValidUntil(String date) {
+    return 'البطاقة صالحة حتى $date';
+  }
+
+  @override
+  String memberPassNumber(String number) {
+    return 'عضو رقم $number';
+  }
+
+  @override
+  String get memberPassUnavailable =>
+      'بطاقتك غير موجودة على هذا الهاتف بعد. اتصل بالإنترنت مرة واحدة لتنزيلها.';
+
+  @override
+  String get memberPassExpiredOffline =>
+      'انتهت صلاحية بطاقتك ولا يمكن تجديدها دون اتصال. اتصل بالإنترنت للحصول على بطاقة جديدة.';
+
+  @override
+  String get memberPassRefresh => 'تحديث البطاقة';
+
+  @override
+  String get memberPassProfileLabel => 'البطاقة';
+
+  @override
+  String get thisPhoneCheckinsTitle => 'عمليات الدخول على هذا الهاتف';
+
+  @override
+  String get thisPhoneCheckinsLabel => 'الدخول';
+
+  @override
+  String get thisPhoneCheckinsEmpty =>
+      'لا توجد عمليات دخول محفوظة على هذا الهاتف.';
+
+  @override
+  String get thisPhoneCheckinsReadOnly =>
+      'لا يمكن تعديل عمليات الدخول المحفوظة أو حذفها.';
+
+  @override
+  String get checkinStateSaved => 'محفوظ على هذا الهاتف — بانتظار التأكيد';
+
+  @override
+  String get checkinStateConfirmed => 'تم التأكيد';
+
+  @override
+  String checkinStateNotAccepted(String reason) {
+    return 'لم يُقبل — $reason';
+  }
+
+  @override
+  String get syncNowAction => 'زامن الآن';
+
+  @override
+  String signOutPendingTitle(int count) {
+    return '$count من عمليات الدخول لم تُؤكَّد بعد';
+  }
+
+  @override
+  String get signOutPendingBody =>
+      'إنها محفوظة على هذا الهاتف وسيتم تأكيدها في المرة القادمة التي تسجّل فيها الدخول هنا. يمكنك المزامنة الآن لتأكيدها أولًا.';
+
+  @override
+  String get signOutPendingSignOutAnyway => 'تسجيل الخروج على أي حال';
 }

@@ -15,6 +15,7 @@ import 'services/deep_link_service.dart';
 import 'services/fresh_install_guard.dart';
 import 'services/notification_service.dart';
 import 'services/offline_attendance.dart';
+import 'features/offline/member_offline_controller.dart';
 import 'router.dart';
 import 'utils/env.dart';
 import 'utils/theme.dart';
@@ -66,6 +67,15 @@ class GymApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<MemberProvider>(
           create: (_) => MemberProvider(apiService),
+        ),
+        // Offline attendance (Phase 3): limited offline mode on a network
+        // cold-start failure, scanner path selection, sync state.
+        ChangeNotifierProvider<MemberOfflineController>(
+          create: (ctx) => MemberOfflineController(
+            auth: ctx.read<AuthProvider>(),
+            offline: OfflineAttendance.instance,
+            api: apiService,
+          ),
         ),
         ChangeNotifierProvider<BannerProvider>(
           create: (_) => BannerProvider(),

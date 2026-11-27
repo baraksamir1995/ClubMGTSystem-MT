@@ -57,3 +57,11 @@ Server-only replay protection for `member_qr` events with a v2 QR:
 
 ## 6. Cross-implementation corpus
 Extend `scratchpad/verify/p2/gen_corpus.php` (or a sibling `gen_branch_corpus.php`) with branch QR v2 cases (valid static/rotating, tampered fields, member-pass signature replayed as branch QR, wrong gym, unknown/revoked kid, token mismatch, expired/grace, iat>exp, non-canonical encodings). Server and Dart must agree on every case.
+
+## Amendment (2026-11-27, product decision, binding)
+
+No rotating QR / kiosk. Each branch has **one fixed signed QR** (`mode: static`) that never changes:
+- `GET /api/branches/{id}/qr?mode=static` returns the **same text on every call**. It is reissued only when the branch token is regenerated, when the signing key is rotated or revoked, or when the poster is within 30 days of `exp`.
+- `branch_qr_static_ttl_days` default is 3650 (10 years).
+- The `rotating-batch` endpoint and the dashboard kiosk are removed.
+- Verification of `mode: rotating` and the replay table stay as specified (dormant, since nothing issues rotating QRs), so the shared corpus is unchanged.

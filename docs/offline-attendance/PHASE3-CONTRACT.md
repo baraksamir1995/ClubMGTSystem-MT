@@ -140,3 +140,17 @@ The coach app's existing QR `{"type":"specialist_session","gym_id","trainer_id"}
 - Only **Scan QR** stays usable: gym QR and coach QR.
 - A sync/status indicator is visible.
 - "Check-ins on this phone" stays reachable, from the scanner result sheet or Profile.
+
+## Amendment 4 (2026-11-27, binding): Manual Check-in works offline on the dashboard
+
+Offline, the Attendance page keeps **two** actions enabled: **Gym QR Code** and **Manual Check-in**.
+
+- **Same modal:** Manual Check-in opens the existing modal (same look). Offline, it searches the cached member list (Phase 2 bootstrap cache) and records a `gym_entry` / `manual` event through the outbox.
+- **Saved message:** after recording it says "Saved on this device — will sync when back online".
+- **Pending count:** the status pill shows the pending count, e.g. "Offline · 2 pending".
+- **Automatic sync:** pending check-ins sync automatically on reconnect, and the recent list then shows them as normal.
+- **Rejections:** a rejected item shows a clear notice with the reason.
+- **Online behaviour:**
+  - offline policy disabled: same as today, using the existing endpoint;
+  - offline policy enabled: outbox + immediate sync (the Phase 2 rule).
+- **Kept:** the Phase 2 pieces this needs (member cache, outbox, sync engine, server clock), but no separate page.

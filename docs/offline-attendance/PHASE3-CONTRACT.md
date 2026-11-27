@@ -65,3 +65,59 @@ No rotating QR / kiosk. Each branch has **one fixed signed QR** (`mode: static`)
 - `branch_qr_static_ttl_days` default is 3650 (10 years).
 - The `rotating-batch` endpoint and the dashboard kiosk are removed.
 - Verification of `mode: rotating` and the replay table stay as specified (dormant, since nothing issues rotating QRs), so the shared corpus is unchanged.
+
+## Amendment 2 (2026-11-27, product decision, binding): no member pass; coach QR offline
+
+The user does not want a member pass. Members check in only by scanning QRs, online or offline, and the app syncs later.
+
+**A. Member pass removed everywhere (never deployed).**
+- Member app: pass screen, Profile row, and pass on the offline screen.
+- Server: `/api/me/member-pass`, `/api/members/{id}/member-pass`, `member_pass` in `/offline/me`.
+- Dashboard and coach app: staff scanning of member passes. Staff keep **manual** offline recording (search member → record) from Phase 2.
+- Sync: `staff_qr` method → `rejected/qr_invalid` with message "method not supported" (no client sends it).
+- **Kept:** `gym_signing_keys` and `pass_keys` (they sign and verify the gym and coach QRs), the `attendance:pass-key` command, and the Phase 2 member-pass corpus files (archived, no longer run).
+
+**B. Member scans the gym QR offline.** Unchanged from §2 and Amendment 1 (one fixed signed QR per branch).
+
+**C. Member scans the coach QR offline (new).**
+
+The coach app's existing QR `{"type":"specialist_session","gym_id","trainer_id"}` becomes a **signed v2 superset**:
+
+```json
+{"type":"specialist_session","gym_id":"<uuid>","trainer_id":"<trainer_profiles.id uuid>","v":2,"kid":"<kid>","iat":<s>,"exp":<s>,"jti":"<16–32 [A-Za-z0-9_-]>","sig":"<b64url>"}
+```
+
+- **Key order and parsing:** exactly these 9 keys in this order, with the same strictness rules as §1.
+- **Canonical signed string:** `clby_sq|2|<kid>|<gym_id>|<trainer_id>|<iat>|<exp>|<jti>`, signed with the gym's signing key.
+- **One fixed QR per trainer:** stored server-side the same way as branch posters (same text on every call; reissued on key rotate or revoke, or within 30 days of exp; TTL 3650 days).
+- **Old member apps** keep working online (they read only `type`, `gym_id`, `trainer_id`).
+
+**Endpoints**
+- `GET /api/coach/qr`, for the coach themselves → `{qr, expires_at, kid}`.
+- The coach bootstrap also includes `own_qr`, so the coach app shows the signed QR offline. If the coach app has never fetched it, it falls back to today's unsigned QR, which is online-only for members.
+
+**Client verification**
+- Steps: strict parse → `gym_id` matches the member's gym (plus the white-label lock) → key → signature → `trainer_id` is a cached active trainer of the gym → time (`iat` ≤ scan + skew; scan ≤ `exp`).
+- Errors: `qr_invalid` / `qr_wrong_gym` / `qr_unknown_key` / `qr_expired`.
+- Local pre-check, informational: the member has a cached active assignment with that trainer, with sessions remaining and not expired. Otherwise show today's denial messages (`no_package` / `package_expired` / `package_exhausted`) and record nothing.
+
+**Event:** `kind: service_session`, `method: member_qr`, actor = member, `member_id` = self, `qr.raw` = the scanned text, `trainer_id` in payload.
+
+**Server on sync**
+- Verify the QR as of `device_recorded_at`.
+- Then apply exactly the online `SpecialistScanController` rules as of device time, using the shared code path:
+  - pick the assignment;
+  - expired → rejected;
+  - exhausted → D2: accepted + `review_flag`, matching the coach offline rule;
+  - the SCAN_GUARD window (`recently_logged`) → `duplicate`, returning the original log id;
+  - decrement and complete under lock;
+  - write `service_session_logs` with `source_event_id`.
+- Store `qr_meta` the same way as for branch QRs.
+
+**`/offline/me`** adds:
+- `trainers: [{id, name, service_type, is_active}]` for the member's gym;
+- `assignments: [{id, trainer_id, service_type, sessions_total, sessions_used, expires_at, status}]` for the member's own active service assignments, labelled "as of".
+
+**Corpus:** add specialist QR v2 cases (valid, tampered, a branch-QR signature replayed as a coach QR and the reverse, wrong gym, unknown or revoked key, inactive trainer, expired, strictness). PHP and Dart must agree on every case.
+
+**Member app:** the offline screen shows only "Scan QR" and "Check-ins on this phone". The check-ins list shows both gym check-ins and coach sessions.

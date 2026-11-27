@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:clby/l10n/l10n.dart';
 
+import '../features/store_events/event_cover.dart';
 import '../features/store_events/events_provider.dart';
 import '../features/store_events/in_app_checkout.dart';
 import '../features/store_events/store_events_ui.dart';
@@ -199,7 +200,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         context.watch<AuthProvider>().gym?.mobilePaymentsEnabled ?? true;
     final reg = e.isRegistered ? e.myRegistration : null;
     final hasImage = (e.imageUrl ?? '').isNotEmpty;
-    final coverHeight = MediaQuery.of(context).size.width / 2;
+    // 16:9 — the crop the dashboard asks admins to upload at.
+    final coverHeight = MediaQuery.of(context).size.width * 9 / 16;
     final optionLabel = (e.configurationLabel ?? '').trim().isNotEmpty
         ? e.configurationLabel!.trim()
         : context.l10n.eventsOptionDefaultLabel;
@@ -220,11 +222,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               foregroundColor: kSeInk,
               flexibleSpace: hasImage
                   ? FlexibleSpaceBar(
-                      background: networkImageOrPlaceholder(
-                        context,
-                        e.imageUrl,
-                        icon: Icons.event_rounded,
-                      ),
+                      background: EventCoverImage(event: e, showNumeral: false),
                     )
                   : null,
             ),

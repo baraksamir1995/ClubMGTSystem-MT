@@ -177,14 +177,18 @@ export default function EventModal({ event, plans, onClose, onSaved }: {
         </span>
       </Modal.Header>
       <Modal.Body>
-        {/* Cover image */}
+        {/* Cover image — previewed at 16:9, the crop the member app's home
+            carousel and event screen use. */}
         <div>
           <p className="text-xs font-medium text-fg-muted mb-1.5">{t('cover')}</p>
-          <div className="flex items-center gap-4">
-            <div className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-xl border border-line bg-surface-3">
+          <div className="flex items-start gap-4">
+            <div
+              className="relative aspect-video w-48 flex-shrink-0 overflow-hidden rounded-xl border border-line bg-surface-3"
+              data-testid="event-cover-preview"
+            >
               {imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- user-uploaded image on external host
-                <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                <img src={imageUrl} alt={t('coverAlt')} className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-fg-faint">
                   <ImageIcon className="h-5 w-5" aria-hidden />
@@ -193,16 +197,21 @@ export default function EventModal({ event, plans, onClose, onSaved }: {
               )}
             </div>
             <div className="flex flex-col items-start gap-2">
-              <Button type="button" variant="secondary" size="sm" isLoading={uploading}
-                leftIcon={<Upload className="h-3.5 w-3.5" />} onClick={() => fileRef.current?.click()}>
-                {imageUrl ? t('replaceImage') : t('uploadImage')}
-              </Button>
-              {imageUrl && (
-                <button type="button" className="text-xs text-fg-faint hover:text-danger" onClick={() => setImageUrl('')}>
-                  {t('removeImage')}
-                </button>
-              )}
-              <input ref={fileRef} type="file" accept={ALLOWED_IMAGE_TYPES.join(',')} className="hidden" onChange={handleImage} />
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="secondary" size="sm" isLoading={uploading}
+                  leftIcon={<Upload className="h-3.5 w-3.5" />} onClick={() => fileRef.current?.click()}>
+                  {imageUrl ? t('replaceImage') : t('uploadImage')}
+                </Button>
+                {imageUrl && !uploading && (
+                  <Button type="button" variant="ghost" size="sm"
+                    leftIcon={<X className="h-3.5 w-3.5" />} onClick={() => setImageUrl('')}>
+                    {t('removeImage')}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-fg-faint max-w-[16rem]">{t('coverHint')}</p>
+              <input ref={fileRef} type="file" accept={ALLOWED_IMAGE_TYPES.join(',')} className="hidden"
+                onChange={handleImage} data-testid="event-cover-input" />
             </div>
           </div>
         </div>

@@ -28,8 +28,8 @@ import '../models/capacity_model.dart';
 import '../features/rating/rating_reminder_provider.dart';
 import '../services/api_service.dart';
 import '../features/store_events/events_provider.dart';
+import '../features/store_events/home_events_carousel.dart';
 import '../models/event_model.dart';
-import '../widgets/event_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -434,29 +434,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
 
       case 'events':
-        // Next few upcoming events; hidden when the gym has none.
+        // Upcoming events as a cover carousel; collapses (no header, no
+        // gap) when the gym has none.
         return Selector<EventsProvider, List<GymEvent>>(
           key: const ValueKey('home-events'),
           selector: (_, ep) => ep.events,
           builder: (_, events, _) {
             if (events.isEmpty) return const SizedBox.shrink();
-            final shown = events.take(3).toList();
+            final shown = events.take(HomeEventsCarousel.maxItems).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SectionHeader(
-                  title: context.l10n.eventsUpcoming,
-                  actionLabel: events.length > shown.length
-                      ? context.l10n.commonSeeAll
-                      : null,
+                  title: context.l10n.homeEventsTitle,
+                  actionLabel: context.l10n.commonSeeAll,
                   onAction: () => context.push('/events'),
                   actionColor: primary,
                 ),
                 const SizedBox(height: 12),
-                for (var i = 0; i < shown.length; i++) ...[
-                  if (i > 0) const SizedBox(height: 10),
-                  EventListTile(event: shown[i]),
-                ],
+                HomeEventsCarousel(events: shown),
                 const SizedBox(height: 24),
               ],
             );

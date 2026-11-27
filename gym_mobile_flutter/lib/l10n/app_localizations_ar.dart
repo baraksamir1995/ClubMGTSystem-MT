@@ -3569,6 +3569,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'تغيّر السعر. يرجى التحديث والمحاولة مرة أخرى.';
 
   @override
+  String get homeEventsTitle => 'قريبًا في النادي';
+
+  @override
   String get eventsTitle => 'الفعاليات';
 
   @override

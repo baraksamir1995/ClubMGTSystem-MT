@@ -231,7 +231,9 @@ class EventController extends Controller
 
     public function uploadImage(Request $request, StorageService $storage): JsonResponse
     {
-        $request->validate(['file' => 'required|image|max:5120']);
+        // Raster images only (no SVG: it can carry script), 5 MB max. Stored
+        // under the caller's gym prefix, same as product images.
+        $request->validate(['file' => 'required|file|image|mimes:jpg,jpeg,png,webp,gif|max:5120']);
         $result = $storage->upload($request->file('file'), 'events', $request->user()->gym_id);
         return response()->json(['url' => $result['url']]);
     }
@@ -382,7 +384,9 @@ class EventController extends Controller
             'title' => "$req|string|max:255",
             'description' => 'nullable|string|max:10000',
             'location' => 'nullable|string|max:255',
-            'image_url' => 'nullable|string|max:1024',
+            // null clears the cover; otherwise an http(s) URL (normally the
+            // one POST /admin/events/image returned).
+            'image_url' => 'nullable|string|max:1024|url:http,https',
             'starts_at' => "$req|date",
             'ends_at' => 'nullable|date|after:starts_at',
             'registration_deadline' => 'nullable|date',

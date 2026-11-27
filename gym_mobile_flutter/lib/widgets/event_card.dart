@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../features/store_events/event_cover.dart';
 import '../features/store_events/store_events_ui.dart';
 import '../models/event_model.dart';
 
@@ -35,11 +36,7 @@ class EventCard extends StatelessWidget {
             Expanded(
               child: SizedBox(
                 width: double.infinity,
-                child: networkImageOrPlaceholder(
-                  context,
-                  e.imageUrl,
-                  icon: Icons.event_rounded,
-                ),
+                child: EventCoverImage(event: e),
               ),
             ),
             Padding(

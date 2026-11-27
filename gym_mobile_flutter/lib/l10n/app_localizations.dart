@@ -6211,6 +6211,12 @@ abstract class AppLocalizations {
   /// **'The price has changed. Please refresh and try again.'**
   String get storeErrPriceChanged;
 
+  /// No description provided for @homeEventsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming up'**
+  String get homeEventsTitle;
+
   /// No description provided for @eventsTitle.
   ///
   /// In en, this message translates to:

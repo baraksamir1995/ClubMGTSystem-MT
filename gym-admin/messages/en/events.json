@@ -35,6 +35,8 @@
     "created": "Event created",
     "updated": "Event updated",
     "cover": "Cover image",
+    "coverAlt": "Event cover",
+    "coverHint": "Landscape works best (16:9, at least 1600×900). Members see it full-width on the app's home screen.",
     "noImage": "No image",
     "uploadImage": "Upload",
     "replaceImage": "Replace",

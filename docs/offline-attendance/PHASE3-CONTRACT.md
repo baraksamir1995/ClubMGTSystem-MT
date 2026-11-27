@@ -121,3 +121,22 @@ The coach app's existing QR `{"type":"specialist_session","gym_id","trainer_id"}
 **Corpus:** add specialist QR v2 cases (valid, tampered, a branch-QR signature replayed as a coach QR and the reverse, wrong gym, unknown or revoked key, inactive trainer, expired, strictness). PHP and Dart must agree on every case.
 
 **Member app:** the offline screen shows only "Scan QR" and "Check-ins on this phone". The check-ins list shows both gym check-ins and coach sessions.
+
+## Amendment 3 (2026-11-27, product decision, binding): no separate offline screens
+
+**Dashboard**
+- Remove the "Front desk (offline)" button and its route, the separate Phase 2 offline page.
+- The normal **Attendance & Access** page itself handles offline. When the connection drops:
+  - everything is dimmed and disabled except the **Gym QR Code** button;
+  - a clear status indicator shows Online / Offline / Reconnecting.
+- The Gym QR modal must work offline. Cache the fixed signed QR per branch (IndexedDB) whenever it loads online, and show it from the cache when offline.
+- Manual Check-in works online as today and is disabled while offline.
+- Remove dashboard offline recording (outbox / staff scanning) from the UI. Server sync stays for the apps.
+- When the connection returns, the page re-enables and refreshes.
+- Known limit until Phase 4 (service worker): the page must already have been loaded while online.
+
+**Member app**
+- No separate offline screen. Offline, the app shows its **normal** screens with items dimmed and disabled.
+- Only **Scan QR** stays usable: gym QR and coach QR.
+- A sync/status indicator is visible.
+- "Check-ins on this phone" stays reachable, from the scanner result sheet or Profile.

@@ -57,6 +57,11 @@ dependencies:
   # Deep links (password reset, email verify)
   app_links: ^6.3.2
 
+  # Offline-first attendance core (encrypted outbox + sync engine), shared
+  # with coaches_mobile_flutter.
+  clby_offline:
+    path: ../packages/clby_offline
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -68,6 +73,16 @@ dev_dependencies:
 # flutter_launcher_icons-<flavor>.yaml and flutter_native_splash-<flavor>.yaml.
 # clby's app-icon assets are committed (Android: android/app/src/clby/res/mipmap-*;
 # iOS: ios/Runner/Assets.xcassets/AppIcon.appiconset) and don't need regeneration.
+
+# package:sqlite3 (via clby_offline/drift) bundles SQLite through a build
+# hook. Select the SQLite3MultipleCiphers build so the offline DB is
+# encrypted — clby_offline refuses to open (fails closed) without it.
+# user_defines are only read from the ROOT app pubspec. The hook downloads
+# hash-pinned binaries from GitHub at build time.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
 
 flutter:
   uses-material-design: true

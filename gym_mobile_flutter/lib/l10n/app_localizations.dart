@@ -6079,6 +6079,234 @@ abstract class AppLocalizations {
   /// **'Check your connection and try again.'**
   String get contractTermsErrorBody;
 
+  /// No description provided for @syncOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get syncOnline;
+
+  /// No description provided for @syncOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get syncOffline;
+
+  /// No description provided for @syncSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get syncSyncing;
+
+  /// No description provided for @syncPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} waiting'**
+  String syncPending(int count);
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
+
+  /// No description provided for @syncDataExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline data out of date'**
+  String get syncDataExpired;
+
+  /// No description provided for @syncLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to sync'**
+  String get syncLoginRequired;
+
+  /// No description provided for @syncDeviceBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone blocked'**
+  String get syncDeviceBlocked;
+
+  /// No description provided for @checkinSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in saved on this phone'**
+  String get checkinSavedTitle;
+
+  /// No description provided for @checkinSavedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be confirmed when you\'re back online.'**
+  String get checkinSavedSubtitle;
+
+  /// No description provided for @checkinConfirmedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in confirmed'**
+  String get checkinConfirmedTitle;
+
+  /// No description provided for @checkinNotAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in not accepted'**
+  String get checkinNotAcceptedTitle;
+
+  /// No description provided for @checkinMembershipAsOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Membership as of {time}'**
+  String checkinMembershipAsOf(String time);
+
+  /// No description provided for @offlineQrUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline check-in isn\'t available here'**
+  String get offlineQrUnavailableTitle;
+
+  /// No description provided for @offlineQrUnavailableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR code only works online. Connect to the internet and scan again.'**
+  String get offlineQrUnavailableSubtitle;
+
+  /// No description provided for @qrOutOfDateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR is out of date'**
+  String get qrOutOfDateTitle;
+
+  /// No description provided for @qrOutOfDateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask staff for the current gym QR code.'**
+  String get qrOutOfDateSubtitle;
+
+  /// No description provided for @qrExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR has expired'**
+  String get qrExpiredTitle;
+
+  /// No description provided for @qrExpiredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the current QR code at the entrance.'**
+  String get qrExpiredSubtitle;
+
+  /// No description provided for @qrRefreshDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline data needs a refresh'**
+  String get qrRefreshDataTitle;
+
+  /// No description provided for @qrRefreshDataSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet once, then scan again.'**
+  String get qrRefreshDataSubtitle;
+
+  /// No description provided for @qrClockWrongSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone\'s date or time is wrong. Correct it and try again.'**
+  String get qrClockWrongSubtitle;
+
+  /// No description provided for @thisPhoneCheckinsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-ins on this phone'**
+  String get thisPhoneCheckinsTitle;
+
+  /// No description provided for @thisPhoneCheckinsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK-INS'**
+  String get thisPhoneCheckinsLabel;
+
+  /// No description provided for @thisPhoneCheckinsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No check-ins saved on this phone.'**
+  String get thisPhoneCheckinsEmpty;
+
+  /// No description provided for @thisPhoneCheckinsReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved check-ins can\'t be edited or deleted.'**
+  String get thisPhoneCheckinsReadOnly;
+
+  /// No description provided for @checkinStateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this phone — waiting to confirm'**
+  String get checkinStateSaved;
+
+  /// No description provided for @checkinStateConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get checkinStateConfirmed;
+
+  /// No description provided for @checkinStateNotAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not accepted — {reason}'**
+  String checkinStateNotAccepted(String reason);
+
+  /// No description provided for @syncNowAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNowAction;
+
+  /// No description provided for @signOutPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} check-ins not confirmed yet'**
+  String signOutPendingTitle(int count);
+
+  /// No description provided for @signOutPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They\'re saved on this phone and will be confirmed the next time you sign in here. You can sync now to confirm them first.'**
+  String get signOutPendingBody;
+
+  /// No description provided for @signOutPendingSignOutAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out anyway'**
+  String get signOutPendingSignOutAnyway;
+
+  /// No description provided for @sessionSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session saved on this phone'**
+  String get sessionSavedTitle;
+
+  /// No description provided for @sessionConfirmedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session confirmed'**
+  String get sessionConfirmedTitle;
+
+  /// No description provided for @sessionNotAcceptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session not accepted'**
+  String get sessionNotAcceptedTitle;
+
+  /// No description provided for @checkinKindGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym check-in'**
+  String get checkinKindGym;
+
+  /// No description provided for @checkinKindSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach session'**
+  String get checkinKindSession;
+
   /// No description provided for @storeTitle.
   ///
   /// In en, this message translates to:

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ServiceSessionService;
+use App\Services\SpecialistQrService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Coach mobile app endpoints. All routes are gated by the
@@ -24,8 +25,6 @@ use Illuminate\Support\Str;
  */
 class CoachController extends Controller
 {
-    private const SCAN_GUARD_MINUTES = 30;
-
     /**
      * Resolve the caller's trainer_profile_id from the middleware stash.
      */
@@ -62,6 +61,17 @@ class CoachController extends Controller
                 'qr_seed'            => 'clby-coach-'.$coach->id,
             ],
         ]);
+    }
+
+    /**
+     * GET /api/coach/qr — the coach's ONE fixed signed QR v2 (PHASE3
+     * Amendment 2 §C): {qr, expires_at, kid}. Same text on every call; old
+     * member apps keep working (they read type/gym_id/trainer_id).
+     */
+    public function qr(Request $request, SpecialistQrService $qrs): JsonResponse
+    {
+        $coach = $request->get('coach');
+        return response()->json($qrs->qrFor($coach->gym_id, $coach->id));
     }
 
     /**
@@ -150,18 +160,10 @@ class CoachController extends Controller
 
     /**
      * Confirm a session — atomic 30-min-guarded decrement + log insert.
-     *
-     * Wire-up notes:
-     *  - The assignment row is selectForUpdate-locked inside a txn so a
-     *    second concurrent decrement waits for ours to commit.
-     *  - We re-check the 30-minute window INSIDE the txn, after the
-     *    lock, so a racing scan can't slip through between our query and
-     *    our insert.
-     *  - On the boundary case (this scan brings used to total) we flip
-     *    the assignment's `status` to 'completed' so it falls out of the
-     *    Active roster.
+     * The transaction lives in ServiceSessionService (shared with the
+     * offline sync); responses here are unchanged.
      */
-    public function decrement(Request $request): JsonResponse
+    public function decrement(Request $request, ServiceSessionService $sessions): JsonResponse
     {
         $coachId = $this->coachId($request);
         $gymId   = $request->user()->gym_id;
@@ -172,101 +174,7 @@ class CoachController extends Controller
         ]);
 
         try {
-            $result = DB::transaction(function () use ($coachId, $gymId, $validated) {
-                $assignment = DB::table('member_service_assignments')
-                    ->where('id', $validated['assignment_id'])
-                    ->where('gym_id', $gymId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $assignment) {
-                    return ['error' => ['code' => 'not_found', 'message' => 'Assignment not found', 'status' => 404]];
-                }
-                if ($assignment->trainer_id !== $coachId) {
-                    return ['error' => ['code' => 'forbidden', 'message' => 'This assignment belongs to a different coach.', 'status' => 403]];
-                }
-                if ($assignment->status !== 'active') {
-                    return ['error' => ['code' => 'not_active', 'message' => 'Assignment is no longer active.', 'status' => 409]];
-                }
-                if ($assignment->sessions_used >= $assignment->sessions_total) {
-                    return ['error' => ['code' => 'exhausted', 'message' => 'No sessions remaining on this package.', 'status' => 409]];
-                }
-                if ($assignment->expires_at && Carbon::parse($assignment->expires_at)->lt(Carbon::now())) {
-                    return ['error' => ['code' => 'expired', 'message' => 'Package expired.', 'status' => 409]];
-                }
-
-                // 30-min guard — checked inside the lock, after fetching
-                // the assignment, so a concurrent decrement can't sneak
-                // in between the check and our insert.
-                $guardCutoff = Carbon::now()->subMinutes(self::SCAN_GUARD_MINUTES);
-                $lastLog = DB::table('service_session_logs')
-                    ->where('assignment_id', $assignment->id)
-                    ->where('delivered_at', '>', $guardCutoff->toIso8601String())
-                    ->orderByDesc('delivered_at')
-                    ->first();
-                if ($lastLog) {
-                    // Use unix timestamps so a stray timezone on either
-                    // side of the comparison can't drift the result by
-                    // whole hours (Carbon's `diffInSeconds` was returning
-                    // ~1740 with mixed-TZ inputs).
-                    $secondsAgo = max(
-                        0,
-                        Carbon::now()->getTimestamp() - Carbon::parse($lastLog->delivered_at)->getTimestamp()
-                    );
-                    $secondsLeft = (self::SCAN_GUARD_MINUTES * 60) - $secondsAgo;
-                    $minutesLeft = max(1, (int) ceil($secondsLeft / 60));
-                    return ['error' => [
-                        'code'    => 'recently_logged',
-                        'message' => "This member was already logged in the last ".self::SCAN_GUARD_MINUTES." minutes.",
-                        'status'  => 409,
-                        'extra'   => [
-                            'minutes_left'      => $minutesLeft,
-                            'last_delivered_at' => $lastLog->delivered_at,
-                        ],
-                    ]];
-                }
-
-                $logId = Str::uuid()->toString();
-                $now   = Carbon::now();
-                // Postgres `timestamp with time zone` interprets naive
-                // strings using the session TZ (Africa/Cairo here), while
-                // Laravel's `app.timezone` is UTC. Pass an ISO-8601 string
-                // with explicit offset so the stored instant is correct
-                // regardless of either side's TZ setting.
-                $nowIso = $now->toIso8601String();
-
-                DB::table('service_session_logs')->insert([
-                    'id'             => $logId,
-                    'gym_id'         => $gymId,
-                    'assignment_id'  => $assignment->id,
-                    'trainer_id'     => $coachId,
-                    'gym_member_id'  => $assignment->gym_member_id,
-                    'delivered_at'   => $nowIso,
-                    'note'           => $validated['note'] ?? null,
-                    'created_at'     => $nowIso,
-                    'updated_at'     => $nowIso,
-                ]);
-
-                $newUsed   = $assignment->sessions_used + 1;
-                $exhausted = $newUsed >= $assignment->sessions_total;
-                DB::table('member_service_assignments')
-                    ->where('id', $assignment->id)
-                    ->update([
-                        'sessions_used' => $newUsed,
-                        'status'        => $exhausted ? 'completed' : $assignment->status,
-                    ]);
-
-                return [
-                    'data' => [
-                        'log_id'        => $logId,
-                        'assignment_id' => $assignment->id,
-                        'sessions_used' => $newUsed,
-                        'sessions_remaining' => max(0, $assignment->sessions_total - $newUsed),
-                        'completed'     => $exhausted,
-                        'delivered_at'  => $now->toIso8601String(),
-                    ],
-                ];
-            });
+            $result = $sessions->deliver($coachId, $gymId, $validated['assignment_id'], $validated['note'] ?? null);
         } catch (\Throwable $e) {
             report($e);
             return response()->json(['error' => 'Could not log the session. Try again.'], 500);
@@ -280,7 +188,7 @@ class CoachController extends Controller
             }
             return response()->json($payload, $err['status']);
         }
-        return response()->json($result, 201);
+        return response()->json(['data' => $result['data']], 201);
     }
 
     /**

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:clby_offline/clby_offline.dart'
+    show ClientInfo, TransportResponse;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../features/coach/models.dart';
@@ -25,6 +27,9 @@ class ApiService {
 
   Future<String?> get _token => _storage.read(key: _tokenKey);
 
+  /// Current stored token (offline sync transport binds it per scope).
+  Future<String?> get authToken => _token;
+
   String? _cachedUserId;
   String? get currentUserId => _cachedUserId;
 
@@ -38,6 +43,8 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      // X-Device-Id / X-App / X-App-Version / X-App-Build / X-App-Platform
+      ...ClientInfo.headers,
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
@@ -63,9 +70,10 @@ class ApiService {
   Future<dynamic> _getPublic(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
     return _withRetry(() => _runWithTimeout(() async {
-          final response = await _http.get(uri, headers: const {
+          final response = await _http.get(uri, headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            ...ClientInfo.headers,
           });
           if (response.body.isEmpty) return <String, dynamic>{};
           final body = jsonDecode(response.body);
@@ -106,6 +114,37 @@ class ApiService {
     });
   }
 
+  /// Raw authenticated request for the offline sync transport
+  /// (`CoachSyncTransport`). Deliberately bypasses [_parse]: a 401 from
+  /// the sync endpoints must not wipe the session here, and it never
+  /// touches the offline outbox — the engine just pauses. Network errors
+  /// propagate for the transport to map.
+  ///
+  /// [bearerToken] is the token the transport bound to its scope's user at
+  /// session start; it REPLACES whatever token is current, so an account
+  /// switch mid-sync can never send user A's events with user B's token
+  /// (D9). Null → no Authorization header (the server answers 401 and the
+  /// engine pauses).
+  Future<TransportResponse> rawRequest(
+    String method,
+    String path, {
+    required String? bearerToken,
+    Map<String, String>? query,
+    String? body,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: query);
+    final headers = Map<String, String>.of(await _headers)
+      ..remove('Authorization');
+    if (bearerToken != null) headers['Authorization'] = 'Bearer $bearerToken';
+    final request = http.Request(method, uri)..headers.addAll(headers);
+    if (body != null) request.body = body;
+    final streamed = await _http.send(request).timeout(timeout);
+    final response = await http.Response.fromStream(streamed).timeout(timeout);
+    return TransportResponse(response.statusCode, response.body,
+        headers: response.headers);
+  }
+
   Future<T> _runWithTimeout<T>(Future<T> Function() op) =>
       Future.sync(op).timeout(_timeout);
 
@@ -124,7 +163,20 @@ class ApiService {
 
   Future<dynamic> _parse(http.Response response) async {
     if (response.body.isEmpty) return <String, dynamic>{};
-    final body = jsonDecode(response.body);
+    final Object? body;
+    try {
+      body = jsonDecode(response.body);
+    } on FormatException {
+      // Non-JSON error page (proxy HTML 502…): keep the status so the
+      // offline-mode rules can classify it (5xx = network failure).
+      if (response.statusCode < 400) rethrow;
+      if (response.statusCode == 401) {
+        await _storage.delete(key: _tokenKey);
+        await _storage.delete(key: _userIdKey);
+        _cachedUserId = null;
+      }
+      throw ApiException(statusCode: response.statusCode, message: 'Unknown error');
+    }
     if (response.statusCode >= 400) {
       if (response.statusCode == 401) {
         // Sanctum tokens expire after 24h. Clear stale credentials so the

@@ -82,7 +82,13 @@
     "regenerating": "Regenerating…",
     "regeneratedSuccess": "QR code regenerated — the old QR is now invalid",
     "regenerateFailed": "Failed to regenerate",
-    "networkError": "Network error"
+    "networkError": "Network error",
+    "validUntil": "Valid until {date}",
+    "signedNote": "Signed QR — members' phones can verify it even without internet.",
+    "fallbackNote": "Couldn't load the signed QR. Showing the basic QR instead — it only works while the member's phone is online.",
+    "regenerateNote": "Regenerating replaces the printed QR: the old poster stops working (online and offline). Print the new one afterwards.",
+    "loadingSigned": "Loading signed QR…",
+    "staysSame": "This QR stays the same until you press Regenerate — print it once."
   },
   "manualModal": {
     "title": "Manual Check-in",
@@ -169,5 +175,65 @@
     "pickMemberFirst": "Select a member first",
     "pickPackageFirst": "Select a package first",
     "deductSession": "Deduct session"
+  },
+  "offline": {
+    "pill": {
+      "online": "Online",
+      "offline": "Offline",
+      "reconnecting": "Reconnecting…",
+      "syncing": "Syncing…",
+      "loginRequired": "Login required",
+      "withPending": "{label} · {count} pending"
+    },
+    "banner": "You're offline. Only Gym QR Code and Manual Check-in are available — check-ins are saved on this device and sync when you're back online.",
+    "savedLocal": "Saved on this device — will sync when back online",
+    "savedSyncing": "Saved — syncing now",
+    "policyOffOffline": "Offline check-in is turned off for this gym. Reconnect to check members in.",
+    "noCache": "The member list hasn't been saved on this device yet — open this page once while online.",
+    "cachedSearch": "Searching the saved member list (as of {time})",
+    "now": "Now",
+    "rejectedTitle": "{count, plural, one {# offline check-in was} other {# offline check-ins were}} not accepted by the server",
+    "rejectedItem": "{name} ({time}): {reason}",
+    "dismiss": "Dismiss",
+    "qrFromCache": "Shown from saved copy",
+    "qrNoSavedCopy": "No saved copy of this branch's QR on this device — open it once while online.",
+    "results": {
+      "offline_disabled": "Offline mode is off for this gym.",
+      "method_not_allowed": "This method isn't allowed offline for this gym.",
+      "invalid_input": "Some details are missing or invalid.",
+      "member_not_cached": "This member isn't in the offline data — refresh it.",
+      "double_tap": "Already recorded a moment ago.",
+      "already_checked_in": "This member is already checked in to that class.",
+      "clock_skew": "This device's clock is wrong, so the server would reject the check-in. Fix the date & time and try again."
+    },
+    "codes": {
+      "invalid_payload": "The record was incomplete or malformed.",
+      "invalid_envelope": "The device sent a malformed batch.",
+      "tenant_mismatch": "The record belongs to another gym.",
+      "member_not_found": "Member not found in this gym.",
+      "branch_not_found": "Branch not found.",
+      "class_session_not_found": "Class session not found.",
+      "studio_not_found": "Studio not found.",
+      "assignment_not_found": "Service package not found.",
+      "assignment_not_active": "The service package isn't active.",
+      "permission_denied": "No permission to record attendance.",
+      "not_self": "Members can only check themselves in.",
+      "qr_invalid": "Invalid or forged QR code.",
+      "qr_wrong_gym": "The QR code belongs to another gym.",
+      "branch_inactive": "The branch is inactive.",
+      "not_a_member": "No membership in this gym.",
+      "membership_frozen": "The membership is frozen.",
+      "gym_access_not_included": "The membership doesn't include gym access.",
+      "branch_not_included": "The membership doesn't include this branch.",
+      "pack_expired": "The session pack had expired.",
+      "guard_window": "A session was already logged in the last 30 minutes.",
+      "clock_in_future": "The device clock was ahead — time is in the future.",
+      "event_too_old": "Recorded too long ago to be accepted.",
+      "event_id_conflict": "Conflicting record id.",
+      "event_id_reused": "Record id reused with different details.",
+      "offline_disabled": "Offline mode was off for this gym.",
+      "already_checked_in": "Already checked in to this class.",
+      "server_error": "Server error — will retry."
+    }
   }
 }

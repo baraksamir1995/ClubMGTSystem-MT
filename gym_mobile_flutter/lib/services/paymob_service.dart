@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:clby_offline/clby_offline.dart' show ClientInfo;
 import 'package:http/http.dart' as http;
 import '../utils/env.dart';
 import 'analytics_service.dart';
@@ -29,6 +30,7 @@ class PaymobService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      ...ClientInfo.headers,
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }

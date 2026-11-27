@@ -1,0 +1,43 @@
+name: clby_offline
+description: "CLBY offline-first attendance core: encrypted outbox + cache (Drift / sqlite3mc), sync engine, bootstrap, device identity. Shared by coaches_mobile_flutter and gym_mobile_flutter."
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  drift: ^2.35.4
+  sqlite3: ^3.5.2
+  path: ^1.9.0
+  path_provider: ^2.1.5
+  flutter_secure_storage: ^9.2.4
+  # >=6.1 <8: 7.x needs dbus ^0.8, which conflicts with the member app's
+  # flutter_local_notifications 18 (dbus ^0.7). Same API in both.
+  connectivity_plus: ">=6.1.0 <8.0.0"
+  package_info_plus: ^9.0.1
+  flutter_timezone: ^5.1.1
+  uuid: ^4.5.1
+  crypto: ^3.0.6
+  # Pure-Dart Ed25519 (DartEd25519) for offline member-pass verification.
+  cryptography: ^2.9.0
+  meta: ^1.15.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.35.3
+  build_runner: ^2.15.1
+  fake_async: ^1.3.3
+
+# Encryption for the package's own `flutter test` run (the package is the
+# root there). Apps MUST repeat this in their own pubspec — sqlite3 reads
+# user_defines from the root package only.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc

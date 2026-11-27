@@ -10,10 +10,12 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AnnouncementAdminController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceOfflineController;
 use App\Http\Controllers\BillingReminderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchQrController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\ClassTypeController;
 use App\Http\Controllers\ContentController;
@@ -202,6 +204,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
     Route::post('/access/studio', [AccessController::class, 'validateStudio']);
     Route::post('/attendance/qr', [AttendanceController::class, 'logByQr']);
 
+    // Offline attendance (docs/offline-attendance/CONTRACT.md). Members,
+    // staff and coaches all sync through one endpoint, so permission is
+    // checked per event / per role inside the controller, not by route.
+    Route::post('/attendance/sync', [AttendanceOfflineController::class, 'sync'])->middleware('throttle:attendance-sync');
+    Route::get('/attendance/offline/status', [AttendanceOfflineController::class, 'status']);
+    Route::get('/attendance/offline/bootstrap', [AttendanceOfflineController::class, 'bootstrap']);
+    Route::get('/attendance/offline/me', [AttendanceOfflineController::class, 'me']);
+
     // Specialist QR — member scans a specialist's static code to decrement
     // their own session pack with that specialist (mirror of the coach
     // decrement, initiated member-side). throttle guards against a held
@@ -257,6 +267,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 've
 // trainer_profile_id once for downstream controllers.
 Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, 'coach', \App\Http\Middleware\LogActivityMiddleware::class])->group(function () {
     Route::get('/coach/me',                                  [CoachController::class, 'me']);
+    // The coach's one fixed signed QR v2 (PHASE3 Amendment 2 §C).
+    Route::get('/coach/qr',                                  [CoachController::class, 'qr']);
     Route::get('/coach/roster',                              [CoachController::class, 'roster']);
     Route::post('/coach/sessions/decrement',                 [CoachController::class, 'decrement']);
     Route::get('/coach/today',                               [CoachController::class, 'today']);
@@ -359,6 +371,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Attendance management
     Route::post('/attendance', [AttendanceController::class, 'store'])->middleware('permission:attendance,create');
+    // Offline attendance review (PHASE2-CONTRACT): synced events, read-only.
+    Route::get('/attendance/offline/events', [AttendanceOfflineController::class, 'events'])->middleware('permission:attendance,view');
 
     // Access management
     Route::post('/access/qr/regenerate', [AccessController::class, 'regenerateQr'])->middleware('permission:settings,edit');
@@ -459,6 +473,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Branch management
     Route::post('/branches', [BranchController::class, 'store'])->middleware('permission:settings,create');
     Route::get('/branches/{id}/qr-token', [BranchController::class, 'getQrToken'])->middleware('permission:settings|attendance,view');
+    // Signed branch QR v2 (PHASE3-CONTRACT §3): the branch's one fixed poster QR.
+    Route::get('/branches/{id}/qr', [BranchQrController::class, 'show'])->middleware('permission:attendance,view');
     Route::post('/branches/{id}/upload-image', [BranchController::class, 'uploadImage'])->middleware('permission:settings,edit');
     Route::patch('/branches/{id}', [BranchController::class, 'update'])->middleware('permission:settings,edit');
     Route::delete('/branches/{id}', [BranchController::class, 'destroy'])->middleware('permission:settings,delete');

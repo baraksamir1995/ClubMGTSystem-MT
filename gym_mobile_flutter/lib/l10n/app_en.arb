@@ -1921,6 +1921,72 @@
   "contractTermsEmptyBody": "Your gym hasn't published contract terms and conditions yet.",
   "contractTermsErrorTitle": "Couldn't load terms",
   "contractTermsErrorBody": "Check your connection and try again.",
+  "syncOnline": "Online",
+  "syncOffline": "Offline",
+  "syncSyncing": "Syncing",
+  "syncPending": "{count} waiting",
+  "@syncPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncFailed": "Sync failed",
+  "syncDataExpired": "Offline data out of date",
+  "syncLoginRequired": "Sign in to sync",
+  "syncDeviceBlocked": "Phone blocked",
+  "checkinSavedTitle": "Check-in saved on this phone",
+  "checkinSavedSubtitle": "It will be confirmed when you're back online.",
+  "checkinConfirmedTitle": "Check-in confirmed",
+  "checkinNotAcceptedTitle": "Check-in not accepted",
+  "checkinMembershipAsOf": "Membership as of {time}",
+  "@checkinMembershipAsOf": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineQrUnavailableTitle": "Offline check-in isn't available here",
+  "offlineQrUnavailableSubtitle": "This QR code only works online. Connect to the internet and scan again.",
+  "qrOutOfDateTitle": "This QR is out of date",
+  "qrOutOfDateSubtitle": "Ask staff for the current gym QR code.",
+  "qrExpiredTitle": "This QR has expired",
+  "qrExpiredSubtitle": "Scan the current QR code at the entrance.",
+  "qrRefreshDataTitle": "Offline data needs a refresh",
+  "qrRefreshDataSubtitle": "Connect to the internet once, then scan again.",
+  "qrClockWrongSubtitle": "This phone's date or time is wrong. Correct it and try again.",
+  "thisPhoneCheckinsTitle": "Check-ins on this phone",
+  "thisPhoneCheckinsLabel": "CHECK-INS",
+  "thisPhoneCheckinsEmpty": "No check-ins saved on this phone.",
+  "thisPhoneCheckinsReadOnly": "Saved check-ins can't be edited or deleted.",
+  "checkinStateSaved": "Saved on this phone — waiting to confirm",
+  "checkinStateConfirmed": "Confirmed",
+  "checkinStateNotAccepted": "Not accepted — {reason}",
+  "@checkinStateNotAccepted": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNowAction": "Sync now",
+  "signOutPendingTitle": "{count} check-ins not confirmed yet",
+  "@signOutPendingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signOutPendingBody": "They're saved on this phone and will be confirmed the next time you sign in here. You can sync now to confirm them first.",
+  "signOutPendingSignOutAnyway": "Sign out anyway",
+  "sessionSavedTitle": "Session saved on this phone",
+  "sessionConfirmedTitle": "Session confirmed",
+  "sessionNotAcceptedTitle": "Session not accepted",
+  "checkinKindGym": "Gym check-in",
+  "checkinKindSession": "Coach session",
   "storeTitle": "Store",
   "storeSearchHint": "Search products",
   "storeEmpty": "No products available right now.",

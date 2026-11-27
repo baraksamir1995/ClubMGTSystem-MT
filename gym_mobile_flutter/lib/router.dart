@@ -53,6 +53,8 @@ import 'screens/transfer_sessions_screen.dart';
 import 'models/banner_model.dart';
 import 'models/checkout_item.dart';
 import 'models/service_model.dart';
+import 'features/offline/offline_checkins_screen.dart';
+
 
 const _publicRoutes = {'/splash', '/onboarding', '/welcome', '/login', '/register', '/forgot-password', '/reset-password'};
 
@@ -77,6 +79,11 @@ GoRouter buildRouter(BuildContext context) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/offline-checkins',
+        name: 'offline-checkins',
+        builder: (context, state) => const OfflineCheckinsScreen(),
+      ),
       GoRoute(
         path: '/splash',
         name: 'splash',

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +6,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text.dart';
 import '../../../widgets/coach_greeting_header.dart';
 import '../coach_app_state.dart';
+import '../../offline/coach_offline_controller.dart';
+import '../../offline/offline_logic.dart';
+import '../../offline/offline_widgets.dart';
+import '../../offline/own_qr_card.dart';
+import 'package:clby_offline/clby_offline.dart' show CachedSignedQr;
 
 /// Coach QR / Scan — the home tab, now wired to `/api/coach/*`.
 ///
@@ -22,8 +26,18 @@ class QrScreen extends StatefulWidget {
 }
 
 class _QrScreenState extends State<QrScreen> {
+  /// Cached cache-read of the signed QR — built once per store, not on every
+  /// rebuild (a fresh future each build flashed the unsigned QR first).
+  Future<CachedSignedQr?>? _ownQr;
+  Object? _ownQrStore;
+
   @override
   Widget build(BuildContext context) {
+    final offline = context.watch<CoachOfflineController>();
+    if (_ownQr == null || !identical(_ownQrStore, offline.store)) {
+      _ownQrStore = offline.store;
+      _ownQr = offline.ownQr();
+    }
     final state = context.watch<CoachAppState>();
     final id = state.identity;
 
@@ -65,17 +79,22 @@ class _QrScreenState extends State<QrScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Center(child: _QrCard(
-                        // Real, scannable QR encoding the exact payload the
-                        // member app's scanner reads (type/gym_id/trainer_id).
-                        // Null until identity loads, then a loader shows.
-                        data: (id != null && id.gymId.isNotEmpty && id.trainerProfileId.isNotEmpty)
-                            ? jsonEncode({
-                                'type': 'specialist_session',
-                                'gym_id': id.gymId,
-                                'trainer_id': id.trainerProfileId,
-                              })
-                            : null,
+                      // Server-signed v2 QR (cached `own_qr`, works offline
+                      // for members) when available; otherwise today's
+                      // unsigned QR (online-only for members). Both carry
+                      // type/gym_id/trainer_id, so every member app reads it.
+                      Center(child: FutureBuilder<CachedSignedQr?>(
+                        future: _ownQr,
+                        builder: (context, snap) => _QrCard(
+                          // Loader (data null) until the cache read is done.
+                          data: snap.connectionState == ConnectionState.done
+                              ? signedOrUnsignedCoachQr(
+                                  signed: snap.data,
+                                  gymId: id?.gymId,
+                                  trainerId: id?.trainerProfileId,
+                                )
+                              : null,
+                        ),
                       )),
                       const SizedBox(height: 16),
                       Center(
@@ -93,8 +112,18 @@ class _QrScreenState extends State<QrScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      _ManualLogRow(onTap: () => context.push('/manual-log')),
+                      const SizedBox(height: 20),
+                      const Center(child: SyncIndicatorChip()),
+                      const SizedBox(height: 16),
+                      // Offline mode enabled for the gym → the outbox flow
+                      // (single code path, synced immediately when online);
+                      // otherwise the existing online manual log.
+                      _ManualLogRow(
+                        onTap: () => context.push(
+                            context.read<CoachOfflineController>().logPath == LogPath.outbox
+                                ? '/offline-log'
+                                : '/manual-log'),
+                      ),
                     ],
                   ),
                 ),

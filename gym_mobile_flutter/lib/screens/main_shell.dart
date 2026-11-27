@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:clby/l10n/l10n.dart';
+import '../features/offline/member_offline_controller.dart';
+import '../features/offline/offline_ui.dart';
+import 'qr_scanner_screen.dart';
 
 class MainShell extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -14,11 +18,53 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
+    // Offline attendance (Phase 3 Amendment 3): no separate offline
+    // screen. Offline, the normal shell stays but is dimmed and disabled;
+    // only Scan QR works. The widget tree is identical online (opacity 1,
+    // pointer events on, no chip unless something is pending), so the
+    // tabs keep their state and online looks exactly like today.
+    final offline = context.watch<MemberOfflineController>();
+    final dim = offline.offlineMode;
+    // Profile handles its own offline dimming (its "Check-ins on this
+    // phone" and Sign out rows stay usable), so the shell lets it through.
+    final dimBody = dim && widget.navigationShell.currentIndex != 4;
     return Scaffold(
-      body: widget.navigationShell,
+      body: Stack(
+        children: [
+          IgnorePointer(
+            ignoring: dimBody,
+            child: Opacity(
+              opacity: dimBody ? 0.35 : 1,
+              child: widget.navigationShell,
+            ),
+          ),
+          if (offline.showStatus)
+            PositionedDirectional(
+              top: MediaQuery.of(context).padding.top + 6,
+              end: 12,
+              // Tap → "Check-ins on this phone" (Retry inside).
+              child: OfflineSyncChip(
+                onTap: () => context.push('/offline-checkins'),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: _BottomNav(
         currentIndex: widget.navigationShell.currentIndex,
+        offline: dim,
         onTap: (index) {
+          if (dim) {
+            // Offline: the centre Scan button opens the scanner; Profile
+            // stays reachable (check-ins + sign-out); the rest is disabled.
+            if (index == 2) {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+              );
+            } else if (index == 4) {
+              widget.navigationShell.goBranch(4);
+            }
+            return;
+          }
           widget.navigationShell.goBranch(
             index,
             initialLocation: index == widget.navigationShell.currentIndex,
@@ -35,7 +81,14 @@ class _BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _BottomNav({required this.currentIndex, required this.onTap});
+  /// Offline mode: every item except Scan and Profile is dimmed.
+  final bool offline;
+
+  const _BottomNav({
+    required this.currentIndex,
+    required this.onTap,
+    this.offline = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +120,7 @@ class _BottomNav extends StatelessWidget {
                   index: 0,
                   currentIndex: currentIndex,
                   onTap: onTap,
+                  disabled: offline,
                 ),
               ),
               // Classes
@@ -78,6 +132,7 @@ class _BottomNav extends StatelessWidget {
                   index: 1,
                   currentIndex: currentIndex,
                   onTap: onTap,
+                  disabled: offline,
                 ),
               ),
               // Center QR / Check-in button
@@ -118,6 +173,7 @@ class _BottomNav extends StatelessWidget {
                   index: 3,
                   currentIndex: currentIndex,
                   onTap: onTap,
+                  disabled: offline,
                 ),
               ),
               // Profile
@@ -129,6 +185,7 @@ class _BottomNav extends StatelessWidget {
                   index: 4,
                   currentIndex: currentIndex,
                   onTap: onTap,
+                  disabled: false,
                 ),
               ),
             ],
@@ -146,6 +203,7 @@ class _NavItem extends StatelessWidget {
   final int index;
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final bool disabled;
 
   const _NavItem({
     required this.icon,
@@ -154,6 +212,7 @@ class _NavItem extends StatelessWidget {
     required this.index,
     required this.currentIndex,
     required this.onTap,
+    this.disabled = false,
   });
 
   @override
@@ -167,21 +226,23 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(isSelected ? activeIcon : icon, size: 24, color: color),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight:
-                  isSelected ? FontWeight.w600 : FontWeight.w400,
-              color: color,
+      child: Opacity(
+        opacity: disabled ? 0.35 : 1,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(isSelected ? activeIcon : icon, size: 24, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

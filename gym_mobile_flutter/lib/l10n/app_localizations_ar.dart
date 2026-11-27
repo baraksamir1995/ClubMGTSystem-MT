@@ -3488,6 +3488,134 @@ class AppLocalizationsAr extends AppLocalizations {
   String get contractTermsErrorBody => 'تحقق من اتصالك وحاول مرة أخرى.';
 
   @override
+  String get syncOnline => 'متصل';
+
+  @override
+  String get syncOffline => 'غير متصل';
+
+  @override
+  String get syncSyncing => 'جارٍ المزامنة';
+
+  @override
+  String syncPending(int count) {
+    return '$count بانتظار التأكيد';
+  }
+
+  @override
+  String get syncFailed => 'فشلت المزامنة';
+
+  @override
+  String get syncDataExpired => 'البيانات المحفوظة قديمة';
+
+  @override
+  String get syncLoginRequired => 'سجّل الدخول للمزامنة';
+
+  @override
+  String get syncDeviceBlocked => 'الهاتف محظور';
+
+  @override
+  String get checkinSavedTitle => 'تم حفظ تسجيل الدخول على هذا الهاتف';
+
+  @override
+  String get checkinSavedSubtitle => 'سيتم تأكيده عند عودة الاتصال.';
+
+  @override
+  String get checkinConfirmedTitle => 'تم تأكيد تسجيل الدخول';
+
+  @override
+  String get checkinNotAcceptedTitle => 'لم يُقبل تسجيل الدخول';
+
+  @override
+  String checkinMembershipAsOf(String time) {
+    return 'العضوية بتاريخ $time';
+  }
+
+  @override
+  String get offlineQrUnavailableTitle => 'تسجيل الدخول دون اتصال غير متاح هنا';
+
+  @override
+  String get offlineQrUnavailableSubtitle =>
+      'هذا الرمز يعمل فقط عند الاتصال. اتصل بالإنترنت وامسح مجددًا.';
+
+  @override
+  String get qrOutOfDateTitle => 'هذا الرمز لم يعد صالحًا';
+
+  @override
+  String get qrOutOfDateSubtitle => 'اطلب من الموظفين رمز QR الحالي للنادي.';
+
+  @override
+  String get qrExpiredTitle => 'انتهت صلاحية هذا الرمز';
+
+  @override
+  String get qrExpiredSubtitle => 'امسح الرمز الحالي عند المدخل.';
+
+  @override
+  String get qrRefreshDataTitle => 'البيانات المحفوظة تحتاج إلى تحديث';
+
+  @override
+  String get qrRefreshDataSubtitle =>
+      'اتصل بالإنترنت مرة واحدة ثم امسح مجددًا.';
+
+  @override
+  String get qrClockWrongSubtitle =>
+      'تاريخ أو وقت هذا الهاتف غير صحيح. صحّحه وحاول مجددًا.';
+
+  @override
+  String get thisPhoneCheckinsTitle => 'عمليات الدخول على هذا الهاتف';
+
+  @override
+  String get thisPhoneCheckinsLabel => 'الدخول';
+
+  @override
+  String get thisPhoneCheckinsEmpty =>
+      'لا توجد عمليات دخول محفوظة على هذا الهاتف.';
+
+  @override
+  String get thisPhoneCheckinsReadOnly =>
+      'لا يمكن تعديل عمليات الدخول المحفوظة أو حذفها.';
+
+  @override
+  String get checkinStateSaved => 'محفوظ على هذا الهاتف — بانتظار التأكيد';
+
+  @override
+  String get checkinStateConfirmed => 'تم التأكيد';
+
+  @override
+  String checkinStateNotAccepted(String reason) {
+    return 'لم يُقبل — $reason';
+  }
+
+  @override
+  String get syncNowAction => 'زامن الآن';
+
+  @override
+  String signOutPendingTitle(int count) {
+    return '$count من عمليات الدخول لم تُؤكَّد بعد';
+  }
+
+  @override
+  String get signOutPendingBody =>
+      'إنها محفوظة على هذا الهاتف وسيتم تأكيدها في المرة القادمة التي تسجّل فيها الدخول هنا. يمكنك المزامنة الآن لتأكيدها أولًا.';
+
+  @override
+  String get signOutPendingSignOutAnyway => 'تسجيل الخروج على أي حال';
+
+  @override
+  String get sessionSavedTitle => 'تم حفظ الجلسة على هذا الهاتف';
+
+  @override
+  String get sessionConfirmedTitle => 'تم تأكيد الجلسة';
+
+  @override
+  String get sessionNotAcceptedTitle => 'لم تُقبل الجلسة';
+
+  @override
+  String get checkinKindGym => 'دخول النادي';
+
+  @override
+  String get checkinKindSession => 'جلسة مع المدرب';
+
+  @override
   String get storeTitle => 'المتجر';
 
   @override

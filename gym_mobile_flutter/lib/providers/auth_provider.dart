@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../services/analytics_service.dart';
 import '../utils/env.dart';
 import '../utils/error_utils.dart';
+import '../features/offline/offline_logic.dart';
 
 const _storage = FlutterSecureStorage();
 const _gymLogoKey  = 'cached_gym_logo_url';
@@ -25,6 +26,9 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _isPasswordRecovery = false;
   String? _recoveryToken;
   String? _error;
+  /// Why the last profile load failed (null after a success). Read by the
+  /// offline-mode controller; does not change any existing behaviour.
+  LoadErrorKind? _profileError;
 
   /// Callbacks fired before the local auth state is cleared on signOut() /
   /// deleteAccount(). Used to fan out clear() to MemberProvider, BannerProvider,
@@ -38,6 +42,19 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void removeSignOutCallback(VoidCallback cb) {
     _signOutCallbacks.remove(cb);
+  }
+
+  /// Invoked once a signed-in session has a user + gym (login or cold-start
+  /// restore). main.dart opens the scoped offline store here. Sign-out /
+  /// revocation reuse the sign-out callbacks above.
+  void Function(String userId, String gymId)? onSessionReady;
+
+  void _notifySessionReady() {
+    final uid = _userId, gid = _profile?.gymId;
+    if (uid == null || gid == null || gid.isEmpty || _isGuest) return;
+    try {
+      onSessionReady?.call(uid, gid);
+    } catch (_) {/* offline support is best-effort */}
   }
 
   void _runSignOutCallbacks() {
@@ -70,6 +87,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   Gym? get gym => _gym;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  LoadErrorKind? get profileError => _profileError;
   bool get isAuthenticated => _userId != null;
   bool get isGuest => _isGuest;
   bool get isPasswordRecovery => _isPasswordRecovery;
@@ -106,6 +124,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     try {
       _profile = await _service.getMemberProfile();
+      _profileError = null;
 
       // Register FCM token
       if (_userId != null) {
@@ -123,6 +142,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
+      _notifySessionReady();
+
       if (_profile?.gymId != null) {
         _gym = await _service.getGymInfo(_profile!.gymId!);
         // Cache gym branding for splash screen
@@ -134,6 +155,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
     } on ApiException catch (e) {
+      if (_profile == null) _profileError = classifyLoadError(e);
       if (e.statusCode == 401 && !await _service.hasSession()) {
         // Token revoked server-side and ApiService cleared it; drop local
         // state so the router sends us to /login. A 401 that didn't clear
@@ -147,6 +169,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         _error = friendlyError(e);
       }
     } catch (e) {
+      if (_profile == null) _profileError = classifyLoadError(e);
       _error = friendlyError(e);
     } finally {
       _isLoading = false;

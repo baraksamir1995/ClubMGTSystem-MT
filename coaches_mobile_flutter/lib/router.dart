@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'features/coach/screens/manual_log_screen.dart';
 import 'features/coach/screens/member_detail_screen.dart';
+import 'features/offline/offline_log_screen.dart';
+import 'features/offline/sync_status_screen.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -60,6 +62,18 @@ GoRouter buildRouter(BuildContext context) {
           transitionDuration: const Duration(milliseconds: 300),
         ),
       ),
+      // Offline-attendance (Phase 2) screens — slide in like manual log.
+      GoRoute(
+        path: '/offline-log',
+        name: 'offline-log',
+        pageBuilder: (context, state) => _slide(OfflineLogScreen(
+            args: state.extra is OfflineLogArgs ? state.extra as OfflineLogArgs : null)),
+      ),
+      GoRoute(
+        path: '/offline-status',
+        name: 'offline-status',
+        pageBuilder: (context, state) => _slide(const SyncStatusScreen()),
+      ),
       // Member detail in the design — scoped to a single assignment id.
       GoRoute(
         path: '/assignment/:id',
@@ -84,3 +98,13 @@ GoRouter buildRouter(BuildContext context) {
     ),
   );
 }
+
+CustomTransitionPage<void> _slide(Widget child) => CustomTransitionPage<void>(
+      child: child,
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
+        position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic)),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 300),
+    );

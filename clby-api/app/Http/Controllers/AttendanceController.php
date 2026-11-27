@@ -3,16 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ResolvesMemberScope;
+use App\Services\AttendanceCheckInService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-
-use \App\Traits\LogsActivity;
 
 class AttendanceController extends Controller
 {
-    use LogsActivity;
     use ResolvesMemberScope;
 
     public function index(Request $request): JsonResponse
@@ -118,15 +115,12 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Manual check-in with full validation:
-     * 1. Verify member has active subscription
-     * 2. Check plan eligibility (gym vs class)
-     * 3. Validate session count for class entries
-     * 4. Check plan not expired
-     * 5. Prevent duplicate check-ins
-     * 6. Decrement session count for class entries
+     * Manual check-in with full validation (member, active in-window bucket,
+     * plan capability gym vs class, remaining sessions, class duplicate,
+     * class decrement). The rules live in AttendanceCheckInService, shared
+     * with the offline sync; responses here are unchanged.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, AttendanceCheckInService $checkIns): JsonResponse
     {
         $validated = $request->validate([
             'gym_member_id' => 'required|uuid',
@@ -144,169 +138,24 @@ class AttendanceController extends Controller
             return response()->json(['error' => 'No gym association found.'], 403);
         }
 
-        $memberId = $validated['gym_member_id'];
-        $classSessionId = $validated['class_session_id'] ?? null;
-        $isClassEntry = $classSessionId !== null;
+        $result = $checkIns->checkIn($request->user(), $gymId, $validated['gym_member_id'], [
+            'class_session_id' => $validated['class_session_id'] ?? null,
+            'check_in_at' => $validated['check_in_at'] ?? null,
+            'method' => $validated['method'] ?? null,
+            'access_point' => $validated['access_point'] ?? null,
+            'branch_id' => $validated['branch_id'] ?? null,
+            'studio_id' => $validated['studio_id'] ?? null,
+            'specialist_name' => $validated['specialist_name'] ?? null,
+        ]);
 
-        // ── Step 1: Verify member exists ────────────────────────────────────
-        $member = DB::table('gym_members')
-            ->where('id', $memberId)
-            ->where('gym_id', $gymId)
-            ->whereNull('deleted_at')
-            ->first();
-
-        if (!$member) {
-            return response()->json(['error' => 'Member not found'], 404);
+        if (! $result['ok']) {
+            return response()->json(['error' => $result['message']], $result['status']);
         }
 
-        // ── Step 2: Load active, in-window membership buckets ───────────────
-        //
-        // A member can hold several buckets at once — e.g. a `duration`
-        // subscription PLUS transferred `sessions`. We must pick by plan
-        // CAPABILITY, not just the most-recent row, otherwise gifted sessions
-        // never let a duration member into a class. Ordered to mirror
-        // validate_studio_access: own subscription before transferred credits,
-        // earliest-expiring first.
-        $memberships = DB::table('member_memberships')
-            ->join('membership_plans', 'membership_plans.id', '=', 'member_memberships.plan_id')
-            ->where('member_memberships.gym_member_id', $memberId)
-            ->where('member_memberships.status', 'active')
-            ->where(function ($q) {
-                $q->whereNull('member_memberships.end_date')
-                  ->orWhere('member_memberships.end_date', '>=', now()->toDateString());
-            })
-            ->select(
-                'member_memberships.id as membership_id',
-                'member_memberships.sessions_used',
-                'member_memberships.sessions_remaining',
-                'member_memberships.sessions_total',
-                'member_memberships.freeze_status',
-                'member_memberships.source_type',
-                'membership_plans.plan_type',
-                'membership_plans.session_count',
-                'membership_plans.name as plan_name',
-            )
-            ->orderByRaw("CASE member_memberships.source_type WHEN 'subscription' THEN 0 ELSE 1 END")
-            ->orderByRaw('member_memberships.end_date ASC NULLS LAST')
-            ->orderBy('member_memberships.created_at', 'asc')
-            ->get();
-
-        if ($memberships->isEmpty()) {
-            return response()->json(['error' => 'Member does not have an active subscription'], 422);
-        }
-
-        // ── Step 3: Pick the bucket that authorizes THIS entry type ─────────
-        //
-        // Plan capability:
-        //   sessions         → classes ONLY (no gym access)
-        //   duration         → gym ONLY (no class access)
-        //   duration_session → BOTH gym and classes
-        //
-        $shouldDecrementSession = false;
-
-        if ($isClassEntry) {
-            $classCapable = $memberships->whereIn('plan_type', ['sessions', 'duration_session']);
-            if ($classCapable->isEmpty()) {
-                return response()->json(['error' => 'This plan does not allow class access. Duration plans are gym-only.'], 422);
-            }
-
-            // Usable = not frozen and has remaining (unbounded sessions_total
-            // NULL counts as usable for its time window).
-            $membership = $classCapable->first(function ($m) {
-                if (($m->freeze_status ?? '') === 'frozen') return false;
-                return $m->sessions_total === null || (int) ($m->sessions_remaining ?? 0) > 0;
-            });
-
-            if (!$membership) {
-                // No usable class bucket — distinguish frozen-only from spent.
-                if ($classCapable->every(fn ($m) => ($m->freeze_status ?? '') === 'frozen')) {
-                    return response()->json(['error' => 'Membership is frozen'], 422);
-                }
-                return response()->json(['error' => 'No remaining sessions'], 422);
-            }
-            $shouldDecrementSession = true;
-
-            // Prevent duplicate check-in for the same class session
-            $alreadyCheckedIn = DB::table('attendance_logs')
-                ->where('gym_member_id', $memberId)
-                ->where('class_session_id', $classSessionId)
-                ->exists();
-
-            if ($alreadyCheckedIn) {
-                return response()->json(['error' => 'Already checked in for this session'], 422);
-            }
-        } else {
-            // Gym entry: any non-'sessions' plan grants gym access.
-            $gymCapable = $memberships->where('plan_type', '<>', 'sessions');
-            if ($gymCapable->isEmpty()) {
-                return response()->json(['error' => 'This plan does not allow gym access. Session plans are class-only.'], 422);
-            }
-
-            $membership = $gymCapable->first(fn ($m) => ($m->freeze_status ?? '') !== 'frozen');
-            if (!$membership) {
-                return response()->json(['error' => 'Membership is frozen'], 422);
-            }
-        }
-
-        // ── Step 4: Execute check-in in transaction ─────────────────────────
-        $id = Str::uuid()->toString();
-
-        return DB::transaction(function () use (
-            $id, $gymId, $memberId, $validated, $classSessionId,
-            $isClassEntry, $shouldDecrementSession, $membership, $member, $request
-        ) {
-            // Insert attendance record
-            DB::table('attendance_logs')->insert([
-                'id' => $id,
-                'gym_id' => $gymId,
-                'gym_member_id' => $memberId,
-                'check_in_at' => $validated['check_in_at'] ?? now(),
-                'access_point' => $validated['access_point'] ?? null,
-                'method' => $validated['method'] ?? 'manual',
-                'branch_id' => $validated['branch_id'] ?? null,
-                'studio_id' => $validated['studio_id'] ?? null,
-                'specialist_name' => $validated['specialist_name'] ?? null,
-                'class_session_id' => $classSessionId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // Decrement session count for class entries on session-based plans
-            if ($shouldDecrementSession) {
-                DB::table('member_memberships')
-                    ->where('id', $membership->membership_id)
-                    ->update([
-                        'sessions_used' => DB::raw('sessions_used + 1'),
-                        'sessions_remaining' => DB::raw('GREATEST(0, COALESCE(sessions_remaining, 0) - 1)'),
-                        'updated_at' => now(),
-                    ]);
-            }
-
-            // Log activity
-            $memberName = DB::table('profiles')->where('id', $member->user_id)->value('full_name') ?? 'Unknown';
-            $entryType = $isClassEntry
-                ? ($validated['access_point'] ?? 'Class')
-                : 'Gym Access';
-
-            $description = $shouldDecrementSession
-                ? "{$request->user()->full_name} checked in {$memberName} for {$entryType} (session decremented)"
-                : "{$request->user()->full_name} checked in {$memberName} ({$entryType})";
-
-            $this->logActivity(
-                $gymId,
-                $request->user()->id,
-                'checkin',
-                'attendance',
-                $description,
-                'attendance_logs',
-                $id,
-            );
-
-            return response()->json(['data' => ['id' => $id]], 201);
-        });
+        return response()->json(['data' => ['id' => $result['attendance_id']]], 201);
     }
 
-    public function logByQr(Request $request): JsonResponse
+    public function logByQr(Request $request, AttendanceCheckInService $checkIns): JsonResponse
     {
         $validated = $request->validate([
             'gym_member_id' => 'required|uuid',
@@ -328,7 +177,7 @@ class AttendanceController extends Controller
         // These checks mirror the app's existing rules exactly
         // (qr_scanner_screen.dart) and reuse the reason codes it already
         // maps to messages, so behaviour for normal app users is unchanged.
-        if ($denied = $this->gymEntryDenial($resolved, $validated['token'])) {
+        if ($denied = $checkIns->gymEntryDenial($resolved, $validated['token'])) {
             return response()->json(['data' => ['status' => 'denied', 'reason' => $denied]]);
         }
 

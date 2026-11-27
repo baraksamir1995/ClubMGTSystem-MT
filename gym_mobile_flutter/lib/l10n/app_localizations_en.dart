@@ -3479,6 +3479,135 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contractTermsErrorBody => 'Check your connection and try again.';
 
   @override
+  String get syncOnline => 'Online';
+
+  @override
+  String get syncOffline => 'Offline';
+
+  @override
+  String get syncSyncing => 'Syncing';
+
+  @override
+  String syncPending(int count) {
+    return '$count waiting';
+  }
+
+  @override
+  String get syncFailed => 'Sync failed';
+
+  @override
+  String get syncDataExpired => 'Offline data out of date';
+
+  @override
+  String get syncLoginRequired => 'Sign in to sync';
+
+  @override
+  String get syncDeviceBlocked => 'Phone blocked';
+
+  @override
+  String get checkinSavedTitle => 'Check-in saved on this phone';
+
+  @override
+  String get checkinSavedSubtitle =>
+      'It will be confirmed when you\'re back online.';
+
+  @override
+  String get checkinConfirmedTitle => 'Check-in confirmed';
+
+  @override
+  String get checkinNotAcceptedTitle => 'Check-in not accepted';
+
+  @override
+  String checkinMembershipAsOf(String time) {
+    return 'Membership as of $time';
+  }
+
+  @override
+  String get offlineQrUnavailableTitle =>
+      'Offline check-in isn\'t available here';
+
+  @override
+  String get offlineQrUnavailableSubtitle =>
+      'This QR code only works online. Connect to the internet and scan again.';
+
+  @override
+  String get qrOutOfDateTitle => 'This QR is out of date';
+
+  @override
+  String get qrOutOfDateSubtitle => 'Ask staff for the current gym QR code.';
+
+  @override
+  String get qrExpiredTitle => 'This QR has expired';
+
+  @override
+  String get qrExpiredSubtitle => 'Scan the current QR code at the entrance.';
+
+  @override
+  String get qrRefreshDataTitle => 'Offline data needs a refresh';
+
+  @override
+  String get qrRefreshDataSubtitle =>
+      'Connect to the internet once, then scan again.';
+
+  @override
+  String get qrClockWrongSubtitle =>
+      'This phone\'s date or time is wrong. Correct it and try again.';
+
+  @override
+  String get thisPhoneCheckinsTitle => 'Check-ins on this phone';
+
+  @override
+  String get thisPhoneCheckinsLabel => 'CHECK-INS';
+
+  @override
+  String get thisPhoneCheckinsEmpty => 'No check-ins saved on this phone.';
+
+  @override
+  String get thisPhoneCheckinsReadOnly =>
+      'Saved check-ins can\'t be edited or deleted.';
+
+  @override
+  String get checkinStateSaved => 'Saved on this phone — waiting to confirm';
+
+  @override
+  String get checkinStateConfirmed => 'Confirmed';
+
+  @override
+  String checkinStateNotAccepted(String reason) {
+    return 'Not accepted — $reason';
+  }
+
+  @override
+  String get syncNowAction => 'Sync now';
+
+  @override
+  String signOutPendingTitle(int count) {
+    return '$count check-ins not confirmed yet';
+  }
+
+  @override
+  String get signOutPendingBody =>
+      'They\'re saved on this phone and will be confirmed the next time you sign in here. You can sync now to confirm them first.';
+
+  @override
+  String get signOutPendingSignOutAnyway => 'Sign out anyway';
+
+  @override
+  String get sessionSavedTitle => 'Session saved on this phone';
+
+  @override
+  String get sessionConfirmedTitle => 'Session confirmed';
+
+  @override
+  String get sessionNotAcceptedTitle => 'Session not accepted';
+
+  @override
+  String get checkinKindGym => 'Gym check-in';
+
+  @override
+  String get checkinKindSession => 'Coach session';
+
+  @override
   String get storeTitle => 'Store';
 
   @override

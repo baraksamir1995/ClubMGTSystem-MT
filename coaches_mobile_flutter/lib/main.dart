@@ -1,3 +1,4 @@
+import 'package:clby_offline/clby_offline.dart' show ClientInfo, OfflineApp;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,11 +8,13 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'features/coach/coach_app_state.dart';
+import 'features/offline/coach_offline_controller.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/branding_provider.dart';
 import 'router.dart';
 import 'services/api_service.dart';
+import 'services/offline_attendance.dart';
 import 'utils/env.dart';
 
 Future<void> main() async {
@@ -40,6 +43,11 @@ Future<void> main() async {
   // `fmtShort`). Without this, the first MemberCard build crashes with
   // `LocaleDataException: Locale data has not been initialized`.
   await initializeDateFormatting('en_GB');
+
+  // X-Device-Id / X-App / X-App-Version / X-App-Build / X-App-Platform on
+  // every API call. Bounded + never throws (keychain stalls just omit the
+  // device id until the offline store retries it).
+  await ClientInfo.init(app: OfflineApp.coach);
   runApp(const CoachesApp());
 }
 
@@ -51,6 +59,12 @@ class CoachesApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<ApiService>(create: (_) => ApiService()),
+        // Offline attendance foundation (no UI yet): opens the coach's
+        // encrypted outbox/cache after login, closes it on logout.
+        Provider<OfflineAttendance>(
+          create: (ctx) => OfflineAttendance.create(ctx.read<ApiService>()),
+          dispose: (_, o) => o.manager.dispose(),
+        ),
         // Branding first: it restores the cached gym logo/colors before the
         // first frame and re-syncs whenever AuthProvider resolves a gym.
         ChangeNotifierProvider<BrandingProvider>(
@@ -61,6 +75,8 @@ class CoachesApp extends StatelessWidget {
             ctx.read<ApiService>(),
             onGymResolved: (gymId) =>
                 ctx.read<BrandingProvider>().syncForGym(gymId),
+            onSessionReady: ctx.read<OfflineAttendance>().onSessionReady,
+            onSignedOut: ctx.read<OfflineAttendance>().onSignedOut,
           ),
         ),
         // CoachAppState is the central coach session state — `memberState`
@@ -73,6 +89,15 @@ class CoachesApp extends StatelessWidget {
         // the home shell. HomeScreen triggers .load() on first build.
         ChangeNotifierProvider<CoachAppState>(
           create: (ctx) => CoachAppState(ctx.read<ApiService>()),
+        ),
+        // Offline attendance UI glue (sync indicator, offline mode, logging
+        // path selection, pass verification).
+        ChangeNotifierProvider<CoachOfflineController>(
+          create: (ctx) => CoachOfflineController(
+            offline: ctx.read<OfflineAttendance>(),
+            api: ctx.read<ApiService>(),
+            coach: ctx.read<CoachAppState>(),
+          ),
         ),
       ],
       child: const _CoachesAppShell(),

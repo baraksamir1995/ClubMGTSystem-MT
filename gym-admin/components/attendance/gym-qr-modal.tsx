@@ -1,10 +1,13 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { QrCode, Download, Printer, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
+import { QrCode, Download, Printer, RefreshCw, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
+import type { StaticBranchQr } from '@/lib/offline/types';
+import type { OfflineDB } from '@/lib/offline/db';
+import { getQrBranches, loadBranchQr } from '@/lib/offline/branch-qr-cache';
 import type { GymBranch } from '@/app/dashboard/branches/page';
 import { Button, Modal, Select } from '@/components/ui';
 
@@ -12,26 +15,48 @@ interface Props {
   gymId: string;
   branches: GymBranch[];
   onClose: () => void;
+  /** Amendment 3: the user's offline store (QR cache); null → no caching */
+  db?: OfflineDB | null;
+  /** false → show the saved copy */
+  online?: boolean;
 }
 
-export default function GymQRModal({ gymId, branches, onClose }: Props) {
+/** Show "Valid until" only when the poster expires within a year. */
+export const EXPIRY_WORTH_SHOWING_MS = 365 * 24 * 60 * 60 * 1000;
+
+export default function GymQRModal({ gymId, branches: branchesProp, onClose, db = null, online = true }: Props) {
   const t = useTranslations('attendance');
   const tc = useTranslations('common');
+  const format = useFormatter();
   const qrRef = useRef<HTMLDivElement>(null);
+  // branch list: from the page, else the saved copy (offline)
+  const [cachedBranches, setCachedBranches] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (branchesProp.length === 0 && db) void getQrBranches(db).then(setCachedBranches).catch(() => undefined);
+  }, [branchesProp.length, db]);
+  const branches = (branchesProp.length > 0 ? branchesProp : cachedBranches) as GymBranch[];
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
-    branches.length >= 1 ? branches[0].id : ''
+    branchesProp.length >= 1 ? branchesProp[0].id : ''
   );
+  useEffect(() => {
+    if (!selectedBranchId && branches.length > 0) setSelectedBranchId(branches[0].id);
+  }, [branches, selectedBranchId]);
   const [qrToken,      setQrToken]      = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [showConfirm,  setShowConfirm]  = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  /** PHASE3: signed v2 static QR; null while loading or when it failed (→ v1 fallback) */
+  const [signed, setSigned] = useState<StaticBranchQr | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
+  /** Amendment 3: shown from the saved copy (offline, or the endpoint failed) */
+  const [fromCache, setFromCache] = useState(false);
+  const [noSavedCopy, setNoSavedCopy] = useState(false);
 
   const selectedBranch = branches.find(b => b.id === selectedBranchId);
 
   const fetchToken = useCallback(async (branchId: string) => {
     if (!branchId) return;
-    setTokenLoading(true);
     try {
       const res = await fetch(`/api/branches/${branchId}/qr-token`);
       const data = await res.json();
@@ -39,14 +64,42 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
       // If column doesn't exist yet, fall through silently (qrToken stays null)
     } catch {
       // Network error — fall through, QR renders without token
-    } finally {
-      setTokenLoading(false);
     }
   }, []);
 
+  /**
+   * Signed fixed QR: live (and saved) when online; the saved copy offline or if
+   * the endpoint fails; the v1 (unsigned, online-only) QR only when online with
+   * no signed QR at all.
+   */
+  const loadQr = useCallback(async (branchId: string) => {
+    if (!branchId) return;
+    setTokenLoading(true);
+    setSigned(null);
+    setUsingFallback(false);
+    setFromCache(false);
+    setNoSavedCopy(false);
+    const name = branches.find((b) => b.id === branchId)?.name ?? null;
+    const res = await loadBranchQr(db, { id: branchId, name }, { online });
+    if (res.source !== 'none') {
+      setSigned(res.qr);
+      setFromCache(res.source === 'cache');
+      setTokenLoading(false);
+      return;
+    }
+    if (!online) {
+      setNoSavedCopy(true);
+      setTokenLoading(false);
+      return;
+    }
+    setUsingFallback(true);
+    await fetchToken(branchId);
+    setTokenLoading(false);
+  }, [fetchToken, db, online, branches]);
+
   useEffect(() => {
-    if (selectedBranchId) fetchToken(selectedBranchId);
-  }, [selectedBranchId, fetchToken]);
+    if (selectedBranchId) loadQr(selectedBranchId);
+  }, [selectedBranchId, loadQr]);
 
   const handleRegenerate = async () => {
     setRegenerating(true);
@@ -56,6 +109,8 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
       if (res.ok) {
         setQrToken(data.qr_token);
         toast.success(t('qrModal.regeneratedSuccess'));
+        // the signed poster embeds the branch token: fetch a fresh one
+        void loadQr(selectedBranchId);
       } else {
         toast.error(data.error ?? t('qrModal.regenerateFailed'));
       }
@@ -67,9 +122,18 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
     }
   };
 
-  const checkinUrl = qrToken
+  const v1Payload = qrToken
     ? JSON.stringify({ type: 'gym_access', gym_id: gymId, branch_id: selectedBranchId || null, token: qrToken })
     : JSON.stringify({ type: 'gym_access', gym_id: gymId, branch_id: selectedBranchId || null });
+  const checkinUrl = signed?.qr ?? v1Payload;
+  const branchLabel = selectedBranch ? selectedBranch.name : t('qrModal.gymMainEntrance');
+  // The signed QR is fixed (same text on every call, ~10-year validity): an expiry
+  // date is only worth showing when it's close enough to matter.
+  const expiresMs = signed?.expires_at ? Date.parse(signed.expires_at) : NaN;
+  const validUntil =
+    !Number.isNaN(expiresMs) && expiresMs - Date.now() < EXPIRY_WORTH_SHOWING_MS
+      ? t('qrModal.validUntil', { date: format.dateTime(new Date(expiresMs), { dateStyle: 'long' }) })
+      : null;
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -81,12 +145,23 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
     const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     img.onload = () => {
+      // QR + branch name + "valid until" under it (the poster must say when it expires)
+      const footer = validUntil ? 64 : 40;
       canvas.width = 400;
-      canvas.height = 400;
+      canvas.height = 400 + footer;
       const ctx = canvas.getContext('2d')!;
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 400, 400);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, 400, 400);
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      ctx.direction = document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr';
+      ctx.font = 'bold 18px system-ui, sans-serif';
+      ctx.fillText(branchLabel, 200, 400 + 26);
+      if (validUntil) {
+        ctx.font = '14px system-ui, sans-serif';
+        ctx.fillText(validUntil, 200, 400 + 50);
+      }
       URL.revokeObjectURL(url);
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
@@ -97,7 +172,26 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
     img.src = url;
   };
 
-  const printQR = () => window.print();
+  /** Print just the poster: QR + branch name + valid until (not the whole dashboard). */
+  const printQR = () => {
+    const svg = qrRef.current?.querySelector('svg')?.outerHTML;
+    if (!svg) return;
+    const w = window.open('', '_blank', 'width=520,height=680');
+    if (!w) return;
+    const esc = (x: string) => x.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+    const dir = document.documentElement.dir || 'ltr';
+    w.document.write(
+      `<!doctype html><html dir="${dir}"><head><meta charset="utf-8"><title>${esc(branchLabel)}</title>` +
+        `<style>body{font-family:system-ui,sans-serif;text-align:center;padding:32px;color:#000;background:#fff}` +
+        `svg{width:340px;height:340px}h1{font-size:22px;margin:16px 0 6px}p{margin:4px 0;font-size:14px}</style></head><body>` +
+        `${svg}<h1>${esc(branchLabel)}</h1><p>${esc(t('qrModal.membersInstruction'))}</p>` +
+        (validUntil ? `<p>${esc(validUntil)}</p>` : '') +
+        `</body></html>`,
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  };
 
   return (
     <>
@@ -120,7 +214,11 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
           )}
 
           {/* QR — only shown after token finishes loading so the image never changes on open */}
-          {tokenLoading ? (
+          {noSavedCopy ? (
+            <p className="w-full rounded-lg bg-warning-soft px-3 py-6 text-center text-sm text-warning" role="note">
+              {t('offline.qrNoSavedCopy')}
+            </p>
+          ) : tokenLoading ? (
             <div className="w-[260px] h-[260px] bg-surface-3/40 rounded-2xl flex items-center justify-center">
               <Loader2 className="w-7 h-7 text-fg-faint animate-spin" />
             </div>
@@ -131,26 +229,42 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
                 size={220}
                 bgColor="#ffffff"
                 fgColor="#000000"
-                level="H"
+                level={signed ? 'M' : 'H'}
                 includeMargin={false}
               />
             </div>
           )}
 
           <div className="text-center">
-            <p className="text-sm font-medium text-fg">
-              {selectedBranch ? selectedBranch.name : t('qrModal.gymMainEntrance')}
-            </p>
+            <p className="text-sm font-medium text-fg">{branchLabel}</p>
             <p className="text-xs text-fg-faint mt-0.5">{t('qrModal.membersInstruction')}</p>
+            {validUntil && <p className="text-xs text-fg-muted mt-0.5">{validUntil}</p>}
+            {signed && !validUntil && <p className="text-xs text-fg-muted mt-0.5">{t('qrModal.staysSame')}</p>}
           </div>
+
+          {!tokenLoading && signed && fromCache && (
+            <p className="w-full rounded-lg bg-surface-3 px-3 py-2 text-xs text-fg-muted" role="note">
+              {t('offline.qrFromCache')}
+            </p>
+          )}
+          {!tokenLoading && signed && (
+            <p className="w-full flex items-start gap-2 text-xs text-success" role="note">
+              <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden /> {t('qrModal.signedNote')}
+            </p>
+          )}
+          {!tokenLoading && usingFallback && (
+            <p className="w-full rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning" role="note">
+              {t('qrModal.fallbackNote')}
+            </p>
+          )}
 
           {/* Action buttons */}
           <div className="flex gap-2 w-full">
-            <Button variant="secondary" fullWidth onClick={downloadQR} disabled={tokenLoading || regenerating}
+            <Button variant="secondary" fullWidth onClick={downloadQR} disabled={tokenLoading || regenerating || noSavedCopy}
               leftIcon={<Download className="w-4 h-4" />}>
               {t('qrModal.downloadPng')}
             </Button>
-            <Button variant="primary" fullWidth onClick={printQR} disabled={tokenLoading || regenerating}
+            <Button variant="primary" fullWidth onClick={printQR} disabled={tokenLoading || regenerating || noSavedCopy}
               leftIcon={<Printer className="w-4 h-4" />}>
               {t('qrModal.print')}
             </Button>
@@ -160,7 +274,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
           {selectedBranchId && (
             <button
               onClick={() => setShowConfirm(true)}
-              disabled={tokenLoading || regenerating}
+              disabled={tokenLoading || regenerating || !online}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-warning/40 text-warning text-sm hover:bg-warning-soft transition-colors disabled:opacity-40"
             >
               <RefreshCw className="w-3.5 h-3.5" aria-hidden /> {t('qrModal.regenerateQr')}
@@ -182,6 +296,7 @@ export default function GymQRModal({ gymId, branches, onClose }: Props) {
                 <p className="text-xs text-fg-muted mt-1 leading-relaxed">
                   {t('qrModal.regenerateBody', { branchName: selectedBranch?.name ?? t('qrModal.thisBranch') })}
                 </p>
+                <p className="text-xs text-warning mt-2 leading-relaxed">{t('qrModal.regenerateNote')}</p>
               </div>
             </div>
             <div className="flex gap-2">

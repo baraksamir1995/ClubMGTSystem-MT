@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:clby_offline/clby_offline.dart'
+    show ClientInfo, TransportResponse;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/logger.dart';
@@ -128,8 +130,41 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      // X-Device-Id / X-App / X-App-Version / X-App-Build / X-App-Platform
+      ...ClientInfo.headers,
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  /// Raw authenticated request for the offline sync transport
+  /// (`MemberSyncTransport`). Deliberately bypasses [_parse]/[_handle401]:
+  /// a 401 from the offline endpoints must never wipe the session or the
+  /// offline outbox — the sync engine just pauses. Network errors propagate
+  /// for the transport to map.
+  ///
+  /// [bearerToken] is the token the transport bound to its scope's user at
+  /// session start; it REPLACES whatever token is current, so an account
+  /// switch mid-sync can never send user A's events with user B's token
+  /// (D9). Null → no Authorization header (the server answers 401 and the
+  /// engine pauses).
+  Future<TransportResponse> rawRequest(
+    String method,
+    String path, {
+    required String? bearerToken,
+    Map<String, String>? query,
+    String? body,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final uri = Uri.parse('$_baseUrl$path').replace(queryParameters: query);
+    final headers = Map<String, String>.of(await _headers)
+      ..remove('Authorization');
+    if (bearerToken != null) headers['Authorization'] = 'Bearer $bearerToken';
+    final request = http.Request(method, uri)..headers.addAll(headers);
+    if (body != null) request.body = body;
+    final streamed = await _http.send(request).timeout(timeout);
+    final response = await http.Response.fromStream(streamed).timeout(timeout);
+    return TransportResponse(response.statusCode, response.body,
+        headers: response.headers);
   }
 
   // ── HTTP helpers ────────────────────────────────────────────────────────────
@@ -178,17 +213,6 @@ class ApiService {
     });
   }
 
-  Future<dynamic> _patch(String path, Map<String, dynamic> body) async {
-    final uri = Uri.parse('$_baseUrl$path');
-    return _runWithTimeout(() async {
-      final response = await _http.patch(
-        uri,
-        headers: await _headers,
-        body: jsonEncode(body),
-      );
-      return _parse(response);
-    });
-  }
 
   Future<dynamic> _delete(String path) async {
     final uri = Uri.parse('$_baseUrl$path');
@@ -220,7 +244,7 @@ class ApiService {
 
   Future<dynamic> _parse(http.Response response) async {
     if (response.body.isEmpty) return <String, dynamic>{};
-    final body = jsonDecode(response.body);
+    final body = decodeApiBody(response.statusCode, response.body);
     if (response.statusCode >= 400) {
       if (response.statusCode == 401) await _handle401(response, body);
       final msg = body is Map
@@ -1214,6 +1238,7 @@ class ApiService {
       request.headers['Authorization'] = 'Bearer $token';
     }
     request.headers['Accept'] = 'application/json';
+    request.headers.addAll(ClientInfo.headers);
     request.fields['type'] = 'avatar';
     request.files.add(http.MultipartFile.fromBytes(
       'file',
@@ -1779,6 +1804,22 @@ class AuthResult {
     this.fullName,
     required this.userData,
   });
+}
+
+/// JSON-decodes a response body. A non-JSON body on an error status (e.g.
+/// a proxy's HTML 502 page) becomes an [ApiException] with that status, so
+/// callers can classify by status code (offline-mode entry treats 5xx as a
+/// network failure) instead of seeing a FormatException. Non-JSON 2xx
+/// bodies still throw FormatException, as before.
+Object? decodeApiBody(int statusCode, String body) {
+  try {
+    return jsonDecode(body);
+  } on FormatException {
+    if (statusCode >= 400) {
+      throw ApiException(statusCode: statusCode, message: 'Unknown error');
+    }
+    rethrow;
+  }
 }
 
 class ApiException implements Exception {

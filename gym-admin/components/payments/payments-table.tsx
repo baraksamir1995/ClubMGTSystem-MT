@@ -81,12 +81,13 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   const [specialistFilter, setSpecialistFilter] = useState('');
   const [methodFilter, setMethodFilter]     = useState('');
   const [serviceFilter, setServiceFilter]   = useState('');
+  const [typeFilter, setTypeFilter]         = useState('');
   const [branchFilter, setBranchFilter]     = useState<string[]>([]);
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
   const [page, setPage]                     = useState(1);
   const [updatingId, setUpdatingId]         = useState<string | null>(null);
 
-  useEffect(() => { setPage(1); }, [search, statusFilter, fromDate, toDate, specialistFilter, methodFilter, serviceFilter, branchFilter]);
+  useEffect(() => { setPage(1); }, [search, statusFilter, fromDate, toDate, specialistFilter, methodFilter, serviceFilter, typeFilter, branchFilter]);
 
   // Keep local rows in sync after router.refresh() re-fetches the server data
   // (e.g. after confirming a payment or recording a new one).
@@ -96,10 +97,11 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
   const specialists = useMemo(() => [...new Set(payments.map(p => p.specialist_name).filter(Boolean))] as string[], [payments]);
   const methods     = useMemo(() => [...new Set(payments.map(p => p.payment_method).filter(Boolean))] as string[], [payments]);
   const services    = useMemo(() => [...new Set(payments.map(p => p.service_name).filter(Boolean))] as string[], [payments]);
+  const serviceTypes = useMemo(() => [...new Set(payments.map(p => p.service_type).filter(Boolean))] as string[], [payments]);
   const branches    = useMemo(() => [...new Set(payments.map(p => p.branch_name).filter(Boolean))] as string[], [payments]);
 
-  const hasActiveFilters = fromDate || toDate || specialistFilter || methodFilter || serviceFilter || branchFilter.length > 0;
-  const clearFilters = () => { setFromDate(''); setToDate(''); setSpecialistFilter(''); setMethodFilter(''); setServiceFilter(''); setBranchFilter([]); };
+  const hasActiveFilters = fromDate || toDate || specialistFilter || methodFilter || serviceFilter || typeFilter || branchFilter.length > 0;
+  const clearFilters = () => { setFromDate(''); setToDate(''); setSpecialistFilter(''); setMethodFilter(''); setServiceFilter(''); setTypeFilter(''); setBranchFilter([]); };
 
   // Base filtered (all filters except status) — used for summary cards
   const baseFiltered = useMemo(() => {
@@ -123,9 +125,10 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
     if (specialistFilter) list = list.filter(p => p.specialist_name === specialistFilter);
     if (methodFilter)     list = list.filter(p => p.payment_method === methodFilter);
     if (serviceFilter)    list = list.filter(p => p.service_name === serviceFilter);
+    if (typeFilter)       list = list.filter(p => p.service_type === typeFilter);
     if (branchFilter.length > 0) list = list.filter(p => p.branch_name != null && branchFilter.includes(p.branch_name));
     return list;
-  }, [payments, search, fromDate, toDate, specialistFilter, methodFilter, serviceFilter, branchFilter]);
+  }, [payments, search, fromDate, toDate, specialistFilter, methodFilter, serviceFilter, typeFilter, branchFilter]);
 
   // Final filtered (with status) — used for table
   const filtered = useMemo(() => {
@@ -222,7 +225,9 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
         p.member_number,
         p.full_name,
         p.email,
-        p.service_name ?? '',
+        p.service_name && (p.service_type === 'product' || p.service_type === 'event')
+          ? `${serviceTypeLabel(p.service_type)}: ${p.service_name}`
+          : p.service_name ?? '',
         p.branch_name ?? '',
         p.specialist_name ?? '',
         methodLabel[p.payment_method] ?? p.payment_method,
@@ -369,6 +374,12 @@ export default function PaymentsTable({ payments: initial, memberOptions, servic
               <select value={specialistFilter} onChange={e => setSpecialistFilter(e.target.value)} className={selectCls}>
                 <option value="">{t('filters.allSpecialists')}</option>
                 {specialists.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
+            {serviceTypes.length > 0 && (
+              <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className={selectCls} aria-label={t('filters.allTypes')}>
+                <option value="">{t('filters.allTypes')}</option>
+                {serviceTypes.map(ty => <option key={ty} value={ty}>{serviceTypeLabel(ty)}</option>)}
               </select>
             )}
             {services.length > 0 && (

@@ -1,14 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, Package, Power, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Package, Power, AlertTriangle, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import ProductModal from './product-modal';
-import SellModal from './sell-modal';
 import { can, type Permission } from '@/lib/get-permissions';
 import { apiErrorMessage, networkErrorMessage } from '@/lib/api-error';
-import type { BranchOption, GymProduct } from '@/lib/types/store-events';
+import type { GymProduct } from '@/lib/types/store-events';
 import {
   Badge, Button, DataTable, EmptyState, Modal, SearchInput, Select, StatCard,
   type DataTableColumn,
@@ -64,11 +63,12 @@ export function stockInfo(p: GymProduct): StockInfo {
 }
 
 export default function StorePage({
-  initialProducts, permissions, branches,
+  initialProducts, permissions, embedded = false,
 }: {
   initialProducts: GymProduct[];
   permissions: Permission[] | null;
-  branches: BranchOption[];
+  /** Rendered as a sub-tab (Services → Store): the parent owns the page heading. */
+  embedded?: boolean;
 }) {
   const t    = useTranslations('store');
   const tc   = useTranslations('common');
@@ -76,7 +76,6 @@ export default function StorePage({
 
   const [products, setProducts]   = useState<GymProduct[]>(initialProducts);
   const [editing, setEditing]     = useState<GymProduct | 'new' | null>(null);
-  const [selling, setSelling]     = useState<GymProduct | null>(null);
   const [deleting, setDeleting]   = useState<GymProduct | null>(null);
   const [busyId, setBusyId]       = useState<string | null>(null);
   const [search, setSearch]       = useState('');
@@ -85,7 +84,6 @@ export default function StorePage({
   const canCreate = can(permissions, 'store', 'create');
   const canEdit   = can(permissions, 'store', 'edit');
   const canDelete = can(permissions, 'store', 'delete');
-  const canSell   = can(permissions, 'payments', 'create');
 
   const filtered = useMemo(() => {
     let list = [...products];
@@ -241,18 +239,6 @@ export default function StorePage({
       align: 'right',
       cell: (p) => (
         <div className="flex items-center justify-end gap-1">
-          {canSell && (
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<ShoppingCart className="w-3.5 h-3.5" />}
-              onClick={() => setSelling(p)}
-              disabled={!p.is_active}
-              title={!p.is_active ? t('sell.inactiveHint') : undefined}
-            >
-              {t('sell.action')}
-            </Button>
-          )}
           {canEdit && (
             <button
               type="button"
@@ -297,8 +283,15 @@ export default function StorePage({
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+          {embedded
+            ? <h2 className="text-lg font-semibold text-fg">{t('title')}</h2>
+            : <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>}
           <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
+          {/* Sales are recorded from Payments → Record Payment, not here. */}
+          <p className="text-xs text-fg-faint mt-1 inline-flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+            {t('sellViaPayments')}
+          </p>
         </div>
         {canCreate && (
           <Button onClick={() => setEditing('new')} leftIcon={<Plus className="w-4 h-4" />}>
@@ -354,14 +347,6 @@ export default function StorePage({
         />
       )}
 
-      {selling && (
-        <SellModal
-          product={selling}
-          branches={branches}
-          onClose={() => setSelling(null)}
-          onSold={() => { setSelling(null); reload(); }}
-        />
-      )}
 
       {deleting && (
         <Modal open onClose={() => setDeleting(null)} size="sm" closeOnBackdrop={false}>

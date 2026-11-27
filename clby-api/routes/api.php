@@ -323,6 +323,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
 
     // Payment management
     Route::post('/payments', [PaymentController::class, 'store'])->middleware('permission:payments,create');
+    // Products + events the Record Payment modal can sell (per-member event eligibility).
+    Route::get('/payment-catalog', [PaymentController::class, 'catalog'])->middleware('permission:payments,create');
     Route::put('/payments/{id}', [PaymentController::class, 'update'])->middleware('permission:payments,edit');
     Route::delete('/payments/{id}', [PaymentController::class, 'destroy'])->middleware('permission:payments,delete');
     Route::post('/payments/{id}/stamp-txn', [PaymentController::class, 'stampTransaction'])->middleware('permission:payments,edit');

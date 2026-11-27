@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Services\PaymobService;
 use App\Support\EventConfigurations;
 use App\Support\EventRegistrationRules;
+use App\Support\DeskSales;
 use App\Support\ProductStock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -526,19 +527,10 @@ class PaymobController extends Controller
             ];
 
             if ($newStatus === 'refunded') {
-                // Full refund of a store sale: put the stock back (once).
-                $meta = $payment->metadata ?? [];
-                if ($payment->service_type === 'product'
-                    && ! empty($meta['stock_decremented']) && empty($meta['stock_restored'])) {
-                    ProductStock::restore($meta);
-                    $updates['metadata'] = array_merge($meta, ['stock_restored' => true]);
-                }
-                // Full refund of an event payment: free the seat.
-                if ($payment->event_registration_id) {
-                    DB::table('event_registrations')
-                        ->where('id', $payment->event_registration_id)
-                        ->where('gym_id', $payment->gym_id)
-                        ->update(['status' => 'cancelled', 'payment_status' => 'refunded', 'updated_at' => now()]);
+                // Full refund of a store sale puts the stock back (once); of
+                // an event payment, frees the seat. Shared with delete.
+                if ($meta = DeskSales::reverse($payment)) {
+                    $updates['metadata'] = $meta;
                 }
             }
 

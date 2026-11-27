@@ -57,7 +57,8 @@ export async function generateMetadata(): Promise<Metadata> {
 // Map each nav route to the permission module key that gates it (null =
 // always visible). Services and analytics have no module of their own —
 // their API routes are gated under classes/members respectively, so the
-// tabs follow those grants.
+// tabs follow those grants. `a|b` = any one of the modules unlocks the page
+// (Services also hosts the Events and Store sub-tabs).
 const ALL_NAV = [
   { href: '/dashboard',              module: 'overview' },
   { href: '/dashboard/members',      module: 'members' },
@@ -66,9 +67,7 @@ const ALL_NAV = [
   { href: '/dashboard/sales',        module: 'sales' },
   { href: '/dashboard/classes',      module: 'classes' },
   { href: '/dashboard/promotions',   module: 'promotions' },
-  { href: '/dashboard/services',     module: 'classes' },
-  { href: '/dashboard/events',       module: 'events' },
-  { href: '/dashboard/store',        module: 'store' },
+  { href: '/dashboard/services',     module: 'classes|events|store' },
   { href: '/dashboard/attendance',   module: 'attendance' },
   { href: '/dashboard/invitations',  module: 'invitations' },
   { href: '/dashboard/content',      module: 'content' },
@@ -88,6 +87,9 @@ const ALL_NAV = [
   { href: '/dashboard/studios',      module: 'settings' },
   { href: '/dashboard/notifications', module: 'content' },
   { href: '/dashboard/offers',       module: 'promotions' },
+  // Old Events / Store pages — now redirect to their Services sub-tab.
+  { href: '/dashboard/events',       module: 'events' },
+  { href: '/dashboard/store',        module: 'store' },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -140,7 +142,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const allowedHrefs = ALL_NAV
-    .filter(item => item.module === null || allowedModules === null || allowedModules.has(item.module))
+    .filter(item => item.module === null || allowedModules === null
+      || item.module.split('|').some(m => allowedModules!.has(m)))
     .map(item => item.href);
 
   // Route guard: redirect to first allowed page if current page isn't permitted

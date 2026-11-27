@@ -29,6 +29,8 @@ export async function POST(req: Request) {
     body: JSON.stringify(body),
   });
   const json = await res.json();
-  if (!res.ok) return NextResponse.json({ error: json.error ?? json.message ?? 'Failed' }, { status: res.status });
+  // `code` lets the Record Payment modal translate product / event rule
+  // failures (out_of_stock, event_full, …).
+  if (!res.ok) return NextResponse.json({ error: json.error ?? json.message ?? 'Failed', code: json.code ?? null }, { status: res.status });
   return NextResponse.json(json, { status: 201 });
 }

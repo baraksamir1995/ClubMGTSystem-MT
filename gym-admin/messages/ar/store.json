@@ -86,31 +86,5 @@
     "variantPriceRequired": "النوع رقم {row} يحتاج إلى سعر صحيح.",
     "variantNamesUnique": "يجب أن تكون أسماء الأنواع مختلفة."
   },
-  "sell": {
-    "action": "بيع",
-    "inactiveHint": "فعّل المنتج لتتمكن من بيعه",
-    "title": "بيع {name}",
-    "variant": "النوع",
-    "chooseVariant": "اختر نوعًا…",
-    "soldOut": "نفد",
-    "inStock": "{count} متاح",
-    "untracked": "المخزون غير متتبَّع",
-    "quantity": "الكمية",
-    "quantityInvalid": "يجب أن تكون الكمية بين 1 و100.",
-    "onlyLeft": "المتبقي {count} فقط في المخزون.",
-    "member": "العضو (اختياري)",
-    "memberSearchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد أو رقم العضوية",
-    "searching": "جارٍ البحث…",
-    "noMembers": "لا يوجد أعضاء",
-    "clearMember": "إزالة العضو",
-    "walkInHint": "اتركه فارغًا لعميل بدون عضوية.",
-    "noBranch": "بدون فرع",
-    "confirm": "تسجيل البيع",
-    "success": "تم تسجيل البيع — {name}",
-    "errors": {
-      "out_of_stock": "المخزون غير كافٍ لهذا البيع.",
-      "variant_required": "اختر نوعًا أولًا.",
-      "product_unavailable": "هذا المنتج لم يعد متاحًا."
-    }
-  }
+  "sellViaPayments": "لبيع منتج، استخدم «تسجيل دفعة» في صفحة المدفوعات — يُخصم المخزون وتُسجَّل عملية البيع على العضو."
 }

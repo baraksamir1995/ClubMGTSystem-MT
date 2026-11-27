@@ -8,7 +8,9 @@
     "nutrition": "Nutrition",
     "programs": "Programs",
     "offers": "Offers",
-    "log": "Services Log"
+    "log": "Services Log",
+    "events": "Events",
+    "store": "Store"
   },
 
   "specialists": {

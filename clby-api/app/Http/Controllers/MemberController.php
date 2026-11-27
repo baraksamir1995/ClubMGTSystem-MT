@@ -118,7 +118,7 @@ class MemberController extends Controller
                 'payments.currency', 'payments.payment_method', 'payments.status',
                 'payments.notes', 'payments.paid_at', 'payments.created_at',
                 'payments.source', 'payments.specialist_name',
-                'payments.service_name as item_name',
+                'payments.service_name as item_name', 'payments.service_type',
             )
             ->orderBy('payments.created_at', 'desc')
             ->get()

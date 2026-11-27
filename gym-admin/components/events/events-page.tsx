@@ -24,11 +24,13 @@ export function isPastEvent(e: GymEvent, now = Date.now()): boolean {
 
 
 export default function EventsPage({
-  initialEvents, plans, branches, permissions,
+  initialEvents, plans, branches, permissions, embedded = false,
 }: {
   initialEvents: GymEvent[];
   plans: PlanOption[];
   branches: BranchOption[];
+  /** Rendered as a sub-tab (Services → Events): the parent owns the page heading. */
+  embedded?: boolean;
   permissions: Permission[] | null;
 }) {
   const t    = useTranslations('events');
@@ -93,7 +95,9 @@ export default function EventsPage({
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>
+          {embedded
+            ? <h2 className="text-lg font-semibold text-fg">{t('title')}</h2>
+            : <h1 className="text-2xl font-bold text-fg">{t('title')}</h1>}
           <p className="text-sm text-fg-muted mt-0.5">{t('subtitle')}</p>
         </div>
         {canCreate && (

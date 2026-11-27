@@ -37,6 +37,26 @@ If a product has active variants, a variant MUST be chosen and price/stock come 
 | POST | `/products/image` | store,edit | multipart `file` (image ≤5MB) → `{ url }` |
 | POST | `/products/{id}/sell` | payments,create | Front-desk sale: `{ variant_id?, quantity? (1-100), gym_member_id? (walk-in if omitted), payment_method? (cash\|card\|bank_transfer\|instapay\|wallet\|other, default cash), notes?, branch_id? }` → `{ data: Payment }` (201). Errors: `variant_required`, `out_of_stock`, `product_unavailable` |
 
+### Recording a product / event payment (dashboard: Payments → Record Payment)
+
+The dashboard sells products and event seats only through the Record Payment
+modal (Store and Events are sub-tabs of Services; the Store page has no sell
+button). `/products/{id}/sell` stays as an API endpoint and shares the code
+(`App\Support\DeskSales`).
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET | `/payment-catalog?gym_member_id=` | payments,create | `{ data: { products: [{ id, name, image_url, price, currency, stock, variants: [{ id, name, price, stock }] }], events: [{ id, title, starts_at, price, currency, seats_left, configuration_label, configurations: [{id,name}], unavailable_reason }] } }`. Products: active with stock left (sold-out variants listed with `stock: 0`). Events: published, paid, not finished; `unavailable_reason` = `plan_required` \| `registration_closed` \| `already_registered` \| `event_full` \| null for that member |
+| POST | `/payments` | payments,create | `service_type: "product"` + `{ gym_member_id, amount, product_id, variant_id?, quantity? (1-100), payment_method?, branch_id?, notes?, status: "paid" }` → takes stock and creates the payment (metadata as above) in one transaction. `service_type: "event"` + `{ gym_member_id, amount, event_id, event_configuration_id? … }` → creates a `confirmed`/`paid` registration (reusing an abandoned `pending_payment` row) and the payment with `event_registration_id`, event row locked for the capacity check. `amount` may differ from the list price (`original_amount` = list price, `discount_amount` = difference); currency is the item's. Errors `{ error, code }`: 404 `member_not_found`, `branch_not_found`, `product_unavailable`, `event_unavailable`; 422 `status_must_be_paid`, `product_required`, `event_required`, `variant_required`, `out_of_stock`, `event_not_priced`, `plan_required`, `registration_closed`, `event_past`, `already_registered`, `event_full`, `configuration_required`, `configuration_invalid` |
+
+Undo: a full refund (`/paymob/refund`) or `DELETE /payments/{id}` puts product
+stock back (once — `metadata.stock_restored`) and cancels the linked event
+registration (`payment_status` = `refunded` on refund, `unpaid` on delete).
+Partial refunds change neither.
+
+Member history (`GET /payments`, own or `?gym_member_id=` for staff) rows now also carry
+`title` (the service name, e.g. `Club Tee — M ×2`, `Open Day`) and numeric amounts.
+
 ### Member (mobile)
 
 | Method | Path | Notes |

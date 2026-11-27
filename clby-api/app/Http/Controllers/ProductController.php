@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\Payment;
 use App\Models\ProductVariant;
 use App\Services\StorageService;
-use App\Support\ProductStock;
+use App\Support\DeskSales;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -270,33 +269,18 @@ class ProductController extends Controller
             return response()->json(['error' => 'Branch not found'], 404);
         }
 
-        $result = DB::transaction(function () use ($gymId, $id, $v, $quantity, $request) {
-            // Row locks so two desk sales can't both pass the stock check.
-            $line = ProductStock::resolveLine($gymId, $id, $v['variant_id'] ?? null, $quantity, lock: true);
-            if (isset($line['error'])) return $line;
-
-            ProductStock::take($line['meta']);
-            $tracked = ($line['variant']->stock ?? $line['product']->stock) !== null;
-
-            $amount = number_format($line['amount_cents'] / 100, 2, '.', '');
-            $payment = Payment::create([
-                'gym_id' => $gymId,
+        // Row locks inside DeskSales so two desk sales can't both pass the
+        // stock check. Same code path as the Record Payment modal.
+        $result = DB::transaction(fn () => DeskSales::sellProduct(
+            $gymId, $id, $v['variant_id'] ?? null, $quantity,
+            [
                 'gym_member_id' => $v['gym_member_id'] ?? null,
                 'branch_id' => $v['branch_id'] ?? null,
-                'amount' => $amount,
-                'original_amount' => $amount,
-                'currency' => $line['product']->currency ?? 'EGP',
                 'payment_method' => $v['payment_method'] ?? 'cash',
-                'status' => 'paid',
-                'paid_at' => now(),
-                'source' => 'admin',
-                'service_type' => 'product',
-                'service_name' => $line['name'],
                 'notes' => $v['notes'] ?? null,
-                'metadata' => $line['meta'] + ['stock_decremented' => $tracked, 'sold_by' => $request->user()->id],
-            ]);
-            return ['payment' => $payment];
-        });
+            ],
+            $request->user()->id,
+        ));
 
         if (isset($result['error'])) {
             return response()->json(['error' => $result['error'], 'code' => $result['code']], $result['status']);

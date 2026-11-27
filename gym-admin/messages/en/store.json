@@ -86,31 +86,5 @@
     "variantPriceRequired": "Variant {row} needs a valid price.",
     "variantNamesUnique": "Variant names must be unique."
   },
-  "sell": {
-    "action": "Sell",
-    "inactiveHint": "Activate the product to sell it",
-    "title": "Sell {name}",
-    "variant": "Variant",
-    "chooseVariant": "Choose a variant…",
-    "soldOut": "sold out",
-    "inStock": "{count} in stock",
-    "untracked": "Stock not tracked",
-    "quantity": "Quantity",
-    "quantityInvalid": "Quantity must be between 1 and 100.",
-    "onlyLeft": "Only {count} left in stock.",
-    "member": "Member (optional)",
-    "memberSearchPlaceholder": "Search by name, phone, email or member #",
-    "searching": "Searching…",
-    "noMembers": "No members found",
-    "clearMember": "Clear member",
-    "walkInHint": "Leave empty for a walk-in customer.",
-    "noBranch": "No branch",
-    "confirm": "Record sale",
-    "success": "Sale recorded — {name}",
-    "errors": {
-      "out_of_stock": "Not enough stock for this sale.",
-      "variant_required": "Choose a variant first.",
-      "product_unavailable": "This product is no longer available."
-    }
-  }
+  "sellViaPayments": "To sell a product, use Record Payment on the Payments page — it takes the stock and logs the sale on the member."
 }

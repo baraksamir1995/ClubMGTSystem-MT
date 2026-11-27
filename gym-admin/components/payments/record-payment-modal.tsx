@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { X, DollarSign, Search, Link2, Copy, Check, MessageCircle } from 'lucide-react';
@@ -19,6 +19,44 @@ interface Props {
   existingPayment?: Payment | null;
   onClose: () => void;
 }
+
+/** Store product as returned by GET /api/payment-catalog (in stock only). */
+export interface CatalogProduct {
+  id: string;
+  name: string;
+  image_url: string | null;
+  price: number;
+  currency: string;
+  /** null = stock not tracked. Ignored when the product has variants. */
+  stock: number | null;
+  variants: { id: string; name: string; price: number; stock: number | null }[];
+}
+
+/** Paid, published, upcoming event as returned by GET /api/payment-catalog. */
+export interface CatalogEvent {
+  id: string;
+  title: string;
+  starts_at: string;
+  price: number;
+  currency: string;
+  seats_left: number | null;
+  configuration_label: string | null;
+  configurations: { id: string; name: string }[];
+  /** Why the selected member can't be registered; null = can be. */
+  unavailable_reason: string | null;
+}
+
+/** API error codes (product / event sales) with a translated message. */
+export const ITEM_ERROR_CODES = new Set([
+  'product_unavailable', 'variant_required', 'out_of_stock', 'product_required',
+  'event_unavailable', 'event_not_priced', 'event_required', 'plan_required',
+  'registration_closed', 'event_past', 'already_registered', 'event_full',
+  'configuration_required', 'configuration_invalid', 'status_must_be_paid',
+  'member_not_found', 'branch_not_found',
+]);
+
+const PRODUCT_PREFIX = 'product:';
+const EVENT_PREFIX   = 'event:';
 
 const METHODS  = ['cash', 'bank_transfer', 'card', 'other', 'payment_link'];
 const CURRENCIES = ['EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED'];
@@ -74,6 +112,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
     program:         t('serviceTypes.program'),
     offer:           t('serviceTypes.offer'),
     other:           t('serviceTypes.other'),
+    product:         t('serviceTypes.product'),
+    event:           t('serviceTypes.event'),
   };
 
   const [search, setSearch]           = useState('');
@@ -114,6 +154,15 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
   const [selectedPromoId, setSelectedPromoId] = useState<string>(existingPayment?.promo_code_id ?? '');
   // In edit mode, reflect whether the payment already carries the plan's
   // promotion price so the toggle starts in the matching state.
+  // Store product / event chosen from the service dropdown (create mode).
+  const [catalog, setCatalog]               = useState<{ products: CatalogProduct[]; events: CatalogEvent[] }>({ products: [], events: [] });
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const [variantId, setVariantId]           = useState('');
+  const [quantity, setQuantity]             = useState(1);
+  // Raw text of the quantity box so it can be cleared while typing.
+  const [quantityText, setQuantityText]     = useState('1');
+  const [selectedEvent, setSelectedEvent]   = useState<CatalogEvent | null>(null);
+  const [eventConfigId, setEventConfigId]   = useState('');
   const [useOriginalPrice, setUseOriginalPrice] = useState(() => {
     if (existingPayment && editService?.original_price != null) {
       return Number(existingPayment.amount) >= editService.original_price;
@@ -122,7 +171,50 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
   });
 
   const isPaymentLink = method === 'payment_link';
-  const availableMethods = isEdit ? METHODS.filter(m => m !== 'payment_link') : METHODS;
+  // Products / events are fulfilled the moment they are recorded (stock is
+  // taken, the seat confirmed), so they are always paid on the spot: no
+  // payment link, no pending/overdue status.
+  const isItemSale = !!(selectedProduct || selectedEvent);
+  const availableMethods = isEdit || isItemSale ? METHODS.filter(m => m !== 'payment_link') : METHODS;
+
+  const memberIdForCatalog = selectedMember?.id ?? null;
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    const qs = memberIdForCatalog ? `?gym_member_id=${encodeURIComponent(memberIdForCatalog)}` : '';
+    fetch(`/api/payment-catalog${qs}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data) return;
+        const products: CatalogProduct[] = Array.isArray(data.products) ? data.products : [];
+        const events: CatalogEvent[] = Array.isArray(data.events) ? data.events : [];
+        setCatalog({ products, events });
+        // Eligibility is per member: drop an event the new member can't take.
+        setSelectedEvent(prev => {
+          if (!prev) return prev;
+          const fresh = events.find(e => e.id === prev.id);
+          return fresh && !fresh.unavailable_reason ? fresh : null;
+        });
+      })
+      .catch(() => { /* dropdown just shows no products / events */ });
+    return () => { cancelled = true; };
+  }, [isEdit, memberIdForCatalog]);
+
+  const selectedVariant = selectedProduct?.variants.find(v => v.id === variantId) ?? null;
+  const productUnitPrice = selectedProduct
+    ? (selectedProduct.variants.length > 0 ? selectedVariant?.price ?? null : selectedProduct.price)
+    : null;
+  /** Units the chosen line can sell (null = unlimited). */
+  const productMaxQty = selectedProduct
+    ? (selectedProduct.variants.length > 0 ? selectedVariant?.stock ?? null : selectedProduct.stock)
+    : null;
+
+  const itemErrorMessage = (code: string | null | undefined): string | null =>
+    code && ITEM_ERROR_CODES.has(code) ? t(`recordModal.itemErrors.${code}`) : null;
+
+  const setProductAmount = (unit: number | null, qty: number) => {
+    if (unit != null) setAmount(String(Math.round(unit * qty * 100) / 100));
+  };
   // The service whose pricing drives the discount section, in either mode.
   const discountService = isEdit ? editService : selectedService;
 
@@ -150,13 +242,56 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
   const handleSelectMember = (m: MemberOption) => {
     setSelectedMember(m);
     setSearch('');
-    if (!selectedService && m.plan_price) {
+    if (!selectedService && !selectedProduct && !selectedEvent && m.plan_price) {
       setAmount(String(m.plan_price));
       setCurrency(m.currency ?? 'EGP');
     }
   };
 
+  const clearItem = () => {
+    setSelectedProduct(null);
+    setVariantId('');
+    setQuantity(1);
+    setQuantityText('1');
+    setSelectedEvent(null);
+    setEventConfigId('');
+  };
+
+  const handleSelectItem = (id: string) => {
+    setSelectedService(null);
+    setIsOther(false);
+    setOtherName('');
+    setSelectedTrainer(null);
+    setSelectedPromoId('');
+    setUseOriginalPrice(false);
+    clearItem();
+    setStatus('paid');
+    if (method === 'payment_link') setMethod('cash');
+
+    if (id.startsWith(PRODUCT_PREFIX)) {
+      const p = catalog.products.find(x => x.id === id.slice(PRODUCT_PREFIX.length));
+      if (!p) return;
+      setSelectedProduct(p);
+      setCurrency(p.currency);
+      setNotes(`${TYPE_LABELS.product}: ${p.name}`);
+      if (p.variants.length === 0) setProductAmount(p.price, 1);
+      else setAmount('');
+      return;
+    }
+    const ev = catalog.events.find(x => x.id === id.slice(EVENT_PREFIX.length));
+    if (!ev || ev.unavailable_reason) return;
+    setSelectedEvent(ev);
+    setCurrency(ev.currency);
+    setAmount(String(ev.price));
+    setNotes(`${TYPE_LABELS.event}: ${ev.title}`);
+  };
+
   const handleSelectService = (id: string) => {
+    if (id.startsWith(PRODUCT_PREFIX) || id.startsWith(EVENT_PREFIX)) {
+      handleSelectItem(id);
+      return;
+    }
+    if (selectedProduct || selectedEvent) clearItem();
     if (!id) {
       setSelectedService(null);
       setIsOther(false);
@@ -210,6 +345,8 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
     if (!amount || parseFloat(amount) <= 0) { toast.error(t('recordModal.invalidAmountError')); return; }
     if (isOther && !otherName.trim()) { toast.error(t('recordModal.otherDescriptionError')); return; }
     if (isPaymentLink && !phone.trim()) { toast.error(t('recordModal.mobileRequiredError')); return; }
+    if (selectedProduct && selectedProduct.variants.length > 0 && !variantId) { toast.error(t('recordModal.itemErrors.variant_required')); return; }
+    if (selectedEvent && selectedEvent.configurations.length > 0 && !eventConfigId) { toast.error(t('recordModal.itemErrors.configuration_required')); return; }
 
     setLoading(true);
     try {
@@ -267,6 +404,36 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
         const data = await res.json();
         if (!res.ok) { toast.error(data.error ?? t('recordModal.failedToUpdate')); return; }
         toast.success(t('recordModal.paymentUpdated'));
+        onClose();
+        router.refresh();
+        return;
+      }
+
+      if (selectedProduct || selectedEvent) {
+        // ── Store product / event seat: the API records the payment and
+        // takes the stock / confirms the registration in one transaction.
+        const res = await fetch('/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gym_member_id:  selectedMember.id,
+            amount:         amt,
+            currency,
+            notes:          notes.trim() || null,
+            payment_method: method,
+            status:         'paid',
+            branch_id:      branchId || null,
+            ...(selectedProduct
+              ? { service_type: 'product', product_id: selectedProduct.id, variant_id: variantId || null, quantity }
+              : { service_type: 'event', event_id: selectedEvent!.id, event_configuration_id: eventConfigId || null }),
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          toast.error(itemErrorMessage(data?.code) ?? data?.error ?? t('recordModal.failedToRecord'));
+          return;
+        }
+        toast.success(t('recordModal.paymentRecorded'));
         onClose();
         router.refresh();
         return;
@@ -418,7 +585,10 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
             <div>
               <label className={labelCls}>{t('recordModal.serviceItem')} <span className="text-fg-faint">({t('recordModal.serviceOptional')})</span></label>
               <select
-                value={isOther ? '__other__' : (selectedService?.id ?? '')}
+                value={isOther ? '__other__'
+                  : selectedProduct ? `${PRODUCT_PREFIX}${selectedProduct.id}`
+                  : selectedEvent ? `${EVENT_PREFIX}${selectedEvent.id}`
+                  : (selectedService?.id ?? '')}
                 onChange={e => handleSelectService(e.target.value)}
                 className={inputCls}
               >
@@ -432,6 +602,25 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                     ))}
                   </optgroup>
                 ))}
+                {catalog.products.length > 0 && (
+                  <optgroup label={t('recordModal.productsGroup')}>
+                    {catalog.products.map(p => (
+                      <option key={p.id} value={`${PRODUCT_PREFIX}${p.id}`}>
+                        {p.name}{p.variants.length === 0 ? ` — ${p.price} ${p.currency}` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {catalog.events.length > 0 && (
+                  <optgroup label={t('recordModal.eventsGroup')}>
+                    {catalog.events.map(ev => (
+                      <option key={ev.id} value={`${EVENT_PREFIX}${ev.id}`} disabled={!!ev.unavailable_reason}>
+                        {ev.title} · {new Date(ev.starts_at).toLocaleDateString('en-GB')} — {ev.price} {ev.currency}
+                        {ev.unavailable_reason ? ` (${itemErrorMessage(ev.unavailable_reason) ?? ev.unavailable_reason})` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 <optgroup label="──────────────">
                   <option value="__other__">{t('recordModal.otherCustom')}</option>
                 </optgroup>
@@ -483,6 +672,89 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   <button type="button" onClick={() => handleSelectService('')} aria-label="Clear custom service" className="p-2 text-fg-faint hover:text-fg transition-colors flex-shrink-0">
                     <X className="w-4 h-4" aria-hidden />
                   </button>
+                </div>
+              )}
+
+              {/* Store product — variant (size) + quantity */}
+              {selectedProduct && (
+                <div className="mt-2 space-y-2 p-3 bg-info-soft border border-info/40 rounded-lg" data-testid="product-line">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-info">{TYPE_LABELS.product}</span>
+                    <span className="text-xs text-fg-muted flex-1 truncate">{selectedProduct.name}</span>
+                    <button type="button" onClick={() => handleSelectService('')} aria-label={t('recordModal.clearItem')} className="text-fg-faint hover:text-fg transition-colors flex-shrink-0">
+                      <X className="w-3 h-3" aria-hidden />
+                    </button>
+                  </div>
+                  <div className={`grid gap-2 ${selectedProduct.variants.length > 0 ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                    {selectedProduct.variants.length > 0 && (
+                      <div className="col-span-2">
+                        <label htmlFor="rp-variant" className="block text-xs text-fg-faint mb-1">{t('recordModal.variant')} *</label>
+                        <select id="rp-variant" value={variantId} className={inputCls}
+                          onChange={e => {
+                            const v = selectedProduct.variants.find(x => x.id === e.target.value);
+                            setVariantId(e.target.value);
+                            const qty = v?.stock != null ? Math.min(quantity, Math.max(1, v.stock)) : quantity;
+                            setQuantity(qty);
+                            setQuantityText(String(qty));
+                            setProductAmount(v?.price ?? null, qty);
+                          }}>
+                          <option value="">{t('recordModal.selectVariant')}</option>
+                          {selectedProduct.variants.map(v => (
+                            <option key={v.id} value={v.id} disabled={v.stock !== null && v.stock <= 0}>
+                              {v.name} — {v.price} {selectedProduct.currency}
+                              {v.stock !== null && v.stock <= 0 ? ` (${t('recordModal.outOfStock')})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label htmlFor="rp-qty" className="block text-xs text-fg-faint mb-1">{t('recordModal.quantity')}</label>
+                      <input id="rp-qty" type="number" min={1} max={productMaxQty ?? 100} step={1} value={quantityText} className={inputCls}
+                        onChange={e => {
+                          setQuantityText(e.target.value);
+                          const n = Math.floor(Number(e.target.value));
+                          if (!e.target.value || !Number.isFinite(n) || n < 1) return; // mid-edit
+                          const qty = Math.min(productMaxQty ?? 100, n);
+                          setQuantity(qty);
+                          setProductAmount(productUnitPrice, qty);
+                        }}
+                        onBlur={() => setQuantityText(String(quantity))} />
+                    </div>
+                  </div>
+                  {productMaxQty != null && (
+                    <p className="text-xs text-fg-faint">{t('recordModal.inStock', { count: productMaxQty })}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Event — option (configuration) */}
+              {selectedEvent && (
+                <div className="mt-2 space-y-2 p-3 bg-info-soft border border-info/40 rounded-lg" data-testid="event-line">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-info">{TYPE_LABELS.event}</span>
+                    <span className="text-xs text-fg-muted flex-1 truncate">{selectedEvent.title}</span>
+                    <span className="text-xs font-semibold text-fg flex-shrink-0">{selectedEvent.price} {selectedEvent.currency}</span>
+                    <button type="button" onClick={() => handleSelectService('')} aria-label={t('recordModal.clearItem')} className="text-fg-faint hover:text-fg transition-colors flex-shrink-0">
+                      <X className="w-3 h-3" aria-hidden />
+                    </button>
+                  </div>
+                  {selectedEvent.configurations.length > 0 && (
+                    <div>
+                      <label htmlFor="rp-event-config" className="block text-xs text-fg-faint mb-1">
+                        {selectedEvent.configuration_label || t('recordModal.eventOption')} *
+                      </label>
+                      <select id="rp-event-config" value={eventConfigId} onChange={e => setEventConfigId(e.target.value)} className={inputCls}>
+                        <option value="">{t('recordModal.selectEventOption')}</option>
+                        {selectedEvent.configurations.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <p className="text-xs text-fg-faint">
+                    {selectedEvent.seats_left != null
+                      ? t('recordModal.seatsLeft', { count: selectedEvent.seats_left })
+                      : t('recordModal.registersMember')}
+                  </p>
                 </div>
               )}
             </div>
@@ -594,7 +866,7 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                   <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
                     placeholder="0.00" className={`${inputCls} ps-12`} required />
                 </div>
-                <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputCls}>
+                <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputCls} disabled={isItemSale} aria-label={t('recordModal.currency')}>
                   {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
@@ -649,17 +921,22 @@ export default function RecordPaymentModal({ memberOptions, serviceOptions, trai
                 {isPaymentLink && (
                   <span className="ms-2 text-info font-normal">{t('recordModal.statusAutomatic')}</span>
                 )}
+                {isItemSale && (
+                  <span className="ms-2 text-fg-faint font-normal">{t('recordModal.itemPaidOnly')}</span>
+                )}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {STATUSES.map(s => (
                   <button key={s.value} type="button"
-                    onClick={() => !isPaymentLink && setStatus(s.value)}
-                    disabled={isPaymentLink}
+                    onClick={() => !isPaymentLink && !(isItemSale && s.value !== 'paid') && setStatus(s.value)}
+                    disabled={isPaymentLink || (isItemSale && s.value !== 'paid')}
                     className={`py-2.5 rounded-xl border text-xs font-semibold transition-colors ${
                       isPaymentLink
                         ? s.value === 'pending'
                           ? 'border-warning/40 bg-warning-soft text-warning/50 cursor-not-allowed'
                           : 'border-line text-fg-faint cursor-not-allowed opacity-40'
+                        : isItemSale && s.value !== 'paid'
+                          ? 'border-line text-fg-faint cursor-not-allowed opacity-40'
                         : status === s.value
                           ? `border-current bg-current/10 ${s.color}`
                           : 'border-line text-fg-muted hover:border-line-strong'

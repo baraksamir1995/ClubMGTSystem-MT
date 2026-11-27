@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  *
  * QR text = strict JSON superset of the v1 poster payload, keys in order:
  *   {"type":"gym_access","gym_id","branch_id","token","v":2,"mode","kid","iat","exp","jti","sig"}
- * sig = Ed25519 with the gym's member-pass signing key over
+ * sig = Ed25519 with the gym's signing key (gym_signing_keys) over
  *   clby_bq|2|<mode>|<kid>|<gym_id>|<branch_id>|<token>|<iat>|<exp>|<jti>
  * (distinct prefix from the member pass's "clby_mp|1|…").
  *
@@ -149,7 +149,7 @@ class BranchQrService
             return ['ok' => false, 'code' => 'qr_wrong_gym'];
         }
 
-        // 3. key (same rules as the member pass)
+        // 3. key (same rules as the coach QR: gym key, not revoked, grace)
         $pk = $this->keys->verificationKey($q['kid'], $q['gym_id'], $scan);
         if ($pk === null) {
             return ['ok' => false, 'code' => 'qr_invalid'];
@@ -201,7 +201,7 @@ class BranchQrService
     }
 
     /**
-     * Strict parse of a v2 QR (same strictness as the member pass, PHASE2
+     * Strict parse of a v2 QR (same strictness rules as PHASE2
      * amendment §3): ≤ 1024 chars, no BOM, exactly the 11 keys, integers
      * only, lowercase canonical UUIDs, mode static|rotating, kid
      * [A-Za-z0-9_-]{1,32}, jti [A-Za-z0-9_-]{16,32}, canonical unpadded

@@ -173,6 +173,9 @@ class AttendanceOfflineController extends Controller
                     'code' => 'permission_denied',
                 ], 403);
             }
+            if (! config('attendance_offline.enabled')) {
+                return $this->disabledSnapshot(['assignments' => [], 'recent_service_logs' => [], 'own_qr' => null, 'next_cursor' => null]);
+            }
             return $this->coachBootstrap($request, $coach);
         }
 
@@ -182,6 +185,9 @@ class AttendanceOfflineController extends Controller
                 'code' => 'permission_denied',
                 'required' => 'attendance',
             ], 403);
+        }
+        if (! config('attendance_offline.enabled')) {
+            return $this->disabledSnapshot(['branches' => [], 'members' => [], 'class_sessions' => [], 'recent_attendance' => [], 'next_cursor' => null]);
         }
         return $this->adminBootstrap($request);
     }
@@ -498,6 +504,11 @@ class AttendanceOfflineController extends Controller
             return response()->json(['error' => 'No membership in this gym.', 'code' => 'member_not_found'], 404);
         }
 
+        if (! config('attendance_offline.enabled')) {
+            return $this->disabledSnapshot(['member' => null, 'buckets' => [], 'branches' => [], 'recent_attendance' => [],
+                'trainers' => [], 'assignments' => []]);
+        }
+
         $asOf = $this->now();
         $gym = $this->gym($user->gym_id);
         $recent = DB::table('attendance_logs')
@@ -519,12 +530,14 @@ class AttendanceOfflineController extends Controller
                 'full_name' => $member->full_name,
             ],
             'buckets' => $this->buckets([$member->id])->map(fn ($b) => $this->bucketShape($b, $gym['timezone']))->values(),
-            // PHASE3 §3: qr_token (current) so the app can check a v2 QR's token offline.
-            'branches' => $this->branches($user->gym_id, withToken: true),
+            // PHASE3 §3: qr_token (current) so the app can check a v2 QR's token
+            // offline — only for ACTIVE branches this member may enter
+            // (same rules as gymEntryDenial); null otherwise.
+            'branches' => $this->branches($user->gym_id, tokensForMember: $member->id),
             'recent_attendance' => $recent,
             'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
             // PHASE3 Amendment 2 §C: coach-QR offline verification + local pre-check.
-            'trainers' => DB::table('trainer_profiles')->where('gym_id', $user->gym_id)->orderBy('name')
+            'trainers' => DB::table('trainer_profiles')->where('gym_id', $user->gym_id)->where('is_active', true)->orderBy('name')
                 ->get(['id', 'name', 'trainer_type', 'is_active'])
                 ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'service_type' => $t->trainer_type, 'is_active' => (bool) $t->is_active])
                 ->values(),
@@ -611,13 +624,45 @@ class AttendanceOfflineController extends Controller
         ];
     }
 
-    private function branches(string $gymId, bool $withToken = false): array
+    /**
+     * Branches of the gym. With $tokensForMember, each row also carries
+     * `qr_token`: the current token for active branches that member may
+     * enter (gymEntryDenialForBranch === null), null for every other branch.
+     */
+    private function branches(string $gymId, ?string $tokensForMember = null): array
     {
+        $checkIns = app(AttendanceCheckInService::class);
         return DB::table('branches')->where('gym_id', $gymId)->orderBy('name')
-            ->get(['id', 'name', 'is_active', 'qr_token'])
-            ->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'is_active' => (bool) $b->is_active]
-                + ($withToken ? ['qr_token' => $b->qr_token !== null ? strtolower((string) $b->qr_token) : null] : []))
+            ->get(['id', 'gym_id', 'name', 'is_active', 'qr_token'])
+            ->map(function ($b) use ($tokensForMember, $checkIns) {
+                $row = ['id' => $b->id, 'name' => $b->name, 'is_active' => (bool) $b->is_active];
+                if ($tokensForMember !== null) {
+                    $allowed = $b->is_active && $b->qr_token !== null
+                        && $checkIns->gymEntryDenialForBranch($tokensForMember, $b) === null;
+                    $row['qr_token'] = $allowed ? strtolower((string) $b->qr_token) : null;
+                }
+                return $row;
+            })
             ->all();
+    }
+
+    /**
+     * Policy off (`enabled` false): a minimal snapshot — policy + public
+     * keys, every list empty, no member data and no tokens — so clients
+     * cache nothing. Same top-level shape as the full response so existing
+     * parsers keep working.
+     */
+    private function disabledSnapshot(array $emptyParts): JsonResponse
+    {
+        $user = request()->user();
+        $asOf = $this->now();
+        return response()->json([
+            'server_time' => $asOf,
+            'as_of' => $asOf,
+            'gym' => $this->gym($user->gym_id),
+            'policy' => self::policy(),
+            'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
+        ] + $emptyParts);
     }
 
     private function gym(string $gymId): array

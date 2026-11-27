@@ -56,8 +56,6 @@ class AttendanceSyncService
         'not_self' => 'Members can only record their own attendance.',
         'qr_invalid' => 'The scanned QR code is not a valid gym QR code.',
         'qr_wrong_gym' => 'The scanned QR code belongs to another gym.',
-        'pass_expired' => 'The member pass had expired when it was scanned.',
-        'qr_member_mismatch' => 'The scanned member pass belongs to a different member.',
         'qr_expired' => 'The gym QR code had expired when it was scanned.',
         'qr_replayed' => 'This rotating gym QR code was already used for a check-in.',
         'branch_inactive' => 'This branch is inactive.',

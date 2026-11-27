@@ -140,7 +140,7 @@ class SpecialistQrService
         return is_array($j) && ! array_is_list($j) && ($j['type'] ?? null) === 'specialist_session' && ($j['v'] ?? null) === 2;
     }
 
-    /** Strict parse — same rules as the branch QR / pass (exactly 9 keys, ints, lowercase UUIDs, canonical sig). */
+    /** Strict parse — same rules as the branch QR (exactly 9 keys, ints, lowercase UUIDs, canonical sig). */
     public static function parse(?string $raw): ?array
     {
         if (! is_string($raw) || $raw === '' || strlen($raw) > 1024) return null;

@@ -4,6 +4,26 @@
 
 Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch poster endpoint, v2 `member_qr` sync with rotating replay protection, and `/offline/me` additions.
 
+### Phase 3 verification — server LOW fixes (2026-11-27)
+
+- **`/offline/me` scope (L2):**
+  - `branches[].qr_token` is the current token **only for active branches this member may enter**, using the gym-entry rules (`gymEntryDenialForBranch` === null: own gym, active paid subscription not frozen, gym-capable plan, branch in `allowed_branch_ids`; no-subscription and transfer rules unchanged). Every other branch is still listed, with `qr_token: null`.
+  - `trainers` lists **active trainers only**.
+- **Policy off (L5)**, when `attendance_offline.enabled` is false:
+  - `/offline/bootstrap` (admin and coach) and `/offline/me` return a **minimal snapshot**: `server_time`, `as_of`, `gym`, `policy` and `pass_keys`, with every list empty and no tokens.
+    - admin: `branches`, `members`, `class_sessions`, `recent_attendance` are `[]`, `next_cursor:null`;
+    - coach: `assignments`, `recent_service_logs` are `[]`, `own_qr:null`, `next_cursor:null`;
+    - member: `member:null`, and `buckets`, `branches`, `recent_attendance`, `trainers`, `assignments` are `[]`.
+  - The top-level shape is unchanged, so existing parsers (the dashboard requires `members` to be an array) keep working while caching nothing.
+  - Role and permission checks still run first.
+  - `/coach/qr` itself is unaffected.
+- **Member-pass leftovers (L9, server side):**
+  - removed the sync messages for `pass_expired` / `qr_member_mismatch` and the unused config `member_pass_cache_minutes`;
+  - reworded the key command, the key-service messages and comments to "gym/QR signing keys".
+  - The `pass_keys` meta key and stale texts in the **dashboard** are client-side and not in this change. Server-side `pass_keys` (the public-key list) stays, as Amendment 2 requires.
+- **Follow-up, not changed in this branch (L3):** online `POST /api/specialists/scan` accepts an **inactive** trainer. This is pre-existing: the controller loads `is_active` but never checks it. The offline sync path rejects it (`qr_invalid` for a v2 coach QR whose trainer is inactive). Fix it online separately, together with the timezone skew of the online 30-minute guard noted below.
+- **Not changed (L1, label only):** a hand-crafted QR nested deeper than `json_decode`'s depth of 4 is `not_v2` on the server and `qr_invalid` in Dart. Both reject it.
+
 ### Amendment 2: no member pass; the coach QR works offline (2026-11-27)
 
 **A. Member pass removed (server)**
@@ -57,7 +77,7 @@ Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch pos
   - **Log row:** `note='Member self-scan'`, `delivered_at` = device time, `source_event_id` = the event (unique).
   - **`qr_meta`:** accepted → `{verified:true, v:2, kid, jti, iat, exp, trainer_id}`; rejected → `{verified:false, reason, v}`.
 - **`/offline/me` adds:**
-  - `trainers: [{id, name, service_type (= trainer_profiles.trainer_type), is_active}]`, all trainers of the gym;
+  - `trainers: [{id, name, service_type (= trainer_profiles.trainer_type), is_active}]`, the gym's **active** trainers (see the LOW fixes above);
   - `assignments: [{id, trainer_id, service_type, sessions_total, sessions_used, expires_at (ISO), status}]`, the member's own packs with status `active` only.
 - **Dormant rotating branch QRs now have a lifetime bound:** `exp - iat > 120` → `qr_invalid` (`BranchQrService::ROTATING_MAX_LIFETIME`). **The Dart verifier must mirror this rule.**
 - **Corpora:**
@@ -113,7 +133,7 @@ Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, the branch pos
    - rejected v2 events store `{verified:false, reason, v:2}` (the Phase 2 shape plus `v`);
    - rejected offline v1 events store `{verified:false, reason:"offline_disabled", v:1}`.
 8. **Keys:** branch QRs use the gym's member-pass key. After `attendance:pass-key --rotate`, static posters keep verifying only for the **pass** grace (`member_pass_ttl_days`, 30 d), not the 365-day poster TTL, so reprint posters after a rotation. `--revoke` invalidates them at once. The branch "Regenerate" token action also invalidates old posters (token mismatch).
-9. **`/offline/me` exposes `branches[].qr_token` to members**, as required by step 5. That token is the v1 check-in secret (also printed on every poster): any member can now read it via the API and use online `/attendance/qr`, where the gym-entry rules still apply. Staff bootstrap does **not** include `qr_token`.
+9. **`/offline/me` exposes `branches[].qr_token` to members**, as required by step 5, now only for active branches the member may enter (LOW fixes above). That token is the v1 check-in secret (also printed on every poster): any member can now read it via the API and use online `/attendance/qr`, where the gym-entry rules still apply. Staff bootstrap does **not** include `qr_token`.
 
 ### Endpoints
 

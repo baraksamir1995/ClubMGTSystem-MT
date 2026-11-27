@@ -102,7 +102,7 @@ class MemberPassService
     {
         $key = DB::table('gym_signing_keys')->where('kid', $kid)->where('purpose', self::PURPOSE)->first();
         if (! $key || strtolower((string) $key->gym_id) !== strtolower($gymId)) {
-            return "No member-pass key {$kid} for gym {$gymId}.";
+            return "No signing key {$kid} for gym {$gymId}.";
         }
         if ($key->status === 'active') {
             return "Key {$kid} is the active key; rotate first (--rotate) so the gym has a replacement.";
@@ -141,7 +141,7 @@ class MemberPassService
     /**
      * Raw Ed25519 public key for `kid` if it may verify a credential of
      * `gymId` scanned at `at`: the gym's own key, never revoked, active or
-     * retired within grace. Shared by member passes and branch QR v2.
+     * retired within grace. Shared by the gym (branch) and coach QR v2.
      */
     public function verificationKey(string $kid, string $gymId, CarbonInterface $at): ?string
     {

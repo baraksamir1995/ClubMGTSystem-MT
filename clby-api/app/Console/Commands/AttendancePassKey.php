@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Manage a gym's member-pass signing keys (PHASE2-CONTRACT amendment §4).
+ * Manage a gym's QR signing keys (gym + coach QR v2; PHASE2 amendment §4).
  *
  *   attendance:pass-key {gym}                    list keys
  *   attendance:pass-key {gym} --rotate           new active key; old → retired (grace = TTL)
@@ -21,11 +21,11 @@ use Illuminate\Support\Str;
 class AttendancePassKey extends Command
 {
     protected $signature = 'attendance:pass-key
-        {gym_id : The gym whose member-pass signing keys to manage}
+        {gym_id : The gym whose QR signing keys to manage}
         {--rotate : Create a new active key and retire the current one}
         {--revoke= : Revoke this kid (no grace). The active key can only be revoked together with --rotate}';
 
-    protected $description = 'List, rotate or revoke a gym\'s member-pass signing keys';
+    protected $description = 'List, rotate or revoke a gym\'s QR signing keys';
 
     public function handle(MemberPassService $passes): int
     {

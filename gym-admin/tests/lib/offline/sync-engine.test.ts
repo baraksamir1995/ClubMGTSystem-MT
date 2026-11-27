@@ -503,6 +503,39 @@ describe('sync engine', () => {
     expect(e.getState()).toMatchObject({ status: 'expired', data_expired: true });
   });
 
+  it('reconnect (`online` event) syncs backing-off rows straight away, but not held rows', async () => {
+    await putRows(db, [
+      row({ event_id: 'backoff', next_attempt_at: T0 + 600_000, sync_attempts: 3, last_sync_error: 'network:x', recorded_at_ms: 1 }),
+      row({ event_id: 'held', sync_hold: 'invalid_envelope', envelope_failures: 5, recorded_at_ms: 2 }),
+    ]);
+    const t = fakeTransport();
+    const e = engine({ transport: t });
+    await e.syncNow(); // routine run: nothing due
+    expect(t.requests).toHaveLength(0);
+    const stop = e.startSyncLifecycle({ intervalMs: 60_000, immediate: false });
+    window.dispatchEvent(new Event('online'));
+    await vi.waitFor(() => expect(t.requests).toHaveLength(1));
+    expect(t.requests[0].events.map((x) => x.event_id)).toEqual(['backoff']);
+    stop();
+    await vi.waitFor(async () => expect((await getOutboxRow(db, 'backoff'))?.sync_status).toBe('synced'));
+    expect(await getOutboxRow(db, 'held')).toMatchObject({ sync_status: 'pending', sync_hold: 'invalid_envelope' });
+  });
+
+  it('an explicit ignoreBackoff request during an in-flight routine run runs right after it', async () => {
+    await putRows(db, [row({ event_id: 'due', recorded_at_ms: 1 }), row({ event_id: 'later', next_attempt_at: T0 + 600_000, recorded_at_ms: 2 })]);
+    const gate = deferred<TransportOutcome>();
+    let n = 0;
+    const t = fakeTransport((req) => (++n === 1 ? gate.promise : { type: 'ok', response: { server_time: '', results: req.events.map((x) => accepted(x.event_id)) } }));
+    const e = engine({ transport: t });
+    const routine = e.syncNow();
+    await vi.waitFor(() => expect(t.requests).toHaveLength(1));
+    const reconnect = e.syncNow({ ignoreBackoff: true });
+    gate.resolve({ type: 'ok', response: { server_time: '', results: [accepted('due')] } });
+    await routine;
+    await reconnect;
+    expect(t.requests.map((r) => r.events.map((x) => x.event_id))).toEqual([['due'], ['later']]);
+  });
+
   it('startSyncLifecycle: syncs immediately, on `online`, on visibilitychange and on interval; stop() detaches', async () => {
     const t = fakeTransport();
     const e = engine({ transport: t });

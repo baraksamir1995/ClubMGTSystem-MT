@@ -301,7 +301,39 @@
       "loadFailed": "Could not load the server list.",
       "more": "Load more",
       "filterFlagged": "Needs review",
-      "filterRejected": "Rejected"
+      "filterRejected": "Rejected",
+      "method": "Method"
+    },
+    "codes": {
+      "invalid_payload": "The record was incomplete or malformed.",
+      "invalid_envelope": "The device sent a malformed batch.",
+      "tenant_mismatch": "The record belongs to another gym.",
+      "member_not_found": "Member not found in this gym.",
+      "branch_not_found": "Branch not found.",
+      "class_session_not_found": "Class session not found.",
+      "studio_not_found": "Studio not found.",
+      "assignment_not_found": "Service package not found.",
+      "assignment_not_active": "The service package isn't active.",
+      "permission_denied": "No permission to record attendance.",
+      "not_self": "Members can only check themselves in.",
+      "qr_invalid": "Invalid or forged QR code.",
+      "qr_wrong_gym": "The QR code belongs to another gym.",
+      "qr_member_mismatch": "The pass belongs to a different member.",
+      "pass_expired": "The member pass had expired.",
+      "branch_inactive": "The branch is inactive.",
+      "not_a_member": "No membership in this gym.",
+      "membership_frozen": "The membership is frozen.",
+      "gym_access_not_included": "The membership doesn't include gym access.",
+      "branch_not_included": "The membership doesn't include this branch.",
+      "pack_expired": "The session pack had expired.",
+      "guard_window": "A session was already logged in the last 30 minutes.",
+      "clock_in_future": "The device clock was ahead — time is in the future.",
+      "event_too_old": "Recorded too long ago to be accepted.",
+      "event_id_conflict": "Conflicting record id.",
+      "event_id_reused": "Record id reused with different details.",
+      "offline_disabled": "Offline mode was off for this gym.",
+      "already_checked_in": "Already checked in to this class.",
+      "server_error": "Server error — will retry."
     }
   }
 }

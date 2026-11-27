@@ -6,6 +6,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, Select } from '@/components/ui';
 import { apiErrorMessage, networkErrorMessage } from '@/lib/api-error';
 import type { OutboxRow, ReviewEvent, ReviewEventsPage } from '@/lib/offline/types';
+import { useReasonText } from './use-reason-text';
 
 type ServerFilter = 'needs_review' | 'rejected';
 
@@ -26,6 +27,7 @@ export function FailedInspector({
   const t = useTranslations('attendance.frontDesk.inspector');
   const tErr = useTranslations('common.errors');
   const format = useFormatter();
+  const reason = useReasonText();
   const [filter, setFilter] = useState<ServerFilter>('needs_review');
   const [items, setItems] = useState<ReviewEvent[] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export function FailedInspector({
                   <span className="font-medium text-fg">{memberName(r.member_id) ?? r.member_id}</span>
                   {r.result_code && <Badge size="sm" variant="danger">{r.result_code}</Badge>}
                 </div>
-                {r.result_message && <p className="text-fg-muted">{r.result_message}</p>}
+                <p className="text-fg-muted">{reason(r.result_code, r.result_message)}</p>
                 <p className="text-xs text-fg-faint">
                   {t('recordedAt')}: {when(r.device_recorded_at)} · {t('receivedAt')}: {when(r.server_received_at)}
                 </p>
@@ -118,18 +120,20 @@ export function FailedInspector({
             {items.map((e) => (
               <li key={e.event_id} className="px-3 py-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-fg">{e.member_name ?? '—'}</span>
-                  <Badge size="sm" variant={e.result === 'rejected' ? 'danger' : 'warning'}>{e.result}</Badge>
+                  <span className="font-medium text-fg">{e.member?.full_name ?? '—'}</span>
+                  {e.member?.member_number != null && <span className="text-xs text-fg-muted">#{e.member.member_number}</span>}
+                  <Badge size="sm" variant={e.result === 'rejected' || e.result === 'error' ? 'danger' : 'warning'}>{e.result}</Badge>
                   {e.code && <Badge size="sm" variant="neutral">{e.code}</Badge>}
+                  {e.method && <Badge size="sm" variant="neutral">{e.method}</Badge>}
                   {e.flags?.map((f) => (
                     <Badge key={f} size="sm" variant="warning">{f}</Badge>
                   ))}
                 </div>
-                {e.message && <p className="text-fg-muted">{e.message}</p>}
+                {(e.code || e.message) && <p className="text-fg-muted">{reason(e.code, e.message)}</p>}
                 <p className="text-xs text-fg-faint">
                   {t('recordedAt')}: {when(e.device_recorded_at)} · {t('receivedAt')}: {when(e.server_received_at)}
-                  {e.actor_name ? ` · ${t('by', { name: e.actor_name })}` : ''}
-                  {e.device_label ? ` · ${t('device', { label: e.device_label })}` : ''}
+                  {e.actor?.full_name ? ` · ${t('by', { name: e.actor.full_name })}` : ''}
+                  {e.device?.label ? ` · ${t('device', { label: e.device.label })}` : ''}
                 </p>
               </li>
             ))}

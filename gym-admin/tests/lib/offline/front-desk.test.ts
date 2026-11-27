@@ -18,7 +18,8 @@ import { recordServerTime } from '@/lib/offline/server-clock';
 import { openOfflineSession, type OfflineSession } from '@/lib/offline/session';
 import { DEFAULT_POLICY, type OfflinePolicy } from '@/lib/offline/types';
 
-const GYM = 'gym-1';
+const GYM = 'f59a895f-430e-46d7-ae1c-01602f4ec4fd';
+const M1 = '11111111-1111-4111-8111-111111111111';
 const NOW = Date.now();
 const nowS = Math.floor(NOW / 1000);
 
@@ -72,6 +73,7 @@ describe('front desk: path selection (PHASE2 "Online vs offline path")', () => {
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({
       memberId: 'm1', checkInAt: at.toISOString(), accessPoint: 'Yoga', branchId: 'b1', classSessionId: 'cs1', specialistName: null,
+      method: 'manual',
     });
   });
 
@@ -100,11 +102,16 @@ describe('front desk: permission snapshot gate', () => {
     expect(permissionGate(undefined, 1, 24 * H)).toBe('unknown');
   });
 
-  it('online re-validation uses the server guard: 200 → true, 403 → false, outage → null', async () => {
-    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({ logs: [] })))).toBe(true);
-    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({}, 403)))).toBe(false);
-    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({}, 503)))).toBeNull();
-    expect(await revalidateAttendancePermission(vi.fn().mockRejectedValue(new Error('x')))).toBeNull();
+  it('online re-validation: 200 allowed, 403 denied, outage unknown', async () => {
+    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({ logs: [] })))).toBe('allowed');
+    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({}, 403)))).toBe('denied');
+    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({}, 503)))).toBe('unknown');
+    expect(await revalidateAttendancePermission(vi.fn().mockRejectedValue(new Error('x')))).toBe('unknown');
+  });
+
+  it('expired cookie during the re-check → auth_required (Login required), not "denied"', async () => {
+    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(json({ error: 'Unauthorized' }, 401)))).toBe('auth_required');
+    expect(await revalidateAttendancePermission(vi.fn().mockResolvedValue(new Response(null, { status: 307, headers: { location: '/login' } })))).toBe('auth_required');
   });
 });
 
@@ -143,11 +150,11 @@ describe('front desk: staff QR → confirm → record', () => {
     }));
     session = await openOfflineSession({ userId: 'staff-1', gymId: GYM, role: 'staff' }, { transport: t, lock: noLock, broadcast: false, isOnline: () => true });
     policy = await enablePolicy(session.db);
-    await seedMembers(session.db, ['m1']);
+    await seedMembers(session.db, [M1]);
     await setMeta(session.db, 'pass_keys', [passKey(key)]);
     await setMeta(session.db, 'as_of', '2026-11-26T07:00:00.000Z');
     await session.db.put('memberships', {
-      membership_id: 'ms1', gym_member_id: 'm1', plan_type: 'duration', source_type: 'subscription', status: 'active', payment_status: 'paid',
+      membership_id: 'ms1', gym_member_id: M1, plan_type: 'duration', source_type: 'subscription', status: 'active', payment_status: 'paid',
       start_date: '2026-11-01', end_date: '2026-12-01', sessions_remaining: null, sessions_total: null, freeze_status: null, allowed_branch_ids: null,
     });
   });
@@ -155,39 +162,39 @@ describe('front desk: staff QR → confirm → record', () => {
   const deps = (): SubmitDeps => ({ policy, record: session.record, syncNow: () => session.engine.syncNow() });
 
   it('valid pass → candidate with cached member, memberships and as_of; nothing recorded before confirm', async () => {
-    const raw = await signPass(key, { g: GYM, m: 'm1', n: 1, iat: nowS - 60, exp: nowS + 86_400 });
+    const raw = await signPass(key, { g: GYM, m: M1, n: 1, iat: nowS - 60, exp: nowS + 86_400 });
     const res = await scanMemberPass(session.db, GYM, raw);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.candidate.member.gym_member_id).toBe('m1');
+    expect(res.candidate.member.gym_member_id).toBe(M1);
     expect(res.candidate.memberships.map((m) => m.membership_id)).toEqual(['ms1']);
     expect(res.candidate.asOf).toBe('2026-11-26T07:00:00.000Z');
     expect(await listOutbox(session.db)).toHaveLength(0);
   });
 
   it('confirm → one staff_qr event carrying qr.raw, then synced', async () => {
-    const raw = await signPass(key, { g: GYM, m: 'm1', n: 1, iat: nowS - 60, exp: nowS + 86_400 });
+    const raw = await signPass(key, { g: GYM, m: M1, n: 1, iat: nowS - 60, exp: nowS + 86_400 });
     const res = await scanMemberPass(session.db, GYM, raw);
     if (!res.ok) throw new Error('scan failed');
     const out = await confirmScan(deps(), res.candidate, { branch_id: 'b1' });
     expect(out.path).toBe('outbox');
     if (out.path !== 'outbox' || !out.result.ok) throw new Error('record failed');
-    expect(out.result.event).toMatchObject({ attendance_method: 'staff_qr', qr: { raw }, member_id: 'm1', branch_id: 'b1', actor_user_id: 'staff-1' });
+    expect(out.result.event).toMatchObject({ attendance_method: 'staff_qr', qr: { raw }, member_id: M1, branch_id: 'b1', actor_user_id: 'staff-1' });
     await vi.waitFor(async () => expect((await getOutboxRow(session.db, out.result.ok ? out.result.event.event_id : ''))?.sync_status).toBe('synced'));
   });
 
   it('unknown key → qr_unknown_key (UI offers "refresh offline data"); wrong gym → qr_wrong_gym', async () => {
     const other = await makeKey('k-rotated');
-    expect(await scanMemberPass(session.db, GYM, await signPass(other, { g: GYM, m: 'm1', iat: nowS, exp: nowS + 100 }))).toEqual({
+    expect(await scanMemberPass(session.db, GYM, await signPass(other, { g: GYM, m: M1, iat: nowS, exp: nowS + 100 }))).toEqual({
       ok: false, code: 'qr_unknown_key',
     });
-    expect(await scanMemberPass(session.db, GYM, await signPass(key, { g: 'gym-9', m: 'm1', iat: nowS, exp: nowS + 100 }))).toEqual({
+    expect(await scanMemberPass(session.db, GYM, await signPass(key, { g: '99999999-9999-4999-8999-999999999999', m: M1, iat: nowS, exp: nowS + 100 }))).toEqual({
       ok: false, code: 'qr_wrong_gym',
     });
   });
 
   it('expiry uses the estimated server clock, not a changed device clock', async () => {
-    const raw = await signPass(key, { g: GYM, m: 'm1', iat: nowS - 3600, exp: nowS + 600 });
+    const raw = await signPass(key, { g: GYM, m: M1, iat: nowS - 3600, exp: nowS + 600 });
     await recordServerTime(session.db, new Date(NOW).toISOString(), { wall: Date.now(), mono: 0 });
     // monotonic clock says 1 h passed on the server → expired, even though wall time didn't move
     const time = { wallNow: () => Date.now(), monoNow: () => 3_600_000 };
@@ -195,12 +202,13 @@ describe('front desk: staff QR → confirm → record', () => {
   });
 
   it('disabled policy: confirm uses the online endpoint (scan still verified offline)', async () => {
-    const raw = await signPass(key, { g: GYM, m: 'm1', iat: nowS - 60, exp: nowS + 86_400 });
+    const raw = await signPass(key, { g: GYM, m: M1, iat: nowS - 60, exp: nowS + 86_400 });
     const res = await scanMemberPass(session.db, GYM, raw);
     if (!res.ok) throw new Error('scan failed');
     const fetchImpl = vi.fn().mockResolvedValue(json({ id: 'att-9' }));
     const out = await confirmScan({ ...deps(), policy: { ...policy, enabled: false }, fetchImpl }, res.candidate);
     expect(out).toEqual({ path: 'online', ok: true, attendanceId: 'att-9' });
+    expect(JSON.parse(String((fetchImpl.mock.calls[0] as [string, RequestInit])[1].body)).method).toBe('qr');
     expect(await listOutbox(session.db)).toHaveLength(0);
   });
 

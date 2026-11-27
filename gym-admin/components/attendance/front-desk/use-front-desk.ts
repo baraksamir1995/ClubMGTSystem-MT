@@ -171,8 +171,13 @@ export function useFrontDesk(identity: OfflineIdentity, canRecord: boolean) {
       const policy = (await getMeta(s.db, 'policy')) ?? DEFAULT_POLICY;
       const gate = permissionGate(snapshot, Date.now(), policy.max_data_age_hours * 3_600_000);
       if (gate === 'stale' && isOnline()) {
-        const ok = await revalidateAttendancePermission();
-        if (ok !== null) await setMeta(s.db, 'permissions_snapshot', { attendance: ok, checked_at: Date.now() });
+        const verdict = await revalidateAttendancePermission();
+        if (verdict === 'allowed' || verdict === 'denied') {
+          await setMeta(s.db, 'permissions_snapshot', { attendance: verdict === 'allowed', checked_at: Date.now() });
+        } else if (verdict === 'auth_required') {
+          // session expired: show "Login required"; local records stay pending
+          s.engine.pause('auth_required');
+        }
       }
       await reload(s);
     };

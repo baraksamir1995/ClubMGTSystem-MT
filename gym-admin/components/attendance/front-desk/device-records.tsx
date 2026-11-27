@@ -5,10 +5,7 @@ import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Badge, Card, EmptyState } from '@/components/ui';
 import { itemState } from '@/lib/offline/front-desk';
 import type { OutboxRow } from '@/lib/offline/types';
-
-export function rejectionText(row: OutboxRow, tResults: (k: string) => string): string {
-  return row.result_message || row.result_code || tResults('onlineFailed');
-}
+import { useReasonText } from './use-reason-text';
 
 /**
  * Latest records on this device with their sync state. Read-only by design:
@@ -16,7 +13,7 @@ export function rejectionText(row: OutboxRow, tResults: (k: string) => string): 
  */
 export function DeviceRecords({ rows, memberName }: { rows: OutboxRow[]; memberName: (id: string) => string | null }) {
   const t = useTranslations('attendance.frontDesk.items');
-  const tResults = useTranslations('attendance.frontDesk.results');
+  const reason = useReasonText();
   const format = useFormatter();
 
   return (
@@ -49,7 +46,7 @@ export function DeviceRecords({ rows, memberName }: { rows: OutboxRow[]; memberN
                     </span>
                   </div>
                   <p className={`text-xs mt-0.5 ${s === 'synced' ? 'text-success' : s === 'rejected' ? 'text-danger' : 'text-warning'}`}>
-                    {s === 'synced' ? t('synced') : s === 'rejected' ? t('rejected', { reason: rejectionText(r, tResults) }) : t('waiting')}
+                    {s === 'synced' ? t('synced') : s === 'rejected' ? t('rejected', { reason: reason(r.result_code, r.result_message) }) : t('waiting')}
                   </p>
                   {r.flags.length > 0 && <p className="text-xs text-warning">{t('flagged', { flags: r.flags.join(', ') })}</p>}
                 </div>

@@ -12,5 +12,7 @@
  "openNav": "Open navigation menu",
  "closeNav": "Close navigation menu",
  "navDrawer": "Navigation",
- "offlinePendingConfirm": "{count, plural, one {# attendance record has} other {# attendance records have}} not been synced yet. They stay saved on this device and will sync the next time you sign in here. Sign out anyway?"
+ "offlinePendingConfirm": "{count, plural, one {# attendance record has} other {# attendance records have}} not been synced yet. They stay saved on this device and will sync the next time you sign in here. Sign out anyway?",
+ "signOutOffline": "You're offline — sign out needs a connection so this computer doesn't stay signed in.",
+ "signingOutSync": "Syncing attendance before signing out…"
 }

@@ -1,14 +1,18 @@
 /**
- * Sign-out with the offline logout policy (D9) applied FIRST, while the auth
- * cookie still works:
+ * Sign-out with the offline logout policy (D9):
+ *   0. offline → refuse (`'offline'`): the server-side logout can't run, so the
+ *      computer would stay signed in while the UI pretends otherwise
+ *      (PHASE2-VERIFICATION MEDIUM-3);
  *   1. find this user's offline session (active in this tab, or an existing
  *      database for the current identity) — never creates a new database;
- *   2. try to sync (bounded);
+ *   2. try to sync (bounded) while the auth cookie still works;
  *   3. if events are still unsynced, ask the user (they stay saved on this
  *      device for this user and sync on their next sign-in) — cancel aborts
- *      the sign-out and changes nothing;
- *   4. wipe cached member data (outbox kept), then 5. POST /api/auth/logout.
- * Offline cleanup failures never block signing out.
+ *      and changes nothing;
+ *   4. POST /api/auth/logout — a network failure returns `'offline'` and
+ *      changes nothing locally;
+ *   5. only then wipe cached member data (outbox kept).
+ * Local storage problems never block signing out.
  */
 import { countOutbox, dbNameFor } from './db';
 import {
@@ -24,7 +28,12 @@ export interface SignOutDeps {
   confirmPending: (count: number) => boolean | Promise<boolean>;
   fetchImpl?: typeof fetch;
   syncTimeoutMs?: number;
+  /** progress for the UI (the sync wait can take a few seconds) */
+  onProgress?: (phase: 'syncing' | 'signing_out') => void;
+  isOnline?: () => boolean;
 }
+
+export type SignOutResult = 'signed_out' | 'cancelled' | 'offline';
 
 async function databaseExists(name: string): Promise<boolean> {
   const idb = (globalThis as { indexedDB?: IDBFactory }).indexedDB;
@@ -58,35 +67,55 @@ async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | 'timeout'>
   }
 }
 
-export async function signOutWithOfflineCleanup(deps: SignOutDeps): Promise<'signed_out' | 'cancelled'> {
+export async function signOutWithOfflineCleanup(deps: SignOutDeps): Promise<SignOutResult> {
   const fetchImpl = deps.fetchImpl ?? fetch;
+  const online = deps.isOnline ?? (() => (typeof navigator === 'undefined' ? true : navigator.onLine !== false));
+  if (!online()) return 'offline';
+
   let found: { session: OfflineSession; opened: boolean } | null = null;
   try {
     found = await findSession(fetchImpl);
   } catch {
     found = null;
   }
+  const release = () => {
+    if (found?.opened) found.session.close();
+  };
 
   if (found) {
-    const { session } = found;
     try {
-      await withTimeout(session.engine.syncNow().catch(() => null), deps.syncTimeoutMs ?? 5_000);
-      const counts = await countOutbox(session.db);
+      deps.onProgress?.('syncing');
+      await withTimeout(found.session.engine.syncNow().catch(() => null), deps.syncTimeoutMs ?? 5_000);
+      const counts = await countOutbox(found.session.db);
       const unsynced = counts.pending + counts.syncing;
       if (unsynced > 0 && !(await deps.confirmPending(unsynced))) {
-        if (found.opened) session.close();
+        release();
         return 'cancelled';
       }
-      await logoutOffline(session, { skipSync: true });
     } catch {
-      // never block sign-out on local storage problems
+      // local storage problems never block sign-out
     }
   }
 
+  deps.onProgress?.('signing_out');
   try {
-    await fetchImpl('/api/auth/logout', { method: 'POST' });
+    const res = await fetchImpl('/api/auth/logout', { method: 'POST' });
+    if (!res.ok && res.status >= 500) {
+      release();
+      return 'offline';
+    }
   } catch {
-    // cookie clearing failed (offline); caller still navigates to /login
+    // network failure: the cookie was NOT cleared — don't pretend
+    release();
+    return 'offline';
+  }
+
+  if (found) {
+    try {
+      await logoutOffline(found.session, { skipSync: true });
+    } catch {
+      // ignore: the server-side session is already gone
+    }
   }
   return 'signed_out';
 }

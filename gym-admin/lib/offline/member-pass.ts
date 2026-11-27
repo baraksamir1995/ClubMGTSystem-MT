@@ -1,18 +1,20 @@
 /**
- * Offline attendance — member pass verification (PHASE2-CONTRACT "Verification").
+ * Offline attendance — member pass verification (PHASE2-CONTRACT "Verification"
+ * + "Amendments after Phase 2 verification").
  *
- * QR text (compact JSON, keys in this order):
- *   {"t":"clby_mp","v":1,"kid":"…","g":"<gym_id>","m":"<gym_member_id>","n":<number|null>,
- *    "iat":<unix s>,"exp":<unix s>,"sig":"<base64url, no padding>"}
+ * QR text (compact JSON): {"t":"clby_mp","v":1,"kid":"…","g":"<gym uuid>","m":"<member uuid>",
+ *   "n":<int|null>,"iat":<unix s>,"exp":<unix s>,"sig":"<base64url, no padding>"}
  * Signature: Ed25519 over UTF-8 `clby_mp|1|<kid>|<g>|<m>|<n or empty>|<iat>|<exp>`.
  *
- * Steps (identical on dashboard, coach app and server):
- *  1. parse + shape                → qr_invalid
- *  2. kid known (active, or retired within valid_until) → qr_unknown_key (client: refresh data)
+ * Order (amendment §2):
+ *  1. strict canonical parse (§3)  → qr_invalid
+ *  4. g == staff gym               → qr_wrong_gym   (before key lookup)
+ *  2. kid usable: active, or retired within valid_until; revoked never (§4)
+ *     → unknown kid / out of grace: qr_unknown_key (client: refresh data); revoked: qr_invalid
  *  3. signature                    → qr_invalid
- *  4. g == staff gym               → qr_wrong_gym
- *  5. exp > server now, iat ≤ now + future skew → pass_expired / qr_invalid
+ *  5. iat ≤ exp, iat ≤ scan time + skew (§1) → qr_invalid; exp > scan time → else pass_expired
  *  6. member in the local cache    → member_not_found
+ * "Scan time" is the estimated server now (CONTRACT §6.6 clock).
  *
  * Ed25519: WebCrypto `Ed25519` where the browser supports it (Chrome 137+,
  * Safari 17+, Firefox 129+, Node 20+), else `@noble/ed25519` (audited, zero
@@ -28,10 +30,13 @@ export interface MemberPass {
   kid: string;
   g: string;
   m: string;
+  /** display value; may lose precision beyond 2^53 — the signature uses `literals` */
   n: number | null;
   iat: number;
   exp: number;
   sig: string;
+  /** exact integer literals as scanned (canonical decimal form) */
+  literals?: { n: string | null; iat: string; exp: string };
 }
 
 export type PassFailure = 'qr_invalid' | 'qr_unknown_key' | 'qr_wrong_gym' | 'pass_expired' | 'member_not_found';
@@ -75,35 +80,149 @@ export function base64UrlEncode(bytes: Uint8Array): string {
 }
 
 export function canonicalPassString(p: Omit<MemberPass, 'sig' | 't' | 'v'>): string {
-  return `clby_mp|1|${p.kid}|${p.g}|${p.m}|${p.n == null ? '' : p.n}|${p.iat}|${p.exp}`;
+  const n = p.literals ? p.literals.n : p.n == null ? null : String(p.n);
+  const iat = p.literals ? p.literals.iat : String(p.iat);
+  const exp = p.literals ? p.literals.exp : String(p.exp);
+  return `clby_mp|1|${p.kid}|${p.g}|${p.m}|${n ?? ''}|${iat}|${exp}`;
 }
 
-// ── step 1: parse ───────────────────────────────────────────────────────────
+// ── step 1: strict canonical parse (amendment §3) ───────────────────────────
 
-const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 200;
-const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v);
+export const MAX_PASS_LENGTH = 1024;
+const PASS_KEYS = ['t', 'v', 'kid', 'g', 'm', 'n', 'iat', 'exp', 'sig'] as const;
+const KID_RE = /^[A-Za-z0-9_-]{1,32}$/;
+/** lowercase canonical UUID only (server rule: anything else → qr_invalid) */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** canonical JSON integer: no fraction, no exponent, no leading zeros, no -0 */
+const INT_RE = /^(?:0|-?[1-9][0-9]*)$/;
+const SIG_RE = /^[A-Za-z0-9_-]{86}$/;
 
-/** Parse a scanned string as a member pass; null when it is not a well-formed v1 pass. */
-export function parseMemberPass(raw: string): MemberPass | null {
-  if (typeof raw !== 'string' || raw.length > 2048) return null;
-  let o: unknown;
-  try {
-    o = JSON.parse(raw);
-  } catch {
-    return null;
+type Lit = { kind: 'string'; value: string } | { kind: 'number'; text: string } | { kind: 'null' } | { kind: 'other' };
+
+/**
+ * Minimal tokenizer for a FLAT JSON object that keeps number literals as text
+ * (JSON.parse would turn `1.0` into `1`). Returns null on any syntax error or
+ * nested value. Duplicate keys: last wins (same as JSON.parse / PHP json_decode).
+ */
+export function parseFlatJsonObject(raw: string): Map<string, Lit> | null {
+  const ws = /[ \t\n\r]*/y;
+  const str = /"(?:[^"\\\u0000-\u001f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"/y;
+  const num = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
+  let i = 0;
+  const skip = () => {
+    ws.lastIndex = i;
+    ws.exec(raw);
+    i = ws.lastIndex;
+  };
+  const take = (re: RegExp): string | null => {
+    re.lastIndex = i;
+    const m = re.exec(raw);
+    if (!m) return null;
+    i = re.lastIndex;
+    return m[0];
+  };
+  const out = new Map<string, Lit>();
+  skip();
+  if (raw[i] !== '{') return null;
+  i++;
+  skip();
+  if (raw[i] === '}') {
+    i++;
+  } else {
+    for (;;) {
+      skip();
+      const keyTok = take(str);
+      if (keyTok == null) return null;
+      skip();
+      if (raw[i] !== ':') return null;
+      i++;
+      skip();
+      let lit: Lit;
+      const sTok = take(str);
+      if (sTok != null) {
+        lit = { kind: 'string', value: JSON.parse(sTok) as string };
+      } else {
+        const nTok = take(num);
+        if (nTok != null) lit = { kind: 'number', text: nTok };
+        else if (raw.startsWith('null', i)) {
+          i += 4;
+          lit = { kind: 'null' };
+        } else if (raw.startsWith('true', i) || raw.startsWith('false', i)) {
+          i += raw.startsWith('true', i) ? 4 : 5;
+          lit = { kind: 'other' };
+        } else return null; // nested object/array or garbage
+      }
+      out.set(JSON.parse(keyTok) as string, lit);
+      skip();
+      if (raw[i] === ',') {
+        i++;
+        continue;
+      }
+      if (raw[i] === '}') {
+        i++;
+        break;
+      }
+      return null;
+    }
   }
-  if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
-  const p = o as Record<string, unknown>;
-  if (p.t !== 'clby_mp' || p.v !== 1) return null;
-  if (!isStr(p.kid) || !isStr(p.g) || !isStr(p.m) || !isStr(p.sig)) return null;
-  if (!(p.n === null || isInt(p.n))) return null;
-  if (!isInt(p.iat) || !isInt(p.exp)) return null;
-  return { t: 'clby_mp', v: 1, kid: p.kid, g: p.g, m: p.m, n: p.n as number | null, iat: p.iat, exp: p.exp, sig: p.sig };
+  skip();
+  return i === raw.length ? out : null;
+}
+
+/** base64url without padding whose decoding is exactly 64 bytes and re-encodes identically. */
+export function isCanonicalSig(sig: string): boolean {
+  if (!SIG_RE.test(sig)) return false;
+  const bytes = base64UrlDecode(sig);
+  return !!bytes && bytes.length === 64 && base64UrlEncode(bytes) === sig;
+}
+
+/** Parse a scanned string as a member pass; null unless it is the canonical v1 form. */
+export function parseMemberPass(raw: string): MemberPass | null {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > MAX_PASS_LENGTH) return null;
+  if (raw.charCodeAt(0) === 0xfeff) return null; // BOM
+  const obj = parseFlatJsonObject(raw);
+  if (!obj || obj.size !== PASS_KEYS.length) return null;
+  for (const k of PASS_KEYS) if (!obj.has(k)) return null;
+  const get = (k: (typeof PASS_KEYS)[number]) => obj.get(k)!;
+
+  const t = get('t');
+  const v = get('v');
+  const kid = get('kid');
+  const g = get('g');
+  const m = get('m');
+  const n = get('n');
+  const iat = get('iat');
+  const exp = get('exp');
+  const sig = get('sig');
+
+  if (t.kind !== 'string' || t.value !== 'clby_mp') return null;
+  if (v.kind !== 'number' || v.text !== '1') return null;
+  if (kid.kind !== 'string' || !KID_RE.test(kid.value)) return null;
+  if (g.kind !== 'string' || !UUID_RE.test(g.value)) return null;
+  if (m.kind !== 'string' || !UUID_RE.test(m.value)) return null;
+  // server rule: |n| ≤ 2^53−1 (safe integer)
+  if (!(n.kind === 'null' || (n.kind === 'number' && INT_RE.test(n.text) && Number.isSafeInteger(Number(n.text))))) return null;
+  if (iat.kind !== 'number' || !INT_RE.test(iat.text)) return null;
+  if (exp.kind !== 'number' || !INT_RE.test(exp.text)) return null;
+  if (sig.kind !== 'string' || !isCanonicalSig(sig.value)) return null;
+
+  return {
+    t: 'clby_mp',
+    v: 1,
+    kid: kid.value,
+    g: g.value,
+    m: m.value,
+    n: n.kind === 'number' ? Number(n.text) : null,
+    iat: Number(iat.text),
+    exp: Number(exp.text),
+    sig: sig.value,
+    literals: { n: n.kind === 'number' ? n.text : null, iat: iat.text, exp: exp.text },
+  };
 }
 
 /** Quick check used by the scanner to tell a member pass from other QR codes. */
 export function looksLikeMemberPass(raw: string): boolean {
-  return raw.trimStart().startsWith('{') && raw.includes('"clby_mp"');
+  return raw.replace(/^\uFEFF/, '').trimStart().startsWith('{') && raw.includes('"clby_mp"');
 }
 
 // ── Ed25519 ─────────────────────────────────────────────────────────────────
@@ -144,38 +263,49 @@ export const defaultVerifier: Ed25519Verifier = async (pub, sig, msg) => {
 
 // ── steps 2–6 ───────────────────────────────────────────────────────────────
 
-export function usableKey(keys: PassKey[], kid: string, nowMs: number): PassKey | null {
+export type KeyLookup = { ok: true; key: PassKey } | { ok: false; code: 'qr_unknown_key' | 'qr_invalid' };
+
+/** Active, or retired within valid_until (judged at scan time); revoked → never. */
+export function lookupKey(keys: PassKey[], kid: string, nowMs: number): KeyLookup {
   const k = keys.find((x) => x.kid === kid);
-  if (!k) return null;
-  if (k.status === 'active') return k;
+  if (!k) return { ok: false, code: 'qr_unknown_key' };
+  if (k.status === 'revoked') return { ok: false, code: 'qr_invalid' };
+  if (k.status === 'active') return { ok: true, key: k };
   if (k.status === 'retired' && k.valid_until) {
     const until = Date.parse(k.valid_until);
-    if (!Number.isNaN(until) && until > nowMs) return k;
+    if (!Number.isNaN(until) && until > nowMs) return { ok: true, key: k };
   }
-  return null;
+  return { ok: false, code: 'qr_unknown_key' };
+}
+
+/** @deprecated kept for callers: the usable key or null. */
+export function usableKey(keys: PassKey[], kid: string, nowMs: number): PassKey | null {
+  const r = lookupKey(keys, kid, nowMs);
+  return r.ok ? r.key : null;
 }
 
 export async function verifyMemberPass(raw: string, ctx: VerifyPassContext): Promise<PassVerification> {
-  // 1
+  // 1. strict parse
   const pass = parseMemberPass(raw);
   if (!pass) return { ok: false, code: 'qr_invalid' };
-  // 2
-  const key = usableKey(ctx.passKeys, pass.kid, ctx.serverNowMs);
-  if (!key) return { ok: false, code: 'qr_unknown_key', pass };
-  // 3
-  const pub = base64UrlDecode(key.public_key);
+  // 4 (before key lookup, amendment §2). `g` is lowercase (parser); the staff gym id is normalised.
+  if (pass.g !== ctx.gymId.toLowerCase()) return { ok: false, code: 'qr_wrong_gym', pass };
+  // 2. key
+  const key = lookupKey(ctx.passKeys, pass.kid, ctx.serverNowMs);
+  if (!key.ok) return { ok: false, code: key.code, pass };
+  // 3. signature
+  const pub = base64UrlDecode(key.key.public_key);
   const sig = base64UrlDecode(pass.sig);
   if (!pub || !sig) return { ok: false, code: 'qr_invalid', pass };
   const msg = new TextEncoder().encode(canonicalPassString(pass));
   const valid = await (ctx.verifier ?? defaultVerifier)(pub, sig, msg);
   if (!valid) return { ok: false, code: 'qr_invalid', pass };
-  // 4
-  if (pass.g !== ctx.gymId) return { ok: false, code: 'qr_wrong_gym', pass };
-  // 5
-  const nowS = Math.floor(ctx.serverNowMs / 1000);
-  if (pass.exp <= nowS) return { ok: false, code: 'pass_expired', pass };
-  if (pass.iat > nowS + ctx.futureSkewSeconds) return { ok: false, code: 'qr_invalid', pass };
-  // 6
+  // 5. time (amendment §1): iat ≤ exp, iat ≤ scan time + skew, exp > scan time
+  const scanS = Math.floor(ctx.serverNowMs / 1000);
+  if (pass.iat > pass.exp) return { ok: false, code: 'qr_invalid', pass };
+  if (pass.iat > scanS + ctx.futureSkewSeconds) return { ok: false, code: 'qr_invalid', pass };
+  if (pass.exp <= scanS) return { ok: false, code: 'pass_expired', pass };
+  // 6. member (lowercase UUID, as the cache stores them)
   const member = await ctx.findMember(pass.m);
   if (!member) return { ok: false, code: 'member_not_found', pass };
   return { ok: true, pass, member };

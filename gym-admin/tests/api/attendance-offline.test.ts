@@ -13,6 +13,7 @@ import { GET as eventsGet } from '@/app/api/attendance/offline/events/route';
 import { GET as memberPassGet } from '@/app/api/members/[id]/member-pass/route';
 import { middleware } from '@/middleware';
 import { resolveGymId } from '@/lib/api-gym-id';
+import { POST as attendancePost } from '@/app/api/attendance/route';
 
 const ME = { id: 'u1', gym_id: 'gym-1', role: 'staff' };
 
@@ -221,6 +222,24 @@ describe('offline attendance proxies', () => {
     expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events?result=rejected&needs_review=1&cursor=c1');
   });
 
+  it('GET /offline/events forwards result=error and caps limit at 200', async () => {
+    login();
+    const fetchMock = backend(() => json({ data: [], next_cursor: null }));
+    vi.stubGlobal('fetch', fetchMock);
+    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?result=error&limit=999'));
+    expect(upstreamCall(fetchMock).url).toBe('http://backend.test/api/attendance/offline/events?result=error&limit=200');
+    login();
+    const f2 = backend(() => json({ data: [], next_cursor: null }));
+    vi.stubGlobal('fetch', f2);
+    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?limit=25'));
+    expect(upstreamCall(f2).url).toBe('http://backend.test/api/attendance/offline/events?limit=25');
+    login();
+    const f3 = backend(() => json({ data: [], next_cursor: null }));
+    vi.stubGlobal('fetch', f3);
+    await eventsGet(new NextRequest('http://t/api/attendance/offline/events?limit=0&limit=abc'));
+    expect(upstreamCall(f3).url).toBe('http://backend.test/api/attendance/offline/events');
+  });
+
   it('GET /offline/events drops an unknown result value', async () => {
     login();
     const fetchMock = backend(() => json({ data: [], next_cursor: null }));
@@ -263,7 +282,7 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     return r;
   };
 
-  it.each(['/api/attendance/sync', '/api/attendance/offline/bootstrap', '/api/attendance/offline/status'])(
+  it.each(['/api/attendance/sync', '/api/attendance/offline/bootstrap', '/api/attendance/offline/status', '/api/attendance/offline/events', '/api/members/11111111-2222-3333-4444-555555555555/member-pass'])(
     '%s without cookie → 401 JSON',
     async (path) => {
       const res = await middleware(req(path));
@@ -272,7 +291,7 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     },
   );
 
-  it.each(['/api/attendance', '/api/attendance/syncx', '/api/attendance/offline', '/dashboard/attendance', '/api/members'])(
+  it.each(['/api/attendance', '/api/attendance/syncx', '/api/attendance/offline', '/dashboard/attendance', '/api/members', '/api/members/x', '/api/members/x/member-pass/extra'])(
     '%s without cookie still redirects to /login (unchanged)',
     async (path) => {
       const res = await middleware(req(path));
@@ -287,3 +306,27 @@ describe('middleware: offline attendance APIs return JSON 401 instead of the log
     expect(res.headers.get('x-middleware-next')).toBe('1');
   });
 });
+
+describe('existing POST /api/attendance: method allowlist (policy-off staff QR)', () => {
+  beforeEach(() => {
+    cookieGet.mockReset();
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    [{ method: 'qr' }, 'qr'],
+    [{}, 'manual'],
+    [{ method: 'staff_qr' }, 'manual'],
+    [{ method: 'anything' }, 'manual'],
+  ])('body %j → method %s', async (extra, expected) => {
+    cookieGet.mockReturnValue({ value: `1|token-method-${expected}-${JSON.stringify(extra).length}-${'z'.repeat(16)}` });
+    const fetchMock = backend(() => json({ data: { id: 'att-1' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await attendancePost(
+      new NextRequest('http://t/api/attendance', { method: 'POST', body: JSON.stringify({ memberId: 'm1', ...extra }), headers: { 'content-type': 'application/json' } }),
+    );
+    expect(res.status).toBe(200);
+    expect(JSON.parse(String(upstreamCall(fetchMock).init.body)).method).toBe(expected);
+  });
+});
+

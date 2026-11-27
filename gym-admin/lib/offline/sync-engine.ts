@@ -302,7 +302,12 @@ export interface LifecycleOptions {
 }
 
 export interface SyncEngine {
-  syncNow(opts?: { force?: boolean }): Promise<SyncRunSummary>;
+  /**
+   * `force`: manual "sync now" — every pending row, ignoring backoff AND holds.
+   * `ignoreBackoff`: e.g. on reconnect — pending rows due or backing off, but
+   * rows on hold (capped 422s) stay held.
+   */
+  syncNow(opts?: { force?: boolean; ignoreBackoff?: boolean }): Promise<SyncRunSummary>;
   getState(): SyncEngineState;
   subscribe(listener: (state: SyncEngineState) => void): () => void;
   /** recompute counts / data age from the database and notify subscribers */
@@ -610,7 +615,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     return hold;
   }
 
-  async function runLocked(force: boolean): Promise<SyncRunSummary> {
+  async function runLocked(force: boolean, ignoreBackoff = false): Promise<SyncRunSummary> {
     const summary: SyncRunSummary = {
       ran: true,
       batches: 0,
@@ -624,15 +629,22 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     const policy = (await getMeta(db, 'policy')) ?? DEFAULT_POLICY;
     const batchSize = Math.max(1, Math.min(SERVER_MAX_BATCH, Math.floor(policy.max_batch) || SERVER_MAX_BATCH));
 
-    const initial = force ? await listOutboxByStatus(db, 'pending') : await listDueOutbox(db, now());
+    const pendingNow = force || ignoreBackoff ? await listOutboxByStatus(db, 'pending') : null;
+    const initial = force
+      ? pendingNow!
+      : ignoreBackoff
+        ? pendingNow!.filter((r) => !r.sync_hold)
+        : await listDueOutbox(db, now());
+    // both modes pin the run to the rows that were eligible when it started
+    const pinned = force || ignoreBackoff;
     // + initial.length: 422 isolation may re-send every row once on its own
     const maxBatches = Math.ceil(initial.length / batchSize) + initial.length + 1;
     // `force` ignores backoff for the rows that were pending when the run started.
-    const forced = new Set(force ? initial.map((r) => r.event_id) : []);
+    const forced = new Set(pinned ? initial.map((r) => r.event_id) : []);
     lastError = null;
 
     while (summary.batches < maxBatches) {
-      const due = force
+      const due = pinned
         ? (await listOutboxByStatus(db, 'pending')).filter((r) => forced.has(r.event_id))
         : await listDueOutbox(db, now());
       if (due.length === 0) break;
@@ -689,7 +701,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
           await rejectEnvelope(batch.filter((r) => blamed.has(r.event_id)), blamed);
           const rest = batch.filter((r) => !blamed.has(r.event_id));
           await restore(rest);
-          if (force) for (const r of rest) forced.add(r.event_id);
+          if (pinned) for (const r of rest) forced.add(r.event_id);
           summary.rejected += blamed.size;
           continue;
         }
@@ -697,7 +709,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
           // Unspecific 422: re-send these one at a time to find the culprit.
           for (const r of batch) isolate.add(r.event_id);
           await restore(batch);
-          if (force) for (const r of batch) forced.add(r.event_id);
+          if (pinned) for (const r of batch) forced.add(r.event_id);
           continue;
         }
         const held = await envelopeFailure(batch[0], policy, outcome.body);
@@ -734,10 +746,14 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     }
   }
 
-  async function syncNow(opts: { force?: boolean } = {}): Promise<SyncRunSummary> {
+  async function syncNow(opts: { force?: boolean; ignoreBackoff?: boolean } = {}): Promise<SyncRunSummary> {
     const empty = { batches: 0, sent: 0, synced: 0, rejected: 0, retrying: 0, recovered: 0 };
     if (disposed) return { ran: false, skipped: 'paused', ...empty };
-    if (inflight) return inflight;
+    if (inflight) {
+      // A routine run is in flight: honour an explicit "now" request right after it.
+      if (opts.force || opts.ignoreBackoff) return inflight.then(() => syncNow(opts));
+      return inflight;
+    }
     if (paused) {
       await refresh();
       return { ran: false, skipped: 'paused', ...empty };
@@ -752,7 +768,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         const res = await lock.run(async () => {
           running = true;
           try {
-            return await runLocked(!!opts.force);
+            return await runLocked(!!opts.force, !!opts.ignoreBackoff);
           } finally {
             running = false;
           }
@@ -781,7 +797,11 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     const trigger = () => {
       void syncNow().catch(() => undefined);
     };
-    const onOnline = () => trigger();
+    // Reconnect: sync straight away, ignoring backoff once (PHASE2-VERIFICATION
+    // LOW-MED-6) — the wait was caused by being offline, not by the server.
+    const onOnline = () => {
+      void syncNow({ ignoreBackoff: true }).catch(() => undefined);
+    };
     const onOffline = () => {
       void refresh().catch(() => undefined);
     };

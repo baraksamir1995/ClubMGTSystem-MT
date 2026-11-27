@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
       gym_member_id: body.memberId,
       check_in_at: body.checkInAt,
       access_point: body.accessPoint,
-      method: 'manual',
+      // D6 values only: the front desk's verified member-pass scan sends 'qr';
+      // everything else (incl. the manual modal, which sends nothing) is 'manual'.
+      method: body.method === 'qr' ? 'qr' : 'manual',
       branch_id: body.branchId,
       specialist_name: body.specialistName,
       class_session_id: body.classSessionId ?? null,

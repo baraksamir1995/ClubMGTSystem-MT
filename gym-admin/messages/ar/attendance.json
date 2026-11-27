@@ -301,7 +301,39 @@
       "loadFailed": "تعذّر تحميل قائمة الخادم.",
       "more": "تحميل المزيد",
       "filterFlagged": "تحتاج إلى مراجعة",
-      "filterRejected": "مرفوضة"
+      "filterRejected": "مرفوضة",
+      "method": "الطريقة"
+    },
+    "codes": {
+      "invalid_payload": "السجل غير مكتمل أو غير صالح.",
+      "invalid_envelope": "أرسل الجهاز دفعة غير صالحة.",
+      "tenant_mismatch": "السجل تابع لنادٍ آخر.",
+      "member_not_found": "العضو غير موجود في هذا النادي.",
+      "branch_not_found": "الفرع غير موجود.",
+      "class_session_not_found": "الحصة غير موجودة.",
+      "studio_not_found": "الاستوديو غير موجود.",
+      "assignment_not_found": "الباقة غير موجودة.",
+      "assignment_not_active": "الباقة غير فعّالة.",
+      "permission_denied": "لا توجد صلاحية لتسجيل الحضور.",
+      "not_self": "يمكن للأعضاء تسجيل حضورهم فقط.",
+      "qr_invalid": "رمز QR غير صالح أو مزوّر.",
+      "qr_wrong_gym": "رمز QR تابع لنادٍ آخر.",
+      "qr_member_mismatch": "البطاقة تخص عضوًا آخر.",
+      "pass_expired": "كانت بطاقة العضو منتهية الصلاحية.",
+      "branch_inactive": "الفرع غير فعّال.",
+      "not_a_member": "لا يوجد اشتراك في هذا النادي.",
+      "membership_frozen": "الاشتراك مجمّد.",
+      "gym_access_not_included": "الاشتراك لا يشمل دخول النادي.",
+      "branch_not_included": "الاشتراك لا يشمل هذا الفرع.",
+      "pack_expired": "كانت باقة الحصص منتهية.",
+      "guard_window": "تم تسجيل جلسة خلال آخر 30 دقيقة.",
+      "clock_in_future": "كانت ساعة الجهاز متقدمة — الوقت في المستقبل.",
+      "event_too_old": "سُجّل منذ وقت طويل جدًا ولا يمكن قبوله.",
+      "event_id_conflict": "تعارض في معرّف السجل.",
+      "event_id_reused": "أعيد استخدام معرّف السجل بتفاصيل مختلفة.",
+      "offline_disabled": "كان الوضع دون اتصال غير مفعّل لهذا النادي.",
+      "already_checked_in": "مسجّل حضوره في هذه الحصة بالفعل.",
+      "server_error": "خطأ في الخادم — ستتم إعادة المحاولة."
     }
   }
 }

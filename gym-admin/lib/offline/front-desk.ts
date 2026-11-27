@@ -52,15 +52,25 @@ export function permissionGate(
   return nowMs - snapshot.checked_at > maxAgeMs ? 'stale' : 'ok';
 }
 
-/** Online re-check through the existing attendance proxy (server guard = Laravel permission). */
-export async function revalidateAttendancePermission(fetchImpl: typeof fetch = fetch): Promise<boolean | null> {
+export type PermissionRecheck = 'allowed' | 'denied' | 'auth_required' | 'unknown';
+
+/**
+ * Online re-check through the existing attendance proxy (server guard = Laravel
+ * permission). An expired/missing session (401, or the middleware's redirect to
+ * /login) is `auth_required` — the UI shows "Login required", it is not a
+ * permission change. Outages are `unknown` (keep the current snapshot).
+ */
+export async function revalidateAttendancePermission(fetchImpl: typeof fetch = fetch): Promise<PermissionRecheck> {
   try {
     const res = await fetchImpl('/api/attendance?limit=1', { cache: 'no-store', redirect: 'manual' });
-    if (res.ok) return true;
-    if (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect') return false;
-    return null; // outage: undecided
+    if (res.type === 'opaqueredirect' || res.redirected || (res.status >= 300 && res.status < 400) || res.status === 401) {
+      return 'auth_required';
+    }
+    if (res.ok) return 'allowed';
+    if (res.status === 403) return 'denied';
+    return 'unknown';
   } catch {
-    return null;
+    return 'unknown';
   }
 }
 
@@ -112,6 +122,8 @@ export async function submitAttendance(deps: SubmitDeps, input: SubmitInput): Pr
         branchId: recordInput.branch_id ?? null,
         classSessionId: recordInput.class_session_id ?? null,
         specialistName: null,
+        // existing endpoint's method values (D6): a verified pass scan is 'qr'
+        method: recordInput.attendance_method === 'staff_qr' ? 'qr' : 'manual',
       }),
     });
     const body: unknown = await res.json().catch(() => null);

@@ -260,7 +260,8 @@ export interface PassKey {
   kid: string;
   /** raw 32-byte Ed25519 public key, base64url */
   public_key: string;
-  status: 'active' | 'retired';
+  /** revoked keys are never accepted, no grace (PHASE2 amendment §4) */
+  status: 'active' | 'retired' | 'revoked';
   /** retired keys are accepted until this instant (ISO); null for active keys */
   valid_until: string | null;
 }
@@ -280,22 +281,31 @@ export interface AdminBootstrapPage {
   next_cursor: string | null;
 }
 
-/** One row of GET /api/attendance/offline/events (PHASE2-CONTRACT review endpoint). */
+/** One row of GET /api/attendance/offline/events (AttendanceOfflineController::events). */
 export interface ReviewEvent {
   event_id: string;
   kind: EventKind;
-  attendance_method: AttendanceMethod | null;
-  member_name: string | null;
-  actor_name: string | null;
-  device_label: string | null;
-  device_recorded_at: string;
-  server_received_at: string | null;
+  /** attendance method (staff_qr | member_qr | manual) or null (service sessions / invalid payloads) */
+  method: AttendanceMethod | null;
   result: ResultStatus;
   code: string | null;
   message: string | null;
   flags: string[];
-  attendance_id?: string | null;
-  service_log_id?: string | null;
+  needs_review: boolean;
+  attendance_id: string | null;
+  service_log_id: string | null;
+  attempts: number;
+  device_recorded_at: string | null;
+  device_timezone: string | null;
+  server_received_at: string | null;
+  processed_at: string | null;
+  member: { gym_member_id: string; member_number: number | null; full_name: string | null } | null;
+  actor: { user_id: string | null; type: string | null; full_name: string | null } | null;
+  device: { device_id: string | null; label: string | null; platform: string | null; app: string | null; app_version: string | null } | null;
+  branch_id: string | null;
+  class_session_id: string | null;
+  studio_id: string | null;
+  service_assignment_id: string | null;
 }
 
 export interface ReviewEventsPage {

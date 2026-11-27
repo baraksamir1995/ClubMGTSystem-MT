@@ -325,6 +325,44 @@ export interface CachedMembership extends MembershipBucket {
   gym_member_id: string;
 }
 
+// ── Branch QR v2 / kiosk (PHASE3-CONTRACT §1, §3, §5) ─────────────────────
+
+/** One pre-signed rotating branch QR token (60 s window). */
+export interface RotatingToken {
+  /** the exact v2 QR text to display */
+  qr: string;
+  /** unix seconds */
+  iat: number;
+  exp: number;
+}
+
+/** GET /api/branches/{id}/qr/rotating-batch */
+export interface RotatingBatchResponse {
+  tokens: RotatingToken[];
+  kid: string;
+  generated_at: string;
+}
+
+/** kiosk_batches store row (one per branch, per user database). */
+export interface KioskBatch {
+  branch_id: string;
+  branch_name: string | null;
+  kid: string;
+  generated_at: string;
+  /** device time when stored (epoch ms) */
+  stored_at: number;
+  /** sorted by iat, consecutive */
+  tokens: RotatingToken[];
+}
+
+/** GET /api/branches/{id}/qr?mode=static */
+export interface StaticBranchQr {
+  qr: string;
+  mode: 'static';
+  expires_at: string | null;
+  kid: string | null;
+}
+
 // ── meta store ──────────────────────────────────────────────────────────────
 
 export interface MetaValues {

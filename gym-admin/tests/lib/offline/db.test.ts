@@ -30,7 +30,7 @@ describe('offline db', () => {
     const db = await openTestDb();
     expect(db.version).toBe(DB_VERSION);
     expect([...db.objectStoreNames].sort()).toEqual(
-      ['branches', 'class_sessions', 'members', 'memberships', 'meta', 'outbox', 'recent_attendance'].sort(),
+      ['branches', 'class_sessions', 'kiosk_batches', 'members', 'memberships', 'meta', 'outbox', 'recent_attendance'].sort(),
     );
     const outbox = db.transaction('outbox').store;
     expect([...outbox.indexNames]).toEqual(

@@ -49,7 +49,8 @@ function isOfflineAttendanceApi(pathname: string): boolean {
   return (
     pathname === '/api/attendance/sync' ||
     pathname.startsWith('/api/attendance/offline/') ||
-    /^\/api\/members\/[^/]+\/member-pass$/.test(pathname)
+    /^\/api\/members\/[^/]+\/member-pass$/.test(pathname) ||
+    /^\/api\/branches\/[^/]+\/qr(?:\/rotating-batch)?$/.test(pathname)
   );
 }
 

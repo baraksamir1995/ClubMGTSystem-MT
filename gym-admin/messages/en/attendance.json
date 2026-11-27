@@ -82,7 +82,13 @@
     "regenerating": "Regenerating…",
     "regeneratedSuccess": "QR code regenerated — the old QR is now invalid",
     "regenerateFailed": "Failed to regenerate",
-    "networkError": "Network error"
+    "networkError": "Network error",
+    "validUntil": "Valid until {date}",
+    "signedNote": "Signed QR — members' phones can verify it even without internet.",
+    "fallbackNote": "Couldn't load the signed QR. Showing the basic QR instead — it only works while the member's phone is online.",
+    "openKiosk": "Open kiosk screen",
+    "regenerateNote": "Regenerating invalidates every printed poster and kiosk code for this branch, online and offline. Print a new poster afterwards.",
+    "loadingSigned": "Loading signed QR…"
   },
   "manualModal": {
     "title": "Manual Check-in",
@@ -335,5 +341,31 @@
       "already_checked_in": "Already checked in to this class.",
       "server_error": "Server error — will retry."
     }
-  }
+  },
+  "kiosk": {
+    "title": "Check-in kiosk",
+    "chooseBranch": "Choose the branch this screen stands at.",
+    "noBranches": "No branches yet.",
+    "open": "Open kiosk",
+    "back": "Back",
+    "enterFullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "scanInstruction": "Scan with the CLBY app to check in",
+    "nextIn": "New code in {seconds}s",
+    "validUntil": "Codes ready until {time}",
+    "lowWarning": "Less than an hour of codes left — connect this screen to the internet to refresh.",
+    "exhausted": "No valid codes — connect to refresh.",
+    "notStarted": "These codes aren't valid yet. Check the connection and refresh.",
+    "empty": "No codes downloaded yet — connect to the internet to load them.",
+    "refresh": "Refresh codes",
+    "refreshing": "Refreshing codes…",
+    "refreshFailed": "Couldn't refresh the codes.",
+    "online": "Online",
+    "offline": "Offline — showing pre-loaded codes",
+    "authRequired": "Session ended — sign in again to refresh the codes.",
+    "forbidden": "You don't have access to this branch's kiosk codes.",
+    "wakeLockOff": "This browser can't keep the screen awake — turn off auto-lock on this device.",
+    "downloaded": "Codes downloaded {time}"
+  },
+  "openKiosk": "Kiosk screen"
 }

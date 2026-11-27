@@ -357,7 +357,7 @@ class AttendanceSyncTest extends OfflineSyncTestCase
         $this->makeMembership($gym, $someoneElse, 'duration');
 
         $r = $this->syncOne($member, $this->attendanceEvent($gym, [
-            'attendance_method' => 'member_qr', 'member_id' => $someoneElse, 'qr' => $this->qrJson($gym, $branch, $token),
+            'attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'member_id' => $someoneElse, 'qr' => $this->qrJson($gym, $branch, $token),
         ]), null, 'member');
 
         $this->assertSame('accepted', $r['status']);
@@ -384,17 +384,17 @@ class AttendanceSyncTest extends OfflineSyncTestCase
         $this->makeMembership($gym, $frozen, 'duration', ['freeze_status' => 'frozen']);
 
         $results = $this->sync($member, [
-            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => $this->qrJson($other, $foreignBranch, $foreignToken)]),
-            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => (string) Str::uuid()]]),
-            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => 'gym:' . $gym]]),
-            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => $this->qrJson($gym, $closed, $closedToken)]),
+            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => $this->qrJson($other, $foreignBranch, $foreignToken)]),
+            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => ['raw' => (string) Str::uuid()]]),
+            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => ['raw' => 'gym:' . $gym]]),
+            $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => $this->qrJson($gym, $closed, $closedToken)]),
         ], null, 'member')->assertOk()->json('results');
         $this->assertSame(['qr_wrong_gym', 'qr_invalid', 'qr_invalid', 'branch_inactive'], array_column($results, 'code'));
 
-        $r = $this->syncOne($frozenUser, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => $token]]), (string) Str::uuid(), 'member');
+        $r = $this->syncOne($frozenUser, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => ['raw' => $token]]), (string) Str::uuid(), 'member');
         $this->assertSame('membership_frozen', $r['code']);
 
-        $r = $this->syncOne($this->makeAdmin($gym), $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'member_id' => $mid, 'qr' => ['raw' => $token]]), (string) Str::uuid());
+        $r = $this->syncOne($this->makeAdmin($gym), $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'member_id' => $mid, 'qr' => ['raw' => $token]]), (string) Str::uuid());
         $this->assertSame('permission_denied', $r['code'], 'staff cannot send member_qr');
 
         $this->assertSame(0, DB::table('attendance_logs')->count());
@@ -431,7 +431,7 @@ class AttendanceSyncTest extends OfflineSyncTestCase
 
         $this->assertSame('accepted', $this->syncOne($joe, $this->attendanceEvent($gym, ['member_id' => $mid]))['status']);
         $this->assertSame('accepted', $this->syncOne($aya, $this->attendanceEvent($gym, ['member_id' => $mid]))['status']);
-        $this->assertSame('accepted', $this->syncOne($member, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => $token]]), null, 'member')['status']);
+        $this->assertSame('accepted', $this->syncOne($member, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => ['raw' => $token]]), null, 'member')['status']);
         $this->assertSame(3, DB::table('attendance_devices')->where('device_id', $this->deviceId)->count());
 
         // Revoking joe's pair leaves aya's untouched.

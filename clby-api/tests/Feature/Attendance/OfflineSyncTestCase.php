@@ -59,6 +59,23 @@ abstract class OfflineSyncTestCase extends AttendanceTestCase
         return app(MemberPassService::class)->issue($gymId, $memberId, $n !== null ? (int) $n : null, null, $at ?? Carbon::now()->subHour())['qr'];
     }
 
+    /** Near-real-time device time (within online_grace_seconds): online-equivalent. */
+    protected static function recent(): string
+    {
+        return self::at(Carbon::now()->subSeconds(30));
+    }
+
+    /** Signed branch QR v2 text for a branch (PHASE3-CONTRACT §1). */
+    protected function branchQr(string $gymId, string $branchId, string $mode = 'static', ?Carbon $at = null): string
+    {
+        $branch = DB::table('branches')->where('id', $branchId)->first(['id', 'gym_id', 'name', 'is_active', 'qr_token']);
+        $svc = app(\App\Services\BranchQrService::class);
+        if ($mode === 'static') {
+            return $svc->issueStatic($gymId, $branch, $at ?? Carbon::now()->subHour())['qr'];
+        }
+        return $svc->rotatingBatch($gymId, $branch, 1, $at ?? Carbon::now())['tokens'][0]['qr'];
+    }
+
     protected function serviceEvent(string $gymId, string $assignmentId, array $overrides = []): array
     {
         return $this->attendanceEvent($gymId, array_merge([

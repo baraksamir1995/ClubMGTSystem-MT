@@ -30,6 +30,7 @@ abstract class AttendanceTestCase extends TestCase
         '2026_11_26_200500_create_attendance_event_conflicts_table.php',
         '2026_11_27_100000_create_gym_signing_keys_table.php',
         '2026_11_27_100100_add_revoked_at_to_gym_signing_keys.php',
+        '2026_11_27_200000_create_attendance_qr_redemptions_table.php',
     ];
 
     protected function setUp(): void

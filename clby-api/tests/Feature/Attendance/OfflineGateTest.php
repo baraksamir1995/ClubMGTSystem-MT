@@ -87,7 +87,10 @@ class OfflineGateTest extends OfflineSyncTestCase
     public function test_already_processed_events_are_never_re_evaluated(): void
     {
         [$gym, $token, $member] = $this->memberQrSetup();
-        $event = $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => $token],
+        $branchId = DB::table('branches')->where('qr_token', $token)->value('id');
+        // Offline member_qr needs a signed v2 QR (PHASE3 D3).
+        $event = $this->attendanceEvent($gym, ['attendance_method' => 'member_qr',
+            'qr' => ['raw' => $this->branchQr($gym, $branchId, 'static', Carbon::now()->subHours(2))],
             'device_recorded_at' => self::at(Carbon::now()->subHour())]);
         $first = $this->syncOne($member, $event, null, 'member');
         $this->assertSame('created', $first['code']);

@@ -123,11 +123,11 @@ class OfflineReadinessTest extends OfflineSyncTestCase
         $this->makeMembership($gym, $mid, 'duration');
         [, $other] = $this->makeMember($gym);
         $this->makeMembership($gym, $other, 'duration');
-        $this->syncOne($member, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'qr' => ['raw' => $token]]), null, 'member');
+        $this->syncOne($member, $this->attendanceEvent($gym, ['attendance_method' => 'member_qr', 'device_recorded_at' => self::recent(), 'qr' => ['raw' => $token]]), null, 'member');
         $this->syncOne($this->makeAdmin($gym), $this->attendanceEvent($gym, ['member_id' => $other]), (string) Str::uuid());
 
         $res = $this->actingAsUser($member)->getJson('/api/attendance/offline/me')->assertOk();
-        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'member', 'buckets', 'branches', 'recent_attendance', 'pass_keys'], array_keys($res->json()));
+        $this->assertSame(['server_time', 'as_of', 'gym', 'policy', 'member', 'buckets', 'branches', 'recent_attendance', 'pass_keys', 'member_pass'], array_keys($res->json()));
         $this->assertSame($mid, $res->json('member.gym_member_id'));
         $this->assertCount(1, $res->json('buckets'));
         $this->assertCount(1, $res->json('recent_attendance'), 'own attendance only');

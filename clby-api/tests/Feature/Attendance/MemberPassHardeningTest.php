@@ -81,7 +81,8 @@ class MemberPassHardeningTest extends OfflineSyncTestCase
             'bom' => "\u{FEFF}" . $raw,
             'too long' => $raw . str_repeat(' ', 1025 - strlen($raw)),
             'sig padded' => str_replace($sig, $sig . '==', $raw),
-            'sig std alphabet' => str_replace($sig, strtr($sig, '-_', '+/'), $raw),
+            // Force at least one '+' even when the sig has no '-'/'_' (≈6% of sigs).
+            'sig std alphabet' => str_replace($sig, strtr($sig, '-_', '+/') === $sig ? '+' . substr($sig, 1) : strtr($sig, '-_', '+/'), $raw),
             'sig non-canonical bits' => str_replace($sig, substr($sig, 0, 85) . $altLast, $raw),
             'sig short' => str_replace($sig, substr($sig, 0, 84), $raw),
             'array' => '[' . $raw . ']',

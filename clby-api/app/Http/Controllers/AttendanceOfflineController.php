@@ -516,9 +516,14 @@ class AttendanceOfflineController extends Controller
                 'full_name' => $member->full_name,
             ],
             'buckets' => $this->buckets([$member->id])->map(fn ($b) => $this->bucketShape($b, $gym['timezone']))->values(),
-            'branches' => $this->branches($user->gym_id),
+            // PHASE3 §3: qr_token (current) so the app can check a v2 QR's token offline.
+            'branches' => $this->branches($user->gym_id, withToken: true),
             'recent_attendance' => $recent,
             'pass_keys' => app(MemberPassService::class)->passKeys($user->gym_id),
+            // PHASE3 §3: the member's own pass, to show it offline.
+            'member_pass' => app(MemberPassService::class)->passFor(
+                $user->gym_id, $member->id, $member->member_number !== null ? (int) $member->member_number : null
+            ),
         ]);
     }
 
@@ -594,11 +599,12 @@ class AttendanceOfflineController extends Controller
         ];
     }
 
-    private function branches(string $gymId): array
+    private function branches(string $gymId, bool $withToken = false): array
     {
         return DB::table('branches')->where('gym_id', $gymId)->orderBy('name')
-            ->get(['id', 'name', 'is_active'])
-            ->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'is_active' => (bool) $b->is_active])
+            ->get(['id', 'name', 'is_active', 'qr_token'])
+            ->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'is_active' => (bool) $b->is_active]
+                + ($withToken ? ['qr_token' => $b->qr_token !== null ? strtolower((string) $b->qr_token) : null] : []))
             ->all();
     }
 

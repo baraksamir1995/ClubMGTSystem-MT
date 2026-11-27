@@ -41,6 +41,12 @@ return [
     // Issued passes are reused for this long to avoid churn (≥ 1 h per contract).
     'member_pass_cache_minutes' => (int) env('ATTENDANCE_MEMBER_PASS_CACHE_MINUTES', 60),
 
+    // Phase 3 signed branch QR v2 (PHASE3-CONTRACT §1–§2).
+    'branch_qr_static_ttl_days' => (int) env('ATTENDANCE_BRANCH_QR_STATIC_TTL_DAYS', 365),
+    'rotating_grace_seconds' => (int) env('ATTENDANCE_ROTATING_GRACE_SECONDS', 30),
+    'rotating_period_seconds' => 60,     // contract: exp = iat + 60
+    'rotating_batch_max_hours' => 24,
+
     // Server-side only (not part of the policy object).
     'sync_rate_per_minute' => (int) env('ATTENDANCE_OFFLINE_SYNC_RATE_PER_MINUTE', 30), // per user
 ];

@@ -1,5 +1,71 @@
 # Offline Attendance — backend notes (clby-api)
 
+## Phase 3
+
+Implements `PHASE3-CONTRACT.md` server side: signed branch QR v2, poster and kiosk endpoints, v2 `member_qr` sync with rotating replay protection, and `/offline/me` additions.
+
+### Contract deviations / interpretations (Phase 3)
+
+1. **v1 `member_qr` is online-only (D3).** An offline v1 event (older than `online_grace_seconds`) is rejected `offline_disabled` ("Offline check-in needs a signed (v2) gym QR code"), **even when `allow_member_qr_offline` is true**. Near-real-time v1 events behave exactly as in Phase 1, and online `/attendance/qr` is unchanged.
+2. **How v2 is detected.** A QR is v2 only if the raw text (as-is, no trimming) JSON-decodes to an object with `type === "gym_access"` and `v === 2` (an integer). Everything else is "not v2" and takes the v1 path; the corpus verdict for it is `not_v2`. This includes `v: 2.0`, `"2"`, 1, a BOM, an array wrapper or a bare token. A recognised v2 then gets the strict parse below; any failure → `qr_invalid`.
+3. **Strict parse** (same rules as the member pass):
+   - ≤ 1024 characters, exactly the 11 keys, integers only;
+   - lowercase canonical UUIDs for `gym_id`, `branch_id` and `token` (an uppercase value, even if signed, → `qr_invalid`);
+   - `mode` is `static` or `rotating`;
+   - `kid` matches `[A-Za-z0-9_-]{1,32}`, `jti` matches `[A-Za-z0-9_-]{16,32}`;
+   - `sig` is canonical unpadded base64url of 64 bytes.
+   - As with the pass, key order, JSON whitespace and `\u` escapes are not enforced.
+4. **Step 5** (unknown branch, inactive branch, or token ≠ the branch's current `qr_token`) → `qr_invalid`, as the contract says. The Phase 1 code `branch_inactive` remains for v1 QRs only.
+5. **Step 6, time** (judged at `device_recorded_at`):
+   - `iat > exp` → `qr_invalid`;
+   - `iat > scan + future_skew_seconds` → `qr_expired`, per the contract's wording (the member pass uses `qr_invalid` for the same situation);
+   - static: `scan ≤ exp` (a scan exactly at `exp` is accepted);
+   - rotating: `scan ≤ exp + rotating_grace_seconds` (30).
+   - There is no separate `iat ≤ server now + skew` check, because the sync clock rule already caps `device_recorded_at` at now + skew.
+6. **Rotating replay protection:**
+   - New table `attendance_qr_redemptions` with **UNIQUE (jti, gym_member_id)**. The check runs under the per-member advisory lock on Postgres; the unique index is the backstop.
+   - A second use by the same member → `duplicate/qr_replayed` with the **original** `attendance_id`, even if the membership changed since. A different member may use the same token once.
+   - Without the pg lock (sqlite), a true race hits the unique index: that event becomes a retryable `error`, and its retry returns `qr_replayed`.
+   - Static posters have no replay limit beyond D1.
+7. **`qr_meta`:**
+   - accepted v2 events store exactly `{verified:true, v:2, mode, kid, jti, iat, exp, branch_id}`;
+   - rejected v2 events store `{verified:false, reason, v:2}` (the Phase 2 shape plus `v`);
+   - rejected offline v1 events store `{verified:false, reason:"offline_disabled", v:1}`.
+8. **Keys:** branch QRs use the gym's member-pass key. After `attendance:pass-key --rotate`, static posters keep verifying only for the **pass** grace (`member_pass_ttl_days`, 30 d), not the 365-day poster TTL, so reprint posters after a rotation. `--revoke` invalidates them at once. The branch "Regenerate" token action also invalidates old posters (token mismatch).
+9. **`/offline/me` exposes `branches[].qr_token` to members**, as required by step 5. That token is the v1 check-in secret (also printed on every poster): any member can now read it via the API and use online `/attendance/qr`, where the gym-entry rules still apply. Staff bootstrap does **not** include `qr_token`.
+
+### Endpoints
+
+- `GET /api/branches/{id}/qr?mode=static` (admin group, `permission:attendance,view`; the branch must belong to the caller's gym, otherwise 404) → `{qr, mode:"static", expires_at, kid}`.
+  - `mode` may only be `static` (otherwise 422).
+  - A new `jti` (16 random bytes → 22 characters) per call.
+  - `exp = iat + branch_qr_static_ttl_days` (365).
+- `GET /api/branches/{id}/qr/rotating-batch?hours=` (same group and permission; `hours` 1–24, default 12, 25 → 422) → `{tokens:[{qr, iat, exp}], kid, generated_at}`.
+  - Starts at the current 60 s boundary; consecutive 60 s tokens, each with a fresh `jti`.
+  - One key lookup and one secret decrypt per batch: 12 h = 720 tokens in about 0.17 s on Postgres.
+- `GET /api/attendance/offline/me` adds:
+  - `branches[].qr_token` (current, lowercase);
+  - `member_pass: {qr, expires_at, kid}` (the same 60-minute cached pass as `/me/member-pass`).
+- `POST /api/attendance/qr` is unchanged and accepts a v2 poster's `token` (regression test plus Postgres e2e).
+- Config: `branch_qr_static_ttl_days` (365), `rotating_grace_seconds` (30); also `rotating_period_seconds` (60, fixed) and `rotating_batch_max_hours` (24).
+
+### Files
+
+- `app/Services/BranchQrService.php`: issue, batch, verify, strict parse.
+- `app/Http/Controllers/BranchQrController.php`.
+- `app/Services/MemberPassService.php`: new shared `verificationKey()` and `withSigner()`, which decrypts the secret once and wipes it; member-pass behaviour is unchanged.
+- `app/Services/AttendanceSyncService.php`: `evaluateMemberQrV2`, the v1 online-only rule, codes `qr_expired` and `qr_replayed`.
+- `app/Http/Controllers/AttendanceOfflineController.php` (`/me`).
+- `config/attendance_offline.php`, `routes/api.php`.
+- Migration `2026_11_27_200000_create_attendance_qr_redemptions_table.php` (new table, unique `(jti, gym_member_id)`, FK to `attendance_logs` set to null on delete).
+- Tests: `BranchQrTest` (8), `MemberQrV2SyncTest` (6). Existing v1 `member_qr` tests now send near-real-time events.
+- **Corpus:** `scratchpad/verify/p3/gen_branch_corpus.php` writes `branch_corpus.json` (59 cases).
+  - Every case has a `scan_ms`; the file also includes `pass_keys` (active/retired/revoked) and `branches` (id, `is_active`, `qr_token`).
+  - Server verdicts were produced against Postgres with the writes rolled back.
+  - Verdicts: `ok | not_v2 | qr_invalid | qr_wrong_gym | qr_expired`. Clients may say `qr_unknown_key` where the server says `qr_invalid` for key failures.
+
+---
+
 ## Phase 2
 
 Implements `PHASE2-CONTRACT.md` (server side: member pass, pass verification on sync, review endpoint).

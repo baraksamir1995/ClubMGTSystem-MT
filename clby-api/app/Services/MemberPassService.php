@@ -149,12 +149,7 @@ class MemberPassService
         $exp = $iat + $this->ttlDays() * 86400;
 
         $message = self::canonical($key->kid, $gymId, $gymMemberId, $memberNumber, $iat, $exp);
-        $secret = self::b64urlDecode(Crypt::decryptString($key->secret_key_enc));
-        try {
-            $sig = sodium_crypto_sign_detached($message, $secret);
-        } finally {
-            sodium_memzero($secret);
-        }
+        $sig = $this->withSigner($gymId, fn (string $kid, callable $sign) => $sign($message), $key);
 
         $qr = json_encode([
             't' => 'clby_mp',
@@ -165,7 +160,7 @@ class MemberPassService
             'n' => $memberNumber,
             'iat' => $iat,
             'exp' => $exp,
-            'sig' => self::b64url($sig),
+            'sig' => $sig,
         ], JSON_UNESCAPED_SLASHES);
 
         return [
@@ -207,21 +202,14 @@ class MemberPassService
         }
 
         // 2. key: this gym's, not revoked, active or retired within grace at scan time
-        $key = DB::table('gym_signing_keys')->where('kid', $p['kid'])->where('purpose', self::PURPOSE)->first();
-        if (! $key || strtolower((string) $key->gym_id) !== $p['g'] || $key->status === 'revoked') {
+        $pk = $this->verificationKey($p['kid'], $p['g'], $at);
+        if ($pk === null) {
             return ['ok' => false, 'code' => 'qr_invalid'];
-        }
-        if ($key->status !== 'active') {
-            $end = $this->graceEnd($key);
-            if ($key->status !== 'retired' || ! $end || $at->gte($end)) {
-                return ['ok' => false, 'code' => 'qr_invalid'];
-            }
         }
 
         // 3. signature
-        $pk = self::b64urlDecodeStrict($key->public_key, SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES);
         $sig = self::b64urlDecodeStrict($p['sig'], SODIUM_CRYPTO_SIGN_BYTES);
-        if ($pk === null || $sig === null
+        if ($sig === null
             || ! sodium_crypto_sign_verify_detached($sig, self::canonical($p['kid'], $p['g'], $p['m'], $p['n'], $p['iat'], $p['exp']), $pk)) {
             return ['ok' => false, 'code' => 'qr_invalid'];
         }
@@ -301,6 +289,43 @@ class MemberPassService
     public static function b64urlDecode(string $txt): string|false
     {
         return base64_decode(strtr($txt, '-_', '+/'), true);
+    }
+
+    /**
+     * Raw Ed25519 public key for `kid` if it may verify a credential of
+     * `gymId` scanned at `at`: the gym's own key, never revoked, active or
+     * retired within grace. Shared by member passes and branch QR v2.
+     */
+    public function verificationKey(string $kid, string $gymId, CarbonInterface $at): ?string
+    {
+        $key = DB::table('gym_signing_keys')->where('kid', $kid)->where('purpose', self::PURPOSE)->first();
+        if (! $key || strtolower((string) $key->gym_id) !== strtolower($gymId) || $key->status === 'revoked') {
+            return null;
+        }
+        if ($key->status !== 'active') {
+            $end = $this->graceEnd($key);
+            if ($key->status !== 'retired' || ! $end || Carbon::instance($at)->gte($end)) {
+                return null;
+            }
+        }
+        return self::b64urlDecodeStrict($key->public_key, SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES);
+    }
+
+    /**
+     * Run $fn($kid, $sign) with the gym's active key; $sign(string $message)
+     * returns the base64url signature. The secret is decrypted once (so a
+     * rotating batch costs one decrypt) and wiped afterwards. It never
+     * leaves this method.
+     */
+    public function withSigner(string $gymId, callable $fn, ?object $key = null): mixed
+    {
+        $key ??= $this->activeKey($gymId);
+        $secret = self::b64urlDecode(Crypt::decryptString($key->secret_key_enc));
+        try {
+            return $fn($key->kid, fn (string $message) => self::b64url(sodium_crypto_sign_detached($message, $secret)));
+        } finally {
+            sodium_memzero($secret);
+        }
     }
 
     /* ── internals ──────────────────────────────────────────────── */

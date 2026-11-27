@@ -58,6 +58,8 @@ class AttendanceSyncService
         'qr_wrong_gym' => 'The scanned QR code belongs to another gym.',
         'pass_expired' => 'The member pass had expired when it was scanned.',
         'qr_member_mismatch' => 'The scanned member pass belongs to a different member.',
+        'qr_expired' => 'The gym QR code had expired when it was scanned.',
+        'qr_replayed' => 'This rotating gym QR code was already used for a check-in.',
         'branch_inactive' => 'This branch is inactive.',
         'not_a_member' => 'Not a member of this gym.',
         'membership_frozen' => 'Membership is frozen.',
@@ -89,6 +91,7 @@ class AttendanceSyncService
         private AttendanceCheckInService $checkIns,
         private ServiceSessionService $sessions,
         private MemberPassService $passes,
+        private BranchQrService $branchQrs,
     ) {}
 
     /**
@@ -457,7 +460,21 @@ class AttendanceSyncService
         }
         $derived['gym_member_id'] = $memberId;
 
-        [$token, $format] = self::parseBranchQr($event['qr']['raw'] ?? null);
+        $raw = is_string($event['qr']['raw'] ?? null) ? $event['qr']['raw'] : null;
+        if (BranchQrService::isV2($raw)) {
+            return $this->evaluateMemberQrV2($ctx, $raw, $eventId, $derived, $recordedAt, $memberId);
+        }
+
+        // PHASE3-CONTRACT D3: unsigned v1 QRs stay online-only. An offline
+        // v1 event (older than online_grace_seconds) is refused even when
+        // allow_member_qr_offline is on; near-real-time v1 events behave as
+        // in Phase 1 (= the online /attendance/qr rules).
+        if ($this->isOffline($ctx, $recordedAt)) {
+            $derived['qr_meta'] = ['verified' => false, 'reason' => 'offline_disabled', 'v' => 1];
+            return $this->reject('offline_disabled', $derived, 'Offline check-in needs a signed (v2) gym QR code.');
+        }
+
+        [$token, $format] = self::parseBranchQr($raw);
         if (! $token) {
             $derived['qr_meta'] = ['format' => $format];
             return $this->reject('qr_invalid', $derived);
@@ -484,6 +501,66 @@ class AttendanceSyncService
 
         $id = $this->checkIns->recordGymEntry($gymId, $memberId, $branch, self::isoWithOffset($recordedAt), $eventId, $actor->id);
         return $this->accept($derived, attendanceId: $id);
+    }
+
+    /**
+     * member_qr with a signed branch QR v2 (PHASE3-CONTRACT §2): server
+     * verification at device_recorded_at, gym-entry rules, and rotating
+     * replay protection per (jti, member).
+     */
+    private function evaluateMemberQrV2(array $ctx, string $raw, string $eventId, array $derived, Carbon $recordedAt, string $memberId): array
+    {
+        $gymId = $ctx['gym_id'];
+        $r = $this->branchQrs->verify($raw, $gymId, $recordedAt);
+        if (! $r['ok']) {
+            $derived['qr_meta'] = ['verified' => false, 'reason' => $r['code'], 'v' => 2];
+            return $this->reject($r['code'], $derived);
+        }
+        $q = $r['qr'];
+        $branch = $r['branch'];
+        $derived['branch_id'] = $branch->id;
+        $derived['qr_meta'] = ['verified' => true, 'v' => 2, 'mode' => $q['mode'], 'kid' => $q['kid'], 'jti' => $q['jti'],
+            'iat' => $q['iat'], 'exp' => $q['exp'], 'branch_id' => $branch->id];
+
+        $this->advisoryLock('attendance-member:' . $memberId);
+
+        if ($q['mode'] === 'rotating') {
+            $prior = DB::table('attendance_qr_redemptions')
+                ->where('jti', $q['jti'])->where('gym_member_id', $memberId)
+                ->first(['attendance_log_id']);
+            if ($prior) {
+                return ['status' => 'duplicate', 'code' => 'qr_replayed', 'message' => self::MESSAGES['qr_replayed'],
+                    'attendance_id' => $prior->attendance_log_id, 'service_log_id' => null, 'flags' => [], 'derived' => $derived];
+            }
+        }
+
+        if ($denied = $this->checkIns->gymEntryDenialForBranch($memberId, $branch)) {
+            return $this->reject($denied, $derived);
+        }
+
+        $id = $this->checkIns->recordGymEntry($gymId, $memberId, $branch, self::isoWithOffset($recordedAt), $eventId, $ctx['actor']->id);
+
+        if ($q['mode'] === 'rotating') {
+            // UNIQUE (jti, gym_member_id) backstops the locked check above.
+            DB::table('attendance_qr_redemptions')->insert([
+                'id' => (string) Str::uuid(),
+                'gym_id' => $gymId,
+                'jti' => $q['jti'],
+                'gym_member_id' => $memberId,
+                'event_id' => $eventId,
+                'attendance_log_id' => $id,
+                'branch_id' => $branch->id,
+                'qr_exp' => self::isoWithOffset(Carbon::createFromTimestampUTC($q['exp'])),
+                'created_at' => Carbon::now('UTC')->toIso8601String(),
+            ]);
+        }
+
+        return $this->accept($derived, attendanceId: $id);
+    }
+
+    private function isOffline(array $ctx, Carbon $recordedAt): bool
+    {
+        return $recordedAt->lt($ctx['received_at']->copy()->subSeconds((int) config('attendance_offline.online_grace_seconds', 120)));
     }
 
     /** kind=service_session (coach: role trainer + active trainer_profile — the `coach` middleware rules). */

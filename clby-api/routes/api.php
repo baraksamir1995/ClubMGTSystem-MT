@@ -15,6 +15,7 @@ use App\Http\Controllers\BillingReminderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchQrController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\ClassTypeController;
 use App\Http\Controllers\ContentController;
@@ -430,6 +431,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     // Branch management
     Route::post('/branches', [BranchController::class, 'store'])->middleware('permission:settings,create');
     Route::get('/branches/{id}/qr-token', [BranchController::class, 'getQrToken'])->middleware('permission:settings|attendance,view');
+    // Signed branch QR v2 (PHASE3-CONTRACT §3): poster + kiosk rotating batch.
+    Route::get('/branches/{id}/qr', [BranchQrController::class, 'show'])->middleware('permission:attendance,view');
+    Route::get('/branches/{id}/qr/rotating-batch', [BranchQrController::class, 'rotatingBatch'])->middleware('permission:attendance,view');
     Route::post('/branches/{id}/upload-image', [BranchController::class, 'uploadImage'])->middleware('permission:settings,edit');
     Route::patch('/branches/{id}', [BranchController::class, 'update'])->middleware('permission:settings,edit');
     Route::delete('/branches/{id}', [BranchController::class, 'destroy'])->middleware('permission:settings,delete');

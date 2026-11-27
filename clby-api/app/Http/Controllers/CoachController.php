@@ -201,7 +201,7 @@ class CoachController extends Controller
                 $guardCutoff = Carbon::now()->subMinutes(self::SCAN_GUARD_MINUTES);
                 $lastLog = DB::table('service_session_logs')
                     ->where('assignment_id', $assignment->id)
-                    ->where('delivered_at', '>', $guardCutoff)
+                    ->where('delivered_at', '>', $guardCutoff->toIso8601String())
                     ->orderByDesc('delivered_at')
                     ->first();
                 if ($lastLog) {

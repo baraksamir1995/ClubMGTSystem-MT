@@ -342,7 +342,8 @@
       "expensesHint": "{count, plural, =0 {No recorded expenses} =1 {# recorded expense} other {# recorded expenses}}",
       "netHint": "Recorded revenue minus recorded expenses",
       "netDisclaimer": "Calculated from recorded revenue and expenses only. Not accounting profit — taxes, payment fees and other costs aren't included.",
-      "excludedCurrencies": "Revenue only includes {currency} payments. Payments in {others} were collected this period and are not included."
+      "excludedCurrencies": "Revenue only includes {currency} payments. Payments in {others} were collected this period and are not included.",
+      "excludedExpenseCurrencies": "Expense totals only include {currency}. Expenses recorded in {others} this period are not included."
     },
     "filters": {
       "startDate": "Start date",
@@ -352,7 +353,14 @@
       "invalidRange": "Start date must not be after end date.",
       "category": "Category",
       "allCategories": "All categories",
-      "searchPlaceholder": "Search title or vendor…"
+      "searchPlaceholder": "Search title or vendor…",
+      "type": "Type",
+      "allTypes": "All types",
+      "oneOff": "One-off",
+      "recurring": "Recurring",
+      "active": "Active schedules",
+      "paused": "Paused schedules",
+      "ended": "Ended schedules"
     },
     "export": "Export CSV",
     "exporting": "Preparing export…",
@@ -367,7 +375,10 @@
       "date": "Expense date",
       "vendor": "Vendor / Recipient",
       "method": "Payment method",
-      "actions": "Actions"
+      "actions": "Actions",
+      "type": "Type",
+      "dateSchedule": "Date / Schedule",
+      "status": "Status"
     },
     "sortBy": "Sort by {column}",
     "showingRange": "Showing {from}–{to} of {total}",
@@ -436,7 +447,172 @@
       "vendor": "Vendor / Recipient",
       "description": "Description / Notes",
       "created": "Created date",
-      "updated": "Last updated date"
+      "updated": "Last updated date",
+      "type": "Type"
+    },
+    "kind": {
+      "label": "Expense type",
+      "oneOff": "One-off",
+      "oneOffHint": "A single expense on a specific date",
+      "recurring": "Recurring",
+      "recurringHint": "Repeats automatically on a schedule"
+    },
+    "frequency": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "occurrenceStatus": {
+      "upcoming": "Upcoming",
+      "recorded": "Recorded",
+      "scheduled": "Upcoming (edited)",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    },
+    "scheduleStatus": {
+      "active": "Active",
+      "paused": "Paused",
+      "ended": "Ended"
+    },
+    "tabs": {
+      "expenses": "Expenses",
+      "schedules": "Recurring schedules",
+      "upcoming": "Upcoming"
+    },
+    "recurring": {
+      "typeLabel": "Recurring · {frequency}",
+      "scheduleWeekly": "{count, plural, =1 {Every week} other {Every # weeks}} on {day}",
+      "scheduleMonthly": "{count, plural, =1 {Every month} other {Every # months}} on day {day}",
+      "scheduleQuarterly": "{count, plural, =1 {Every quarter} other {Every # quarters}} on day {day}",
+      "scheduleYearly": "{count, plural, =1 {Every year} other {Every # years}} on {day} {month}",
+      "next": "Next: {date}",
+      "noNext": "No upcoming occurrence",
+      "scheduleSection": "Schedule",
+      "frequency": "Frequency",
+      "interval": "Repeat every",
+      "intervalUnit": {
+        "weekly": "{count, plural, =1 {week} other {weeks}}",
+        "monthly": "{count, plural, =1 {month} other {months}}",
+        "quarterly": "{count, plural, =1 {quarter} other {quarters}}",
+        "yearly": "{count, plural, =1 {year} other {years}}"
+      },
+      "intervalHint": "1 = every period, 2 = every other period, …",
+      "weekday": "Day of the week",
+      "dayOfMonth": "Day of the month",
+      "month": "Month",
+      "dayHint": "If a month is shorter (e.g. the 31st in April or February), the expense falls on that month's last day.",
+      "yearlyFebHint": "29 February falls on 28 February in non-leap years.",
+      "quarterHint": "Repeats every 3 months counted from the start date's month.",
+      "startDate": "Start date",
+      "startHint": "The first occurrence is the first scheduled day on or after this date.",
+      "startPastHint": "Occurrences from this date up to today will be recorded now.",
+      "effectiveFrom": "Apply changes from",
+      "effectiveHint": "Occurrences before this date are kept exactly as recorded. The current schedule ends the day before and a new one starts on this date.",
+      "endDate": "End date",
+      "endHint": "Optional — leave empty for an ongoing schedule.",
+      "errors": {
+        "intervalInvalid": "Enter a whole number from 1 to 99.",
+        "endBeforeStart": "End date must not be before the start date.",
+        "startInPast": "Changes can only apply from today onward.",
+        "startTooOld": "The start date can be at most one year in the past.",
+        "dayInvalid": "Pick a valid day.",
+        "monthInvalid": "Pick a month.",
+        "dayNotInMonth": "That month doesn't have this day."
+      },
+      "saveNew": "Add recurring expense",
+      "saveSchedule": "Save schedule",
+      "editScheduleTitle": "Edit recurring expense",
+      "editOccurrenceTitle": "Edit occurrence on {date}",
+      "editOccurrenceHint": "Only this occurrence changes. The schedule and its other occurrences stay as they are.",
+      "upcomingNotCounted": "Upcoming occurrences are not counted in actual expenses until their date arrives.",
+      "toast": {
+        "created": "Recurring expense added",
+        "updated": "Schedule updated",
+        "occurrenceUpdated": "Occurrence updated",
+        "paused": "Schedule paused",
+        "resumed": "Schedule resumed",
+        "ended": "Schedule ended",
+        "skipped": "Occurrence skipped",
+        "cancelled": "Occurrence cancelled",
+        "actionFailed": "Could not update the schedule"
+      },
+      "detailsTitle": "Recurring expense",
+      "viewSchedule": "View schedule",
+      "editSchedule": "Edit schedule",
+      "pause": "Pause",
+      "resume": "Resume",
+      "end": "End schedule",
+      "skip": "Skip",
+      "ongoing": "Ongoing",
+      "currency": "Currency",
+      "nextOccurrence": "Next occurrence",
+      "upcomingTitle": "Next occurrences",
+      "historyTitle": "Occurrence history",
+      "historyEmpty": "Nothing recorded yet.",
+      "auditTitle": "Activity",
+      "auditSystem": "System",
+      "historyCol": {
+        "scheduled": "Scheduled date",
+        "amount": "Amount",
+        "status": "Status",
+        "recorded": "Recorded on"
+      },
+      "continuedBy": "This schedule was replaced by an edited version.",
+      "openNew": "Open new version",
+      "continues": "Continues an earlier version of this schedule.",
+      "openPrevious": "Open previous version",
+      "events": {
+        "created": "Created",
+        "updated": "Edited",
+        "split": "Edited from {date} onward",
+        "paused": "Paused",
+        "resumed": "Resumed",
+        "ended": "Ended",
+        "auto_ended": "Ended (reached end date)",
+        "occurrence_edited": "Occurrence on {date} edited",
+        "occurrence_skipped": "Occurrence on {date} skipped",
+        "occurrence_cancelled": "Occurrence on {date} cancelled"
+      },
+      "editChoice": {
+        "title": "Edit recurring expense",
+        "body": "This expense is part of a recurring schedule. What do you want to change?",
+        "this": "This occurrence only",
+        "thisHint": "Change only this expense. The schedule and other occurrences are not affected.",
+        "future": "This and future occurrences",
+        "futureHint": "Update the schedule from a date onward. Earlier recorded expenses are kept as they are."
+      },
+      "deleteChoice": {
+        "title": "Remove recurring expense?",
+        "body": "“{title}” ({amount}) is part of a recurring schedule.",
+        "this": "Cancel this occurrence only",
+        "thisHint": "It stays in the schedule's history but no longer counts in totals.",
+        "end": "End the recurring schedule",
+        "endHint": "No further occurrences. Expenses already recorded are kept."
+      },
+      "confirm": {
+        "endTitle": "End this schedule?",
+        "endBody": "“{title}” will stop repeating from today. Expenses already recorded are kept.",
+        "endConfirm": "End schedule",
+        "pauseTitle": "Pause this schedule?",
+        "pauseBody": "No new occurrences will be recorded while paused. When you resume, dates that passed during the pause are not recorded.",
+        "pauseConfirm": "Pause schedule",
+        "skipTitle": "Skip this occurrence?",
+        "skipBody": "The {date} occurrence of “{title}” will not be recorded.",
+        "skipConfirm": "Skip occurrence",
+        "cancelTitle": "Cancel this occurrence?",
+        "cancelBody": "“{title}” on {date} ({amount}) will no longer count in totals. It stays in the schedule's history.",
+        "cancelConfirm": "Cancel occurrence"
+      },
+      "schedulesEmpty": "No recurring expenses yet",
+      "schedulesEmptyHint": "Add rent, salaries, internet or other repeating costs once and they'll be recorded automatically.",
+      "statusFilter": "Status",
+      "allStatuses": "All statuses",
+      "recordedSoFar": "{count, plural, =0 {Nothing recorded yet} =1 {# recorded · {total}} other {# recorded · {total}}}",
+      "upcomingWindow": "Next {days} days",
+      "upcomingEmpty": "No upcoming recurring expenses in this window",
+      "upcomingTotal": "Scheduled total: {total}",
+      "edited": "Edited"
     }
   }
 }

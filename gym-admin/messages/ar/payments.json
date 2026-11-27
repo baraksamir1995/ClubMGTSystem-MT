@@ -342,7 +342,8 @@
       "expensesHint": "{count, plural, =0 {لا توجد مصروفات مسجّلة} =1 {مصروف واحد مسجّل} other {# مصروفات مسجّلة}}",
       "netHint": "الإيرادات المسجّلة ناقص المصروفات المسجّلة",
       "netDisclaimer": "محسوب من الإيرادات والمصروفات المسجّلة فقط. ليس ربحًا محاسبيًا — لا يشمل الضرائب ورسوم الدفع والتكاليف الأخرى.",
-      "excludedCurrencies": "الإيرادات تشمل مدفوعات {currency} فقط. مدفوعات بعملة {others} حُصّلت في هذه الفترة ولم تُحتسب."
+      "excludedCurrencies": "الإيرادات تشمل مدفوعات {currency} فقط. مدفوعات بعملة {others} حُصّلت في هذه الفترة ولم تُحتسب.",
+      "excludedExpenseCurrencies": "إجمالي المصروفات يشمل {currency} فقط. المصروفات المسجّلة بعملة {others} في هذه الفترة غير مشمولة."
     },
     "filters": {
       "startDate": "تاريخ البداية",
@@ -352,7 +353,14 @@
       "invalidRange": "يجب ألا يكون تاريخ البداية بعد تاريخ النهاية.",
       "category": "الفئة",
       "allCategories": "كل الفئات",
-      "searchPlaceholder": "ابحث بالعنوان أو المورّد…"
+      "searchPlaceholder": "ابحث بالعنوان أو المورّد…",
+      "type": "النوع",
+      "allTypes": "كل الأنواع",
+      "oneOff": "لمرة واحدة",
+      "recurring": "متكرر",
+      "active": "جداول نشطة",
+      "paused": "جداول متوقفة مؤقتًا",
+      "ended": "جداول منتهية"
     },
     "export": "تصدير CSV",
     "exporting": "جارٍ تجهيز الملف…",
@@ -367,7 +375,10 @@
       "date": "تاريخ المصروف",
       "vendor": "المورّد / المستلم",
       "method": "طريقة الدفع",
-      "actions": "الإجراءات"
+      "actions": "الإجراءات",
+      "type": "النوع",
+      "dateSchedule": "التاريخ / الجدول",
+      "status": "الحالة"
     },
     "sortBy": "ترتيب حسب {column}",
     "showingRange": "عرض {from}–{to} من {total}",
@@ -436,7 +447,172 @@
       "vendor": "المورّد / المستلم",
       "description": "الوصف / ملاحظات",
       "created": "تاريخ الإنشاء",
-      "updated": "آخر تحديث"
+      "updated": "آخر تحديث",
+      "type": "النوع"
+    },
+    "kind": {
+      "label": "نوع المصروف",
+      "oneOff": "لمرة واحدة",
+      "oneOffHint": "مصروف واحد في تاريخ محدد",
+      "recurring": "متكرر",
+      "recurringHint": "يتكرر تلقائيًا وفق جدول"
+    },
+    "frequency": {
+      "weekly": "أسبوعي",
+      "monthly": "شهري",
+      "quarterly": "ربع سنوي",
+      "yearly": "سنوي"
+    },
+    "occurrenceStatus": {
+      "upcoming": "قادم",
+      "recorded": "مسجّل",
+      "scheduled": "قادم (معدّل)",
+      "skipped": "تم تخطيه",
+      "cancelled": "ملغى"
+    },
+    "scheduleStatus": {
+      "active": "نشط",
+      "paused": "متوقف مؤقتًا",
+      "ended": "منتهٍ"
+    },
+    "tabs": {
+      "expenses": "المصروفات",
+      "schedules": "المصروفات المتكررة",
+      "upcoming": "القادمة"
+    },
+    "recurring": {
+      "typeLabel": "متكرر · {frequency}",
+      "scheduleWeekly": "{count, plural, =1 {كل أسبوع} other {كل # أسابيع}} يوم {day}",
+      "scheduleMonthly": "{count, plural, =1 {كل شهر} other {كل # أشهر}} في اليوم {day}",
+      "scheduleQuarterly": "{count, plural, =1 {كل ربع سنة} other {كل # أرباع}} في اليوم {day}",
+      "scheduleYearly": "{count, plural, =1 {كل سنة} other {كل # سنوات}} في {day} {month}",
+      "next": "التالي: {date}",
+      "noNext": "لا يوجد تكرار قادم",
+      "scheduleSection": "الجدول",
+      "frequency": "التكرار",
+      "interval": "يتكرر كل",
+      "intervalUnit": {
+        "weekly": "{count, plural, =1 {أسبوع} other {أسابيع}}",
+        "monthly": "{count, plural, =1 {شهر} other {أشهر}}",
+        "quarterly": "{count, plural, =1 {ربع سنة} other {أرباع}}",
+        "yearly": "{count, plural, =1 {سنة} other {سنوات}}"
+      },
+      "intervalHint": "1 = كل فترة، 2 = فترة بعد فترة، …",
+      "weekday": "يوم الأسبوع",
+      "dayOfMonth": "يوم الشهر",
+      "month": "الشهر",
+      "dayHint": "إذا كان الشهر أقصر (مثل يوم 31 في أبريل أو فبراير)، يُسجَّل المصروف في آخر يوم من ذلك الشهر.",
+      "yearlyFebHint": "يوم 29 فبراير يُسجَّل في 28 فبراير في السنوات غير الكبيسة.",
+      "quarterHint": "يتكرر كل 3 أشهر بدءًا من شهر تاريخ البداية.",
+      "startDate": "تاريخ البداية",
+      "startHint": "أول تكرار هو أول يوم مجدول في هذا التاريخ أو بعده.",
+      "startPastHint": "سيتم تسجيل التكرارات من هذا التاريخ حتى اليوم الآن.",
+      "effectiveFrom": "تطبيق التغييرات بدءًا من",
+      "effectiveHint": "تبقى التكرارات قبل هذا التاريخ كما سُجّلت تمامًا. ينتهي الجدول الحالي في اليوم السابق ويبدأ جدول جديد في هذا التاريخ.",
+      "endDate": "تاريخ الانتهاء",
+      "endHint": "اختياري — اتركه فارغًا لجدول مستمر.",
+      "errors": {
+        "intervalInvalid": "أدخل رقمًا صحيحًا من 1 إلى 99.",
+        "endBeforeStart": "يجب ألا يكون تاريخ الانتهاء قبل تاريخ البداية.",
+        "startInPast": "يمكن تطبيق التغييرات من اليوم فصاعدًا فقط.",
+        "startTooOld": "لا يمكن أن يكون تاريخ البداية قبل أكثر من سنة.",
+        "dayInvalid": "اختر يومًا صالحًا.",
+        "monthInvalid": "اختر شهرًا.",
+        "dayNotInMonth": "هذا الشهر لا يحتوي على هذا اليوم."
+      },
+      "saveNew": "إضافة مصروف متكرر",
+      "saveSchedule": "حفظ الجدول",
+      "editScheduleTitle": "تعديل المصروف المتكرر",
+      "editOccurrenceTitle": "تعديل تكرار يوم {date}",
+      "editOccurrenceHint": "يتغير هذا التكرار فقط. يبقى الجدول وباقي التكرارات كما هي.",
+      "upcomingNotCounted": "لا تُحتسب التكرارات القادمة ضمن المصروفات الفعلية حتى يحين موعدها.",
+      "toast": {
+        "created": "تمت إضافة المصروف المتكرر",
+        "updated": "تم تحديث الجدول",
+        "occurrenceUpdated": "تم تحديث التكرار",
+        "paused": "تم إيقاف الجدول مؤقتًا",
+        "resumed": "تم استئناف الجدول",
+        "ended": "تم إنهاء الجدول",
+        "skipped": "تم تخطي التكرار",
+        "cancelled": "تم إلغاء التكرار",
+        "actionFailed": "تعذّر تحديث الجدول"
+      },
+      "detailsTitle": "مصروف متكرر",
+      "viewSchedule": "عرض الجدول",
+      "editSchedule": "تعديل الجدول",
+      "pause": "إيقاف مؤقت",
+      "resume": "استئناف",
+      "end": "إنهاء الجدول",
+      "skip": "تخطٍّ",
+      "ongoing": "مستمر",
+      "currency": "العملة",
+      "nextOccurrence": "التكرار التالي",
+      "upcomingTitle": "التكرارات القادمة",
+      "historyTitle": "سجل التكرارات",
+      "historyEmpty": "لم يُسجَّل شيء بعد.",
+      "auditTitle": "النشاط",
+      "auditSystem": "النظام",
+      "historyCol": {
+        "scheduled": "التاريخ المجدول",
+        "amount": "المبلغ",
+        "status": "الحالة",
+        "recorded": "تاريخ التسجيل"
+      },
+      "continuedBy": "تم استبدال هذا الجدول بنسخة معدّلة.",
+      "openNew": "فتح النسخة الجديدة",
+      "continues": "يكمل نسخة سابقة من هذا الجدول.",
+      "openPrevious": "فتح النسخة السابقة",
+      "events": {
+        "created": "تم الإنشاء",
+        "updated": "تم التعديل",
+        "split": "تم التعديل بدءًا من {date}",
+        "paused": "تم الإيقاف المؤقت",
+        "resumed": "تم الاستئناف",
+        "ended": "تم الإنهاء",
+        "auto_ended": "انتهى (بلغ تاريخ الانتهاء)",
+        "occurrence_edited": "تم تعديل تكرار {date}",
+        "occurrence_skipped": "تم تخطي تكرار {date}",
+        "occurrence_cancelled": "تم إلغاء تكرار {date}"
+      },
+      "editChoice": {
+        "title": "تعديل مصروف متكرر",
+        "body": "هذا المصروف جزء من جدول متكرر. ماذا تريد أن تغيّر؟",
+        "this": "هذا التكرار فقط",
+        "thisHint": "تغيير هذا المصروف فقط. لا يتأثر الجدول ولا باقي التكرارات.",
+        "future": "هذا التكرار والتكرارات القادمة",
+        "futureHint": "تحديث الجدول بدءًا من تاريخ معيّن. تبقى المصروفات المسجّلة سابقًا كما هي."
+      },
+      "deleteChoice": {
+        "title": "إزالة مصروف متكرر؟",
+        "body": "«{title}» ({amount}) جزء من جدول متكرر.",
+        "this": "إلغاء هذا التكرار فقط",
+        "thisHint": "يبقى في سجل الجدول لكنه لا يُحتسب في الإجماليات.",
+        "end": "إنهاء الجدول المتكرر",
+        "endHint": "لن تكون هناك تكرارات أخرى. تبقى المصروفات المسجّلة."
+      },
+      "confirm": {
+        "endTitle": "إنهاء هذا الجدول؟",
+        "endBody": "سيتوقف تكرار «{title}» بدءًا من اليوم. تبقى المصروفات المسجّلة.",
+        "endConfirm": "إنهاء الجدول",
+        "pauseTitle": "إيقاف هذا الجدول مؤقتًا؟",
+        "pauseBody": "لن تُسجَّل تكرارات جديدة أثناء الإيقاف. عند الاستئناف، لا تُسجَّل التواريخ التي مرّت أثناء الإيقاف.",
+        "pauseConfirm": "إيقاف الجدول",
+        "skipTitle": "تخطي هذا التكرار؟",
+        "skipBody": "لن يُسجَّل تكرار «{title}» بتاريخ {date}.",
+        "skipConfirm": "تخطي التكرار",
+        "cancelTitle": "إلغاء هذا التكرار؟",
+        "cancelBody": "لن يُحتسب «{title}» بتاريخ {date} ({amount}) في الإجماليات. يبقى في سجل الجدول.",
+        "cancelConfirm": "إلغاء التكرار"
+      },
+      "schedulesEmpty": "لا توجد مصروفات متكررة بعد",
+      "schedulesEmptyHint": "أضف الإيجار أو الرواتب أو الإنترنت أو أي تكاليف متكررة مرة واحدة وسيتم تسجيلها تلقائيًا.",
+      "statusFilter": "الحالة",
+      "allStatuses": "كل الحالات",
+      "recordedSoFar": "{count, plural, =0 {لم يُسجَّل شيء بعد} =1 {تكرار مسجّل واحد · {total}} other {# تكرارات مسجّلة · {total}}}",
+      "upcomingWindow": "الـ {days} يومًا القادمة",
+      "upcomingEmpty": "لا توجد مصروفات متكررة قادمة في هذه الفترة",
+      "upcomingTotal": "الإجمالي المجدول: {total}",
+      "edited": "معدّل"
     }
   }
 }

@@ -29,6 +29,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PaymentConfigController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PaymobController;
 use App\Http\Controllers\ProductController;
@@ -335,6 +336,17 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\RequireGymId::class, \Ap
     Route::get('/expenses', [ExpenseController::class, 'index'])->middleware('permission:payments,view');
     Route::get('/expenses/summary', [ExpenseController::class, 'summary'])->middleware('permission:payments,view');
     Route::get('/expenses/export', [ExpenseController::class, 'export'])->middleware('permission:payments,view');
+    // Recurring expense schedules (occurrences are /expenses rows).
+    Route::get('/expenses/upcoming', [RecurringExpenseController::class, 'upcoming'])->middleware('permission:payments,view');
+    Route::get('/expenses/recurring', [RecurringExpenseController::class, 'index'])->middleware('permission:payments,view');
+    Route::get('/expenses/recurring/{id}', [RecurringExpenseController::class, 'show'])->middleware('permission:payments,view');
+    Route::post('/expenses/recurring', [RecurringExpenseController::class, 'store'])->middleware('permission:payments,create');
+    Route::put('/expenses/recurring/{id}', [RecurringExpenseController::class, 'update'])->middleware('permission:payments,edit');
+    Route::post('/expenses/recurring/{id}/pause', [RecurringExpenseController::class, 'pause'])->middleware('permission:payments,edit');
+    Route::post('/expenses/recurring/{id}/resume', [RecurringExpenseController::class, 'resume'])->middleware('permission:payments,edit');
+    Route::post('/expenses/recurring/{id}/end', [RecurringExpenseController::class, 'end'])->middleware('permission:payments,delete');
+    Route::put('/expenses/recurring/{id}/occurrences/{date}', [RecurringExpenseController::class, 'editOccurrence'])->middleware('permission:payments,edit');
+    Route::post('/expenses/recurring/{id}/occurrences/{date}/skip', [RecurringExpenseController::class, 'skipOccurrence'])->middleware('permission:payments,delete');
     Route::get('/expenses/{id}', [ExpenseController::class, 'show'])->middleware('permission:payments,view');
     Route::post('/expenses', [ExpenseController::class, 'store'])->middleware('permission:payments,create');
     Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('permission:payments,edit');
